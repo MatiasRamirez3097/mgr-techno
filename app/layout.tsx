@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SessionProviderWrapper } from "@/components/layout/SessionProviderWrapper";
 import { HydrationProvider } from "@/components/layout/HydrationProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { CartDrawerProvider } from "@/components/layout/CartDrawerProvider";
@@ -28,12 +29,14 @@ export default function RootLayout({
     return (
         <html lang="es">
             <body>
-                <HydrationProvider>
-                    <CartDrawerProvider>
-                        <Navbar />
-                        <main>{children}</main>
-                    </CartDrawerProvider>
-                </HydrationProvider>
+                <SessionProviderWrapper>
+                    <HydrationProvider>
+                        <CartDrawerProvider>
+                            <Navbar />
+                            <main>{children}</main>
+                        </CartDrawerProvider>
+                    </HydrationProvider>
+                </SessionProviderWrapper>
             </body>
         </html>
     );
