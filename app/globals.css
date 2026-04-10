@@ -5,6 +5,13 @@
     --foreground: #171717;
 }
 
+@theme {
+    --color-brand: #d06823;
+    --title-color: #ededed;
+    --price-color: #ededed;
+    --stock-color: #ededed;
+}
+
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);

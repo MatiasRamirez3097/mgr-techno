@@ -10,6 +10,7 @@ type CartStore = {
     items: CartItem[];
     addToCart: (product: Product) => void;
     removeFromCart: (id: string) => void;
+    updateQuantity: (id: string, quantity: number) => void; // 👈
     clearCart: () => void;
     getTotalItems: () => number; // 👈 útil para el badge del carrito
     getTotalPrice: () => number; // 👈 útil para el checkout
@@ -53,6 +54,15 @@ export const useCart = create<CartStore>()(
 
             getTotalPrice: () =>
                 get().items.reduce((acc, i) => acc + i.price * i.quantity, 0),
+            updateQuantity: (id, quantity) =>
+                set((state) => ({
+                    items:
+                        quantity <= 0
+                            ? state.items.filter((i) => i.id !== id)
+                            : state.items.map((i) =>
+                                  i.id === id ? { ...i, quantity } : i,
+                              ),
+                })),
         }),
         {
             name: "mgr-cart",

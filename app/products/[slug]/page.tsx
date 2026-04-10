@@ -30,13 +30,13 @@ export default async function ProductPage({ params }: Props) {
 
                 {/* Info */}
                 <div className="flex flex-col gap-4">
-                    <h1 className="text-2xl font-bold text-gray-900">
+                    <h1 className="text-2xl font-bold title-color">
                         {product.name}
                     </h1>
 
                     {/* Precio */}
                     <div className="flex items-center gap-3">
-                        <span className="text-2xl font-bold text-gray-900">
+                        <span className="text-2xl font-bold price-color">
                             ${product.price.toLocaleString("es-AR")}
                         </span>
                         {product.onSale && (
@@ -55,9 +55,13 @@ export default async function ProductPage({ params }: Props) {
                     />
 
                     {/* Stock */}
-                    {product.stock === 0 && (
-                        <p className="text-sm text-red-500 font-medium">
+                    {product.stock === 0 ? (
+                        <p className="text-sm text-red-500 font-medium stock-color">
                             Sin stock
+                        </p>
+                    ) : (
+                        <p className="text-sm text-red-300 font-medium stock-color">
+                            {product.stock} unidades disponibles
                         </p>
                     )}
 
