@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { WOO_HEADERS } from "@/lib/woo";
 
-const handler = NextAuth({
+export const authOptions = {
     providers: [
         CredentialsProvider({
             name: "WooCommerce",
@@ -12,7 +12,6 @@ const handler = NextAuth({
             },
             async authorize(credentials) {
                 try {
-                    // 1. JWT token
                     const res = await fetch(
                         `${process.env.WOO_URL}/wp-json/jwt-auth/v1/token`,
                         {
@@ -28,7 +27,6 @@ const handler = NextAuth({
                     const data = await res.json();
                     if (!res.ok || !data.token) return null;
 
-                    // 2. Datos del customer incluyendo metadata
                     const userRes = await fetch(
                         `${process.env.WOO_URL}/wp-json/wc/v3/customers?email=${credentials?.username}&_fields=id,billing,meta_data`,
                         { headers: WOO_HEADERS },
@@ -36,7 +34,6 @@ const handler = NextAuth({
                     const users = await userRes.json();
                     const customer = users?.[0];
 
-                    // 3. Extraer campos custom del meta_data
                     const meta = customer?.meta_data || [];
                     const getMeta = (key: string) =>
                         meta.find((m: any) => m.key === key)?.value || "";
@@ -48,8 +45,8 @@ const handler = NextAuth({
                         token: data.token,
                         customerId: customer?.id || null,
                         billing: customer?.billing || null,
-                        tipoDocumento: getMeta("_billing_tipo_documento"),
-                        numeroDocumento: getMeta("_billing_numero_documento"),
+                        tipoDocumento: getMeta("billing_tipo_documento"),
+                        numeroDocumento: getMeta("billing_numero_documento"),
                     };
                 } catch (e) {
                     console.log(">>> authorize error:", e);
@@ -60,12 +57,13 @@ const handler = NextAuth({
     ],
     callbacks: {
         async jwt({ token, user }: any) {
+            console.log(token);
             if (user) {
                 token.accessToken = user.token;
                 token.customerId = user.customerId;
                 token.billing = user.billing;
-                token.tipoDocumento = user.tipoDocumento; // 👈
-                token.numeroDocumento = user.numeroDocumento; // 👈
+                token.tipoDocumento = user.tipoDocumento;
+                token.numeroDocumento = user.numeroDocumento;
             }
             return token;
         },
@@ -73,8 +71,13 @@ const handler = NextAuth({
             session.accessToken = token.accessToken;
             session.customerId = token.customerId;
             session.billing = token.billing;
-            session.tipoDocumento = token.tipoDocumento; // 👈
-            session.numeroDocumento = token.numeroDocumento; // 👈
+            session.tipoDocumento = token.tipoDocumento;
+            session.numeroDocumento = token.numeroDocumento;
+            session.user = {
+                ...session.user,
+                name: token.name,
+                email: token.email,
+            };
             return session;
         },
     },
@@ -82,8 +85,10 @@ const handler = NextAuth({
         signIn: "/login",
     },
     session: {
-        strategy: "jwt",
+        strategy: "jwt" as const,
     },
-});
+    secret: process.env.NEXTAUTH_SECRET,
+};
 
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

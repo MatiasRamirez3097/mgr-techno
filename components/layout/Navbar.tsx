@@ -4,6 +4,7 @@ import { getCategories } from "@/lib/products";
 import { SearchBar } from "./SearchBar";
 import { CartButton } from "./CartButton";
 import { CategoryMenu } from "./CategoryMenu";
+import { UserMenu } from "./UserMenu";
 
 export async function Navbar() {
     const categories = await getCategories();
@@ -21,6 +22,7 @@ export async function Navbar() {
                 <div className="flex-1 max-w-xl">
                     <SearchBar />
                 </div>
+                <UserMenu />
                 <div className="ml-auto shrink-0">
                     <CartButton />
                 </div>

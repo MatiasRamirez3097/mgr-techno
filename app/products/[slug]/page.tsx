@@ -2,6 +2,7 @@ import { getProductBySlug } from "@/lib/products";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { AddToCartButton } from "@/components/product/AddToCartButton";
+import { ProductGallery } from "@/components/product/ProductGallery";
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -19,14 +20,7 @@ export default async function ProductPage({ params }: Props) {
         <main className="max-w-5xl mx-auto px-4 py-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 {/* Imagen */}
-                <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-50">
-                    <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                    />
-                </div>
+                <ProductGallery images={product.images} name={product.name} />
 
                 {/* Info */}
                 <div className="flex flex-col gap-4">

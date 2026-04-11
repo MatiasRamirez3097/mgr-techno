@@ -5,6 +5,7 @@ export interface Product {
     regularPrice: number;
     onSale: boolean;
     image: string;
+    images: string[];
     stock: number;
     slug: string;
     shortDescription: string;

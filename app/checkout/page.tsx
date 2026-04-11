@@ -1,10 +1,10 @@
-// app/checkout/page.tsx
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 
 export default async function CheckoutPage() {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
 
     if (!session) redirect("/login?next=/checkout");
 

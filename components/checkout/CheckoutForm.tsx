@@ -65,6 +65,7 @@ export function CheckoutForm({ session }: Props) {
     const billing = (session as any).billing;
     const tipoDocumento = (session as any).tipoDocumento;
     const numeroDocumento = (session as any).numeroDocumento;
+    console.log(">>> session completa:", JSON.stringify(session, null, 2));
 
     const [form, setForm] = useState({
         first_name: billing?.first_name || "",

@@ -17,6 +17,7 @@ function mapProduct(p: any): Product {
         regularPrice: parseFloat(p.regular_price || "0"),
         onSale: p.on_sale,
         image: p.images?.[0]?.src || "",
+        images: p.images?.map((img: any) => img.src) || [],
         stock: p.stock_quantity,
         slug: p.slug,
         shortDescription: p.short_description || "",
