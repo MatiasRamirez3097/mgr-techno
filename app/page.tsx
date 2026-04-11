@@ -1,10 +1,42 @@
-import Image from "next/image";
+import {
+    getOnSaleProducts,
+    getNewProducts,
+    getCategoriesWithImages,
+} from "@/lib/products";
+import { HeroCarousel } from "@/components/home/HeroCarousel";
+import { CategoryGrid } from "@/components/home/CategoryGrid";
+import { ProductRow } from "@/components/home/ProductRow";
 
-export default function Home() {
+export default async function HomePage() {
+    const [onSale, newProducts, categories] = await Promise.all([
+        getOnSaleProducts(8),
+        getNewProducts(8),
+        getCategoriesWithImages(),
+    ]);
+
     return (
-        <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-            <h1>MGR Techno</h1>
-            <a href="/cart">Ir al carrito</a>
-        </main>
+        <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col gap-14">
+            {/* Hero */}
+            <HeroCarousel />
+
+            {/* Categorías */}
+            <CategoryGrid categories={categories} />
+
+            {/* Productos en oferta */}
+            <ProductRow
+                title="🔥 Ofertas"
+                products={onSale}
+                href="/products?on_sale=true"
+                linkLabel="Ver todas las ofertas"
+            />
+
+            {/* Productos nuevos */}
+            <ProductRow
+                title="✨ Novedades"
+                products={newProducts}
+                href="/products"
+                linkLabel="Ver todos"
+            />
+        </div>
     );
 }

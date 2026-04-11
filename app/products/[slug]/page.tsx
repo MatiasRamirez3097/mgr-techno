@@ -1,8 +1,8 @@
 import { getProductBySlug } from "@/lib/products";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { AddToCartButton } from "@/components/product/AddToCartButton";
-import { ProductGallery } from "@/components/product/ProductGallery";
+import { AddToCartButton } from "@/components/products/AddToCartButton";
+import { ProductGallery } from "@/components/products/ProductGallery";
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -10,8 +10,6 @@ interface Props {
 
 export default async function ProductPage({ params }: Props) {
     const { slug } = await params;
-    console.log(">>> params:", params); // 👈 temporal
-
     const product = await getProductBySlug(slug);
 
     if (!product) notFound();

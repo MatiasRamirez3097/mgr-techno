@@ -1,5 +1,5 @@
 // lib/orders.ts
-import { WOO_HEADERS } from "./woo";
+import { WOO_HEADERS_JSON } from "./woo";
 
 interface OrderItem {
     product_id: number;
@@ -61,7 +61,7 @@ export async function createOrder(params: CreateOrderParams) {
 
     const res = await fetch(`${process.env.WOO_URL}/wp-json/wc/v3/orders`, {
         method: "POST",
-        headers: WOO_HEADERS,
+        headers: WOO_HEADERS_JSON,
         body: JSON.stringify(body),
     });
 

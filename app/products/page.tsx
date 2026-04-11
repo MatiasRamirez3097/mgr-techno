@@ -1,23 +1,26 @@
 import { getProducts } from "@/lib/products";
 import { ProductCard } from "@/components/productCard/ProductCard";
 import { Pagination } from "@/components/ui/Pagination";
+import { SortSelector } from "@/components/products/SortSelector";
 
 interface Props {
     searchParams: Promise<{
         category?: string;
         search?: string;
         page?: string;
+        orderby?: "date" | "price" | "price-desc" | "name" | "popularity";
     }>;
 }
 
 export default async function ProductosPage({ searchParams }: Props) {
-    const { category, search, page } = await searchParams;
+    const { category, search, page, orderby } = await searchParams;
     const currentPage = parseInt(page || "1");
 
     const { products, totalPages, total } = await getProducts({
         category,
         search,
         page: currentPage,
+        orderby,
     });
 
     const title = search
@@ -26,19 +29,21 @@ export default async function ProductosPage({ searchParams }: Props) {
           ? category.replace(/-/g, " ")
           : "Todos los productos";
 
-    // Construir base path manteniendo los filtros activos
     const basePath = new URLSearchParams();
     if (category) basePath.set("category", category);
     if (search) basePath.set("search", search);
-    const baseUrl = `/products?${basePath.toString()}`;
+    if (orderby) basePath.set("orderby", orderby);
 
     return (
         <main className="max-w-6xl mx-auto px-4 py-10">
-            <div className="flex items-baseline justify-between mb-8">
-                <h1 className="text-2xl font-bold capitalize">{title}</h1>
-                <p className="text-sm text-gray-400">
-                    {total} producto{total !== 1 ? "s" : ""}
-                </p>
+            <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+                <div>
+                    <h1 className="text-2xl font-bold capitalize">{title}</h1>
+                    <p className="text-sm text-gray-400 mt-1">
+                        {total} producto{total !== 1 ? "s" : ""}
+                    </p>
+                </div>
+                <SortSelector />
             </div>
 
             {products.length === 0 ? (
@@ -55,11 +60,10 @@ export default async function ProductosPage({ searchParams }: Props) {
                             <ProductCard key={product.id} product={product} />
                         ))}
                     </div>
-
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
-                        basePath={baseUrl}
+                        basePath={`/products?${basePath.toString()}`}
                     />
                 </>
             )}

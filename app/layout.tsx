@@ -5,6 +5,7 @@ import { SessionProviderWrapper } from "@/components/layout/SessionProviderWrapp
 import { HydrationProvider } from "@/components/layout/HydrationProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { CartDrawerProvider } from "@/components/layout/CartDrawerProvider";
+import { Footer } from "@/components/layout/Footer";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
                         <CartDrawerProvider>
                             <Navbar />
                             <main>{children}</main>
+                            <Footer />
                         </CartDrawerProvider>
                     </HydrationProvider>
                 </SessionProviderWrapper>
