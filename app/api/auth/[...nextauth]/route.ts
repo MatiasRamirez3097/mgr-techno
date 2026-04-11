@@ -38,6 +38,12 @@ export const authOptions = {
                     const getMeta = (key: string) =>
                         meta.find((m: any) => m.key === key)?.value || "";
 
+                    const wpUserRes = await fetch(
+                        `${process.env.WOO_URL}/wp-json/wp/v2/users/me`,
+                        { headers: { Authorization: `Bearer ${data.token}` } },
+                    );
+                    const wpUser = await wpUserRes.json();
+
                     return {
                         id: String(customer?.id || data.user_nicename),
                         name: data.user_display_name,
@@ -47,6 +53,7 @@ export const authOptions = {
                         billing: customer?.billing || null,
                         tipoDocumento: getMeta("billing_tipo_documento"),
                         numeroDocumento: getMeta("billing_numero_documento"),
+                        role: wpUser.roles?.[0] || "customer",
                     };
                 } catch (e) {
                     console.log(">>> authorize error:", e);
@@ -64,6 +71,7 @@ export const authOptions = {
                 token.billing = user.billing;
                 token.tipoDocumento = user.tipoDocumento;
                 token.numeroDocumento = user.numeroDocumento;
+                token.role = user.role;
             }
             return token;
         },
@@ -78,6 +86,7 @@ export const authOptions = {
                 name: token.name,
                 email: token.email,
             };
+            session.role = token.role;
             return session;
         },
     },
