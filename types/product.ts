@@ -3,6 +3,7 @@ export interface Product {
     name: string;
     price: number;
     regularPrice: number;
+    regularListPrice: number;
     onSale: boolean;
     image: string;
     images: string[];
