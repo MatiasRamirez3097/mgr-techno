@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 
 interface Props {
     placeholder: string;
-    searchKey?: string; // por defecto "search"
+    searchKey?: string;
 }
 
 export function AdminSearch({ placeholder, searchKey = "search" }: Props) {
@@ -13,10 +13,10 @@ export function AdminSearch({ placeholder, searchKey = "search" }: Props) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [value, setValue] = useState(searchParams.get(searchKey) || "");
-    const debounceRef = useRef<NodeJS.Timeout>();
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        clearTimeout(debounceRef.current);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
             const params = new URLSearchParams(searchParams.toString());
             if (value.trim()) {
