@@ -1,5 +1,5 @@
 // app/api/checkout/route.ts
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { createOrder } from "@/lib/orders";
 import { NextRequest } from "next/server";
 

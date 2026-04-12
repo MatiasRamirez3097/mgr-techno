@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { updateProduct, deleteProduct } from "@/lib/admin-products";
 import { NextRequest } from "next/server";
