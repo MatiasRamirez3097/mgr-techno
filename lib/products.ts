@@ -20,10 +20,17 @@ interface ProductFilters {
 const PAGE_SIZE = 16;
 
 function mapProduct(p: any): Product {
+    const price = parseFloat(p.price || "0");
+    const listPrice = Math.round(price * 1.1);
+    const priceNoTax =
+        parseFloat(p.price_excl_tax || "0") || Math.round(price / 1.21);
+
     return {
         id: p.id.toString(),
         name: p.name,
-        price: parseFloat(p.price || "0"),
+        price,
+        listPrice,
+        priceNoTax,
         regularPrice: parseFloat(p.regular_price || "0"),
         onSale: p.on_sale,
         image: p.images?.[0]?.src || "",

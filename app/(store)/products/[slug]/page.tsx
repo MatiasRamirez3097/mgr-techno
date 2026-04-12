@@ -27,15 +27,52 @@ export default async function ProductPage({ params }: Props) {
                     </h1>
 
                     {/* Precio */}
-                    <div className="flex items-center gap-3">
-                        <span className="text-2xl font-bold price-color">
-                            ${product.price.toLocaleString("es-AR")}
-                        </span>
-                        {product.onSale && (
-                            <span className="text-lg text-gray-400 line-through">
-                                ${product.regularPrice.toLocaleString("es-AR")}
+                    <div className="flex flex-col gap-2">
+                        {/* Precio especial */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm text-brand font-medium w-28">
+                                Precio especial:
                             </span>
-                        )}
+                            <div className="flex items-center gap-3">
+                                {product.onSale && (
+                                    <span className="text-base text-gray-500 line-through">
+                                        $
+                                        {product.regularPrice.toLocaleString(
+                                            "es-AR",
+                                        )}
+                                    </span>
+                                )}
+                                <span className="text-3xl font-bold text-white">
+                                    ${product.price.toLocaleString("es-AR")}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Precio de lista */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-400 w-28">
+                                Precio de lista:
+                            </span>
+                            <div className="flex items-center gap-2">
+                                {product.onSale && (
+                                    <span className="text-sm text-gray-500 line-through">
+                                        $
+                                        {product.regularListPrice.toLocaleString(
+                                            "es-AR",
+                                        )}
+                                    </span>
+                                )}
+                                <span className="text-sm text-gray-300">
+                                    ${product.listPrice.toLocaleString("es-AR")}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Precio sin impuestos */}
+                        <p className="text-xs text-gray-600 mt-1">
+                            Precio sin impuestos nacionales: $
+                            {product.priceNoTax.toLocaleString("es-AR")}
+                        </p>
                     </div>
 
                     {/* Descripción (viene como HTML de Woo) */}

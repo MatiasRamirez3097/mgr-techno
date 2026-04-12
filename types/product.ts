@@ -3,6 +3,9 @@ export interface Product {
     name: string;
     price: number;
     regularPrice: number;
+    listPrice: number;
+    regularListPrice: number;
+    priceNoTax: number;
     onSale: boolean;
     image: string;
     images: string[];
