@@ -1,5 +1,5 @@
-import { WOO_HEADERS } from "./woo";
 import { Product } from "@/types/product";
+import { WOO_HEADERS } from "./woo";
 
 export interface Category {
     id: number;
@@ -58,7 +58,10 @@ const getWooOrder = (orderby?: string) => {
 async function getCategoryIdBySlug(slug: string): Promise<number | null> {
     const res = await fetch(
         `${process.env.WOO_URL}/wp-json/wc/v3/products/categories?slug=${slug}`,
-        { headers: WOO_HEADERS, cache: "no-store" },
+        {
+            headers: WOO_HEADERS,
+            next: { revalidate: 3600 }, // las categorías cambian poco
+        },
     );
     const data = (await res.json()) as any[];
     return data.length ? data[0].id : null;
@@ -90,14 +93,20 @@ export async function getProducts(filters: ProductFilters = {}): Promise<{
     }
     if (categoryId) filters.categoryId = categoryId;
 
+    // Si hay búsqueda o filtros activos no cacheamos — los resultados son dinámicos
+    const fetchOptions =
+        filters.search || filters.category
+            ? { headers: WOO_HEADERS, cache: "no-store" as const }
+            : { headers: WOO_HEADERS, next: { revalidate: 300 } }; // 5 minutos sin filtros
+
     const [resInStock, resOutOfStock] = await Promise.all([
         fetch(
             `${process.env.WOO_URL}/wp-json/wc/v3/products?${buildParams("instock")}`,
-            { headers: WOO_HEADERS, cache: "no-store" },
+            fetchOptions,
         ),
         fetch(
             `${process.env.WOO_URL}/wp-json/wc/v3/products?${buildParams("outofstock")}`,
-            { headers: WOO_HEADERS, cache: "no-store" },
+            fetchOptions,
         ),
     ]);
 
@@ -125,7 +134,10 @@ export async function getProducts(filters: ProductFilters = {}): Promise<{
 export async function getProductBySlug(slug: string): Promise<Product | null> {
     const res = await fetch(
         `${process.env.WOO_URL}/wp-json/wc/v3/products?slug=${slug}`,
-        { headers: WOO_HEADERS, cache: "no-store" },
+        {
+            headers: WOO_HEADERS,
+            next: { revalidate: 300 }, // 5 minutos
+        },
     );
     const data = (await res.json()) as any[];
     if (!data.length) return null;
@@ -135,7 +147,10 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 export async function getOnSaleProducts(limit = 8): Promise<Product[]> {
     const res = await fetch(
         `${process.env.WOO_URL}/wp-json/wc/v3/products?on_sale=true&per_page=${limit}&stock_status=instock&orderby=date&order=desc`,
-        { headers: WOO_HEADERS, cache: "no-store" },
+        {
+            headers: WOO_HEADERS,
+            next: { revalidate: 600 }, // 10 minutos
+        },
     );
     const data = (await res.json()) as any[];
     return data.map(mapProduct);
@@ -144,7 +159,10 @@ export async function getOnSaleProducts(limit = 8): Promise<Product[]> {
 export async function getNewProducts(limit = 8): Promise<Product[]> {
     const res = await fetch(
         `${process.env.WOO_URL}/wp-json/wc/v3/products?per_page=${limit}&stock_status=instock&orderby=date&order=desc`,
-        { headers: WOO_HEADERS, cache: "no-store" },
+        {
+            headers: WOO_HEADERS,
+            next: { revalidate: 600 }, // 10 minutos
+        },
     );
     const data = (await res.json()) as any[];
     return data.map(mapProduct);
@@ -153,7 +171,10 @@ export async function getNewProducts(limit = 8): Promise<Product[]> {
 export async function getCategories(): Promise<Category[]> {
     const res = await fetch(
         `${process.env.WOO_URL}/wp-json/wc/v3/products/categories?per_page=100&hide_empty=true`,
-        { headers: WOO_HEADERS, cache: "no-store" },
+        {
+            headers: WOO_HEADERS,
+            next: { revalidate: 3600 }, // 1 hora
+        },
     );
     const data = (await res.json()) as any[];
     return data
@@ -170,7 +191,10 @@ export async function getCategories(): Promise<Category[]> {
 export async function getCategoriesWithImages(): Promise<Category[]> {
     const res = await fetch(
         `${process.env.WOO_URL}/wp-json/wc/v3/products/categories?per_page=20&hide_empty=true&parent=0`,
-        { headers: WOO_HEADERS, cache: "no-store" },
+        {
+            headers: WOO_HEADERS,
+            next: { revalidate: 3600 }, // 1 hora
+        },
     );
     const data = (await res.json()) as any[];
     return data

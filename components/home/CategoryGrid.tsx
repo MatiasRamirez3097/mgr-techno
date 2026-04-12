@@ -30,8 +30,8 @@ export function CategoryGrid({ categories }: { categories: Category[] }) {
                                 <Image
                                     src={cat.image}
                                     alt={cat.name}
-                                    width={56}
-                                    height={56}
+                                    fill
+                                    sizes="56px"
                                     className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
                                 />
                             ) : (

@@ -22,6 +22,7 @@ export function ProductGallery({
                     src={images[selected]}
                     alt={name}
                     fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover transition-opacity duration-200"
                 />
             </div>
@@ -43,6 +44,7 @@ export function ProductGallery({
                                 src={src}
                                 alt={`${name} ${i + 1}`}
                                 fill
+                                sizes="64px"
                                 className="object-cover"
                             />
                         </button>

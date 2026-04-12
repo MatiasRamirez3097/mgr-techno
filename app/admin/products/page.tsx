@@ -132,6 +132,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                                                         }
                                                         alt={product.name}
                                                         fill
+                                                        sizes="40px"
                                                         className="object-cover"
                                                     />
                                                 )}

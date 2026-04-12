@@ -102,6 +102,7 @@ export function CartDrawer({ open, onClose }: Props) {
                                         src={item.image}
                                         alt={item.name}
                                         fill
+                                        sizes="80px"
                                         className="object-cover"
                                     />
                                 </div>
