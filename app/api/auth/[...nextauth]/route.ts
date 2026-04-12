@@ -12,6 +12,7 @@ export const authOptions = {
             },
             async authorize(credentials) {
                 try {
+                    // 1. JWT token
                     const res = await fetch(
                         `${process.env.WOO_URL}/wp-json/jwt-auth/v1/token`,
                         {
@@ -27,33 +28,37 @@ export const authOptions = {
                     const data = await res.json();
                     if (!res.ok || !data.token) return null;
 
-                    const userRes = await fetch(
-                        `${process.env.WOO_URL}/wp-json/wc/v3/customers?email=${credentials?.username}&_fields=id,billing,meta_data`,
+                    // 2. Datos del usuario con rol (endpoint propio)
+                    const meRes = await fetch(
+                        `${process.env.WOO_URL}/wp-json/mgr/v1/me`,
+                        {
+                            headers: { Authorization: `Bearer ${data.token}` },
+                        },
+                    );
+                    const me = await meRes.json();
+                    console.log(">>> me:", JSON.stringify(me, null, 2));
+
+                    // 3. Datos del customer de WooCommerce
+                    const customerRes = await fetch(
+                        `${process.env.WOO_URL}/wp-json/wc/v3/customers/${me.id}?_fields=id,billing,meta_data`,
                         { headers: WOO_HEADERS },
                     );
-                    const users = await userRes.json();
-                    const customer = users?.[0];
+                    const customer = await customerRes.json();
 
                     const meta = customer?.meta_data || [];
                     const getMeta = (key: string) =>
                         meta.find((m: any) => m.key === key)?.value || "";
 
-                    const wpUserRes = await fetch(
-                        `${process.env.WOO_URL}/wp-json/wp/v2/users/me`,
-                        { headers: { Authorization: `Bearer ${data.token}` } },
-                    );
-                    const wpUser = await wpUserRes.json();
-
                     return {
-                        id: String(customer?.id || data.user_nicename),
-                        name: data.user_display_name,
-                        email: data.user_email,
+                        id: String(me.id),
+                        name: me.name,
+                        email: me.email,
                         token: data.token,
+                        role: me.roles?.[0] || "customer",
                         customerId: customer?.id || null,
                         billing: customer?.billing || null,
                         tipoDocumento: getMeta("billing_tipo_documento"),
                         numeroDocumento: getMeta("billing_numero_documento"),
-                        role: wpUser.roles?.[0] || "customer",
                     };
                 } catch (e) {
                     console.log(">>> authorize error:", e);

@@ -32,11 +32,7 @@ export default function RootLayout({
             <body>
                 <SessionProviderWrapper>
                     <HydrationProvider>
-                        <CartDrawerProvider>
-                            <Navbar />
-                            <main>{children}</main>
-                            <Footer />
-                        </CartDrawerProvider>
+                        <CartDrawerProvider>{children}</CartDrawerProvider>
                     </HydrationProvider>
                 </SessionProviderWrapper>
             </body>
