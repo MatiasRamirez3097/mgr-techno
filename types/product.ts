@@ -9,4 +9,10 @@ export interface Product {
     stock: number;
     slug: string;
     shortDescription: string;
+    weight: number;
+    dimensions: {
+        length: number;
+        width: number;
+        height: number;
+    };
 }

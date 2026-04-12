@@ -5,6 +5,7 @@ declare module "next-auth" {
         billing: any;
         tipoDocumento: string;
         numeroDocumento: string;
+        role: string;
     }
     interface Session {
         accessToken: string;
@@ -12,6 +13,7 @@ declare module "next-auth" {
         billing: any;
         tipoDocumento: string;
         numeroDocumento: string;
+        role: string;
     }
 }
 
@@ -22,5 +24,6 @@ declare module "next-auth/jwt" {
         billing: any;
         tipoDocumento: string;
         numeroDocumento: string;
+        role: string;
     }
 }

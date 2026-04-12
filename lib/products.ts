@@ -43,6 +43,12 @@ function mapProduct(p: any): Product {
         stock: p.stock_quantity,
         slug: p.slug,
         shortDescription: p.short_description || "",
+        weight: parseFloat(p.weight || "0"),
+        dimensions: {
+            length: parseFloat(p.dimensions?.length || "0"),
+            width: parseFloat(p.dimensions?.width || "0"),
+            height: parseFloat(p.dimensions?.height || "0"),
+        },
     };
 }
 

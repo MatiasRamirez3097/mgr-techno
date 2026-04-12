@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
@@ -20,13 +20,11 @@ const SHIPPING_METHODS = [
         id: "local_pickup",
         label: "Retiro en local",
         description: "Sin costo · Av. Ejemplo 1234, Rosario",
-        cost: 0,
     },
     {
         id: "andreani",
         label: "Envío por Andreani",
         description: "Ingresá tu código postal para cotizar",
-        cost: 0,
     },
 ] as const;
 
@@ -65,7 +63,6 @@ export function CheckoutForm({ session }: Props) {
     const billing = (session as any).billing;
     const tipoDocumento = (session as any).tipoDocumento;
     const numeroDocumento = (session as any).numeroDocumento;
-    console.log(">>> session completa:", JSON.stringify(session, null, 2));
 
     const [form, setForm] = useState({
         first_name: billing?.first_name || "",
@@ -85,12 +82,14 @@ export function CheckoutForm({ session }: Props) {
     const [paymentMethod, setPaymentMethod] = useState<
         "mercadopago" | "bacs" | "cod"
     >("mercadopago");
+    const [shippingCost, setShippingCost] = useState(0);
+    const [quotingShipping, setQuotingShipping] = useState(false);
+    const [shippingError, setShippingError] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     const subtotal = items.reduce((acc, i) => acc + i.price * i.quantity, 0);
-    const shippingCost = shippingMethod === "local_pickup" ? 0 : 0;
-    const total = subtotal + shippingCost;
+    const total = subtotal + (shippingMethod === "andreani" ? shippingCost : 0);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -100,9 +99,70 @@ export function CheckoutForm({ session }: Props) {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
+    const cotizarEnvio = useCallback(
+        async (postcode: string) => {
+            if (postcode.length < 4) return;
+
+            setQuotingShipping(true);
+            setShippingError("");
+            setShippingCost(0);
+
+            try {
+                const res = await fetch("/api/shipping", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        postcode,
+                        items: items.map((i) => ({
+                            weight: (i as any).weight || 0,
+                            dimensions: (i as any).dimensions || {
+                                length: 0,
+                                width: 0,
+                                height: 0,
+                            },
+                            price: i.price,
+                            quantity: i.quantity,
+                        })),
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    setShippingError(
+                        data.error || "No se pudo cotizar el envío",
+                    );
+                } else {
+                    setShippingCost(data.total);
+                }
+            } catch {
+                setShippingError("Error al cotizar el envío");
+            } finally {
+                setQuotingShipping(false);
+            }
+        },
+        [items],
+    );
+
+    // Cotizar automáticamente cuando cambia CP o método de envío
+    useEffect(() => {
+        if (shippingMethod === "andreani" && form.postcode.length >= 4) {
+            cotizarEnvio(form.postcode);
+        } else {
+            setShippingCost(0);
+            setShippingError("");
+        }
+    }, [shippingMethod, form.postcode, cotizarEnvio]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (items.length === 0) return;
+
+        // Validar que si eligió Andreani tenga cotización
+        if (shippingMethod === "andreani" && shippingCost === 0) {
+            setError("Por favor esperá la cotización del envío");
+            return;
+        }
 
         setLoading(true);
         setError("");
@@ -334,11 +394,68 @@ export function CheckoutForm({ session }: Props) {
                                     <p className="text-xs text-gray-400 mt-0.5">
                                         {method.description}
                                     </p>
+
+                                    {/* Cotización Andreani */}
+                                    {method.id === "andreani" &&
+                                        shippingMethod === "andreani" && (
+                                            <div className="mt-2">
+                                                {quotingShipping && (
+                                                    <p className="text-xs text-gray-400 flex items-center gap-1">
+                                                        <svg
+                                                            className="w-3 h-3 animate-spin"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                        >
+                                                            <circle
+                                                                className="opacity-25"
+                                                                cx="12"
+                                                                cy="12"
+                                                                r="10"
+                                                                stroke="currentColor"
+                                                                strokeWidth="4"
+                                                            />
+                                                            <path
+                                                                className="opacity-75"
+                                                                fill="currentColor"
+                                                                d="M4 12a8 8 0 018-8v8z"
+                                                            />
+                                                        </svg>
+                                                        Cotizando...
+                                                    </p>
+                                                )}
+                                                {shippingError &&
+                                                    !quotingShipping && (
+                                                        <p className="text-xs text-red-400">
+                                                            {shippingError}
+                                                        </p>
+                                                    )}
+                                                {shippingCost > 0 &&
+                                                    !quotingShipping && (
+                                                        <p className="text-xs text-green-400 font-medium">
+                                                            Costo de envío: $
+                                                            {shippingCost.toLocaleString(
+                                                                "es-AR",
+                                                            )}
+                                                        </p>
+                                                    )}
+                                                {!form.postcode &&
+                                                    !quotingShipping && (
+                                                        <p className="text-xs text-gray-500">
+                                                            Ingresá tu código
+                                                            postal para cotizar
+                                                        </p>
+                                                    )}
+                                            </div>
+                                        )}
                                 </div>
+
                                 <span className="text-sm font-bold text-white shrink-0">
                                     {method.id === "local_pickup"
                                         ? "Gratis"
-                                        : "A cotizar"}
+                                        : shippingCost > 0 &&
+                                            shippingMethod === "andreani"
+                                          ? `$${shippingCost.toLocaleString("es-AR")}`
+                                          : "A cotizar"}
                                 </span>
                             </label>
                         ))}
@@ -416,7 +533,11 @@ export function CheckoutForm({ session }: Props) {
                             <span>
                                 {shippingMethod === "local_pickup"
                                     ? "Gratis"
-                                    : "A cotizar"}
+                                    : quotingShipping
+                                      ? "Cotizando..."
+                                      : shippingCost > 0
+                                        ? `$${shippingCost.toLocaleString("es-AR")}`
+                                        : "A cotizar"}
                             </span>
                         </div>
                         <div className="flex justify-between text-base font-bold text-white mt-2">
@@ -431,7 +552,7 @@ export function CheckoutForm({ session }: Props) {
 
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || quotingShipping}
                         className="w-full mt-6 py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
                     >
                         {loading ? "Procesando..." : "Confirmar pedido"}
