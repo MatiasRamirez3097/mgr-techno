@@ -21,7 +21,7 @@ export function SearchBar() {
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    const debounceRef = useRef<NodeJS.Timeout>();
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Cerrar al hacer click afuera
     useEffect(() => {
@@ -42,7 +42,7 @@ export function SearchBar() {
             return;
         }
 
-        clearTimeout(debounceRef.current);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(async () => {
             setLoading(true);
             try {
@@ -57,7 +57,9 @@ export function SearchBar() {
             }
         }, 350);
 
-        return () => clearTimeout(debounceRef.current);
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
     }, [query]);
 
     const handleSubmit = (e: React.FormEvent) => {
