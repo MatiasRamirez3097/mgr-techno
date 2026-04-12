@@ -1,17 +1,5 @@
 import { WOO_HEADERS } from "./woo";
-
-export interface Product {
-    id: string;
-    name: string;
-    price: number;
-    regularPrice: number;
-    onSale: boolean;
-    image: string;
-    images: string[];
-    stock: number;
-    slug: string;
-    shortDescription: string;
-}
+import { Product } from "@/types/product";
 
 export interface Category {
     id: number;
