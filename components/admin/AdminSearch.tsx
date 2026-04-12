@@ -13,7 +13,7 @@ export function AdminSearch({ placeholder, searchKey = "search" }: Props) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [value, setValue] = useState(searchParams.get(searchKey) || "");
-    const debounceRef = useRef<NodeJS.Timeout | null>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -28,7 +28,9 @@ export function AdminSearch({ placeholder, searchKey = "search" }: Props) {
             router.push(`${pathname}?${params.toString()}`);
         }, 400);
 
-        return () => clearTimeout(debounceRef.current);
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
     }, [value]);
 
     return (
