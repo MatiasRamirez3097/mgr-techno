@@ -32,6 +32,9 @@ function mapProduct(p: any): Product {
         listPrice,
         priceNoTax,
         regularPrice: parseFloat(p.regular_price || "0"),
+        regularListPrice:
+            parseFloat(p.regular_price_list || "0") ||
+            Math.round(parseFloat(p.regular_price || "0") * 1.1),
         onSale: p.on_sale,
         image: p.images?.[0]?.src || "",
         images: p.images?.map((img: any) => img.src) || [],
