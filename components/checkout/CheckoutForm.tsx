@@ -88,7 +88,15 @@ export function CheckoutForm({ session }: Props) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const subtotal = items.reduce((acc, i) => acc + i.price * i.quantity, 0);
+    // Determinamos si el método de pago usa precio de lista
+    const usesListPrice = paymentMethod === "mercadopago";
+
+    // Subtotal dinámico según método de pago
+    const subtotal = items.reduce((acc, i) => {
+        const price = usesListPrice ? i.listPrice : i.price;
+        return acc + price * i.quantity;
+    }, 0);
+
     const total = subtotal + (shippingMethod === "andreani" ? shippingCost : 0);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,6 +185,10 @@ export function CheckoutForm({ session }: Props) {
                     items: items.map((i) => ({
                         product_id: parseInt(i.id),
                         quantity: i.quantity,
+                        // 👇 precio según método de pago
+                        price: usesListPrice
+                            ? i.listPrice.toString()
+                            : i.price.toString(),
                     })),
                     paymentMethod,
                     shippingMethod,
@@ -504,26 +516,46 @@ export function CheckoutForm({ session }: Props) {
                         Resumen
                     </h2>
 
+                    {/* Items */}
                     <div className="flex flex-col gap-3 mb-4">
-                        {items.map((item) => (
-                            <div
-                                key={item.id}
-                                className="flex justify-between text-sm gap-2"
-                            >
-                                <span className="text-gray-400 line-clamp-1 flex-1">
-                                    {item.name} x{item.quantity}
-                                </span>
-                                <span className="text-white shrink-0">
-                                    $
-                                    {(
-                                        item.price * item.quantity
-                                    ).toLocaleString("es-AR")}
-                                </span>
-                            </div>
-                        ))}
+                        {items.map((item) => {
+                            const itemPrice = usesListPrice
+                                ? item.listPrice
+                                : item.price;
+                            return (
+                                <div
+                                    key={item.id}
+                                    className="flex justify-between text-sm gap-2"
+                                >
+                                    <span className="text-gray-400 line-clamp-1 flex-1">
+                                        {item.name} x{item.quantity}
+                                    </span>
+                                    <span className="text-white shrink-0">
+                                        $
+                                        {(
+                                            itemPrice * item.quantity
+                                        ).toLocaleString("es-AR")}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
 
+                    {/* Totales */}
                     <div className="border-t border-gray-700 pt-4 flex flex-col gap-2">
+                        {/* Aviso de recargo */}
+                        {usesListPrice && (
+                            <div className="flex items-start gap-2 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2 mb-1">
+                                <span className="text-amber-400 text-xs mt-0.5">
+                                    ⚠
+                                </span>
+                                <p className="text-xs text-amber-400">
+                                    Se aplica precio de lista (+10%) para este
+                                    método de pago
+                                </p>
+                            </div>
+                        )}
+
                         <div className="flex justify-between text-sm text-gray-400">
                             <span>Subtotal</span>
                             <span>${subtotal.toLocaleString("es-AR")}</span>
