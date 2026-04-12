@@ -27,7 +27,13 @@ export const useCart = create<CartStore>()(
                         (i) => i.id === product.id,
                     );
 
+                    // Si no hay stock definido (null) dejamos agregar libremente
+                    const maxStock = product.stock ?? Infinity;
+
                     if (existing) {
+                        // No superar el stock disponible
+                        if (existing.quantity >= maxStock) return state;
+
                         return {
                             items: state.items.map((i) =>
                                 i.id === product.id
@@ -36,6 +42,9 @@ export const useCart = create<CartStore>()(
                             ),
                         };
                     }
+
+                    // No agregar si no hay stock
+                    if (maxStock <= 0) return state;
 
                     return {
                         items: [...state.items, { ...product, quantity: 1 }],

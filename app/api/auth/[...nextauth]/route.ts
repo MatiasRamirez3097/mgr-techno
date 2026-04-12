@@ -36,7 +36,6 @@ export const authOptions = {
                         },
                     );
                     const me = await meRes.json();
-                    console.log(">>> me:", JSON.stringify(me, null, 2));
 
                     // 3. Datos del customer de WooCommerce
                     const customerRes = await fetch(
@@ -69,7 +68,6 @@ export const authOptions = {
     ],
     callbacks: {
         async jwt({ token, user }: any) {
-            console.log(token);
             if (user) {
                 token.accessToken = user.token;
                 token.customerId = user.customerId;

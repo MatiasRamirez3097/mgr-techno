@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
@@ -14,3 +15,21 @@ export default function StoreLayout({
         </div>
     );
 }
+
+export const metadata: Metadata = {
+    metadataBase: new URL("https://www.mgrtechno.com.ar"),
+    title: {
+        default: "MGR Techno — Tecnología en Rosario",
+        template: "%s | MGR Techno",
+    },
+    description:
+        "Componentes de PC, periféricos, refrigeración y más. Envíos a todo el país desde Rosario.",
+    openGraph: {
+        siteName: "MGR Techno",
+        locale: "es_AR",
+        type: "website",
+    },
+    verification: {
+        google: "TU_CODIGO_DE_VERIFICACION",
+    },
+};

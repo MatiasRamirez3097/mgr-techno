@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { ProductSchema } from "@/components/products/ProductSchema";
 import { getProductBySlug } from "@/lib/products";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -98,6 +100,38 @@ export default async function ProductPage({ params }: Props) {
                     <AddToCartButton product={product} />
                 </div>
             </div>
+            <ProductSchema product={product} />
         </main>
     );
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const { slug } = await params;
+    const product = await getProductBySlug(slug);
+
+    if (!product) return { title: "Producto no encontrado" };
+
+    return {
+        title: product.name,
+        description: product.shortDescription
+            ? product.shortDescription.replace(/<[^>]*>/g, "").slice(0, 160)
+            : `Comprá ${product.name} al mejor precio en MGR Techno`,
+        openGraph: {
+            title: product.name,
+            description: product.shortDescription
+                ?.replace(/<[^>]*>/g, "")
+                .slice(0, 160),
+            images: product.image
+                ? [
+                      {
+                          url: product.image,
+                          width: 800,
+                          height: 800,
+                          alt: product.name,
+                      },
+                  ]
+                : [],
+            type: "website",
+        },
+    };
 }

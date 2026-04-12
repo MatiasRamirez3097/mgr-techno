@@ -1,20 +1,36 @@
 "use client";
 
 import { useCart } from "@/store/cart";
+import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
 import { Product } from "@/types/product";
 
 export function AddToCartButton({ product }: { product: Product }) {
     const addToCart = useCart((state) => state.addToCart);
+    const { open } = useCartDrawer();
 
-    const disabled = product.stock === 0;
+    const items = useCart((state) => state.items);
+    const itemInCart = items.find((i) => i.id === product.id);
+    const maxStock = product.stock ?? Infinity;
+    const reachedMax = itemInCart ? itemInCart.quantity >= maxStock : false;
+    const disabled = product.stock === 0 || reachedMax;
+
+    const handleAdd = () => {
+        if (disabled) return;
+        addToCart(product);
+        open();
+    };
 
     return (
         <button
             onClick={() => addToCart(product)}
             disabled={disabled}
-            className="bg-brand mt-auto w-full py-3 px-6 rounded-xl font-medium text-white bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="bg-brand mt-auto w-full py-3 px-6 rounded-xl font-medium text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
-            {disabled ? "Sin stock" : "Agregar al carrito"}
+            {product.stock === 0
+                ? "Sin stock"
+                : reachedMax
+                  ? "Máximo disponible"
+                  : "Agregar al carrito"}
         </button>
     );
 }

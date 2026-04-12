@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getProducts } from "@/lib/products";
 import { ProductCard } from "@/components/productCard/ProductCard";
 import { Pagination } from "@/components/ui/Pagination";
@@ -69,4 +70,25 @@ export default async function ProductosPage({ searchParams }: Props) {
             )}
         </main>
     );
+}
+
+export async function generateMetadata({
+    searchParams,
+}: Props): Promise<Metadata> {
+    const { category, search } = await searchParams;
+
+    const title = search
+        ? `Resultados para "${search}"`
+        : category
+          ? category.replace(/-/g, " ")
+          : "Todos los productos";
+
+    return {
+        title,
+        description: search
+            ? `Encontrá productos relacionados con ${search} en MGR Techno`
+            : category
+              ? `Comprá ${category.replace(/-/g, " ")} al mejor precio en MGR Techno`
+              : "Explorá todo nuestro catálogo de tecnología",
+    };
 }
