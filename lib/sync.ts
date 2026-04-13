@@ -1,5 +1,7 @@
 import { connectDB } from "./mongodb";
 import { ProductModel } from "@/models/Product";
+import { CategoryModel } from "@/models/Category";
+import { WOO_HEADERS } from "./woo";
 
 export function mapWooToMongo(p: any) {
     const price = parseFloat(p.price || "0");
@@ -45,7 +47,6 @@ export function mapWooToMongo(p: any) {
 export async function syncProduct(wooProduct: any) {
     await connectDB();
     const data = mapWooToMongo(wooProduct);
-
     await ProductModel.findOneAndUpdate({ wooId: wooProduct.id }, data, {
         upsert: true,
         new: true,

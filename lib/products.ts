@@ -1,4 +1,5 @@
 import { connectDB } from "./mongodb";
+import { CategoryModel } from "@/models/Category";
 import { ProductModel } from "@/models/Product";
 import { Product } from "@/types/product";
 import { WOO_HEADERS } from "./woo";
@@ -147,43 +148,6 @@ export async function getNewProducts(limit = 8): Promise<Product[]> {
     return products.map(mapMongoToProduct);
 }
 
-export async function getCategories(): Promise<Category[]> {
-    await connectDB();
-
-    // Extraemos categorías únicas de los productos
-    const categories = await ProductModel.aggregate([
-        { $match: { status: "publish" } },
-        { $unwind: "$categories" },
-        {
-            $group: {
-                _id: "$categories.id",
-                name: { $first: "$categories.name" },
-                slug: { $first: "$categories.slug" },
-            },
-        },
-        { $sort: { name: 1 } },
-    ]);
-
-    // Las categorías de MongoDB no tienen parent ni image — esas las seguimos trayendo de Woo
-    const wooCategories = await getWooCategories();
-    const wooCatMap = new Map(wooCategories.map((c) => [c.id, c]));
-
-    return categories
-        .filter((c) => c.slug !== "uncategorized")
-        .map((c) => ({
-            id: c._id,
-            name: c.name,
-            slug: c.slug,
-            parent: wooCatMap.get(c._id)?.parent || 0,
-            image: wooCatMap.get(c._id)?.image || null,
-        }));
-}
-
-export async function getCategoriesWithImages(): Promise<Category[]> {
-    const all = await getCategories();
-    return all.filter((c) => c.parent === 0);
-}
-
 // Esta función sigue usando Woo solo para traer parent e image de categorías
 async function getWooCategories(): Promise<Category[]> {
     const res = await fetch(
@@ -197,5 +161,41 @@ async function getWooCategories(): Promise<Category[]> {
         slug: c.slug,
         parent: c.parent,
         image: c.image?.src || null,
+    }));
+}
+
+export async function getCategories(): Promise<Category[]> {
+    await connectDB();
+    const categories = await CategoryModel.find({
+        slug: { $ne: "uncategorized" },
+    })
+        .sort({ name: 1 })
+        .lean();
+
+    return categories.map((c) => ({
+        id: c.wooId,
+        name: c.name,
+        slug: c.slug,
+        parent: c.parent,
+        image: c.image || null,
+    }));
+}
+
+export async function getCategoriesWithImages(): Promise<Category[]> {
+    await connectDB();
+    const categories = await CategoryModel.find({
+        slug: { $ne: "uncategorized" },
+        parent: 0,
+        count: { $gt: 0 },
+    })
+        .sort({ name: 1 })
+        .lean();
+
+    return categories.map((c) => ({
+        id: c.wooId,
+        name: c.name,
+        slug: c.slug,
+        parent: c.parent,
+        image: c.image || null,
     }));
 }
