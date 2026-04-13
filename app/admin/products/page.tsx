@@ -4,6 +4,7 @@ import Image from "next/image";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { ProductsTable } from "@/components/admin/ProductsTable";
+import { SyncButton } from "@/components/admin/SyncButton";
 
 async function getAdminProducts(
     page: number,
@@ -59,6 +60,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     >
                         + Nuevo
                     </Link>
+                    <SyncButton />
                 </div>
             </div>
 
