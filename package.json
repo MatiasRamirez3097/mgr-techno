@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.9.0",
     "http-proxy-agent": "^9.0.0",
     "mongodb": "^7.1.1",
     "mongoose": "^9.4.1",
