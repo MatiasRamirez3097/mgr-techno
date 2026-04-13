@@ -1,14 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { WOO_HEADERS } from "@/lib/woo";
-
-async function getOrders(customerId: number) {
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/orders?customer=${customerId}&per_page=20&orderby=date&order=desc`,
-        { headers: WOO_HEADERS, cache: "no-store" },
-    );
-    return res.json();
-}
+import { connectDB } from "@/lib/mongodb";
+import { OrderModel } from "@/models/Order";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: { label: "Pendiente", color: "text-yellow-400 bg-yellow-400/10" },
@@ -22,17 +17,13 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 export default async function OrdersPage() {
     const session = await getServerSession(authOptions);
-    const customerId = (session as any).customerId;
+    await connectDB();
 
-    if (!customerId) {
-        return (
-            <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800 text-center text-gray-400">
-                <p>No se encontraron pedidos.</p>
-            </div>
-        );
-    }
-
-    const orders = await getOrders(customerId);
+    const orders = await OrderModel.find({
+        customerId: (session as any).customerId,
+    })
+        .sort({ createdAt: -1 })
+        .lean();
 
     return (
         <div className="flex flex-col gap-4">
@@ -50,17 +41,21 @@ export default async function OrdersPage() {
                     };
                     return (
                         <div
-                            key={order.id}
+                            key={order._id.toString()}
                             className="bg-gray-900 rounded-2xl p-5 border border-gray-800"
                         >
                             <div className="flex items-start justify-between gap-4 mb-4">
                                 <div>
                                     <p className="text-white font-medium">
-                                        Pedido #{order.id}
+                                        Pedido #
+                                        {order._id
+                                            .toString()
+                                            .slice(-6)
+                                            .toUpperCase()}
                                     </p>
                                     <p className="text-xs text-gray-400 mt-0.5">
                                         {new Date(
-                                            order.date_created,
+                                            order.createdAt,
                                         ).toLocaleDateString("es-AR", {
                                             day: "2-digit",
                                             month: "long",
@@ -76,9 +71,9 @@ export default async function OrdersPage() {
                             </div>
 
                             <div className="flex flex-col gap-2 mb-4">
-                                {order.line_items.map((item: any) => (
+                                {order.lineItems.map((item: any, i: number) => (
                                     <div
-                                        key={item.id}
+                                        key={i}
                                         className="flex justify-between text-sm"
                                     >
                                         <span className="text-gray-400">
@@ -86,9 +81,7 @@ export default async function OrdersPage() {
                                         </span>
                                         <span className="text-white">
                                             $
-                                            {parseFloat(
-                                                item.total,
-                                            ).toLocaleString("es-AR")}
+                                            {item.total.toLocaleString("es-AR")}
                                         </span>
                                     </div>
                                 ))}
@@ -99,10 +92,7 @@ export default async function OrdersPage() {
                                     Total
                                 </span>
                                 <span className="text-white font-bold">
-                                    $
-                                    {parseFloat(order.total).toLocaleString(
-                                        "es-AR",
-                                    )}
+                                    ${order.total.toLocaleString("es-AR")}
                                 </span>
                             </div>
                         </div>
@@ -112,5 +102,3 @@ export default async function OrdersPage() {
         </div>
     );
 }
-
-export const dynamic = "force-dynamic";

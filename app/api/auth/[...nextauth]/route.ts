@@ -10,7 +10,7 @@ export const authOptions = {
                 username: { label: "Email", type: "text" },
                 password: { label: "Contraseña", type: "password" },
             },
-            async authorize(credentials) {
+            /*async authorize(credentials) {
                 try {
                     // 1. JWT token
                     const res = await fetch(
@@ -58,6 +58,35 @@ export const authOptions = {
                         billing: customer?.billing || null,
                         tipoDocumento: getMeta("billing_tipo_documento"),
                         numeroDocumento: getMeta("billing_numero_documento"),
+                    };
+                } catch (e) {
+                    console.log(">>> authorize error:", e);
+                    return null;
+                }
+            },*/
+            async authorize(credentials) {
+                try {
+                    const customer = await getCustomerByEmail(
+                        credentials?.username || "",
+                    );
+                    if (!customer) return null;
+
+                    const valid = await verifyPassword(
+                        credentials?.password || "",
+                        customer.password,
+                    );
+                    if (!valid) return null;
+
+                    return {
+                        id: customer._id.toString(),
+                        name: `${customer.firstName} ${customer.lastName}`,
+                        email: customer.email,
+                        token: "",
+                        customerId: customer._id.toString(),
+                        role: customer.role || "customer",
+                        billing: customer.billing || null,
+                        tipoDocumento: customer.tipoDocumento || "DNI",
+                        numeroDocumento: customer.numeroDocumento || "",
                     };
                 } catch (e) {
                     console.log(">>> authorize error:", e);
