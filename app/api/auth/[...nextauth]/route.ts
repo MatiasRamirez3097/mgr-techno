@@ -1,6 +1,7 @@
 import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { WOO_HEADERS } from "@/lib/woo";
+import { getCustomerByEmail } from "@/lib/auth";
+import { verifyPassword } from "@/lib/auth";
 
 export const authOptions = {
     providers: [
