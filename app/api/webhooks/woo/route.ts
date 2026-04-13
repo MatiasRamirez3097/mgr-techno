@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { syncProduct, deleteProduct } from "@/lib/sync";
+import { syncProduct, deleteProduct, syncCategories } from "@/lib/sync";
 import crypto from "crypto";
 
 function verifySignature(
@@ -30,11 +30,11 @@ export async function POST(req: NextRequest) {
 
         if (topic === "product.deleted") {
             await deleteProduct(product.id);
-            console.log(`>>> Producto ${product.id} eliminado de MongoDB`);
-        } else {
-            // product.created o product.updated
+        } else if (topic.startsWith("product.")) {
             await syncProduct(product);
-            console.log(`>>> Producto ${product.id} sincronizado en MongoDB`);
+        } else if (topic.startsWith("product_cat.")) {
+            // Resincronizar todas las categorías cuando cambia alguna
+            await syncCategories();
         }
 
         return Response.json({ ok: true });

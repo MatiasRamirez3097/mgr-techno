@@ -1,4 +1,5 @@
 import { connectDB } from "./mongodb";
+import { CategoryModel } from "@/models/Category";
 import { ProductModel } from "@/models/Product";
 import { Product } from "@/types/product";
 import { WOO_HEADERS } from "./woo";
@@ -197,5 +198,41 @@ async function getWooCategories(): Promise<Category[]> {
         slug: c.slug,
         parent: c.parent,
         image: c.image?.src || null,
+    }));
+}
+
+export async function getCategories(): Promise<Category[]> {
+    await connectDB();
+    const categories = await CategoryModel.find({
+        slug: { $ne: "uncategorized" },
+    })
+        .sort({ name: 1 })
+        .lean();
+
+    return categories.map((c) => ({
+        id: c.wooId,
+        name: c.name,
+        slug: c.slug,
+        parent: c.parent,
+        image: c.image || null,
+    }));
+}
+
+export async function getCategoriesWithImages(): Promise<Category[]> {
+    await connectDB();
+    const categories = await CategoryModel.find({
+        slug: { $ne: "uncategorized" },
+        parent: 0,
+        count: { $gt: 0 },
+    })
+        .sort({ name: 1 })
+        .lean();
+
+    return categories.map((c) => ({
+        id: c.wooId,
+        name: c.name,
+        slug: c.slug,
+        parent: c.parent,
+        image: c.image || null,
     }));
 }

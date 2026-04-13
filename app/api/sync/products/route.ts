@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { WOO_HEADERS } from "@/lib/woo";
-import { syncProduct } from "@/lib/sync";
+import { syncProduct, syncCategories } from "@/lib/sync";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
@@ -10,8 +10,12 @@ export async function POST(req: NextRequest) {
         return Response.json({ error: "No autorizado" }, { status: 401 });
     }
 
+    // Sincronizar categorías primero
+    const categoriesSynced = await syncCategories();
+
+    // Sincronizar productos
     let page = 1;
-    let synced = 0;
+    let productsSynced = 0;
 
     while (true) {
         const res = await fetch(
@@ -24,7 +28,7 @@ export async function POST(req: NextRequest) {
 
         for (const product of products) {
             await syncProduct(product);
-            synced++;
+            productsSynced++;
         }
 
         const totalPages = parseInt(res.headers.get("X-WP-TotalPages") || "1");
@@ -32,5 +36,9 @@ export async function POST(req: NextRequest) {
         page++;
     }
 
-    return Response.json({ ok: true, synced });
+    return Response.json({
+        ok: true,
+        productsSynced,
+        categoriesSynced,
+    });
 }
