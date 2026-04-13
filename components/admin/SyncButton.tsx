@@ -20,18 +20,44 @@ export function SyncButton() {
         setResults((prev) => ({ ...prev, [type]: "" }));
 
         try {
-            const res = await fetch(`/api/sync/${type}`, { method: "POST" });
-            const data = await res.json();
-
             if (type === "products") {
+                const res = await fetch("/api/sync/products", {
+                    method: "POST",
+                });
+                const data = await res.json();
                 setResults((prev) => ({
                     ...prev,
                     products: `✓ ${data.productsSynced} productos, ${data.categoriesSynced} categorías`,
                 }));
             } else {
+                // Clientes — procesamos página por página
+                let page = 1;
+                let totalSynced = 0;
+                let totalSkipped = 0;
+                let hasMore = true;
+
+                while (hasMore) {
+                    setResults((prev) => ({
+                        ...prev,
+                        customers: `Procesando página ${page}...`,
+                    }));
+
+                    const res = await fetch("/api/sync/customers", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ page }),
+                    });
+                    const data = await res.json();
+
+                    totalSynced += data.synced;
+                    totalSkipped += data.skipped;
+                    hasMore = data.hasMore;
+                    page++;
+                }
+
                 setResults((prev) => ({
                     ...prev,
-                    customers: `✓ ${data.synced} migrados, ${data.skipped} ya existían`,
+                    customers: `✓ ${totalSynced} migrados, ${totalSkipped} salteados`,
                 }));
             }
         } catch {
