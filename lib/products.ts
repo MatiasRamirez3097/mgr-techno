@@ -1,8 +1,8 @@
+import { connectDB } from "./mongodb";
+import { ProductModel } from "@/models/Product";
 import { Product } from "@/types/product";
 import { WOO_HEADERS } from "./woo";
-import { connectDB } from "./mongodb";
 import { SortOrder } from "mongoose";
-import { ProductModel } from "@/models/Product";
 
 export interface Category {
     id: number;

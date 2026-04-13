@@ -33,3 +33,5 @@ export const metadata: Metadata = {
         google: "TU_CODIGO_DE_VERIFICACION",
     },
 };
+
+export const dynamic = "force-dynamic";
