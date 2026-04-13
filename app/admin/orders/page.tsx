@@ -1,4 +1,7 @@
-import { WOO_HEADERS } from "@/lib/woo";
+export const dynamic = "force-dynamic";
+
+import { connectDB } from "@/lib/mongodb";
+import { OrderModel } from "@/models/Order";
 import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
@@ -35,21 +38,31 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 async function getOrders(page: number, perPage: number, search?: string) {
-    const params = new URLSearchParams({
-        page: page.toString(),
-        per_page: perPage.toString(),
-        orderby: "date",
-        order: "desc",
-    });
-    if (search) params.set("search", search);
+    await connectDB();
 
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/orders?${params.toString()}`,
-        { headers: WOO_HEADERS, cache: "no-store" },
-    );
-    const total = parseInt(res.headers.get("X-WP-Total") || "0");
-    const totalPages = parseInt(res.headers.get("X-WP-TotalPages") || "1");
-    const orders = await res.json();
+    const query: any = {};
+
+    if (search) {
+        query.$or = [
+            { customerEmail: { $regex: search, $options: "i" } },
+            { "billing.firstName": { $regex: search, $options: "i" } },
+            { "billing.lastName": { $regex: search, $options: "i" } },
+        ];
+
+        // Si parece un ID de orden
+        if (search.length === 6) {
+            query.$or.push({ _id: { $regex: search, $options: "i" } });
+        }
+    }
+
+    const total = await OrderModel.countDocuments(query);
+    const totalPages = Math.ceil(total / perPage);
+    const orders = await OrderModel.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * perPage)
+        .limit(perPage)
+        .lean();
+
     return { orders, total, totalPages };
 }
 
@@ -76,7 +89,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         <div>
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold text-white">Órdenes</h1>
-                <AdminSearch placeholder="Buscar por nº de orden o cliente..." />
+                <AdminSearch placeholder="Buscar por email o cliente..." />
             </div>
 
             <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
@@ -118,21 +131,25 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                                     label: order.status,
                                     color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
                                 };
+                                const orderId = order._id
+                                    .toString()
+                                    .slice(-6)
+                                    .toUpperCase();
                                 return (
                                     <tr
-                                        key={order.id}
+                                        key={order._id.toString()}
                                         className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                                     >
                                         <td className="px-6 py-4 text-sm text-white font-medium">
-                                            #{order.id}
+                                            #{orderId}
                                         </td>
                                         <td className="px-6 py-4">
                                             <p className="text-sm text-white">
-                                                {order.billing.first_name}{" "}
-                                                {order.billing.last_name}
+                                                {order.billing?.firstName}{" "}
+                                                {order.billing?.lastName}
                                             </p>
                                             <p className="text-xs text-gray-400">
-                                                {order.billing.email}
+                                                {order.customerEmail}
                                             </p>
                                         </td>
                                         <td className="px-6 py-4">
@@ -144,13 +161,13 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-white">
                                             $
-                                            {parseFloat(
-                                                order.total,
-                                            ).toLocaleString("es-AR")}
+                                            {order.total.toLocaleString(
+                                                "es-AR",
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-400">
                                             {new Date(
-                                                order.date_created,
+                                                order.createdAt,
                                             ).toLocaleDateString("es-AR", {
                                                 day: "2-digit",
                                                 month: "short",
@@ -159,7 +176,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                                         </td>
                                         <td className="px-6 py-4">
                                             <Link
-                                                href={`/admin/orders/${order.id}`}
+                                                href={`/admin/orders/${order._id.toString()}`}
                                                 className="text-xs text-brand hover:brightness-125 transition-all"
                                             >
                                                 Ver detalle →

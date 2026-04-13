@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { WOO_HEADERS_JSON } from "@/lib/woo";
+import { connectDB } from "@/lib/mongodb";
+import { OrderModel } from "@/models/Order";
 import { NextRequest } from "next/server";
 
 export async function PUT(
@@ -15,16 +16,14 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
 
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/orders/${id}`,
-        {
-            method: "PUT",
-            headers: WOO_HEADERS_JSON,
-            body: JSON.stringify(body),
-        },
+    await connectDB();
+    const order = await OrderModel.findByIdAndUpdate(
+        id,
+        { status: body.status },
+        { new: true },
     );
 
-    if (!res.ok)
-        return Response.json({ error: "Error al actualizar" }, { status: 500 });
+    if (!order)
+        return Response.json({ error: "Orden no encontrada" }, { status: 404 });
     return Response.json({ ok: true });
 }
