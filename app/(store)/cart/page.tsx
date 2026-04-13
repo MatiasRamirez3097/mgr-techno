@@ -36,3 +36,5 @@ export default function CartPage() {
         </div>
     );
 }
+
+export const dynamic = "force-dynamic";

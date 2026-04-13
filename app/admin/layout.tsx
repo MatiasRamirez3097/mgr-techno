@@ -22,3 +22,5 @@ export default async function AdminLayout({
         </div>
     );
 }
+
+export const dynamic = "force-dynamic";

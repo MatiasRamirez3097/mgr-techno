@@ -1,7 +1,8 @@
-import { Product } from "@/types/product";
-import { WOO_HEADERS } from "./woo";
 import { connectDB } from "./mongodb";
 import { ProductModel } from "@/models/Product";
+import { Product } from "@/types/product";
+import { WOO_HEADERS } from "./woo";
+import { SortOrder } from "mongoose";
 
 export interface Category {
     id: number;
@@ -45,7 +46,7 @@ function mapMongoToProduct(p: any): Product {
     };
 }
 
-const getMongoSort = (orderby?: string) => {
+const getMongoSort = (orderby?: string): Record<string, SortOrder> => {
     switch (orderby) {
         case "price":
             return { price: 1 };

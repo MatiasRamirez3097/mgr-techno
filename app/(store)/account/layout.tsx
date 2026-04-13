@@ -21,3 +21,5 @@ export default async function AccountLayout({
         </main>
     );
 }
+
+export const dynamic = "force-dynamic";

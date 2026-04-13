@@ -126,3 +126,5 @@ export default function PasswordPage() {
         </div>
     );
 }
+
+export const dynamic = "force-dynamic";

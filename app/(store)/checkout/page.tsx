@@ -15,3 +15,5 @@ export default async function CheckoutPage() {
         </main>
     );
 }
+
+export const dynamic = "force-dynamic";
