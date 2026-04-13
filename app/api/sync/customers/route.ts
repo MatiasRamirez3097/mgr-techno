@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
         if (!customers.length) break;
 
         for (const customer of customers) {
+            if (!customer.first_name || !customer.last_name) {
+                skipped++;
+                continue;
+            }
             // No sobreescribir clientes que ya existen en MongoDB
             const existing = await CustomerModel.findOne({
                 email: customer.email,
