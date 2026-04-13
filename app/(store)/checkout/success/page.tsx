@@ -48,3 +48,5 @@ export default async function SuccessPage({ searchParams }: Props) {
         </main>
     );
 }
+
+export const dynamic = "force-dynamic";

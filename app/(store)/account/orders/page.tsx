@@ -112,3 +112,5 @@ export default async function OrdersPage() {
         </div>
     );
 }
+
+export const dynamic = "force-dynamic";
