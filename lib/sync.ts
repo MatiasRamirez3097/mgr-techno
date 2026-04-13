@@ -57,3 +57,43 @@ export async function deleteProduct(wooId: number) {
     await connectDB();
     await ProductModel.findOneAndDelete({ wooId });
 }
+
+export async function syncCategories() {
+    await connectDB();
+
+    let page = 1;
+    let synced = 0;
+
+    while (true) {
+        const res = await fetch(
+            `${process.env.WOO_URL}/wp-json/wc/v3/products/categories?per_page=100&page=${page}&hide_empty=false`,
+            { headers: WOO_HEADERS },
+        );
+
+        const categories = await res.json();
+        if (!categories.length) break;
+
+        for (const cat of categories) {
+            await CategoryModel.findOneAndUpdate(
+                { wooId: cat.id },
+                {
+                    wooId: cat.id,
+                    name: cat.name,
+                    slug: cat.slug,
+                    parent: cat.parent,
+                    image: cat.image?.src || null,
+                    count: cat.count,
+                    syncedAt: new Date(),
+                },
+                { upsert: true, new: true },
+            );
+            synced++;
+        }
+
+        const totalPages = parseInt(res.headers.get("X-WP-TotalPages") || "1");
+        if (page >= totalPages) break;
+        page++;
+    }
+
+    return synced;
+}
