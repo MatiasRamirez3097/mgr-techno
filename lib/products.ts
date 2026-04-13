@@ -1,5 +1,7 @@
 import { Product } from "@/types/product";
 import { WOO_HEADERS } from "./woo";
+import { connectDB } from "./mongodb";
+import { ProductModel } from "@/models/Product";
 
 export interface Category {
     id: number;
@@ -19,201 +21,180 @@ interface ProductFilters {
 
 const PAGE_SIZE = 16;
 
-function mapProduct(p: any): Product {
-    const price = parseFloat(p.price || "0");
-    const listPrice = Math.round(price * 1.1);
-    const priceNoTax =
-        parseFloat(p.price_excl_tax || "0") || Math.round(price / 1.21);
-
+function mapMongoToProduct(p: any): Product {
     return {
-        id: p.id.toString(),
+        id: p.wooId.toString(),
         name: p.name,
-        price,
-        listPrice,
-        priceNoTax,
-        regularPrice: parseFloat(p.regular_price || "0"),
-        regularListPrice:
-            parseFloat(p.regular_price_list || "0") ||
-            Math.round(parseFloat(p.regular_price || "0") * 1.1),
-        onSale: p.on_sale,
-        image: p.images?.[0]?.src || "",
-        images: p.images?.map((img: any) => img.src) || [],
-        stock: p.stock_quantity,
+        price: p.price,
+        listPrice: p.listPrice,
+        regularListPrice: p.regularListPrice,
+        priceNoTax: p.priceNoTax,
+        regularPrice: p.regularPrice,
+        onSale: p.onSale,
+        image: p.image || "",
+        images: p.images || [],
+        stock: p.stock,
         slug: p.slug,
-        shortDescription: p.short_description || "",
-        weight: parseFloat(p.weight || "0"),
+        shortDescription: p.shortDescription || "",
+        weight: p.weight || 0,
         dimensions: {
-            length: parseFloat(p.dimensions?.length || "0"),
-            width: parseFloat(p.dimensions?.width || "0"),
-            height: parseFloat(p.dimensions?.height || "0"),
+            length: p.dimensions?.length || 0,
+            width: p.dimensions?.width || 0,
+            height: p.dimensions?.height || 0,
         },
     };
 }
 
-const getWooOrder = (orderby?: string) => {
+const getMongoSort = (orderby?: string) => {
     switch (orderby) {
         case "price":
-            return { orderby: "price", order: "asc" };
+            return { price: 1 };
         case "price-desc":
-            return { orderby: "price", order: "desc" };
+            return { price: -1 };
         case "name":
-            return { orderby: "title", order: "asc" };
+            return { name: 1 };
         case "popularity":
-            return { orderby: "popularity", order: "desc" };
+            return { salesCount: -1 };
         default:
-            return { orderby: "date", order: "desc" };
+            return { createdAt: -1 };
     }
 };
-
-async function getCategoryIdBySlug(slug: string): Promise<number | null> {
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/products/categories?slug=${slug}`,
-        {
-            headers: WOO_HEADERS,
-            next: { revalidate: 3600 }, // las categorías cambian poco
-        },
-    );
-    const data = (await res.json()) as any[];
-    return data.length ? data[0].id : null;
-}
 
 export async function getProducts(filters: ProductFilters = {}): Promise<{
     products: Product[];
     totalPages: number;
     total: number;
 }> {
+    await connectDB();
     const page = filters.page || 1;
-    const { orderby, order } = getWooOrder(filters.orderby);
+    const sort = getMongoSort(filters.orderby);
 
-    const buildParams = (stockStatus: string) => {
-        const params = new URLSearchParams();
-        params.set("per_page", "100");
-        params.set("orderby", orderby);
-        params.set("order", order);
-        params.set("stock_status", stockStatus);
-        if (filters.search) params.set("search", filters.search);
-        if (filters.categoryId) params.set("category", filters.categoryId);
-        return params;
-    };
-
-    let categoryId: string | null = null;
-    if (filters.category) {
-        const id = await getCategoryIdBySlug(filters.category);
-        categoryId = id ? id.toString() : null;
-    }
-    if (categoryId) filters.categoryId = categoryId;
-
-    // Si hay búsqueda o filtros activos no cacheamos — los resultados son dinámicos
-    const fetchOptions =
-        filters.search || filters.category
-            ? { headers: WOO_HEADERS, cache: "no-store" as const }
-            : { headers: WOO_HEADERS, next: { revalidate: 300 } }; // 5 minutos sin filtros
-
-    const [resInStock, resOutOfStock] = await Promise.all([
-        fetch(
-            `${process.env.WOO_URL}/wp-json/wc/v3/products?${buildParams("instock")}`,
-            fetchOptions,
-        ),
-        fetch(
-            `${process.env.WOO_URL}/wp-json/wc/v3/products?${buildParams("outofstock")}`,
-            fetchOptions,
-        ),
-    ]);
-
-    const [inStock, outOfStock] = await Promise.all([
-        resInStock.json() as Promise<any[]>,
-        resOutOfStock.json() as Promise<any[]>,
-    ]);
-
-    let all = [...inStock, ...outOfStock];
+    // Construir query
+    const query: any = { status: "publish" };
 
     if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        all = all.filter((p) => p.name.toLowerCase().includes(searchLower));
+        query.$text = { $search: filters.search };
     }
 
-    const allMapped = all.map(mapProduct);
-    const total = allMapped.length;
+    if (filters.category) {
+        query["categories.slug"] = filters.category;
+    }
+
+    // Separamos en stock y sin stock
+    const [inStock, outOfStock] = await Promise.all([
+        ProductModel.find({ ...query, stockStatus: "instock" })
+            .sort(sort)
+            .lean(),
+        ProductModel.find({ ...query, stockStatus: "outofstock" })
+            .sort(sort)
+            .lean(),
+    ]);
+
+    const all = [...inStock, ...outOfStock];
+
+    // Filtro adicional por nombre si hay búsqueda (por si $text no está disponible)
+    const filtered = filters.search
+        ? all.filter((p) =>
+              p.name.toLowerCase().includes(filters.search!.toLowerCase()),
+          )
+        : all;
+
+    const total = filtered.length;
     const totalPages = Math.ceil(total / PAGE_SIZE);
     const start = (page - 1) * PAGE_SIZE;
-    const paginated = allMapped.slice(start, start + PAGE_SIZE);
+    const paginated = filtered.slice(start, start + PAGE_SIZE);
 
-    return { products: paginated, totalPages, total };
+    return {
+        products: paginated.map(mapMongoToProduct),
+        totalPages,
+        total,
+    };
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/products?slug=${slug}`,
-        {
-            headers: WOO_HEADERS,
-            next: { revalidate: 300 }, // 5 minutos
-        },
-    );
-    const data = (await res.json()) as any[];
-    if (!data.length) return null;
-    return mapProduct(data[0]);
+    await connectDB();
+    const product = await ProductModel.findOne({
+        slug,
+        status: "publish",
+    }).lean();
+    if (!product) return null;
+    return mapMongoToProduct(product);
 }
 
 export async function getOnSaleProducts(limit = 8): Promise<Product[]> {
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/products?on_sale=true&per_page=${limit}&stock_status=instock&orderby=date&order=desc`,
-        {
-            headers: WOO_HEADERS,
-            next: { revalidate: 600 }, // 10 minutos
-        },
-    );
-    const data = (await res.json()) as any[];
-    return data.map(mapProduct);
+    await connectDB();
+    const products = await ProductModel.find({
+        onSale: true,
+        stockStatus: "instock",
+        status: "publish",
+    })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
+    return products.map(mapMongoToProduct);
 }
 
 export async function getNewProducts(limit = 8): Promise<Product[]> {
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/products?per_page=${limit}&stock_status=instock&orderby=date&order=desc`,
-        {
-            headers: WOO_HEADERS,
-            next: { revalidate: 600 }, // 10 minutos
-        },
-    );
-    const data = (await res.json()) as any[];
-    return data.map(mapProduct);
+    await connectDB();
+    const products = await ProductModel.find({
+        stockStatus: "instock",
+        status: "publish",
+    })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
+    return products.map(mapMongoToProduct);
 }
 
 export async function getCategories(): Promise<Category[]> {
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/products/categories?per_page=100&hide_empty=true`,
+    await connectDB();
+
+    // Extraemos categorías únicas de los productos
+    const categories = await ProductModel.aggregate([
+        { $match: { status: "publish" } },
+        { $unwind: "$categories" },
         {
-            headers: WOO_HEADERS,
-            next: { revalidate: 3600 }, // 1 hora
+            $group: {
+                _id: "$categories.id",
+                name: { $first: "$categories.name" },
+                slug: { $first: "$categories.slug" },
+            },
         },
-    );
-    const data = (await res.json()) as any[];
-    return data
+        { $sort: { name: 1 } },
+    ]);
+
+    // Las categorías de MongoDB no tienen parent ni image — esas las seguimos trayendo de Woo
+    const wooCategories = await getWooCategories();
+    const wooCatMap = new Map(wooCategories.map((c) => [c.id, c]));
+
+    return categories
         .filter((c) => c.slug !== "uncategorized")
         .map((c) => ({
-            id: c.id,
+            id: c._id,
             name: c.name,
             slug: c.slug,
-            parent: c.parent,
-            image: c.image?.src || null,
+            parent: wooCatMap.get(c._id)?.parent || 0,
+            image: wooCatMap.get(c._id)?.image || null,
         }));
 }
 
 export async function getCategoriesWithImages(): Promise<Category[]> {
+    const all = await getCategories();
+    return all.filter((c) => c.parent === 0);
+}
+
+// Esta función sigue usando Woo solo para traer parent e image de categorías
+async function getWooCategories(): Promise<Category[]> {
     const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/products/categories?per_page=20&hide_empty=true&parent=0`,
-        {
-            headers: WOO_HEADERS,
-            next: { revalidate: 3600 }, // 1 hora
-        },
+        `${process.env.WOO_URL}/wp-json/wc/v3/products/categories?per_page=100&hide_empty=true`,
+        { headers: WOO_HEADERS, next: { revalidate: 3600 } },
     );
     const data = (await res.json()) as any[];
-    return data
-        .filter((c) => c.slug !== "uncategorized")
-        .map((c) => ({
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            parent: c.parent,
-            image: c.image?.src || null,
-        }));
+    return data.map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        parent: c.parent,
+        image: c.image?.src || null,
+    }));
 }
