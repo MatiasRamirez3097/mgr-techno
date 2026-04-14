@@ -10,12 +10,20 @@ export function UserMenu() {
 
     if (!session) {
         return (
-            <Link
-                href="/login"
-                className="text-sm text-gray-300 hover:text-white transition-colors"
-            >
-                Ingresar
-            </Link>
+            <div className="flex items-center gap-3">
+                <Link
+                    href="/register"
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                >
+                    Registrarse
+                </Link>
+                <Link
+                    href="/login"
+                    className="text-sm px-3 py-1.5 rounded-lg bg-brand text-white hover:brightness-110 transition-all"
+                >
+                    Ingresar
+                </Link>
+            </div>
         );
     }
 
