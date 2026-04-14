@@ -1,9 +1,18 @@
-import { getAdminCategories } from "@/lib/admin-products";
+import { connectDB } from "@/lib/mongodb";
+import { CategoryModel } from "@/models/Category";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
 
 export default async function AdminNewProductPage() {
-    const categories = await getAdminCategories();
+    await connectDB();
+    const categories = await CategoryModel.find({}).sort({ name: 1 }).lean();
+
+    const categoriesForForm = (categories as any[]).map((c) => ({
+        id: c.wooId,
+        name: c.name,
+        slug: c.slug,
+        parent: c.parent,
+    }));
 
     return (
         <div>
@@ -18,7 +27,7 @@ export default async function AdminNewProductPage() {
                     Nuevo producto
                 </h1>
             </div>
-            <ProductForm categories={categories} mode="create" />
+            <ProductForm categories={categoriesForForm} mode="create" />
         </div>
     );
 }
