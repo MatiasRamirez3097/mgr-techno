@@ -1,19 +1,11 @@
 import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models/Product";
-import { CategoryModel } from "@/models/Category";
+import { getCategories } from "@/lib/products";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-async function getAdminProduct(id: string) {
-    await connectDB();
-    return ProductModel.findOne({ wooId: parseInt(id) }).lean();
-}
-
-async function getAdminCategories() {
-    await connectDB();
-    return CategoryModel.find({}).sort({ name: 1 }).lean();
-}
+export const dynamic = "force-dynamic";
 
 export default async function AdminEditProductPage({
     params,
@@ -21,41 +13,41 @@ export default async function AdminEditProductPage({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const [product, categories] = await Promise.all([
-        getAdminProduct(id),
-        getAdminCategories(),
+
+    await connectDB();
+    const [rawProduct, categories] = await Promise.all([
+        ProductModel.findOne({ wooId: parseInt(id) }).lean(),
+        getCategories(),
     ]);
 
-    if (!product) notFound();
+    if (!rawProduct) notFound();
 
-    // Mapeamos MongoDB → formato que espera ProductForm
-    const productForForm = {
-        id: (product as any).wooId,
-        wooId: (product as any).wooId,
-        name: (product as any).name,
-        slug: (product as any).slug,
-        status: (product as any).status,
-        description: (product as any).description,
-        short_description: (product as any).shortDescription,
-        regular_price: (product as any).regularPrice?.toString() || "",
-        sale_price: (product as any).salePrice
-            ? (product as any).salePrice.toString()
-            : "",
-        stock_quantity: (product as any).stock,
-        manage_stock: (product as any).manage_stock ?? true,
-        weight: (product as any).weight?.toString() || "",
-        dimensions: (product as any).dimensions,
-        categories: (product as any).categories || [],
-        featured: (product as any).featured,
-        images: (product as any).images || [],
+    // Mapeamos al formato que espera ProductForm
+    const product = {
+        id: (rawProduct as any).wooId,
+        wooId: (rawProduct as any).wooId,
+        name: (rawProduct as any).name,
+        slug: (rawProduct as any).slug,
+        status: (rawProduct as any).status,
+        description: (rawProduct as any).description || "",
+        short_description: (rawProduct as any).shortDescription || "",
+        regular_price: (rawProduct as any).regularPrice?.toString() || "",
+        sale_price:
+            (rawProduct as any).salePrice > 0
+                ? (rawProduct as any).salePrice?.toString()
+                : "",
+        stock_quantity: (rawProduct as any).stock,
+        manage_stock: (rawProduct as any).manage_stock ?? true,
+        weight: (rawProduct as any).weight?.toString() || "",
+        dimensions: {
+            length: (rawProduct as any).dimensions?.length?.toString() || "",
+            width: (rawProduct as any).dimensions?.width?.toString() || "",
+            height: (rawProduct as any).dimensions?.height?.toString() || "",
+        },
+        categories: (rawProduct as any).categories || [],
+        featured: (rawProduct as any).featured || false,
+        images: (rawProduct as any).images || [],
     };
-
-    const categoriesForForm = (categories as any[]).map((c) => ({
-        id: c.wooId,
-        name: c.name,
-        slug: c.slug,
-        parent: c.parent,
-    }));
 
     return (
         <div>
@@ -71,8 +63,8 @@ export default async function AdminEditProductPage({
                 </h1>
             </div>
             <ProductForm
-                product={productForForm}
-                categories={categoriesForForm}
+                product={product}
+                categories={categories}
                 mode="edit"
             />
         </div>

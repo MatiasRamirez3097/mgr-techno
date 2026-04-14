@@ -14,22 +14,16 @@ export async function POST(req: NextRequest) {
     await connectDB();
 
     const price = parseFloat(body.regular_price || "0");
-    const salePrice = body.sale_price ? parseFloat(body.sale_price) : null;
-    const effectivePrice = salePrice || price;
+    const salePrice = body.sale_price ? parseFloat(body.sale_price) : 0;
+    const onSale = salePrice > 0 && salePrice < price;
+    const finalPrice = onSale ? salePrice : price;
 
-    const images =
-        body.images
-            ?.map((img: any) => (typeof img === "string" ? img : img.src))
-            .filter(Boolean) || [];
-
-    // Generamos un wooId temporal negativo para no colisionar con los de Woo
+    // Generar wooId único temporal (negativo para distinguirlo de los de Woo)
     const lastProduct = await ProductModel.findOne().sort({ wooId: -1 }).lean();
-    const tempWooId = lastProduct
-        ? Math.max((lastProduct as any).wooId + 1, 1000000)
-        : 1000000;
+    const nextWooId = (lastProduct?.wooId || 0) + 1;
 
     const product = await ProductModel.create({
-        wooId: tempWooId,
+        wooId: nextWooId,
         name: body.name,
         slug:
             body.slug ||
@@ -38,21 +32,18 @@ export async function POST(req: NextRequest) {
                 .replace(/\s+/g, "-")
                 .replace(/[^a-z0-9-]/g, ""),
         status: body.status || "publish",
-        shortDescription: body.short_description || "",
         description: body.description || "",
+        shortDescription: body.short_description || "",
+        price: finalPrice,
         regularPrice: price,
+        listPrice: Math.round(finalPrice * 1.1),
         regularListPrice: Math.round(price * 1.1),
-        salePrice: salePrice || 0,
-        price: effectivePrice,
-        listPrice: Math.round(effectivePrice * 1.1),
-        onSale: !!salePrice,
+        priceNoTax: Math.round(finalPrice / 1.21),
+        onSale,
+        salePrice,
         manage_stock: body.manage_stock ?? true,
-        stock: body.manage_stock ? parseInt(body.stock_quantity) || 0 : null,
-        stockStatus:
-            (body.manage_stock && parseInt(body.stock_quantity) > 0) ||
-            !body.manage_stock
-                ? "instock"
-                : "outofstock",
+        stock: body.stock_quantity || 0,
+        stockStatus: (body.stock_quantity || 0) > 0 ? "instock" : "outofstock",
         weight: parseFloat(body.weight || "0"),
         dimensions: {
             length: parseFloat(body.dimensions?.length || "0"),
@@ -62,13 +53,13 @@ export async function POST(req: NextRequest) {
         categories:
             body.categories?.map((c: any) => ({
                 id: c.id,
-                name: c.name,
-                slug: c.slug,
+                name: c.name || "",
+                slug: c.slug || "",
             })) || [],
         featured: body.featured || false,
-        image: images[0] || "",
-        images,
-        syncedAt: new Date(),
+        sku: body.sku || "",
+        image: body.images?.[0]?.src || "",
+        images: body.images?.map((img: any) => img.src || img) || [],
     });
 
     return Response.json({ id: product.wooId });
