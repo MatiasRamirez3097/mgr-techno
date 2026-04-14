@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -16,12 +16,166 @@ interface Props {
     mode: "create" | "edit";
 }
 
+function ImageUploader({
+    images,
+    onChange,
+}: {
+    images: string[];
+    onChange: (images: string[]) => void;
+}) {
+    const [uploading, setUploading] = useState(false);
+    const fileRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (files: FileList | null) => {
+        if (!files || files.length === 0) return;
+        setUploading(true);
+        try {
+            const uploaded: string[] = [];
+            for (const file of Array.from(files)) {
+                const formData = new FormData();
+                formData.append("file", file);
+                const res = await fetch("/api/admin/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await res.json();
+                if (data.url) uploaded.push(data.url);
+            }
+            onChange([...images, ...uploaded]);
+        } catch (e) {
+            console.log(">>> upload error:", e);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleRemove = (index: number) => {
+        onChange(images.filter((_, i) => i !== index));
+    };
+
+    const handleSetMain = (index: number) => {
+        if (index === 0) return;
+        const newImages = [...images];
+        const [main] = newImages.splice(index, 1);
+        newImages.unshift(main);
+        onChange(newImages);
+    };
+
+    return (
+        <div className="flex flex-col gap-3">
+            {/* Imagen principal */}
+            {images.length > 0 && (
+                <div>
+                    <p className="text-xs text-gray-400 mb-2">
+                        Imagen principal
+                    </p>
+                    <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-800 w-full">
+                        <Image
+                            src={images[0]}
+                            alt="Imagen principal"
+                            fill
+                            sizes="300px"
+                            className="object-cover"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => handleRemove(0)}
+                            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Galería */}
+            {images.length > 1 && (
+                <div>
+                    <p className="text-xs text-gray-400 mb-2">Galería</p>
+                    <div className="grid grid-cols-3 gap-2">
+                        {images.slice(1).map((img, i) => (
+                            <div
+                                key={i}
+                                className="relative aspect-square rounded-lg overflow-hidden bg-gray-800 group"
+                            >
+                                <Image
+                                    src={img}
+                                    alt={`Imagen ${i + 2}`}
+                                    fill
+                                    sizes="100px"
+                                    className="object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetMain(i + 1)}
+                                        className="w-7 h-7 rounded-full bg-brand text-white text-xs flex items-center justify-center hover:brightness-110"
+                                        title="Establecer como principal"
+                                    >
+                                        ★
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemove(i + 1)}
+                                        className="w-7 h-7 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600"
+                                        title="Eliminar"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Botón subida */}
+            <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="w-full py-3 rounded-xl border-2 border-dashed border-gray-700 hover:border-brand text-sm text-gray-400 hover:text-white disabled:opacity-50 transition-all"
+            >
+                {uploading
+                    ? "Subiendo..."
+                    : images.length === 0
+                      ? "Subir imágenes"
+                      : "+ Agregar más imágenes"}
+            </button>
+            <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleUpload(e.target.files)}
+            />
+            {images.length > 1 && (
+                <p className="text-xs text-gray-500">
+                    Hover en una imagen de la galería para establecerla como
+                    principal o eliminarla.
+                </p>
+            )}
+        </div>
+    );
+}
+
 export function ProductForm({ product, categories, mode }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
+    // Extraer imágenes del producto — soporta tanto strings como objetos {src}
+    const extractImages = (product?: any): string[] => {
+        if (!product?.images) return [];
+        return product.images
+            .map((img: any) => (typeof img === "string" ? img : img.src || ""))
+            .filter(Boolean);
+    };
+
+    const [images, setImages] = useState<string[]>(extractImages(product));
 
     const [form, setForm] = useState({
         name: product?.name || "",
@@ -83,6 +237,7 @@ export function ProductForm({ product, categories, mode }: Props) {
             height: form.height,
         },
         categories: form.categories.map((id: number) => ({ id })),
+        images: images.map((url) => ({ src: url })),
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -94,7 +249,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         try {
             const res = await fetch(
                 mode === "edit"
-                    ? `/api/admin/products/${product.id}`
+                    ? `/api/admin/products/${product.wooId || product.id}`
                     : "/api/admin/products",
                 {
                     method: mode === "edit" ? "PUT" : "POST",
@@ -125,10 +280,9 @@ export function ProductForm({ product, categories, mode }: Props) {
             )
         )
             return;
-
         setDeleting(true);
         try {
-            await fetch(`/api/admin/products/${product.id}`, {
+            await fetch(`/api/admin/products/${product.wooId || product.id}`, {
                 method: "DELETE",
             });
             router.push("/admin/products");
@@ -140,7 +294,6 @@ export function ProductForm({ product, categories, mode }: Props) {
     const inputClass =
         "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
-
     const rootCategories = categories.filter((c) => c.parent === 0);
     const childCategories = (parentId: number) =>
         categories.filter((c) => c.parent === parentId);
@@ -397,25 +550,13 @@ export function ProductForm({ product, categories, mode }: Props) {
                     </div>
                 </section>
 
-                {/* Imagen actual */}
-                {mode === "edit" && product?.images?.[0]?.src && (
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Imagen principal
-                        </h2>
-                        <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-800">
-                            <Image
-                                src={product.images[0].src}
-                                alt={product.name}
-                                fill
-                                className="object-cover"
-                            />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                            Para cambiar imágenes usá WordPress por ahora.
-                        </p>
-                    </section>
-                )}
+                {/* Imágenes */}
+                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                    <h2 className="text-base font-bold text-white mb-4">
+                        Imágenes
+                    </h2>
+                    <ImageUploader images={images} onChange={setImages} />
+                </section>
 
                 {/* Categorías */}
                 <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
