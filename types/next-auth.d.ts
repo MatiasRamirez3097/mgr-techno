@@ -1,12 +1,4 @@
 declare module "next-auth" {
-    interface User {
-        token: string;
-        customerId: number | null;
-        billing: any;
-        tipoDocumento: string;
-        numeroDocumento: string;
-        role: string;
-    }
     interface Session {
         user: {
             name?: string | null;
@@ -14,19 +6,17 @@ declare module "next-auth" {
             image?: string | null;
         };
         accessToken: string;
-        customerId: number | null;
-        billing: any;
-        tipoDocumento: string;
-        numeroDocumento: string;
-        role: string;
-    }
-}
-
-declare module "next-auth/jwt" {
-    interface JWT {
-        accessToken: string;
-        customerId: number | null;
-        billing: any;
+        customerId: string;
+        billing: {
+            firstName?: string;
+            lastName?: string;
+            address1?: string;
+            city?: string;
+            state?: string;
+            postcode?: string;
+            phone?: string;
+            country?: string;
+        } | null;
         tipoDocumento: string;
         numeroDocumento: string;
         role: string;

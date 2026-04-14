@@ -37,9 +37,9 @@ export default function ProfilePage() {
     const numeroDocumento = (session as any)?.numeroDocumento;
 
     const [form, setForm] = useState({
-        first_name: billing?.first_name || "",
-        last_name: billing?.last_name || "",
-        address_1: billing?.address_1 || "",
+        first_name: billing?.firstName || "",
+        last_name: billing?.lastName || "",
+        address_1: billing?.address1 || "",
         city: billing?.city || "",
         state: billing?.state || "",
         postcode: billing?.postcode || "",
