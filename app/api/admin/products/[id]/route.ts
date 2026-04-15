@@ -73,14 +73,14 @@ export async function PUT(
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } },
+    { params }: { params: Promise<{ id: string }> },
 ) {
     const session = await getServerSession(authOptions);
     if (!session || (session as any).role !== "administrator") {
         return Response.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     await connectDB();
 
     await ProductModel.findByIdAndDelete(id);
