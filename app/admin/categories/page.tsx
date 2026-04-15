@@ -2,7 +2,6 @@ import Link from "next/link";
 import { connectDB } from "@/lib/mongodb";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
-//import { ProductsTable } from "@/components/admin/ProductsTable";
 import { SyncButton } from "@/components/admin/SyncButton";
 import { CategoryModel } from "@/models/Category";
 import Image from "next/image";

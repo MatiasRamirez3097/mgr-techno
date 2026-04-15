@@ -2,16 +2,8 @@ import { connectDB } from "./mongodb";
 import { CategoryModel } from "@/models/Category";
 import { ProductModel } from "@/models/Product";
 import { Product } from "@/types/product";
-import { WOO_HEADERS } from "./woo";
 import { SortOrder } from "mongoose";
-
-export interface Category {
-    id: string;
-    name: string;
-    slug: string;
-    parentId: string | null;
-    image?: string | null;
-}
+import type { Category } from "@/types/categories";
 
 interface ProductFilters {
     category?: string;
