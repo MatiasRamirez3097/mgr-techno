@@ -403,7 +403,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                         <label className="flex items-center gap-3 cursor-pointer">
                             <input
                                 type="checkbox"
-                                name="manage_stock"
+                                name="manageStock"
                                 checked={form.manageStock}
                                 onChange={handleChange}
                                 className="w-4 h-4 accent-brand"
@@ -418,7 +418,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                                     Cantidad en stock
                                 </label>
                                 <input
-                                    name="stock_quantity"
+                                    name="stockQuantity"
                                     value={form.stockQuantity}
                                     onChange={handleChange}
                                     type="number"

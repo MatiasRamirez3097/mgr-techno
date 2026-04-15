@@ -14,7 +14,6 @@ export async function PUT(
     }
 
     const { id } = await params;
-    console.log("IDDDD", id);
     const body = await req.json();
     await connectDB();
 
@@ -41,8 +40,8 @@ export async function PUT(
         priceNoTax: Math.round(finalPrice / 1.21),
         onSale,
         salePrice,
-        manage_stock: body.manage_stock,
-        stock: body.stock_quantity || 0,
+        manageStock: body.manageStock,
+        stock: body.stockQuantity || 0,
         stockStatus: (body.stock_quantity || 0) > 0 ? "instock" : "outofstock",
         weight: parseFloat(body.weight || "0"),
         dimensions: {
