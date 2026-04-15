@@ -89,7 +89,11 @@ function ImageUploader({
                       ? "Subir imágen"
                       : "+ Agregar más imágenes"}
             </button>
-            <input
+        </div>
+    );
+}
+/*
+<input
                 ref={fileRef}
                 type="file"
                 accept="image/*"
@@ -97,10 +101,7 @@ function ImageUploader({
                 className="hidden"
                 onChange={(e) => handleUpload(e.target.file)}
             />
-        </div>
-    );
-}
-
+*/
 export function CategoryForm({ category, categories, mode }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
