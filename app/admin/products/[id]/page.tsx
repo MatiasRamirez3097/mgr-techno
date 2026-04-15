@@ -16,7 +16,7 @@ export default async function AdminEditProductPage({
 
     await connectDB();
     const [rawProduct, categories] = await Promise.all([
-        ProductModel.findOne({ wooId: parseInt(id) }).lean(),
+        ProductModel.findById(id).lean(),
         getCategories(),
     ]);
 
@@ -24,20 +24,20 @@ export default async function AdminEditProductPage({
 
     // Mapeamos al formato que espera ProductForm
     const product = {
-        id: (rawProduct as any).wooId,
+        _id: id,
         wooId: (rawProduct as any).wooId,
         name: (rawProduct as any).name,
         slug: (rawProduct as any).slug,
         status: (rawProduct as any).status,
         description: (rawProduct as any).description || "",
-        short_description: (rawProduct as any).shortDescription || "",
-        regular_price: (rawProduct as any).regularPrice?.toString() || "",
-        sale_price:
+        shortDescription: (rawProduct as any).shortDescription || "",
+        regularPrice: (rawProduct as any).regularPrice?.toString() || "",
+        salePrice:
             (rawProduct as any).salePrice > 0
                 ? (rawProduct as any).salePrice?.toString()
                 : "",
-        stock_quantity: (rawProduct as any).stock,
-        manage_stock: (rawProduct as any).manage_stock ?? true,
+        stockQuantity: (rawProduct as any).stock,
+        manageStock: (rawProduct as any).manage_stock ?? true,
         weight: (rawProduct as any).weight?.toString() || "",
         dimensions: {
             length: (rawProduct as any).dimensions?.length?.toString() || "",

@@ -14,11 +14,12 @@ export async function PUT(
     }
 
     const { id } = await params;
+    console.log("IDDDD", id);
     const body = await req.json();
     await connectDB();
 
-    const price = parseFloat(body.regular_price || "0");
-    const salePrice = body.sale_price ? parseFloat(body.sale_price) : 0;
+    const price = parseFloat(body.regularPrice || "0");
+    const salePrice = body.salePrice ? parseFloat(body.salePrice) : 0;
     const onSale = salePrice > 0 && salePrice < price;
     const finalPrice = onSale ? salePrice : price;
 
@@ -59,12 +60,9 @@ export async function PUT(
         image: images[0] || "",
         images,
     };
+    console.log(updateData);
 
-    const product = await ProductModel.findOneAndUpdate(
-        { wooId: parseInt(id) },
-        updateData,
-        { new: true },
-    );
+    const product = await ProductModel.findByIdAndUpdate(id, updateData);
 
     if (!product)
         return Response.json(
@@ -76,16 +74,16 @@ export async function PUT(
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: Promise<{ id: string }> },
+    { params }: { params: { id: string } },
 ) {
     const session = await getServerSession(authOptions);
     if (!session || (session as any).role !== "administrator") {
         return Response.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = params;
     await connectDB();
 
-    await ProductModel.findOneAndDelete({ wooId: parseInt(id) });
+    await ProductModel.findByIdAndDelete(id);
     return Response.json({ ok: true });
 }

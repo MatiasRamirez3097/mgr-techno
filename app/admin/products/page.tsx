@@ -1,31 +1,55 @@
-import { WOO_HEADERS } from "@/lib/woo";
 import Link from "next/link";
-import Image from "next/image";
+import { connectDB } from "@/lib/mongodb";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { ProductsTable } from "@/components/admin/ProductsTable";
 import { SyncButton } from "@/components/admin/SyncButton";
+import { ProductModel } from "@/models/Product";
 
 async function getAdminProducts(
     page: number,
     perPage: number,
     search?: string,
 ) {
-    const params = new URLSearchParams({
-        page: page.toString(),
-        per_page: perPage.toString(),
-        orderby: "date",
-        order: "desc",
-    });
-    if (search) params.set("search", search);
+    await connectDB();
 
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/products?${params.toString()}`,
-        { headers: WOO_HEADERS, cache: "no-store" },
-    );
-    const total = parseInt(res.headers.get("X-WP-Total") || "0");
-    const totalPages = parseInt(res.headers.get("X-WP-TotalPages") || "1");
-    const products = await res.json();
+    const query: any = {};
+
+    if (search) {
+        query.$or = [{ name: { $regex: search, $options: "i" } }];
+    }
+
+    const total = await ProductModel.countDocuments(query);
+    const totalPages = Math.ceil(total / perPage);
+    const docs = await ProductModel.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * perPage)
+        .limit(perPage)
+        .lean();
+
+    const products = docs.map((p: any) => ({
+        _id: p._id.toString(),
+        name: p.name,
+        slug: p.slug,
+        image: p.image,
+        images: p.images || [],
+        sku: p.sku,
+
+        price: p.price,
+        regularPrice: p.regularPrice,
+        salePrice: p.salePrice,
+        onSale: p.onSale,
+
+        stock: p.stock,
+        stockStatus: p.stockStatus,
+
+        status: p.status,
+        featured: p.featured,
+
+        createdAt: p.createdAt?.toISOString?.() || null,
+        updatedAt: p.updatedAt?.toISOString?.() || null,
+    }));
+    console.log(products[0]._id);
     return { products, total, totalPages };
 }
 

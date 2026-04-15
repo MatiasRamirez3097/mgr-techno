@@ -1,13 +1,12 @@
 "use client";
-
+import React from "react";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { QuickEditProduct } from "./QuickEditProduct";
 
 export function ProductsTable({ products }: { products: any[] }) {
-    const [quickEditId, setQuickEditId] = useState<number | null>(null);
-
+    const [quickEditId, setQuickEditId] = useState<string | null>(null);
     return (
         <table className="w-full">
             <thead>
@@ -42,17 +41,14 @@ export function ProductsTable({ products }: { products: any[] }) {
                     </tr>
                 ) : (
                     products.map((product: any) => (
-                        <>
-                            <tr
-                                key={product.id}
-                                className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
-                            >
+                        <React.Fragment key={product._id}>
+                            <tr className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-800 shrink-0">
-                                            {product.images?.[0]?.src && (
+                                            {product.image && (
                                                 <Image
-                                                    src={product.images[0].src}
+                                                    src={product.image}
                                                     alt={product.name}
                                                     fill
                                                     sizes="40px"
@@ -72,7 +68,7 @@ export function ProductsTable({ products }: { products: any[] }) {
                                                 )}
                                             </div>
                                             <p className="text-xs text-gray-400">
-                                                #{product.id}
+                                                #{product._id}
                                             </p>
                                         </div>
                                     </div>
@@ -87,11 +83,11 @@ export function ProductsTable({ products }: { products: any[] }) {
                                             product.price || "0",
                                         ).toLocaleString("es-AR")}
                                     </p>
-                                    {product.on_sale && (
+                                    {product.onSale && (
                                         <p className="text-xs text-gray-400 line-through">
                                             $
                                             {parseFloat(
-                                                product.regular_price || "0",
+                                                product.regularPrice || "0",
                                             ).toLocaleString("es-AR")}
                                         </p>
                                     )}
@@ -99,13 +95,13 @@ export function ProductsTable({ products }: { products: any[] }) {
                                 <td className="px-6 py-4">
                                     <span
                                         className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
-                                            product.stock_status === "instock"
+                                            product.stockStatus === "instock"
                                                 ? "text-green-400 bg-green-400/10 border-green-400/20"
                                                 : "text-red-400 bg-red-400/10 border-red-400/20"
                                         }`}
                                     >
                                         {product.stock_status === "instock"
-                                            ? `En stock (${product.stock_quantity ?? "∞"})`
+                                            ? `En stock (${product.stockQuantity ?? "∞"})`
                                             : "Sin stock"}
                                     </span>
                                 </td>
@@ -127,13 +123,13 @@ export function ProductsTable({ products }: { products: any[] }) {
                                         <button
                                             onClick={() =>
                                                 setQuickEditId(
-                                                    quickEditId === product.id
+                                                    quickEditId === product._id
                                                         ? null
-                                                        : product.id,
+                                                        : product._id,
                                                 )
                                             }
                                             className={`text-xs transition-all ${
-                                                quickEditId === product.id
+                                                quickEditId === product._id
                                                     ? "text-white"
                                                     : "text-gray-400 hover:text-white"
                                             }`}
@@ -141,7 +137,7 @@ export function ProductsTable({ products }: { products: any[] }) {
                                             ✏ Edición rápida
                                         </button>
                                         <Link
-                                            href={`/admin/products/${product.id}`}
+                                            href={`/admin/products/${product._id}`}
                                             className="text-xs text-brand hover:brightness-125 transition-all"
                                         >
                                             Editar →
@@ -151,9 +147,9 @@ export function ProductsTable({ products }: { products: any[] }) {
                             </tr>
 
                             {/* Fila del quick edit */}
-                            {quickEditId === product.id && (
+                            {quickEditId === product._id && (
                                 <tr
-                                    key={`qe-${product.id}`}
+                                    key={`qe-${product._id}`}
                                     className="bg-gray-800/30"
                                 >
                                     <td colSpan={6} className="px-6 py-4">
@@ -164,7 +160,7 @@ export function ProductsTable({ products }: { products: any[] }) {
                                     </td>
                                 </tr>
                             )}
-                        </>
+                        </React.Fragment>
                     ))
                 )}
             </tbody>

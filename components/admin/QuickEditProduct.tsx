@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 
 interface Props {
     product: {
-        id: number;
-        regular_price: string;
-        sale_price: string;
+        _id: string;
+        regularPrice: string;
+        salePrice: string;
         featured: boolean;
     };
     onClose: () => void;
@@ -16,8 +16,8 @@ interface Props {
 export function QuickEditProduct({ product, onClose }: Props) {
     const router = useRouter();
     const [form, setForm] = useState({
-        regular_price: product.regular_price || "",
-        sale_price: product.sale_price || "",
+        regularPrice: product.regularPrice || "",
+        salePrice: product.salePrice || "",
         featured: product.featured || false,
     });
     const [loading, setLoading] = useState(false);
@@ -29,12 +29,12 @@ export function QuickEditProduct({ product, onClose }: Props) {
         setError("");
 
         try {
-            const res = await fetch(`/api/admin/products/${product.id}`, {
+            const res = await fetch(`/api/admin/products/${product._id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    regular_price: form.regular_price,
-                    sale_price: form.sale_price,
+                    regularPrice: form.regularPrice,
+                    salePrice: form.salePrice,
                     featured: form.featured,
                 }),
             });
@@ -66,11 +66,11 @@ export function QuickEditProduct({ product, onClose }: Props) {
                     <input
                         type="number"
                         step="0.01"
-                        value={form.regular_price}
+                        value={form.regularPrice}
                         onChange={(e) =>
                             setForm((prev) => ({
                                 ...prev,
-                                regular_price: e.target.value,
+                                regularPrice: e.target.value,
                             }))
                         }
                         className={inputClass}
@@ -88,11 +88,11 @@ export function QuickEditProduct({ product, onClose }: Props) {
                     <input
                         type="number"
                         step="0.01"
-                        value={form.sale_price}
+                        value={form.salePrice}
                         onChange={(e) =>
                             setForm((prev) => ({
                                 ...prev,
-                                sale_price: e.target.value,
+                                salePrice: e.target.value,
                             }))
                         }
                         className={inputClass}

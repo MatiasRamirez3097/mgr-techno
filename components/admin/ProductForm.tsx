@@ -182,11 +182,11 @@ export function ProductForm({ product, categories, mode }: Props) {
         slug: product?.slug || "",
         status: product?.status || "publish",
         description: product?.description || "",
-        short_description: product?.short_description || "",
-        regular_price: product?.regular_price || "",
-        sale_price: product?.sale_price || "",
-        stock_quantity: product?.stock_quantity ?? "",
-        manage_stock: product?.manage_stock ?? true,
+        shortDescription: product?.shortDescription || "",
+        regularPrice: product?.regularPrice || "",
+        salePrice: product?.salePrice || "",
+        stockQuantity: product?.stockQuantity ?? "",
+        manageStock: product?.manageStock ?? true,
         weight: product?.weight || "",
         length: product?.dimensions?.length || "",
         width: product?.dimensions?.width || "",
@@ -223,12 +223,12 @@ export function ProductForm({ product, categories, mode }: Props) {
         slug: form.slug,
         status: form.status,
         description: form.description,
-        short_description: form.short_description,
-        regular_price: form.regular_price,
-        sale_price: form.sale_price,
-        manage_stock: form.manage_stock,
-        stock_quantity: form.manage_stock
-            ? parseInt(form.stock_quantity) || 0
+        shortDescription: form.shortDescription,
+        regularPrice: form.regularPrice,
+        salePrice: form.salePrice,
+        manageStock: form.manageStock,
+        stockQuantity: form.manageStock
+            ? parseInt(form.stockQuantity) || 0
             : null,
         weight: form.weight,
         dimensions: {
@@ -249,7 +249,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         try {
             const res = await fetch(
                 mode === "edit"
-                    ? `/api/admin/products/${product.wooId || product.id}`
+                    ? `/api/admin/products/${product._id}`
                     : "/api/admin/products",
                 {
                     method: mode === "edit" ? "PUT" : "POST",
@@ -264,7 +264,7 @@ export function ProductForm({ product, categories, mode }: Props) {
             setSuccess(
                 mode === "edit" ? "Producto actualizado" : "Producto creado",
             );
-            if (mode === "create") router.push(`/admin/products/${data.id}`);
+            if (mode === "create") router.push(`/admin/products/${data._id}`);
             else router.refresh();
         } catch (e: any) {
             setError(e.message || "Error al guardar");
@@ -282,7 +282,7 @@ export function ProductForm({ product, categories, mode }: Props) {
             return;
         setDeleting(true);
         try {
-            await fetch(`/api/admin/products/${product.wooId || product.id}`, {
+            await fetch(`/api/admin/products/${product._id}`, {
                 method: "DELETE",
             });
             router.push("/admin/products");
@@ -338,7 +338,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                             </label>
                             <textarea
                                 name="short_description"
-                                value={form.short_description}
+                                value={form.shortDescription}
                                 onChange={handleChange}
                                 rows={3}
                                 className={`${inputClass} resize-none`}
@@ -369,7 +369,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                             <label className={labelClass}>Precio regular</label>
                             <input
                                 name="regular_price"
-                                value={form.regular_price}
+                                value={form.regularPrice}
                                 onChange={handleChange}
                                 type="number"
                                 step="0.01"
@@ -383,7 +383,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                             </label>
                             <input
                                 name="sale_price"
-                                value={form.sale_price}
+                                value={form.salePrice}
                                 onChange={handleChange}
                                 type="number"
                                 step="0.01"
@@ -404,7 +404,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                             <input
                                 type="checkbox"
                                 name="manage_stock"
-                                checked={form.manage_stock}
+                                checked={form.manageStock}
                                 onChange={handleChange}
                                 className="w-4 h-4 accent-brand"
                             />
@@ -412,14 +412,14 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 Gestionar stock
                             </span>
                         </label>
-                        {form.manage_stock && (
+                        {form.manageStock && (
                             <div>
                                 <label className={labelClass}>
                                     Cantidad en stock
                                 </label>
                                 <input
                                     name="stock_quantity"
-                                    value={form.stock_quantity}
+                                    value={form.stockQuantity}
                                     onChange={handleChange}
                                     type="number"
                                     className={inputClass}
