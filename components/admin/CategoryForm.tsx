@@ -3,12 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
-interface Category {
-    id: string;
-    name: string;
-    parentId: string | null;
-}
+import type { Category } from "@/types/categories";
 
 interface Props {
     category?: any;
