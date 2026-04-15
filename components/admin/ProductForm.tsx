@@ -3,12 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
-interface Category {
-    id: number;
-    name: string;
-    parent: number;
-}
+import type { Category } from "@/types/categories";
 
 interface Props {
     product?: any;
@@ -209,11 +204,11 @@ export function ProductForm({ product, categories, mode }: Props) {
         }));
     };
 
-    const handleCategoryToggle = (id: number) => {
+    const handleCategoryToggle = (id: string) => {
         setForm((prev) => ({
             ...prev,
             categories: prev.categories.includes(id)
-                ? prev.categories.filter((c: number) => c !== id)
+                ? prev.categories.filter((c: string) => c !== id)
                 : [...prev.categories, id],
         }));
     };
@@ -294,9 +289,9 @@ export function ProductForm({ product, categories, mode }: Props) {
     const inputClass =
         "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
-    const rootCategories = categories.filter((c) => c.parent === 0);
-    const childCategories = (parentId: number) =>
-        categories.filter((c) => c.parent === parentId);
+    const rootCategories = categories.filter((c) => c.parentId === null);
+    const childCategories = (parentId: string) =>
+        categories.filter((c) => c.parentId === parentId);
 
     return (
         <form
@@ -565,15 +560,15 @@ export function ProductForm({ product, categories, mode }: Props) {
                     </h2>
                     <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
                         {rootCategories.map((cat) => (
-                            <div key={cat.id}>
+                            <div key={cat._id}>
                                 <label className="flex items-center gap-2.5 py-1 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={form.categories.includes(
-                                            cat.id,
+                                            cat._id,
                                         )}
                                         onChange={() =>
-                                            handleCategoryToggle(cat.id)
+                                            handleCategoryToggle(cat._id)
                                         }
                                         className="w-4 h-4 accent-brand"
                                     />
@@ -581,18 +576,18 @@ export function ProductForm({ product, categories, mode }: Props) {
                                         {cat.name}
                                     </span>
                                 </label>
-                                {childCategories(cat.id).map((child) => (
+                                {childCategories(cat._id).map((child) => (
                                     <label
-                                        key={child.id}
+                                        key={child._id}
                                         className="flex items-center gap-2.5 py-1 pl-6 cursor-pointer"
                                     >
                                         <input
                                             type="checkbox"
                                             checked={form.categories.includes(
-                                                child.id,
+                                                child._id,
                                             )}
                                             onChange={() =>
-                                                handleCategoryToggle(child.id)
+                                                handleCategoryToggle(child._id)
                                             }
                                             className="w-4 h-4 accent-brand"
                                         />
