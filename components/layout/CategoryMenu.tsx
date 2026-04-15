@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Category } from "@/lib/products";
-
+import type { Category } from "@/types/categories";
 // Categorías que se agrupan bajo "Ofertas"
 const OFERTAS_SLUGS = ["combos", "pc-completa"];
 
 export function CategoryMenu({ categories }: { categories: Category[] }) {
-    const [openId, setOpenId] = useState<number | null>(null);
+    const [openId, setOpenId] = useState<string | null>(null);
     const [ofertasOpen, setOfertasOpen] = useState(false);
 
     // Excluimos "sin-categoria" y las que van dentro de Ofertas
@@ -21,7 +20,7 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
             !OFERTAS_SLUGS.includes(c.slug),
     );
 
-    const children = (parentId: number) =>
+    const children = (parentId: string) =>
         categories.filter((c) => c.parentId === parentId);
 
     // Categorías que van dentro del desplegable Ofertas
@@ -51,7 +50,7 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
                     <div className="absolute top-full left-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-48 z-50">
                         {ofertasSubs.map((sub) => (
                             <Link
-                                key={sub.id}
+                                key={sub._id}
                                 href={`/products?category=${sub.slug}`}
                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
                             >
@@ -64,14 +63,14 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
 
             {/* Resto de categorías raíz */}
             {roots.map((cat) => {
-                const subs = children(cat.id);
+                const subs = children(cat._id);
                 const hasChildren = subs.length > 0;
 
                 return (
                     <div
-                        key={cat.id}
+                        key={cat._id}
                         className="relative"
-                        onMouseEnter={() => hasChildren && setOpenId(cat.id)}
+                        onMouseEnter={() => hasChildren && setOpenId(cat._id)}
                         onMouseLeave={() => setOpenId(null)}
                     >
                         <Link
@@ -84,11 +83,11 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
                             )}
                         </Link>
 
-                        {hasChildren && openId === cat.id && (
+                        {hasChildren && openId === cat._id && (
                             <div className="absolute top-full left-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-48 z-50">
                                 {subs.map((sub) => (
                                     <Link
-                                        key={sub.id}
+                                        key={sub._id}
                                         href={`/products?category=${sub.slug}`}
                                         className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
                                     >

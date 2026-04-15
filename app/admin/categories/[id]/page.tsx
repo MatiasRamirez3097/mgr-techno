@@ -2,12 +2,13 @@ import { connectDB } from "@/lib/mongodb";
 import { CategoryModel } from "@/models/Category";
 import { getCategories } from "@/lib/products";
 import { CategoryForm } from "@/components/admin/CategoryForm";
+import type { Category } from "@/types/categories";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminEditProductPage({
+export default async function AdminEditCategoryPage({
     params,
 }: {
     params: Promise<{ id: string }>;
@@ -23,7 +24,7 @@ export default async function AdminEditProductPage({
     if (!rawCategory) notFound();
 
     // Mapeamos al formato que espera ProductForm
-    const category = {
+    const category: Category = {
         _id: id,
         name: (rawCategory as any).name,
         slug: (rawCategory as any).slug,

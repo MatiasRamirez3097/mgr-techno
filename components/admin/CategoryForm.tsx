@@ -304,11 +304,11 @@ export function CategoryForm({ category, categories, mode }: Props) {
                             </option>
                         )}
                         {categories.map((cat) => {
-                            if (cat.id == form.parentId)
+                            if (cat._id == form.parentId)
                                 return (
-                                    <option value={cat.id}>{cat.name}</option>
+                                    <option value={cat._id}>{cat.name}</option>
                                 );
-                            return <option value={cat.id}>{cat.name}</option>;
+                            return <option value={cat._id}>{cat.name}</option>;
                         })}
                     </select>
                     <div className="flex flex-col gap-2 max-h-64 overflow-y-auto"></div>

@@ -163,9 +163,8 @@ export async function getCategories(): Promise<Category[]> {
     })
         .sort({ name: 1 })
         .lean();
-    console.log(">>>>", categories);
     return categories.map((c) => ({
-        id: c._id?.toString?.(),
+        _id: c._id?.toString?.(),
         name: c.name,
         slug: c.slug,
         parentId: c.parentId?.toString?.() || null,
@@ -184,10 +183,10 @@ export async function getCategoriesWithImages(): Promise<Category[]> {
         .lean();
 
     return categories.map((c) => ({
-        id: c.wooId,
+        _id: c._id,
         name: c.name,
         slug: c.slug,
-        parent: c.parent,
+        parentId: c.parentId,
         image: c.image || null,
     }));
 }
