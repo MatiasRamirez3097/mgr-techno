@@ -12,16 +12,17 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
     const [ofertasOpen, setOfertasOpen] = useState(false);
 
     // Excluimos "sin-categoria" y las que van dentro de Ofertas
+    console.log(categories);
     const roots = categories.filter(
         (c) =>
-            c.parent === 0 &&
+            c.parentId == null &&
             c.slug !== "uncategorized" &&
             c.slug !== "sin-categoria" &&
             !OFERTAS_SLUGS.includes(c.slug),
     );
 
     const children = (parentId: number) =>
-        categories.filter((c) => c.parent === parentId);
+        categories.filter((c) => c.parentId === parentId);
 
     // Categorías que van dentro del desplegable Ofertas
     const ofertasSubs = categories.filter((c) =>

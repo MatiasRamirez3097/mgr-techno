@@ -61,7 +61,9 @@ export async function PUT(
     };
     console.log(updateData);
 
-    const product = await ProductModel.findByIdAndUpdate(id, updateData);
+    const product = await ProductModel.findByIdAndUpdate(id, updateData, {
+        returnDocument: "after",
+    });
 
     if (!product)
         return Response.json(

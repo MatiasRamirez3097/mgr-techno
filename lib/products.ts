@@ -6,10 +6,10 @@ import { WOO_HEADERS } from "./woo";
 import { SortOrder } from "mongoose";
 
 export interface Category {
-    id: number;
+    id: string;
     name: string;
     slug: string;
-    parent: number;
+    parentId: string | null;
     image?: string | null;
 }
 
@@ -149,7 +149,7 @@ export async function getNewProducts(limit = 8): Promise<Product[]> {
 }
 
 // Esta función sigue usando Woo solo para traer parent e image de categorías
-async function getWooCategories(): Promise<Category[]> {
+/*async function getWooCategories(): Promise<Category[]> {
     const res = await fetch(
         `${process.env.WOO_URL}/wp-json/wc/v3/products/categories?per_page=100&hide_empty=true`,
         { headers: WOO_HEADERS, next: { revalidate: 3600 } },
@@ -162,7 +162,7 @@ async function getWooCategories(): Promise<Category[]> {
         parent: c.parent,
         image: c.image?.src || null,
     }));
-}
+}*/
 
 export async function getCategories(): Promise<Category[]> {
     await connectDB();
@@ -171,12 +171,12 @@ export async function getCategories(): Promise<Category[]> {
     })
         .sort({ name: 1 })
         .lean();
-
+    console.log(">>>>", categories);
     return categories.map((c) => ({
-        id: c.wooId,
+        id: c._id?.toString?.(),
         name: c.name,
         slug: c.slug,
-        parent: c.parent,
+        parentId: c.parentId?.toString?.() || null,
         image: c.image || null,
     }));
 }
