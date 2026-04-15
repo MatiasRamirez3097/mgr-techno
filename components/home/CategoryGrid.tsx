@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Category } from "@/lib/products";
+import type { Category } from "@/types/categories";
 
 const CATEGORY_ICONS: Record<string, string> = {
     "componentes-de-pc": "🖥️",
@@ -20,7 +20,7 @@ export function CategoryGrid({ categories }: { categories: Category[] }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {categories.map((cat) => (
                     <Link
-                        key={cat.id}
+                        key={cat._id}
                         href={`/products?category=${cat.slug}`}
                         className="group flex flex-col items-center gap-3 bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-brand rounded-2xl p-4 transition-all"
                     >
