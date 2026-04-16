@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models/Product";
 import { CategoryModel } from "@/models/Category";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
+import { getCategoriesDescendants } from "@/lib/categories/getCategoriesDescendants";
 //CONSTANTS
 import { PRODUCTS_PAGE_SIZE } from "../constants/pagination";
 
@@ -34,7 +35,14 @@ export async function getProducts(
         }).lean();
 
         if (category) {
-            query.categories = category._id;
+            const childIds = await getCategoriesDescendants(
+                category._id.toString(),
+            );
+
+            const allCategoryIds = [category._id.toString(), ...childIds];
+
+            query.categories = { $in: allCategoryIds };
+            console.log(query.categories);
         } else {
             query._id = null;
         }
