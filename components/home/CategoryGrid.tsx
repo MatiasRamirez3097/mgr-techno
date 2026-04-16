@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { Category } from "@/types/categories";
+import type { Category } from "@/types/category";
 
 const CATEGORY_ICONS: Record<string, string> = {
     "componentes-de-pc": "🖥️",

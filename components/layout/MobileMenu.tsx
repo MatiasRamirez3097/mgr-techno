@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import type { Category } from "@/types/categories";
+import type { Category } from "@/types/category";
 import { SearchBar } from "./SearchBar";
 
 export function MobileMenu({ categories }: { categories: Category[] }) {

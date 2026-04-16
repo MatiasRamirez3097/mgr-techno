@@ -1,5 +1,7 @@
+import type { Category } from "./category";
+
 export interface Product {
-    id: string;
+    _id: string;
     name: string;
     price: number;
     regularPrice: number;
@@ -11,6 +13,8 @@ export interface Product {
     images: string[];
     stock: number;
     slug: string;
+    categories: Category[];
+    description: string;
     shortDescription: string;
     weight: number;
     dimensions: {
@@ -18,4 +22,7 @@ export interface Product {
         width: number;
         height: number;
     };
+    status: string;
+    salePrice: number;
+    featured: boolean;
 }

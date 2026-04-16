@@ -2,7 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import { CategoryModel } from "@/models/Category";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
-import type { Category } from "@/types/categories";
+import type { Category } from "@/types/category";
 
 export default async function AdminNewProductPage() {
     await connectDB();

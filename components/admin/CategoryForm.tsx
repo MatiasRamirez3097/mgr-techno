@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import type { Category } from "@/types/categories";
+import type { Category } from "@/types/category";
 
 interface Props {
     category?: any;

@@ -1,4 +1,6 @@
-import { Schema, model, models } from "mongoose";
+//import { Schema, model, models } from "mongoose";
+import mongoose, { Schema } from "mongoose";
+mongoose.models;
 
 const CategorySchema = new Schema(
     {
@@ -18,4 +20,4 @@ const CategorySchema = new Schema(
 );
 
 export const CategoryModel =
-    models.Category || model("Category", CategorySchema);
+    mongoose.models.Category || mongoose.model("Category", CategorySchema);

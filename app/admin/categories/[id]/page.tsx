@@ -2,7 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import { CategoryModel } from "@/models/Category";
 import { getCategories } from "@/lib/products";
 import { CategoryForm } from "@/components/admin/CategoryForm";
-import type { Category } from "@/types/categories";
+import type { Category } from "@/types/category";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 

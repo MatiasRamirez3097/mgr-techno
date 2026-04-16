@@ -1,8 +1,9 @@
-import mongoose, { Schema, model, models } from "mongoose";
+//import mongoose, { Schema, model, models } from "mongoose";
+import mongoose, { Schema } from "mongoose";
+mongoose.models;
 
-const ProductSchema = new Schema(
+export const ProductSchema = new Schema(
     {
-        wooId: { type: Number, required: true, unique: true, index: true },
         name: { type: String, required: true },
         slug: { type: String, required: true, index: true },
         price: { type: Number, required: true },
@@ -17,7 +18,7 @@ const ProductSchema = new Schema(
         stock: { type: Number },
         stockStatus: {
             type: String,
-            enum: ["instock", "outofstock"],
+            enum: ["instock", "outofstock", "onbackorder"],
             default: "instock",
         },
         shortDescription: { type: String },
@@ -30,9 +31,8 @@ const ProductSchema = new Schema(
         },
         categories: [
             {
-                id: Number,
-                name: String,
-                slug: String,
+                type: Schema.Types.ObjectId,
+                ref: "Category",
             },
         ],
         featured: { type: Boolean, default: false },
@@ -50,4 +50,5 @@ ProductSchema.index({ "categories.slug": 1 });
 ProductSchema.index({ onSale: 1 });
 ProductSchema.index({ featured: 1 });
 
-export const ProductModel = models.Product || model("Product", ProductSchema);
+export const ProductModel =
+    mongoose.models.Product || mongoose.model("Product", ProductSchema);

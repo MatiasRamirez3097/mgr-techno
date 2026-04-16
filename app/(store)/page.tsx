@@ -1,17 +1,16 @@
-import {
-    getOnSaleProducts,
-    getNewProducts,
-    getCategoriesWithImages,
-} from "@/lib/products";
+import {} from //getOnSaleProducts,
+//getNewProducts,
+//getCategoriesWithImages,
+"@/lib/products";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { ProductRow } from "@/components/home/ProductRow";
 
 export default async function HomePage() {
     const [onSale, newProducts, categories] = await Promise.all([
-        getOnSaleProducts(8),
-        getNewProducts(8),
-        getCategoriesWithImages(),
+        //getOnSaleProducts(8),
+        //getNewProducts(8),
+        //getCategoriesWithImages(),
     ]);
 
     return (

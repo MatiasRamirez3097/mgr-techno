@@ -4,6 +4,8 @@ import { getCategories } from "@/lib/products";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Product } from "@/types/product";
+import type { Category } from "@/types/category";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,7 @@ export default async function AdminEditProductPage({
     const { id } = await params;
 
     await connectDB();
-    const [rawProduct, categories] = await Promise.all([
+    const [rawProduct, categories]: [Product, Category[]] = await Promise.all([
         ProductModel.findById(id).lean(),
         getCategories(),
     ]);
@@ -23,9 +25,8 @@ export default async function AdminEditProductPage({
     if (!rawProduct) notFound();
 
     // Mapeamos al formato que espera ProductForm
-    const product = {
+    const product: Product = {
         _id: id,
-        wooId: (rawProduct as any).wooId,
         name: (rawProduct as any).name,
         slug: (rawProduct as any).slug,
         status: (rawProduct as any).status,
@@ -36,8 +37,7 @@ export default async function AdminEditProductPage({
             (rawProduct as any).salePrice > 0
                 ? (rawProduct as any).salePrice?.toString()
                 : "",
-        stockQuantity: (rawProduct as any).stock,
-        manageStock: (rawProduct as any).manage_stock ?? true,
+        stock: (rawProduct as any).stock,
         weight: (rawProduct as any).weight?.toString() || "",
         dimensions: {
             length: (rawProduct as any).dimensions?.length?.toString() || "",

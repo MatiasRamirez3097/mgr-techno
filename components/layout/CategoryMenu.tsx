@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { Category } from "@/types/categories";
+import type { Category } from "@/types/category";
 // Categorías que se agrupan bajo "Ofertas"
 const OFERTAS_SLUGS = ["combos", "pc-completa"];
 
@@ -11,7 +11,6 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
     const [ofertasOpen, setOfertasOpen] = useState(false);
 
     // Excluimos "sin-categoria" y las que van dentro de Ofertas
-    console.log(categories);
     const roots = categories.filter(
         (c) =>
             c.parentId == null &&

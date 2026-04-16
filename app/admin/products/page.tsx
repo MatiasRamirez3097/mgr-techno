@@ -49,7 +49,6 @@ async function getAdminProducts(
         createdAt: p.createdAt?.toISOString?.() || null,
         updatedAt: p.updatedAt?.toISOString?.() || null,
     }));
-    console.log(products[0]._id);
     return { products, total, totalPages };
 }
 

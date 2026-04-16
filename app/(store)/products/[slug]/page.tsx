@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ProductSchema } from "@/components/products/ProductSchema";
-import { getProductBySlug } from "@/lib/products";
+import { getProductBySlug } from "@/lib/products/getProductBySlug";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { AddToCartButton } from "@/components/products/AddToCartButton";

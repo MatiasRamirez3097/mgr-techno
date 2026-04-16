@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { getProducts } from "@/lib/products";
+import { getProducts } from "@/lib/products/getProducts";
 import { ProductCard } from "@/components/productCard/ProductCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { SortSelector } from "@/components/products/SortSelector";
+import type { Category } from "@/types/category";
 
 interface Props {
     searchParams: Promise<{
@@ -13,7 +14,7 @@ interface Props {
     }>;
 }
 
-export default async function ProductosPage({ searchParams }: Props) {
+export default async function ProductsPage({ searchParams }: Props) {
     const { category, search, page, orderby } = await searchParams;
     const currentPage = parseInt(page || "1");
 
