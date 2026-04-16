@@ -1,10 +1,11 @@
 import { connectDB } from "@/lib/mongodb";
-import { CategoryModel } from "@/models/Category";
-import { getCategories } from "@/lib/products";
+import { getCategoriesById } from "@/lib/categories/getCategoriesById";
+import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 import { CategoryForm } from "@/components/admin/CategoryForm";
-import type { Category } from "@/types/category";
+import type { CategoryDTO } from "@/types/shared/category";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Category } from "@/types/category";
 
 export const dynamic = "force-dynamic";
 
@@ -16,21 +17,15 @@ export default async function AdminEditCategoryPage({
     const { id } = await params;
 
     await connectDB();
-    const [rawCategory, categories] = await Promise.all([
-        CategoryModel.findById(id).lean(),
-        getCategories(),
+    const [category, categories]: [
+        Category: CategoryDTO | null,
+        categories: CategoryDTO[],
+    ] = await Promise.all([
+        getCategoriesById(id),
+        getCategoriesBase({ limit: 0 }),
     ]);
 
-    if (!rawCategory) notFound();
-
-    // Mapeamos al formato que espera ProductForm
-    const category: Category = {
-        _id: id,
-        name: (rawCategory as any).name,
-        slug: (rawCategory as any).slug,
-        parentId: (rawCategory as any).parentId || null,
-    };
-
+    if (!category) notFound();
     return (
         <div>
             <div className="flex items-center gap-4 mb-6">

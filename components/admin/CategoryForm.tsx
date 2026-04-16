@@ -3,11 +3,11 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import type { Category } from "@/types/category";
+import type { CategoryDTO } from "@/types/shared/category";
 
 interface Props {
     category?: any;
-    categories: Category[];
+    categories: CategoryDTO[];
     mode: "create" | "edit";
 }
 
@@ -305,11 +305,11 @@ export function CategoryForm({ category, categories, mode }: Props) {
                             </option>
                         )}
                         {categories.map((cat) => {
-                            if (cat._id == form.parentId)
+                            if (cat.id == form.parentId)
                                 return (
-                                    <option value={cat._id}>{cat.name}</option>
+                                    <option value={cat.id}>{cat.name}</option>
                                 );
-                            return <option value={cat._id}>{cat.name}</option>;
+                            return <option value={cat.id}>{cat.name}</option>;
                         })}
                     </select>
                     <div className="flex flex-col gap-2 max-h-64 overflow-y-auto"></div>
