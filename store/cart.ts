@@ -1,14 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Product } from "@/types/product";
+import { ProductDTO } from "@/types/shared/product";
 
-type CartItem = Product & {
+type CartItem = ProductDTO & {
     quantity: number;
 };
 
 type CartStore = {
     items: CartItem[];
-    addToCart: (product: Product) => void;
+    addToCart: (product: ProductDTO) => void;
     removeFromCart: (id: string) => void;
     updateQuantity: (id: string, quantity: number) => void; // 👈
     clearCart: () => void;
