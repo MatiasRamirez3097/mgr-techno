@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Product } from "@/types/product";
+import { ProductDTO } from "@/types/shared/product";
 import { useCart } from "@/store/cart";
 import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product }: { product: ProductDTO }) {
     const addToCart = useCart((state) => state.addToCart);
     const { open } = useCartDrawer();
     const items = useCart((state) => state.items);
