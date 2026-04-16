@@ -2,9 +2,9 @@
 
 import { useCart } from "@/store/cart";
 import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
-import { Product } from "@/types/product";
+import { ProductDTO } from "@/types/shared/product";
 
-export function AddToCartButton({ product }: { product: Product }) {
+export function AddToCartButton({ product }: { product: ProductDTO }) {
     const addToCart = useCart((state) => state.addToCart);
     const { open } = useCartDrawer();
 
