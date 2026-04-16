@@ -1,19 +1,12 @@
 import { connectDB } from "@/lib/mongodb";
-import { CategoryModel } from "@/models/Category";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
-import type { Category } from "@/types/category";
+import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import type { CategoryDTO } from "@/types/shared/category";
 
 export default async function AdminNewProductPage() {
     await connectDB();
-    const categories = await CategoryModel.find({}).sort({ name: 1 }).lean();
-
-    const categoriesForForm = (categories as Category[]).map((c) => ({
-        _id: c._id,
-        name: c.name,
-        slug: c.slug,
-        parentId: c.parentId,
-    }));
+    const categories: CategoryDTO[] = await getCategoriesBase({ limit: 0 });
 
     return (
         <div>
@@ -28,7 +21,7 @@ export default async function AdminNewProductPage() {
                     Nuevo producto
                 </h1>
             </div>
-            <ProductForm categories={categoriesForForm} mode="create" />
+            <ProductForm categories={categories} mode="create" />
         </div>
     );
 }
