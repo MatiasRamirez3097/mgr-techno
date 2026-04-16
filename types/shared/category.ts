@@ -2,6 +2,7 @@ export type CategoryDTO = {
     id: string;
     image: string;
     name: string;
+    parentId: string | null;
     slug: string;
 };
 
@@ -11,8 +12,8 @@ export type GetCategoriesResponse = {
     total: number;
 };
 
-export type CategoryFilters {
+export type CategoryFilters = {
     name: string;
     search?: string;
     page?: number;
-}
+};

@@ -1,5 +1,6 @@
 export type ProductDTO = {
     id: string;
+    categories: string[];
     image: string;
     images: string[];
     name: string;
@@ -20,10 +21,10 @@ export type GetProductsResponse = {
     total: number;
 };
 
-export type ProductFilters {
+export type ProductFilters = {
     category?: string;
     categoryId?: string;
     search?: string;
     page?: number;
     orderby?: "date" | "price" | "price-desc" | "name" | "popularity";
-}
+};

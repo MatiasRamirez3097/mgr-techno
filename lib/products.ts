@@ -1,11 +1,13 @@
 import { connectDB } from "./mongodb";
 import { CategoryModel } from "@/models/Category";
 import { ProductModel } from "@/models/Product";
-import { Product } from "@/types/product";
+import { ProductDTO } from "@/types/shared/product";
 import { SortOrder } from "mongoose";
 import type { Category } from "@/types/category";
 
-export async function getProductBySlug(slug: string): Promise<Product | null> {
+export async function getProductsBySlug(
+    slug: string,
+): Promise<ProductDTO | null> {
     await connectDB();
     const product = await ProductModel.findOne({
         slug,

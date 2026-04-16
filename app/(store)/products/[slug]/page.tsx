@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ProductSchema } from "@/components/products/ProductSchema";
-import { getProductBySlug } from "@/lib/products/getProductBySlug";
+import { getProductsBySlug } from "@/lib/products/getProductsBySlug";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { AddToCartButton } from "@/components/products/AddToCartButton";
@@ -12,7 +12,7 @@ interface Props {
 
 export default async function ProductPage({ params }: Props) {
     const { slug } = await params;
-    const product = await getProductBySlug(slug);
+    const product = await getProductsBySlug(slug);
 
     if (!product) notFound();
 
@@ -107,7 +107,7 @@ export default async function ProductPage({ params }: Props) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
-    const product = await getProductBySlug(slug);
+    const product = await getProductsBySlug(slug);
 
     if (!product) return { title: "Producto no encontrado" };
 

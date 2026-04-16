@@ -1,11 +1,11 @@
 import { connectDB } from "@/lib/mongodb";
-import { ProductModel } from "@/models/Product";
-import { getCategories } from "@/lib/products";
+import { getProductsById } from "@/lib/products/getProductsById";
+import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Product } from "@/types/product";
-import type { Category } from "@/types/category";
+import type { ProductDTO } from "@/types/shared/product";
+import type { CategoryDTO } from "@/types/shared/category";
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +17,16 @@ export default async function AdminEditProductPage({
     const { id } = await params;
 
     await connectDB();
-    const [rawProduct, categories]: [Product, Category[]] = await Promise.all([
-        ProductModel.findById(id).lean(),
-        getCategories(),
-    ]);
+    const [product, categories]: [ProductDTO | null, CategoryDTO[]] =
+        await Promise.all([
+            getProductsById(id),
+            getCategoriesBase({ limit: 0 }),
+        ]);
 
-    if (!rawProduct) notFound();
+    if (!product) notFound();
 
     // Mapeamos al formato que espera ProductForm
-    const product: Product = {
+    /*const product: ProductDTO = {
         _id: id,
         name: (rawProduct as any).name,
         slug: (rawProduct as any).slug,
@@ -47,7 +48,7 @@ export default async function AdminEditProductPage({
         categories: (rawProduct as any).categories || [],
         featured: (rawProduct as any).featured || false,
         images: (rawProduct as any).images || [],
-    };
+    };*/
 
     return (
         <div>

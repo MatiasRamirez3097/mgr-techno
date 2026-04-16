@@ -3,11 +3,11 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import type { Category } from "@/types/category";
+import type { CategoryDTO } from "@/types/shared/category";
 
 interface Props {
     product?: any;
-    categories: Category[];
+    categories: CategoryDTO[];
     mode: "create" | "edit";
 }
 
@@ -171,7 +171,7 @@ export function ProductForm({ product, categories, mode }: Props) {
     };
 
     const [images, setImages] = useState<string[]>(extractImages(product));
-
+    console.log(product);
     const [form, setForm] = useState({
         name: product?.name || "",
         slug: product?.slug || "",
@@ -186,7 +186,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         length: product?.dimensions?.length || "",
         width: product?.dimensions?.width || "",
         height: product?.dimensions?.height || "",
-        categories: product?.categories?.map((c: any) => c.id) || [],
+        categories: product?.categories || [],
     });
 
     const handleChange = (
@@ -231,7 +231,7 @@ export function ProductForm({ product, categories, mode }: Props) {
             width: form.width,
             height: form.height,
         },
-        categories: form.categories.map((id: number) => ({ id })),
+        categories: form.categories,
         images: images.map((url) => ({ src: url })),
     });
 
@@ -289,9 +289,56 @@ export function ProductForm({ product, categories, mode }: Props) {
     const inputClass =
         "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
+    console.log(categories);
     const rootCategories = categories.filter((c) => c.parentId === null);
     const childCategories = (parentId: string) =>
         categories.filter((c) => c.parentId === parentId);
+
+    function renderCategoryTree(
+        parentId: string | null,
+        level = 0,
+    ): React.ReactNode {
+        return categories
+            .filter((c) =>
+                parentId === null ? !c.parentId : c.parentId === parentId,
+            )
+            .map((cat) => (
+                <div key={cat.id}>
+                    <label
+                        className="flex items-center gap-2.5 py-1 cursor-pointer"
+                        style={{ paddingLeft: level * 16 }}
+                    >
+                        {form.categories.includes(cat.id) ? (
+                            <input
+                                type="checkbox"
+                                checked
+                                onChange={() => handleCategoryToggle(cat.id)}
+                                className="w-4 h-4 accent-brand"
+                            />
+                        ) : (
+                            <input
+                                type="checkbox"
+                                checked={form.categories.includes(cat.id)}
+                                onChange={() => handleCategoryToggle(cat.id)}
+                                className="w-4 h-4 accent-brand"
+                            />
+                        )}
+                        <span
+                            className={
+                                level === 0
+                                    ? "text-sm text-white font-medium"
+                                    : "text-sm text-gray-300"
+                            }
+                        >
+                            {cat.name}
+                        </span>
+                    </label>
+
+                    {/* 🔁 hijos recursivos */}
+                    {renderCategoryTree(cat.id, level + 1)}
+                </div>
+            ));
+    }
 
     return (
         <form
@@ -559,45 +606,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                         Categorías
                     </h2>
                     <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
-                        {rootCategories.map((cat) => (
-                            <div key={cat._id}>
-                                <label className="flex items-center gap-2.5 py-1 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.categories.includes(
-                                            cat._id,
-                                        )}
-                                        onChange={() =>
-                                            handleCategoryToggle(cat._id)
-                                        }
-                                        className="w-4 h-4 accent-brand"
-                                    />
-                                    <span className="text-sm text-white font-medium">
-                                        {cat.name}
-                                    </span>
-                                </label>
-                                {childCategories(cat._id).map((child) => (
-                                    <label
-                                        key={child._id}
-                                        className="flex items-center gap-2.5 py-1 pl-6 cursor-pointer"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={form.categories.includes(
-                                                child._id,
-                                            )}
-                                            onChange={() =>
-                                                handleCategoryToggle(child._id)
-                                            }
-                                            className="w-4 h-4 accent-brand"
-                                        />
-                                        <span className="text-sm text-gray-300">
-                                            {child.name}
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
-                        ))}
+                        {renderCategoryTree(null)}
                     </div>
                 </section>
             </div>

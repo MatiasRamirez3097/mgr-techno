@@ -6,6 +6,9 @@ import { ProductDTO } from "@/types/shared/product";
 export function mapProductToDTO(product: ProductDB): ProductDTO {
     return {
         id: product._id.toString(),
+        categories: product.categories
+            ? product.categories.map((id) => id.toString())
+            : [],
         image: product.image || "",
         images: product.images || [],
         name: product.name,

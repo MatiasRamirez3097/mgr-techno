@@ -8,6 +8,7 @@ export function mapCategoryToDTO(category: CategoryDB): CategoryDTO {
         id: category._id.toString(),
         image: category.image || "",
         name: category.name,
+        parentId: category.parentId?.toString() || null,
         slug: category.slug,
     };
 }
