@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCategories } from "@/lib/products";
+import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 import { SearchBar } from "./SearchBar";
 import { CartButton } from "./CartButton";
 import { UserMenu } from "./UserMenu";
@@ -7,7 +7,7 @@ import { MobileMenu } from "./MobileMenu";
 import { CategoryMenu } from "./CategoryMenu";
 
 export async function Navbar() {
-    const categories = await getCategories();
+    const categories = await getCategoriesBase({ limit: 0 });
 
     return (
         <header className="w-full bg-gray-950 border-b border-gray-800 sticky top-0 z-50">

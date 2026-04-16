@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import type { Category } from "@/types/category";
+import type { CategoryDTO } from "@/types/shared/category";
 import { SearchBar } from "./SearchBar";
 
-export function MobileMenu({ categories }: { categories: Category[] }) {
+export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
     const [open, setOpen] = useState(false);
     const [expandedCat, setExpandedCat] = useState<string | null>(null);
     const pathname = usePathname();
@@ -114,12 +114,12 @@ export function MobileMenu({ categories }: { categories: Category[] }) {
                     </Link>
 
                     {roots.map((cat) => {
-                        const subs = children(cat._id);
+                        const subs = children(cat.id);
                         const hasChildren = subs.length > 0;
-                        const isExpanded = expandedCat === cat._id;
+                        const isExpanded = expandedCat === cat.id;
 
                         return (
-                            <div key={cat._id}>
+                            <div key={cat.id}>
                                 <div className="flex items-center">
                                     <Link
                                         href={`/products?category=${cat.slug}`}
@@ -131,7 +131,7 @@ export function MobileMenu({ categories }: { categories: Category[] }) {
                                         <button
                                             onClick={() =>
                                                 setExpandedCat(
-                                                    isExpanded ? null : cat._id,
+                                                    isExpanded ? null : cat.id,
                                                 )
                                             }
                                             className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-white transition-colors"
@@ -159,7 +159,7 @@ export function MobileMenu({ categories }: { categories: Category[] }) {
                                     <div className="ml-4 border-l border-gray-800 pl-3 mb-1">
                                         {subs.map((sub) => (
                                             <Link
-                                                key={sub._id}
+                                                key={sub.id}
                                                 href={`/products?category=${sub.slug}`}
                                                 className="flex items-center px-3 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
                                             >

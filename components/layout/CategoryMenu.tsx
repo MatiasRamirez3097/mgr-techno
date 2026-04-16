@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { Category } from "@/types/category";
+import type { CategoryDTO } from "@/types/shared/category";
 // Categorías que se agrupan bajo "Ofertas"
 const OFERTAS_SLUGS = ["combos", "pc-completa"];
 
-export function CategoryMenu({ categories }: { categories: Category[] }) {
+export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
     const [openId, setOpenId] = useState<string | null>(null);
     const [ofertasOpen, setOfertasOpen] = useState(false);
 
@@ -49,7 +49,7 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
                     <div className="absolute top-full left-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-48 z-50">
                         {ofertasSubs.map((sub) => (
                             <Link
-                                key={sub._id}
+                                key={sub.id}
                                 href={`/products?category=${sub.slug}`}
                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
                             >
@@ -62,14 +62,14 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
 
             {/* Resto de categorías raíz */}
             {roots.map((cat) => {
-                const subs = children(cat._id);
+                const subs = children(cat.id);
                 const hasChildren = subs.length > 0;
 
                 return (
                     <div
-                        key={cat._id}
+                        key={cat.id}
                         className="relative"
-                        onMouseEnter={() => hasChildren && setOpenId(cat._id)}
+                        onMouseEnter={() => hasChildren && setOpenId(cat.id)}
                         onMouseLeave={() => setOpenId(null)}
                     >
                         <Link
@@ -82,11 +82,11 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
                             )}
                         </Link>
 
-                        {hasChildren && openId === cat._id && (
+                        {hasChildren && openId === cat.id && (
                             <div className="absolute top-full left-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-48 z-50">
                                 {subs.map((sub) => (
                                     <Link
-                                        key={sub._id}
+                                        key={sub.id}
                                         href={`/products?category=${sub.slug}`}
                                         className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
                                     >
