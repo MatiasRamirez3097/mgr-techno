@@ -3,6 +3,7 @@ export type ProductDTO = {
     image: string;
     images: string[];
     name: string;
+    onSale: boolean;
     price: number;
     slug: string;
     stock: number;
