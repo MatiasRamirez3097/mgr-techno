@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
-import { getProducts, getCategories } from "@/lib/products";
+import { getProductsBase } from "@/lib/products/getProductsBase";
+import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ];
 
     // Categorías
-    const categories = await getCategories();
+    const categories = await getCategoriesBase({ limit: 0 });
     const categoryPages: MetadataRoute.Sitemap = categories.map((cat) => ({
         url: `${baseUrl}/products?category=${cat.slug}`,
         lastModified: new Date(),
@@ -32,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     // Productos — traemos todos sin paginar
-    const { products } = await getProducts({ page: 1 });
+    const products = await getProductsBase({ limit: 0 });
     const productPages: MetadataRoute.Sitemap = products.map((product) => ({
         url: `${baseUrl}/products/${product.slug}`,
         lastModified: new Date(),
