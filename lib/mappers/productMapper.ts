@@ -12,6 +12,7 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         onSale: product.onSale,
         listPrice: product.listPrice || 0,
         price: product.price,
+        priceNoTax: product.priceNoTax || 0,
         regularListPrice: product.regularPrice || 0,
         regularPrice: product.regularPrice || 0,
         slug: product.slug,
