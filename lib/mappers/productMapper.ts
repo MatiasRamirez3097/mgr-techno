@@ -10,6 +10,7 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         images: product.images || [],
         name: product.name,
         onSale: product.onSale,
+        listPrice: product.listPrice || 0,
         price: product.price,
         regularListPrice: product.regularPrice || 0,
         regularPrice: product.regularPrice || 0,
