@@ -1,6 +1,6 @@
-import { Product } from "@/types/product";
+import { ProductDTO } from "@/types/shared/product";
 
-export function ProductSchema({ product }: { product: Product }) {
+export function ProductSchema({ product }: { product: ProductDTO }) {
     const schema = {
         "@context": "https://schema.org",
         "@type": "Product",
