@@ -2,7 +2,7 @@
 import mongoose, { Schema } from "mongoose";
 mongoose.models;
 
-const CategorySchema = new Schema(
+export const CategorySchema = new Schema(
     {
         wooId: { type: Number, required: true, unique: true, index: true },
         name: { type: String, required: true },

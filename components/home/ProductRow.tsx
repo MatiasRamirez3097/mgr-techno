@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Product } from "@/types/product";
+import { ProductDTO } from "@/types/shared/product";
 import { ProductCard } from "@/components/productCard/ProductCard";
 
 interface Props {
     title: string;
-    products: Product[];
+    products: ProductDTO[];
     href: string;
     linkLabel?: string;
 }

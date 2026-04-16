@@ -1,18 +1,16 @@
-import {} from //getOnSaleProducts,
-//getNewProducts,
-//getCategoriesWithImages,
-"@/lib/products";
+import { getProductsNew } from "@/lib/products/getProductsNew";
+import { getProductsOnSale } from "@/lib/products/getProductsOnSale";
+import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { ProductRow } from "@/components/home/ProductRow";
 
 export default async function HomePage() {
-    const [onSale, newProducts, categories] = await Promise.all([
-        //getOnSaleProducts(8),
-        //getNewProducts(8),
-        //getCategoriesWithImages(),
+    const [onSale, categories, newProducts] = await Promise.all([
+        getProductsOnSale(8),
+        getCategoriesBase({}),
+        getProductsNew(8),
     ]);
-
     return (
         <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col gap-14">
             {/* Hero */}
