@@ -24,6 +24,5 @@ export async function getCategoriesBase({
         .sort(sort)
         .limit(limit)
         .lean();
-    console.log(categories);
     return categories.map(mapCategoryToDTO);
 }

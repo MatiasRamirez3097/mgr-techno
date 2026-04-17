@@ -14,7 +14,6 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 export function CategoryGrid({ categories }: { categories: CategoryDTO[] }) {
-    console.log(categories);
     return (
         <section>
             <h2 className="text-xl font-bold text-white mb-5">Categorías</h2>

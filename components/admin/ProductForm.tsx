@@ -171,7 +171,6 @@ export function ProductForm({ product, categories, mode }: Props) {
     };
 
     const [images, setImages] = useState<string[]>(extractImages(product));
-    console.log(product);
     const [form, setForm] = useState({
         name: product?.name || "",
         slug: product?.slug || "",
@@ -180,12 +179,12 @@ export function ProductForm({ product, categories, mode }: Props) {
         shortDescription: product?.shortDescription || "",
         regularPrice: product?.regularPrice || "",
         salePrice: product?.salePrice || "",
-        stockQuantity: product?.stockQuantity ?? "",
+        stock: product?.stock ?? "",
         manageStock: product?.manageStock ?? true,
-        weight: product?.weight || "",
-        length: product?.dimensions?.length || "",
-        width: product?.dimensions?.width || "",
-        height: product?.dimensions?.height || "",
+        weight: product?.weight || 0,
+        length: product?.dimensions?.length || 0,
+        width: product?.dimensions?.width || 0,
+        height: product?.dimensions?.height || 0,
         categories: product?.categories || [],
     });
 
@@ -222,9 +221,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         regularPrice: form.regularPrice,
         salePrice: form.salePrice,
         manageStock: form.manageStock,
-        stockQuantity: form.manageStock
-            ? parseInt(form.stockQuantity) || 0
-            : null,
+        stock: form.manageStock ? parseInt(form.stock) || 0 : null,
         weight: form.weight,
         dimensions: {
             length: form.length,
@@ -244,7 +241,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         try {
             const res = await fetch(
                 mode === "edit"
-                    ? `/api/admin/products/${product._id}`
+                    ? `/api/admin/products/${product.id}`
                     : "/api/admin/products",
                 {
                     method: mode === "edit" ? "PUT" : "POST",
@@ -289,7 +286,6 @@ export function ProductForm({ product, categories, mode }: Props) {
     const inputClass =
         "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
-    console.log(categories);
     const rootCategories = categories.filter((c) => c.parentId === null);
     const childCategories = (parentId: string) =>
         categories.filter((c) => c.parentId === parentId);
@@ -308,21 +304,15 @@ export function ProductForm({ product, categories, mode }: Props) {
                         className="flex items-center gap-2.5 py-1 cursor-pointer"
                         style={{ paddingLeft: level * 16 }}
                     >
-                        {form.categories.includes(cat.id) ? (
-                            <input
-                                type="checkbox"
-                                checked
-                                onChange={() => handleCategoryToggle(cat.id)}
-                                className="w-4 h-4 accent-brand"
-                            />
-                        ) : (
-                            <input
-                                type="checkbox"
-                                checked={form.categories.includes(cat.id)}
-                                onChange={() => handleCategoryToggle(cat.id)}
-                                className="w-4 h-4 accent-brand"
-                            />
-                        )}
+                        <input
+                            type="checkbox"
+                            checked={
+                                form.categories.includes(cat.id) ? true : false
+                            }
+                            onChange={() => handleCategoryToggle(cat.id)}
+                            className="w-4 h-4 accent-brand"
+                        />
+
                         <span
                             className={
                                 level === 0
@@ -410,7 +400,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                         <div>
                             <label className={labelClass}>Precio regular</label>
                             <input
-                                name="regular_price"
+                                name="regularPrice"
                                 value={form.regularPrice}
                                 onChange={handleChange}
                                 type="number"
@@ -460,8 +450,8 @@ export function ProductForm({ product, categories, mode }: Props) {
                                     Cantidad en stock
                                 </label>
                                 <input
-                                    name="stockQuantity"
-                                    value={form.stockQuantity}
+                                    name="stock"
+                                    value={form.stock}
                                     onChange={handleChange}
                                     type="number"
                                     className={inputClass}

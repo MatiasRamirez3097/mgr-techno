@@ -17,6 +17,5 @@ export async function getCategoriesDescendants(
         const subChildren = await getCategoriesDescendants(id);
         ids = ids.concat(subChildren);
     }
-    console.log(">>>", ids);
     return ids;
 }

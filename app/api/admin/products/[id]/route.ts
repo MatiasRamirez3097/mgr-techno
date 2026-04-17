@@ -41,9 +41,9 @@ export async function PUT(
         onSale,
         salePrice,
         manageStock: body.manageStock,
-        stock: body.stockQuantity || 0,
-        stockStatus: (body.stock_quantity || 0) > 0 ? "instock" : "outofstock",
-        weight: parseFloat(body.weight || "0"),
+        stock: body.stock || 0,
+        stockStatus: (body.stock || 0) > 0 ? "instock" : "outofstock",
+        weight: parseFloat(body.weight) || 0,
         dimensions: {
             length: parseFloat(body.dimensions?.length || "0"),
             width: parseFloat(body.dimensions?.width || "0"),
@@ -59,7 +59,8 @@ export async function PUT(
         image: images[0] || "",
         images,
     };
-    console.log(updateData);
+
+    console.log(">>>", updateData);
 
     const product = await ProductModel.findByIdAndUpdate(id, updateData, {
         returnDocument: "after",

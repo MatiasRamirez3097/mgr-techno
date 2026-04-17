@@ -13,6 +13,12 @@ export type ProductDTO = {
     price: number;
     slug: string;
     stock: number;
+    weight: number;
+    dimensions: {
+        height: number;
+        length: number;
+        width: number;
+    };
 };
 
 export type GetProductsResponse = {

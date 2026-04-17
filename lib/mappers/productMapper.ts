@@ -21,5 +21,11 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         shortDescription: product.shortDescription || "",
         slug: product.slug,
         stock: product.stock || 0,
+        weight: product.weight || 0,
+        dimensions: {
+            height: product.dimensions?.height || 0,
+            length: product.dimensions?.length || 0,
+            width: product.dimensions?.width || 0,
+        },
     };
 }
