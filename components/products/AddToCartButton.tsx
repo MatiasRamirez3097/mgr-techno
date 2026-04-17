@@ -22,7 +22,7 @@ export function AddToCartButton({ product }: { product: ProductDTO }) {
 
     return (
         <button
-            onClick={() => addToCart(product)}
+            onClick={() => handleAdd()}
             disabled={disabled}
             className="bg-brand mt-auto w-full py-3 px-6 rounded-xl font-medium text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
