@@ -15,6 +15,7 @@ export const ProductSchema = new Schema(
         salePrice: { type: Number },
         image: { type: String },
         images: [{ type: String }],
+        hasSerialNumber: { type: Boolean, required: true, default: false },
         stockQuantity: { type: Number },
         stockStatus: {
             type: String,
