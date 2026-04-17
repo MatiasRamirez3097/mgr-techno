@@ -14,5 +14,5 @@ export async function getProductsBySlug(
         status: "publish",
     }).lean();
     if (!product) return null;
-    return product.map(mapProductToDTO);
+    return mapProductToDTO(product);
 }
