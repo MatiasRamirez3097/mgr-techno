@@ -65,6 +65,14 @@ const LINKS = [
             </svg>
         ),
     },
+    {
+        href: "/admin/sales",
+        label: "Ventas",
+    },
+    {
+        href: "/admin/purchases",
+        label: "Compras",
+    },
 ];
 
 export function AdminSidebar() {
