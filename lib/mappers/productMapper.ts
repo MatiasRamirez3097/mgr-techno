@@ -2,6 +2,7 @@
 
 import { ProductDB } from "@/types/backend/product";
 import { ProductDTO } from "@/types/shared/product";
+import { publicDecrypt } from "crypto";
 
 export function mapProductToDTO(product: ProductDB): ProductDTO {
     return {
@@ -20,7 +21,13 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         regularPrice: product.regularPrice || 0,
         shortDescription: product.shortDescription || "",
         slug: product.slug,
-        stock: product.stock || 0,
+        status:
+            product.status === "publish" ||
+            product.status === "draft" ||
+            product.status === "private"
+                ? product.status
+                : "draft",
+        stockQuantity: product.stockQuantity || 0,
         weight: product.weight || 0,
         dimensions: {
             height: product.dimensions?.height || 0,

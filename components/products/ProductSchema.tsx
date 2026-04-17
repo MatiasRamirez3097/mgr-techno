@@ -18,7 +18,7 @@ export function ProductSchema({ product }: { product: ProductDTO }) {
                 .toISOString()
                 .split("T")[0],
             availability:
-                product.stock > 0
+                product.stockQuantity > 0
                     ? "https://schema.org/InStock"
                     : "https://schema.org/OutOfStock",
             seller: {

@@ -1,8 +1,8 @@
 // /types/backend/product.ts
 
-import { InferSchemaType } from "mongoose";
+import { InferSchemaType, Types } from "mongoose";
 import { CategorySchema } from "@/models/Category";
 
 export type CategoryDB = InferSchemaType<typeof CategorySchema> & {
-    _id: string;
+    _id: Types.ObjectId;
 };

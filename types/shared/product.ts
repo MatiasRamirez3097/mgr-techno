@@ -12,7 +12,8 @@ export type ProductDTO = {
     onSale: boolean;
     price: number;
     slug: string;
-    stock: number;
+    status: "publish" | "draft" | "private";
+    stockQuantity: number;
     weight: number;
     dimensions: {
         height: number;

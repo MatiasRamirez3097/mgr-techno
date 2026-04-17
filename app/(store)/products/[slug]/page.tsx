@@ -86,13 +86,13 @@ export default async function ProductPage({ params }: Props) {
                     />
 
                     {/* Stock */}
-                    {product.stock === 0 ? (
+                    {product.stockQuantity === 0 ? (
                         <p className="text-sm text-red-500 font-medium stock-color">
                             Sin stock
                         </p>
                     ) : (
                         <p className="text-sm text-red-300 font-medium stock-color">
-                            {product.stock} unidades disponibles
+                            {product.stockQuantity} unidades disponibles
                         </p>
                     )}
 

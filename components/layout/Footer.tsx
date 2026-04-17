@@ -47,7 +47,7 @@ const SOCIAL_LINKS = [
 
 const LINKS = {
     Información: [
-        { label: "Sobre nosotros", href: "/sobre-nosotros" },
+        { label: "Sobre nosotros", href: "/about-us" },
         { label: "Preguntas frecuentes", href: "/faq" },
         { label: "Términos y condiciones", href: "/terminos" },
         { label: "Política de privacidad", href: "/privacidad" },

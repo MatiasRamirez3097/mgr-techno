@@ -12,9 +12,9 @@ export function ProductCard({ product }: { product: ProductDTO }) {
     const items = useCart((state) => state.items);
 
     const itemInCart = items.find((i) => i.id === product.id);
-    const maxStock = product.stock ?? Infinity;
+    const maxStock = product.stockQuantity ?? Infinity;
     const reachedMax = itemInCart ? itemInCart.quantity >= maxStock : false;
-    const disabled = product.stock === 0 || reachedMax;
+    const disabled = product.stockQuantity === 0 || reachedMax;
 
     const handleAdd = () => {
         if (disabled) return;
@@ -63,7 +63,7 @@ export function ProductCard({ product }: { product: ProductDTO }) {
                     disabled={disabled}
                     className="w-full py-2 rounded-lg text-sm font-medium text-white bg-brand hover:brightness-110 disabled:bg-gray-700 disabled:cursor-not-allowed transition-all"
                 >
-                    {product.stock === 0
+                    {product.stockQuantity === 0
                         ? "Sin stock"
                         : reachedMax
                           ? "Máximo disponible"

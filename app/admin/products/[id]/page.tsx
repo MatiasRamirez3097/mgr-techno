@@ -25,31 +25,6 @@ export default async function AdminEditProductPage({
 
     if (!product) notFound();
 
-    // Mapeamos al formato que espera ProductForm
-    /*const product: ProductDTO = {
-        _id: id,
-        name: (rawProduct as any).name,
-        slug: (rawProduct as any).slug,
-        status: (rawProduct as any).status,
-        description: (rawProduct as any).description || "",
-        shortDescription: (rawProduct as any).shortDescription || "",
-        regularPrice: (rawProduct as any).regularPrice?.toString() || "",
-        salePrice:
-            (rawProduct as any).salePrice > 0
-                ? (rawProduct as any).salePrice?.toString()
-                : "",
-        stock: (rawProduct as any).stock,
-        weight: (rawProduct as any).weight?.toString() || "",
-        dimensions: {
-            length: (rawProduct as any).dimensions?.length?.toString() || "",
-            width: (rawProduct as any).dimensions?.width?.toString() || "",
-            height: (rawProduct as any).dimensions?.height?.toString() || "",
-        },
-        categories: (rawProduct as any).categories || [],
-        featured: (rawProduct as any).featured || false,
-        images: (rawProduct as any).images || [],
-    };*/
-
     return (
         <div>
             <div className="flex items-center gap-4 mb-6">

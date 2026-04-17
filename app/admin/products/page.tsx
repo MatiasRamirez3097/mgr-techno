@@ -40,7 +40,7 @@ async function getAdminProducts(
         salePrice: p.salePrice,
         onSale: p.onSale,
 
-        stock: p.stock,
+        stock: p.stockQuantity,
         stockStatus: p.stockStatus,
 
         status: p.status,

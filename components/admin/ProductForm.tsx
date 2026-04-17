@@ -179,7 +179,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         shortDescription: product?.shortDescription || "",
         regularPrice: product?.regularPrice || "",
         salePrice: product?.salePrice || "",
-        stock: product?.stock ?? "",
+        stockQuantity: product?.stockQuantity ?? "",
         manageStock: product?.manageStock ?? true,
         weight: product?.weight || 0,
         length: product?.dimensions?.length || 0,
@@ -221,7 +221,9 @@ export function ProductForm({ product, categories, mode }: Props) {
         regularPrice: form.regularPrice,
         salePrice: form.salePrice,
         manageStock: form.manageStock,
-        stock: form.manageStock ? parseInt(form.stock) || 0 : null,
+        stockQuantity: form.manageStock
+            ? parseInt(form.stockQuantity) || 0
+            : null,
         weight: form.weight,
         dimensions: {
             length: form.length,
@@ -450,8 +452,8 @@ export function ProductForm({ product, categories, mode }: Props) {
                                     Cantidad en stock
                                 </label>
                                 <input
-                                    name="stock"
-                                    value={form.stock}
+                                    name="stockQuantity"
+                                    value={form.stockQuantity}
                                     onChange={handleChange}
                                     type="number"
                                     className={inputClass}

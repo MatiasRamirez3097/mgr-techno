@@ -15,7 +15,7 @@ export const ProductSchema = new Schema(
         salePrice: { type: Number },
         image: { type: String },
         images: [{ type: String }],
-        stock: { type: Number },
+        stockQuantity: { type: Number },
         stockStatus: {
             type: String,
             enum: ["instock", "outofstock", "onbackorder"],

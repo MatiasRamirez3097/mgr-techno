@@ -3,6 +3,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models/Product";
 import { NextRequest } from "next/server";
+import type { ProductInput } from "@/types/backend/productInput";
+import { mapInputToProductDB } from "@/lib/mappers/productInputMapper";
 
 export async function PUT(
     req: NextRequest,
@@ -14,20 +16,24 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = (await req.json()) as ProductInput;
     await connectDB();
 
+    const updateData = mapInputToProductDB(body);
+
+    console.log(">>>", updateData);
+    /*
     const price = parseFloat(body.regularPrice || "0");
     const salePrice = body.salePrice ? parseFloat(body.salePrice) : 0;
     const onSale = salePrice > 0 && salePrice < price;
     const finalPrice = onSale ? salePrice : price;
-
-    const images =
+    */
+    /*const images =
         body.images
             ?.map((img: any) => (typeof img === "string" ? img : img.src || ""))
             .filter(Boolean) || [];
-
-    const updateData = {
+    */
+    /*const updateData = {
         name: body.name,
         slug: body.slug,
         status: body.status,
@@ -58,12 +64,13 @@ export async function PUT(
         featured: body.featured || false,
         image: images[0] || "",
         images,
-    };
+    };*/
 
     console.log(">>>", updateData);
 
     const product = await ProductModel.findByIdAndUpdate(id, updateData, {
         returnDocument: "after",
+        runValidators: true,
     });
 
     if (!product)
