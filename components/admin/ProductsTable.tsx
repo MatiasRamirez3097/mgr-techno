@@ -4,9 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { QuickEditProduct } from "./QuickEditProduct";
+import { getFinalPrice } from "@/lib/pricing";
 
 export function ProductsTable({ products }: { products: any[] }) {
     const [quickEditId, setQuickEditId] = useState<string | null>(null);
+
     return (
         <table className="w-full">
             <thead>
@@ -41,7 +43,7 @@ export function ProductsTable({ products }: { products: any[] }) {
                     </tr>
                 ) : (
                     products.map((product: any) => (
-                        <React.Fragment key={product._id}>
+                        <React.Fragment key={product.id}>
                             <tr className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
@@ -68,7 +70,7 @@ export function ProductsTable({ products }: { products: any[] }) {
                                                 )}
                                             </div>
                                             <p className="text-xs text-gray-400">
-                                                #{product._id}
+                                                #{product.id}
                                             </p>
                                         </div>
                                     </div>
@@ -79,9 +81,10 @@ export function ProductsTable({ products }: { products: any[] }) {
                                 <td className="px-6 py-4">
                                     <p className="text-sm text-white">
                                         $
-                                        {parseFloat(
-                                            product.price || "0",
-                                        ).toLocaleString("es-AR")}
+                                        {getFinalPrice({
+                                            regularPrice: product.regularPrice,
+                                            salePrice: product.salePrice,
+                                        }).toLocaleString("es-AR")}
                                     </p>
                                     {product.onSale && (
                                         <p className="text-xs text-gray-400 line-through">
@@ -100,7 +103,7 @@ export function ProductsTable({ products }: { products: any[] }) {
                                                 : "text-red-400 bg-red-400/10 border-red-400/20"
                                         }`}
                                     >
-                                        {product.stock_status === "instock"
+                                        {product.stockStatus === "instock"
                                             ? `En stock (${product.stockQuantity ?? "∞"})`
                                             : "Sin stock"}
                                     </span>
@@ -123,13 +126,13 @@ export function ProductsTable({ products }: { products: any[] }) {
                                         <button
                                             onClick={() =>
                                                 setQuickEditId(
-                                                    quickEditId === product._id
+                                                    quickEditId === product.id
                                                         ? null
                                                         : product._id,
                                                 )
                                             }
                                             className={`text-xs transition-all ${
-                                                quickEditId === product._id
+                                                quickEditId === product.id
                                                     ? "text-white"
                                                     : "text-gray-400 hover:text-white"
                                             }`}
@@ -137,7 +140,7 @@ export function ProductsTable({ products }: { products: any[] }) {
                                             ✏ Edición rápida
                                         </button>
                                         <Link
-                                            href={`/admin/products/${product._id}`}
+                                            href={`/admin/products/${product.id}`}
                                             className="text-xs text-brand hover:brightness-125 transition-all"
                                         >
                                             Editar →

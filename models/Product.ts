@@ -6,16 +6,24 @@ export const ProductSchema = new Schema(
     {
         name: { type: String, required: true },
         slug: { type: String, required: true, index: true },
-        price: { type: Number, required: true },
-        listPrice: { type: Number },
-        regularPrice: { type: Number },
-        regularListPrice: { type: Number },
-        priceNoTax: { type: Number },
-        onSale: { type: Boolean, default: false },
+        type: {
+            type: String,
+            enum: ["simple", "bundle"],
+            default: "simple",
+            index: true,
+        },
+        taxRate: { type: Number },
+        regularPrice: { type: Number, required: true },
         salePrice: { type: Number },
+        onSale: { type: Boolean, default: false },
         image: { type: String },
         images: [{ type: String }],
         hasSerialNumber: { type: Boolean, required: true, default: false },
+        manageStock: {
+            type: Boolean,
+            default: true,
+        },
+
         stockQuantity: { type: Number },
         stockStatus: {
             type: String,
@@ -39,7 +47,10 @@ export const ProductSchema = new Schema(
         featured: { type: Boolean, default: false },
         status: { type: String, default: "publish" },
         sku: { type: String },
-        syncedAt: { type: Date, default: Date.now },
+        bundleItemsCount: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true },
 );

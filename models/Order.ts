@@ -1,6 +1,6 @@
 import { Schema, model, models } from "mongoose";
 
-const OrderSchema = new Schema(
+export const OrderSchema = new Schema(
     {
         customerId: {
             type: Schema.Types.ObjectId,
@@ -45,14 +45,11 @@ const OrderSchema = new Schema(
         },
         lineItems: [
             {
-                productId: String,
-                wooId: Number,
-                name: String,
-                quantity: Number,
-                price: Number,
-                total: Number,
-                image: String,
-                slug: String,
+                productId: { type: String, required: true },
+                name: { type: String, required: true },
+                quantity: { type: Number, required: true },
+                price: { type: Number, required: true },
+                total: { type: Number, required: true },
             },
         ],
         paymentMethod: {
@@ -70,7 +67,7 @@ const OrderSchema = new Schema(
         subtotal: { type: Number, required: true },
         total: { type: Number, required: true },
         datePaid: { type: Date, default: null },
-        notes: { type: String },
+        notes: { type: String, required: false },
     },
     { timestamps: true },
 );

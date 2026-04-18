@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import { connectDB } from "@/lib/mongodb";
-import { OrderModel } from "@/models/Order";
 import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
+import { getOrders } from "@/lib/orders/getOrders";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -37,35 +37,6 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     },
 };
 
-async function getOrders(page: number, perPage: number, search?: string) {
-    await connectDB();
-
-    const query: any = {};
-
-    if (search) {
-        query.$or = [
-            { customerEmail: { $regex: search, $options: "i" } },
-            { "billing.firstName": { $regex: search, $options: "i" } },
-            { "billing.lastName": { $regex: search, $options: "i" } },
-        ];
-
-        // Si parece un ID de orden
-        if (search.length === 6) {
-            query.$or.push({ _id: { $regex: search, $options: "i" } });
-        }
-    }
-
-    const total = await OrderModel.countDocuments(query);
-    const totalPages = Math.ceil(total / perPage);
-    const orders = await OrderModel.find(query)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * perPage)
-        .limit(perPage)
-        .lean();
-
-    return { orders, total, totalPages };
-}
-
 interface Props {
     searchParams: Promise<{
         page?: string;
@@ -79,11 +50,11 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     const currentPage = parseInt(page || "1");
     const perPage = parseInt(per_page || "20");
 
-    const { orders, total, totalPages } = await getOrders(
-        currentPage,
-        perPage,
+    const { orders, total, totalPages } = await getOrders({
         search,
-    );
+        page: currentPage,
+        adminView: true,
+    });
 
     return (
         <div>

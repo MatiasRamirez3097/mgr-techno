@@ -5,52 +5,7 @@ import { AdminSearch } from "@/components/admin/AdminSearch";
 import { ProductsTable } from "@/components/admin/ProductsTable";
 import { SyncButton } from "@/components/admin/SyncButton";
 import { ProductModel } from "@/models/Product";
-
-async function getAdminProducts(
-    page: number,
-    perPage: number,
-    search?: string,
-) {
-    await connectDB();
-
-    const query: any = {};
-
-    if (search) {
-        query.$or = [{ name: { $regex: search, $options: "i" } }];
-    }
-
-    const total = await ProductModel.countDocuments(query);
-    const totalPages = Math.ceil(total / perPage);
-    const docs = await ProductModel.find(query)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * perPage)
-        .limit(perPage)
-        .lean();
-
-    const products = docs.map((p: any) => ({
-        _id: p._id.toString(),
-        name: p.name,
-        slug: p.slug,
-        image: p.image,
-        images: p.images || [],
-        sku: p.sku,
-
-        price: p.price,
-        regularPrice: p.regularPrice,
-        salePrice: p.salePrice,
-        onSale: p.onSale,
-
-        stock: p.stockQuantity,
-        stockStatus: p.stockStatus,
-
-        status: p.status,
-        featured: p.featured,
-
-        createdAt: p.createdAt?.toISOString?.() || null,
-        updatedAt: p.updatedAt?.toISOString?.() || null,
-    }));
-    return { products, total, totalPages };
-}
+import { getProducts } from "@/lib/products/getProducts";
 
 interface Props {
     searchParams: Promise<{
@@ -65,11 +20,11 @@ export default async function AdminProductsPage({ searchParams }: Props) {
     const currentPage = parseInt(page || "1");
     const perPage = parseInt(per_page || "20");
 
-    const { products, total, totalPages } = await getAdminProducts(
-        currentPage,
-        perPage,
+    const { products, total, totalPages } = await getProducts({
         search,
-    );
+        page: currentPage,
+        adminView: true,
+    });
 
     return (
         <div>

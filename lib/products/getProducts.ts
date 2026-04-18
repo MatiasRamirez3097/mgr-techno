@@ -21,6 +21,7 @@ export async function getProducts(
     await connectDB();
     const page = filters.page || 1;
     const sort = getMongoSort(filters.orderby);
+    const adminView = filters.adminView ? true : false;
 
     // Construir query
     const query: any = { status: "publish" };
@@ -47,19 +48,24 @@ export async function getProducts(
             query._id = null;
         }
     }
-
+    let res: any[] = [];
     // Separamos en stock y sin stock
-    const [inStock, outOfStock] = await Promise.all([
-        ProductModel.find({ ...query, stockStatus: "instock" })
+    if (!adminView) {
+        const [inStock, outOfStock] = await Promise.all([
+            ProductModel.find({ ...query, stockStatus: "instock" })
+                .sort(sort)
+                .lean(),
+            ProductModel.find({ ...query, stockStatus: "outofstock" })
+                .sort(sort)
+                .lean(),
+        ]);
+        res = [...inStock, ...outOfStock];
+    } else {
+        res = await ProductModel.find({ ...query })
             .sort(sort)
-            .lean(),
-        ProductModel.find({ ...query, stockStatus: "outofstock" })
-            .sort(sort)
-            .lean(),
-    ]);
-
-    const all = [...inStock, ...outOfStock];
-
+            .lean();
+    }
+    const all = res;
     // Filtro adicional por nombre si hay búsqueda (por si $text no está disponible)
     const filtered = filters.search
         ? all.filter((p) =>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ProductDTO } from "@/types/shared/product";
 import { useCart } from "@/store/cart";
 import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
+import { getPricing } from "@/lib/pricing";
 
 export function ProductCard({ product }: { product: ProductDTO }) {
     const addToCart = useCart((state) => state.addToCart);
@@ -15,7 +16,10 @@ export function ProductCard({ product }: { product: ProductDTO }) {
     const maxStock = product.stockQuantity ?? Infinity;
     const reachedMax = itemInCart ? itemInCart.quantity >= maxStock : false;
     const disabled = product.stockQuantity === 0 || reachedMax;
-
+    const pricing = getPricing({
+        regularPrice: product.regularPrice,
+        salePrice: product.salePrice,
+    });
     const handleAdd = () => {
         if (disabled) return;
         addToCart(product);
@@ -46,7 +50,7 @@ export function ProductCard({ product }: { product: ProductDTO }) {
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                         <span className="text-base font-bold text-white">
-                            ${product.price.toLocaleString("es-AR")}
+                            ${pricing.finalPrice.toLocaleString("es-AR")}
                         </span>
                         {product.onSale && (
                             <span className="text-sm text-gray-500 line-through">

@@ -4,14 +4,13 @@ export type ProductDTO = {
     image: string;
     images: string[];
     name: string;
-    listPrice: number;
-    priceNoTax: number;
-    regularListPrice: number;
+    taxRate: number;
     regularPrice: number;
+    salePrice: number;
     shortDescription: string;
     onSale: boolean;
-    price: number;
     slug: string;
+    sku: string;
     status: "publish" | "draft" | "private";
     stockQuantity: number;
     weight: number;
@@ -34,4 +33,5 @@ export type ProductFilters = {
     search?: string;
     page?: number;
     orderby?: "date" | "price" | "price-desc" | "name" | "popularity";
+    adminView?: boolean;
 };

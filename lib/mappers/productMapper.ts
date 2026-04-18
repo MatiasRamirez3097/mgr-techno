@@ -14,13 +14,11 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         images: product.images || [],
         name: product.name,
         onSale: product.onSale,
-        listPrice: product.listPrice || 0,
-        price: product.price,
-        priceNoTax: product.priceNoTax || 0,
-        regularListPrice: product.regularPrice || 0,
+        salePrice: product.salePrice || 0,
         regularPrice: product.regularPrice || 0,
         shortDescription: product.shortDescription || "",
         slug: product.slug,
+        sku: product.sku || "",
         status:
             product.status === "publish" ||
             product.status === "draft" ||
@@ -28,6 +26,7 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
                 ? product.status
                 : "draft",
         stockQuantity: product.stockQuantity || 0,
+        taxRate: product.taxRate || 10.5,
         weight: product.weight || 0,
         dimensions: {
             height: product.dimensions?.height || 0,

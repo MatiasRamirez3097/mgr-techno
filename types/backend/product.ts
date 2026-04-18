@@ -1,5 +1,3 @@
-// /types/backend/product.ts
-
 import { InferSchemaType, Types } from "mongoose";
 import { ProductSchema } from "@/models/Product";
 
