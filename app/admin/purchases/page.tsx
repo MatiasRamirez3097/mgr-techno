@@ -47,6 +47,12 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold text-white">Compras</h1>
                 <AdminSearch placeholder="Buscar compra..." />
+                <Link
+                    href="/admin/purchases/new"
+                    className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-medium hover:brightness-110 transition-all shrink-0"
+                >
+                    + Nuevo
+                </Link>
             </div>
 
             <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
