@@ -1,31 +1,19 @@
-// /models/PurchaseItem.ts
+// /models/purchase/PurchaseItem.ts
 
-import { Schema, model, models } from "mongoose";
+import { Schema } from "mongoose";
 
-export const PurchaseItemSchema = new Schema({
-    purchaseId: {
-        type: Schema.Types.ObjectId,
-        ref: "Purchase",
-        required: true,
-        index: true,
+export const PurchaseItemSchema = new Schema(
+    {
+        productId: {
+            type: Schema.Types.ObjectId,
+            ref: "Product",
+            required: true,
+            index: true,
+        },
+        name: { type: String, required: true },
+        quantity: { type: Number, required: true, min: 1 },
+        cost: { type: Number, required: true, min: 0 },
+        serialNumbers: [{ type: String }],
     },
-
-    productId: {
-        type: Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
-    },
-
-    quantity: {
-        type: Number,
-        required: true,
-    },
-
-    cost: {
-        type: Number,
-        required: true,
-    },
-});
-
-export const PurchaseItemModel =
-    models.PurchaseItem || model("PurchaseItem", PurchaseItemSchema);
+    { _id: false },
+);

@@ -1,70 +1,28 @@
 export const dynamic = "force-dynamic";
 
-import { connectDB } from "@/lib/mongodb";
-import { OrderModel } from "@/models/Order";
 import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
+import { getPurchases } from "@/lib/purchases/getPurchases";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-    pending: {
-        label: "Pendiente",
-        color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
+    draft: {
+        label: "Borrador",
+        color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
     },
-    processing: {
-        label: "En proceso",
+    confirmed: {
+        label: "Confirmado",
         color: "text-blue-400 bg-blue-400/10 border-blue-400/20",
     },
-    on_hold: {
-        label: "En espera",
-        color: "text-orange-400 bg-orange-400/10 border-orange-400/20",
-    },
-    completed: {
-        label: "Completado",
+    received: {
+        label: "Recibido",
         color: "text-green-400 bg-green-400/10 border-green-400/20",
     },
     cancelled: {
         label: "Cancelado",
         color: "text-red-400 bg-red-400/10 border-red-400/20",
     },
-    refunded: {
-        label: "Reembolsado",
-        color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-    },
-    failed: {
-        label: "Fallido",
-        color: "text-red-400 bg-red-400/10 border-red-400/20",
-    },
 };
-
-async function getOrders(page: number, perPage: number, search?: string) {
-    await connectDB();
-
-    const query: any = {};
-
-    if (search) {
-        query.$or = [
-            { customerEmail: { $regex: search, $options: "i" } },
-            { "billing.firstName": { $regex: search, $options: "i" } },
-            { "billing.lastName": { $regex: search, $options: "i" } },
-        ];
-
-        // Si parece un ID de orden
-        if (search.length === 6) {
-            query.$or.push({ _id: { $regex: search, $options: "i" } });
-        }
-    }
-
-    const total = await OrderModel.countDocuments(query);
-    const totalPages = Math.ceil(total / perPage);
-    const orders = await OrderModel.find(query)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * perPage)
-        .limit(perPage)
-        .lean();
-
-    return { orders, total, totalPages };
-}
 
 interface Props {
     searchParams: Promise<{
@@ -74,110 +32,108 @@ interface Props {
     }>;
 }
 
-export default async function AdminOrdersPage({ searchParams }: Props) {
+export default async function AdminPurchasesPage({ searchParams }: Props) {
     const { page, per_page, search } = await searchParams;
     const currentPage = parseInt(page || "1");
     const perPage = parseInt(per_page || "20");
 
-    const { orders, total, totalPages } = await getOrders(
-        currentPage,
-        perPage,
+    const { purchases, total, totalPages } = await getPurchases({
         search,
-    );
+        page: currentPage,
+    });
 
     return (
         <div>
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-white">Órdenes</h1>
-                <AdminSearch placeholder="Buscar por email o cliente..." />
+                <h1 className="text-2xl font-bold text-white">Compras</h1>
+                <AdminSearch placeholder="Buscar compra..." />
             </div>
 
             <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-gray-800">
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
+                            <th className="px-6 py-4 text-xs text-gray-400">
                                 #
                             </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Cliente
+                            <th className="px-6 py-4 text-xs text-gray-400">
+                                Proveedor
                             </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
+                            <th className="px-6 py-4 text-xs text-gray-400">
                                 Estado
                             </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Total
+                            <th className="px-6 py-4 text-xs text-gray-400">
+                                Items
                             </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
+                            <th className="px-6 py-4 text-xs text-gray-400">
                                 Fecha
                             </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4"></th>
+                            <th className="px-6 py-4"></th>
                         </tr>
                     </thead>
+
                     <tbody>
-                        {orders.length === 0 ? (
+                        {purchases.length === 0 ? (
                             <tr>
                                 <td
                                     colSpan={6}
-                                    className="px-6 py-12 text-center text-gray-400 text-sm"
+                                    className="px-6 py-12 text-center text-gray-400"
                                 >
-                                    No se encontraron órdenes
-                                    {search ? ` para "${search}"` : ""}
+                                    No se encontraron compras
                                 </td>
                             </tr>
                         ) : (
-                            orders.map((order: any) => {
-                                const status = STATUS_LABELS[order.status] || {
-                                    label: order.status,
+                            purchases.map((purchase: any) => {
+                                const status = STATUS_LABELS[
+                                    purchase.status
+                                ] || {
+                                    label: purchase.status,
                                     color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
                                 };
-                                const orderId = order._id
+
+                                const purchaseId = purchase._id
                                     .toString()
                                     .slice(-6)
                                     .toUpperCase();
+
                                 return (
                                     <tr
-                                        key={order._id.toString()}
-                                        className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
+                                        key={purchase._id.toString()}
+                                        className="border-b border-gray-800 hover:bg-gray-800/50"
                                     >
-                                        <td className="px-6 py-4 text-sm text-white font-medium">
-                                            #{orderId}
+                                        <td className="px-6 py-4 text-white">
+                                            #{purchaseId}
                                         </td>
+
                                         <td className="px-6 py-4">
-                                            <p className="text-sm text-white">
-                                                {order.billing?.firstName}{" "}
-                                                {order.billing?.lastName}
-                                            </p>
-                                            <p className="text-xs text-gray-400">
-                                                {order.customerEmail}
+                                            <p className="text-white">
+                                                {purchase.supplierId?.name ||
+                                                    "Sin proveedor"}
                                             </p>
                                         </td>
+
                                         <td className="px-6 py-4">
                                             <span
-                                                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status.color}`}
+                                                className={`text-xs px-2 py-1 rounded border ${status.color}`}
                                             >
                                                 {status.label}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-white">
-                                            $
-                                            {order.total.toLocaleString(
-                                                "es-AR",
-                                            )}
+
+                                        <td className="px-6 py-4 text-gray-300">
+                                            {purchase.itemsCount || "-"}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-400">
+
+                                        <td className="px-6 py-4 text-gray-400">
                                             {new Date(
-                                                order.createdAt,
-                                            ).toLocaleDateString("es-AR", {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric",
-                                            })}
+                                                purchase.createdAt,
+                                            ).toLocaleDateString("es-AR")}
                                         </td>
+
                                         <td className="px-6 py-4">
                                             <Link
-                                                href={`/admin/orders/${order._id.toString()}`}
-                                                className="text-xs text-brand hover:brightness-125 transition-all"
+                                                href={`/admin/purchases/${purchase._id}`}
+                                                className="text-xs text-brand hover:brightness-125"
                                             >
                                                 Ver detalle →
                                             </Link>
