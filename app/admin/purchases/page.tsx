@@ -97,7 +97,7 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
                                     color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
                                 };
 
-                                const purchaseId = purchase._id
+                                const purchaseId = purchase.id
                                     .toString()
                                     .slice(-6)
                                     .toUpperCase();
@@ -138,7 +138,7 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
 
                                         <td className="px-6 py-4">
                                             <Link
-                                                href={`/admin/purchases/${purchase._id}`}
+                                                href={`/admin/purchases/${purchase.id}`}
                                                 className="text-xs text-brand hover:brightness-125"
                                             >
                                                 Ver detalle →

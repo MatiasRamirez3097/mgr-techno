@@ -3,6 +3,8 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ProductSelector } from "./ProductSelector";
+import { FormModal } from "./FormModal";
+import { SupplierForm } from "./SupplierForm";
 
 interface Props {
     purchase?: any;
@@ -15,6 +17,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [showSupplierModal, setShowSupplierModal] = useState(false);
 
     // Extraer imágenes del producto — soporta tanto strings como objetos {src}
     const extractImages = (product?: any): string[] => {
@@ -168,7 +171,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                     </h2>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
-                            <label className={labelClass}>Proveedor </label>
+                            <label className={labelClass}>Proveedor</label>
                             <div className="flex w-1/2 gap-2">
                                 <select
                                     name="supplierId"
@@ -349,6 +352,11 @@ export function PurchaseForm({ purchase, mode }: Props) {
                     </div>
                 </section>
             </div>
+            {showSupplierModal && (
+                <FormModal>
+                    <SupplierForm />
+                </FormModal>
+            )}
         </form>
     );
 }
