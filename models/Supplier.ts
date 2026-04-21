@@ -2,22 +2,25 @@ import { Schema, model, models } from "mongoose";
 
 export const SupplierSchema = new Schema(
     {
+        taxId: {
+            type: String,
+            index: {
+                unique: true,
+                partialFilterExpression: {
+                    taxId: { $type: "string" },
+                },
+            },
+        },
         name: {
             type: String,
             required: true,
             index: true,
         },
 
-        // Identificación fiscal (clave en Argentina)
-        taxId: {
-            type: String, // CUIT
-            index: true,
-        },
+        email: { type: String, required: false },
+        phone: { type: String, required: false },
 
-        email: String,
-        phone: String,
-
-        website: String,
+        website: { type: String, required: false },
 
         address: {
             street: String,
@@ -27,9 +30,9 @@ export const SupplierSchema = new Schema(
             country: { type: String, default: "AR" },
         },
 
-        contactName: String,
+        contactName: { type: String, required: false },
 
-        notes: String,
+        notes: { type: String, required: false },
 
         isActive: {
             type: Boolean,

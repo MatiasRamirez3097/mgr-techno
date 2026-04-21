@@ -1,7 +1,11 @@
-export function FormModal({ children }) {
+type Props = {
+    children: React.ReactNode;
+};
+
+export function FormModal({ children }: Props) {
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-            <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-gray-800">
+            <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-3xl border border-gray-800">
                 <h2 className="text-lg font-bold text-white mb-4">
                     Nuevo proveedor
                 </h2>
@@ -22,6 +26,5 @@ export function FormModal({ children }) {
 
                     setShowSupplierModal(false);
                 }}
-                onCancel={() => setShowSupplierModal(false)}
             />
 */

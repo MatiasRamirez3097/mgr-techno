@@ -194,6 +194,8 @@ export function ProductForm({ product, categories, mode }: Props) {
         >,
     ) => {
         const { name, value, type } = e.target;
+        console.log(name);
+        console.log(value);
         setForm((prev) => ({
             ...prev,
             [name]:

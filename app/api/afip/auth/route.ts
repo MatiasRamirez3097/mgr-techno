@@ -132,15 +132,15 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const ws = searchParams.get("ws") ?? "wsfe";
 
-        //let ta = getCachedTA(ws);
+        let ta = getCachedTA(ws);
 
-        //if (!ta) {
-        const tra = createTRA(ws);
-        const cms = signTRA(tra);
-        const raw = await callWSAA(cms);
-        const ta = await parseWSAAResponse(raw);
-        saveTA(ws, ta);
-        //}
+        if (!ta) {
+            const tra = createTRA(ws);
+            const cms = signTRA(tra);
+            const raw = await callWSAA(cms);
+            const ta = await parseWSAAResponse(raw);
+            saveTA(ws, ta);
+        }
 
         return NextResponse.json({ success: true, ...ta });
     } catch (error: any) {
