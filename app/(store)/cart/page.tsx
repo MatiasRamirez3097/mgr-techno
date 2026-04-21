@@ -1,12 +1,19 @@
 "use client";
 
 import { useCart } from "@/store/cart";
+import { getFinalPrice } from "@/lib/pricing";
 
 export default function CartPage() {
     const { items, removeFromCart, clearCart } = useCart();
 
     const total = items.reduce(
-        (acc, item) => acc + item.price * item.quantity,
+        (acc, item) =>
+            acc +
+            getFinalPrice({
+                regularPrice: item.regularPrice,
+                salePrice: item.salePrice > 0 ? item.salePrice : undefined,
+            }) *
+                item.quantity,
         0,
     );
 
@@ -19,7 +26,14 @@ export default function CartPage() {
                     <span>
                         {item.name} x{item.quantity}
                     </span>
-                    <span>${item.price * item.quantity}</span>
+                    <span>
+                        $
+                        {getFinalPrice({
+                            regularPrice: item.regularPrice,
+                            salePrice:
+                                item.salePrice > 0 ? item.salePrice : undefined,
+                        }) * item.quantity}
+                    </span>
 
                     <button onClick={() => removeFromCart(item.id)}>❌</button>
                 </div>
