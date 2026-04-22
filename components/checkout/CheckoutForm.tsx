@@ -528,9 +528,6 @@ export function CheckoutForm({ session }: Props) {
                                 ? getListPriceFinal(finalPrice)
                                 : finalPrice;
 
-                            const hasDiscount =
-                                item.salePrice < item.regularPrice;
-
                             return (
                                 <div
                                     key={item.id}
@@ -553,7 +550,7 @@ export function CheckoutForm({ session }: Props) {
 
                                         {/* 💰 precio */}
                                         <div className="flex items-center gap-2 mt-1">
-                                            {hasDiscount && (
+                                            {item.salePrice && (
                                                 <span className="text-xs text-gray-500 line-through">
                                                     $
                                                     {item.regularPrice.toLocaleString(

@@ -129,7 +129,7 @@ export function CartDrawer({ open, onClose }: Props) {
                                                 "es-AR",
                                             )}
                                         </span>
-                                        {item.salePrice < item.regularPrice && (
+                                        {item.salePrice && (
                                             <span className="text-sm text-gray-500 line-through">
                                                 $
                                                 {item.regularPrice.toLocaleString(
