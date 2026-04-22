@@ -9,8 +9,7 @@ import { PRODUCTS_PAGE_SIZE } from "../constants/pagination";
 //import { getMongoSort } from "./utils";
 
 //TYPES
-import type { PurchaseDTO } from "@/types/shared/purchase";
-//import type { GetProductsResponse } from "@/types/shared/product";
+import type { GetProductsResponse } from "@/types/shared/purchase";
 import type { PurchaseFilters } from "@/types/shared/purchase";
 
 export async function getPurchases(

@@ -1,5 +1,3 @@
-// /types/shared/purchase.ts
-
 export type PurchaseDTO = {
     id: string;
 
@@ -35,4 +33,10 @@ export type PurchaseFilters = {
     search?: string;
     page?: number;
     orderby?: "date" | "price" | "price-desc" | "name" | "popularity";
+};
+
+export type GetProductsResponse = {
+    purchases: PurchaseDTO[];
+    totalPages: number;
+    total: number;
 };
