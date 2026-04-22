@@ -12,7 +12,7 @@ interface TicketAcceso {
     expirationTime: string;
 }
 
-export function getCachedTA(ws): TicketAcceso | null {
+export function getCachedTA(ws: string): TicketAcceso | null {
     if (!existsSync(`./tmp/afip_${ws}.json`)) return null;
 
     const cached = JSON.parse(readFileSync(`./tmp/afip_${ws}.json`, "utf8"));
@@ -26,7 +26,7 @@ export function getCachedTA(ws): TicketAcceso | null {
     return null;
 }
 
-export function saveTA(ws, ta: TicketAcceso) {
+export function saveTA(ws: string, ta: TicketAcceso) {
     writeFileSync(`./tmp/afip_${ws}.json`, JSON.stringify(ta), "utf8");
 }
 
@@ -63,7 +63,7 @@ function formatAfipDate(d: Date): string {
     return ar.toISOString().replace(/\.\d{3}Z$/, "-03:00");
 }
 
-function createTRA(ws) {
+function createTRA(ws: string) {
     const now = new Date();
     const uniqueId = Math.floor(Date.now() / 1000);
 
@@ -148,7 +148,7 @@ export async function GET(req: Request) {
     }
 }
 
-export async function callWSAA(cms) {
+export async function callWSAA(cms: string) {
     const soap = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wsaa="http://wsaa.view.sua.dvadac.desein.afip.gov">
   <soapenv:Header/>
   <soapenv:Body>
