@@ -22,14 +22,9 @@ export function mapInputToProductDB(input: ProductInput): Partial<ProductDB> {
         description: input.description || "",
         shortDescription: input.shortDescription || "",
 
-        price: finalPrice,
         regularPrice: price,
         salePrice,
         onSale,
-
-        listPrice: Math.round(finalPrice * 1.1),
-        regularListPrice: Math.round(price * 1.1),
-        priceNoTax: Math.round(finalPrice / 1.21),
 
         //manageStock: input.manageStock,
         stockQuantity: input.manageStock ? input.stockQuantity || 0 : 0,
