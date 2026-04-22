@@ -24,7 +24,10 @@ export function CartDrawer({ open, onClose }: Props) {
         return () => unsub();
     }, []);
 
-    const totalPrice = items.reduce((acc, i) => acc + i.price * i.quantity, 0);
+    const totalPrice = items.reduce(
+        (acc, i) => acc + i.regularPrice * i.quantity,
+        0,
+    );
 
     // Bloquear scroll cuando está abierto
     useEffect(() => {
@@ -115,7 +118,7 @@ export function CartDrawer({ open, onClose }: Props) {
                                     <p className="text-sm font-bold text-white">
                                         $
                                         {(
-                                            item.price * item.quantity
+                                            item.regularPrice * item.quantity
                                         ).toLocaleString("es-AR")}
                                     </p>
 
