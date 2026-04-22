@@ -13,7 +13,7 @@ export function ProductSchema({ product }: { product: ProductDTO }) {
             "@type": "Offer",
             url: `https://www.mgrtechno.com.ar/products/${product.slug}`,
             priceCurrency: "ARS",
-            price: product.price,
+            price: product.regularPrice,
             priceValidUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 .toISOString()
                 .split("T")[0],
