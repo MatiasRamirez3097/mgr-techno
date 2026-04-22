@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
+import { getFinalPrice, getListPriceFinal } from "@/lib/pricing";
 
 interface Props {
     session: Session;
@@ -93,7 +94,14 @@ export function CheckoutForm({ session }: Props) {
 
     // Subtotal dinámico según método de pago
     const subtotal = items.reduce((acc, i) => {
-        const price = usesListPrice ? i.listPrice : i.price;
+        const price = usesListPrice
+            ? getListPriceFinal(
+                  getFinalPrice({
+                      regularPrice: i.regularPrice,
+                      salePrice: i.salePrice > 0 ? i.salePrice : undefined,
+                  }),
+              )
+            : i.regularPrice;
         return acc + price * i.quantity;
     }, 0);
 
@@ -128,7 +136,11 @@ export function CheckoutForm({ session }: Props) {
                                 width: 0,
                                 height: 0,
                             },
-                            price: i.price,
+                            price: getFinalPrice({
+                                regularPrice: i.regularPrice,
+                                salePrice:
+                                    i.salePrice > 0 ? i.salePrice : undefined,
+                            }),
                             quantity: i.quantity,
                         })),
                     }),
@@ -187,8 +199,16 @@ export function CheckoutForm({ session }: Props) {
                         quantity: i.quantity,
                         // 👇 precio según método de pago
                         price: usesListPrice
-                            ? i.listPrice.toString()
-                            : i.price.toString(),
+                            ? getListPriceFinal(
+                                  getFinalPrice({
+                                      regularPrice: i.regularPrice,
+                                      salePrice:
+                                          i.salePrice > 0
+                                              ? i.salePrice
+                                              : undefined,
+                                  }),
+                              ).toString()
+                            : i.regularPrice.toString(),
                     })),
                     paymentMethod,
                     shippingMethod,
@@ -520,8 +540,16 @@ export function CheckoutForm({ session }: Props) {
                     <div className="flex flex-col gap-3 mb-4">
                         {items.map((item) => {
                             const itemPrice = usesListPrice
-                                ? item.listPrice
-                                : item.price;
+                                ? getListPriceFinal(
+                                      getFinalPrice({
+                                          regularPrice: item.regularPrice,
+                                          salePrice:
+                                              item.salePrice > 0
+                                                  ? item.salePrice
+                                                  : undefined,
+                                      }),
+                                  )
+                                : item.regularPrice;
                             return (
                                 <div
                                     key={item.id}
