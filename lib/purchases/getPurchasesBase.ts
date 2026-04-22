@@ -1,7 +1,7 @@
 // /lib/products/getProductsBase.ts
 
 import { PurchaseModel } from "@/models/Purchase";
-import { mapPurchasesToDTO } from "@/lib/mappers/purchaseMapper";
+import { mapPurchaseToDTO } from "@/lib/mappers/purchaseMapper";
 import { connectDB } from "@/lib/mongodb";
 import type { PurchaseDTO } from "@/types/shared/purchase";
 
