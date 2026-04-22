@@ -13,7 +13,7 @@ export function getListPrice(price: number, markup = 0.1) {
     return Math.round(price * (1 + markup));
 }
 
-export function getProductListPrice({ regularPrice, salePrice }: PriceInput) {
+export function getProductListPrice(p: PriceInput) {
     return getListPrice(p.regularPrice);
 }
 
@@ -21,10 +21,7 @@ export function getListPriceFinal(price: number, markup = 0.1) {
     return Math.round(price * (1 + markup));
 }
 
-export function getProductListPriceFinal({
-    regularPrice,
-    salePrice,
-}: PriceInput) {
+export function getProductListPriceFinal(p: PriceInput) {
     return getListPriceFinal(getFinalPrice(p));
 }
 
