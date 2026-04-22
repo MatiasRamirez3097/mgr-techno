@@ -49,7 +49,7 @@ export function ProductCard({ product }: { product: ProductDTO }) {
                         <span className="text-base font-bold text-white">
                             ${pricing.finalPrice.toLocaleString("es-AR")}
                         </span>
-                        {product.onSale && (
+                        {product.salePrice && (
                             <span className="text-sm text-gray-500 line-through">
                                 ${product.regularPrice.toLocaleString("es-AR")}
                             </span>
