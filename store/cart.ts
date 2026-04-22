@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { ProductDTO } from "@/types/shared/product";
+import { getFinalPrice } from "@/lib/pricing";
 
 type CartItem = ProductDTO & {
     quantity: number;
@@ -61,8 +62,15 @@ export const useCart = create<CartStore>()(
             getTotalItems: () =>
                 get().items.reduce((acc, i) => acc + i.quantity, 0),
 
-            getTotalPrice: () =>
-                get().items.reduce((acc, i) => acc + i.price * i.quantity, 0),
+            getTotalPrice: () => {
+                return get().items.reduce((acc, i) => {
+                    const p = getFinalPrice({
+                        regularPrice: i.regularPrice,
+                        salePrice: i.salePrice > 0 ? i.salePrice : undefined,
+                    });
+                    return acc + i.regularPrice * i.quantity;
+                }, 0);
+            },
             updateQuantity: (id, quantity) =>
                 set((state) => ({
                     items:
