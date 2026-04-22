@@ -20,7 +20,7 @@ export function CartButton() {
         state.items.reduce((acc, i) => acc + i.quantity, 0),
     );
     const totalPrice = useCart((state) =>
-        state.items.reduce((acc, i) => acc + i.price * i.quantity, 0),
+        state.items.reduce((acc, i) => acc + i.regularPrice * i.quantity, 0),
     );
 
     return (
