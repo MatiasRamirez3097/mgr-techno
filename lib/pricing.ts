@@ -13,7 +13,7 @@ export function getListPrice(price: number, markup = 0.1) {
     return Math.round(price * (1 + markup));
 }
 
-export function getProductListPrice(p: PriceInput) {
+export function getProductListPrice({ regularPrice, salePrice }: PriceInput) {
     return getListPrice(p.regularPrice);
 }
 
@@ -21,7 +21,10 @@ export function getListPriceFinal(price: number, markup = 0.1) {
     return Math.round(price * (1 + markup));
 }
 
-export function getProductListPriceFinal(p: PriceInput) {
+export function getProductListPriceFinal({
+    regularPrice,
+    salePrice,
+}: PriceInput) {
     return getListPriceFinal(getFinalPrice(p));
 }
 
@@ -29,16 +32,14 @@ export function getPriceNoTax(price: number, taxRate = 1.21) {
     return Math.round(price / taxRate);
 }
 
-export function getPricing(p: PriceInput) {
-    const finalPrice = getFinalPrice(p);
+export function getPricing({ regularPrice, salePrice }: PriceInput) {
+    const finalPrice = getFinalPrice({ regularPrice, salePrice });
 
     return {
         finalPrice,
-        listPrice: getListPrice(p.regularPrice),
-        listPriceFinal: getListPriceFinal(
-            p.salePrice ? p.salePrice : p.regularPrice,
-        ),
+        listPrice: getListPrice(regularPrice),
+        listPriceFinal: getListPriceFinal(salePrice ? salePrice : regularPrice),
         priceNoTax: getPriceNoTax(finalPrice),
-        isOnSale: !!p.salePrice && p.salePrice < p.regularPrice,
+        isOnSale: !!salePrice && salePrice < regularPrice,
     };
 }

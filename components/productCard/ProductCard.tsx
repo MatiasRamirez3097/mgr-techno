@@ -16,10 +16,7 @@ export function ProductCard({ product }: { product: ProductDTO }) {
     const maxStock = product.stockQuantity ?? Infinity;
     const reachedMax = itemInCart ? itemInCart.quantity >= maxStock : false;
     const disabled = product.stockQuantity === 0 || reachedMax;
-    const pricing = getPricing({
-        regularPrice: product.regularPrice,
-        salePrice: product.salePrice,
-    });
+    const pricing = getPricing(product);
     const handleAdd = () => {
         if (disabled) return;
         addToCart(product);
