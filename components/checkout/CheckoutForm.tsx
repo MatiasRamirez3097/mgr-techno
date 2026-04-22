@@ -95,12 +95,7 @@ export function CheckoutForm({ session }: Props) {
     // Subtotal dinámico según método de pago
     const subtotal = items.reduce((acc, i) => {
         const price = usesListPrice
-            ? getListPriceFinal(
-                  getFinalPrice({
-                      regularPrice: i.regularPrice,
-                      salePrice: i.salePrice > 0 ? i.salePrice : undefined,
-                  }),
-              )
+            ? getListPriceFinal(getFinalPrice(i))
             : i.regularPrice;
         return acc + price * i.quantity;
     }, 0);
@@ -136,11 +131,7 @@ export function CheckoutForm({ session }: Props) {
                                 width: 0,
                                 height: 0,
                             },
-                            price: getFinalPrice({
-                                regularPrice: i.regularPrice,
-                                salePrice:
-                                    i.salePrice > 0 ? i.salePrice : undefined,
-                            }),
+                            price: getFinalPrice(i),
                             quantity: i.quantity,
                         })),
                     }),
@@ -199,15 +190,7 @@ export function CheckoutForm({ session }: Props) {
                         quantity: i.quantity,
                         // 👇 precio según método de pago
                         price: usesListPrice
-                            ? getListPriceFinal(
-                                  getFinalPrice({
-                                      regularPrice: i.regularPrice,
-                                      salePrice:
-                                          i.salePrice > 0
-                                              ? i.salePrice
-                                              : undefined,
-                                  }),
-                              ).toString()
+                            ? getListPriceFinal(getFinalPrice(i)).toString()
                             : i.regularPrice.toString(),
                     })),
                     paymentMethod,
@@ -539,20 +522,13 @@ export function CheckoutForm({ session }: Props) {
                     {/* Items */}
                     <div className="flex flex-col gap-4 mb-4">
                         {items.map((item) => {
-                            const finalPrice = getFinalPrice({
-                                regularPrice: item.regularPrice,
-                                salePrice:
-                                    item.salePrice > 0
-                                        ? item.salePrice
-                                        : undefined,
-                            });
+                            const finalPrice = getFinalPrice(item);
 
                             const price = usesListPrice
                                 ? getListPriceFinal(finalPrice)
                                 : finalPrice;
 
                             const hasDiscount =
-                                item.salePrice > 0 &&
                                 item.salePrice < item.regularPrice;
 
                             return (

@@ -1,13 +1,12 @@
 type PriceInput = {
     regularPrice: number;
-    salePrice?: number;
+    salePrice?: number | null;
 };
 
-export function getFinalPrice(p: PriceInput) {
-    if (p.salePrice && p.salePrice < p.regularPrice) {
-        return p.salePrice;
-    }
-    return p.regularPrice;
+export function getFinalPrice({ regularPrice, salePrice }: PriceInput) {
+    return salePrice != null && salePrice < regularPrice
+        ? salePrice
+        : regularPrice;
 }
 
 export function getListPrice(price: number, markup = 0.1) {

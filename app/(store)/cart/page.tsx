@@ -11,7 +11,7 @@ export default function CartPage() {
             acc +
             getFinalPrice({
                 regularPrice: item.regularPrice,
-                salePrice: item.salePrice > 0 ? item.salePrice : undefined,
+                salePrice: item.salePrice ? item.salePrice : undefined,
             }) *
                 item.quantity,
         0,
@@ -26,14 +26,7 @@ export default function CartPage() {
                     <span>
                         {item.name} x{item.quantity}
                     </span>
-                    <span>
-                        $
-                        {getFinalPrice({
-                            regularPrice: item.regularPrice,
-                            salePrice:
-                                item.salePrice > 0 ? item.salePrice : undefined,
-                        }) * item.quantity}
-                    </span>
+                    <span>${getFinalPrice(item) * item.quantity}</span>
 
                     <button onClick={() => removeFromCart(item.id)}>❌</button>
                 </div>

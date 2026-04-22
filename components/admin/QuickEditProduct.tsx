@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 interface Props {
     product: {
-        _id: string;
+        id: string;
         regularPrice: string;
         salePrice: string;
         featured: boolean;
@@ -29,7 +29,8 @@ export function QuickEditProduct({ product, onClose }: Props) {
         setError("");
 
         try {
-            const res = await fetch(`/api/admin/products/${product._id}`, {
+            const res = await fetch(`/api/admin/products/${product.id}`, {
+                credentials: "include",
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

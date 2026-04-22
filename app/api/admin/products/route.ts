@@ -15,15 +15,8 @@ export async function POST(req: NextRequest) {
 
     const price = parseFloat(body.regular_price || "0");
     const salePrice = body.sale_price ? parseFloat(body.sale_price) : 0;
-    const onSale = salePrice > 0 && salePrice < price;
-    const finalPrice = onSale ? salePrice : price;
-
-    // Generar wooId único temporal (negativo para distinguirlo de los de Woo)
-    const lastProduct = await ProductModel.findOne().sort({ wooId: -1 }).lean();
-    const nextWooId = (lastProduct?.wooId || 0) + 1;
 
     const product = await ProductModel.create({
-        wooId: nextWooId,
         name: body.name,
         slug:
             body.slug ||
@@ -34,12 +27,8 @@ export async function POST(req: NextRequest) {
         status: body.status || "publish",
         description: body.description || "",
         shortDescription: body.short_description || "",
-        price: finalPrice,
         regularPrice: price,
-        listPrice: Math.round(finalPrice * 1.1),
         regularListPrice: Math.round(price * 1.1),
-        priceNoTax: Math.round(finalPrice / 1.21),
-        onSale,
         salePrice,
         manage_stock: body.manage_stock ?? true,
         stock: body.stock_quantity || 0,

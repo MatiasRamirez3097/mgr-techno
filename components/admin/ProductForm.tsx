@@ -251,6 +251,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                     method: mode === "edit" ? "PUT" : "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(buildPayload()),
+                    credentials: "include",
                 },
             );
 
@@ -418,7 +419,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 Precio de oferta
                             </label>
                             <input
-                                name="sale_price"
+                                name="salePrice"
                                 value={form.salePrice}
                                 onChange={handleChange}
                                 type="number"

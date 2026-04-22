@@ -6,7 +6,7 @@ export function mapInputToProductDB(input: ProductInput): Partial<ProductDB> {
     const price = Number(input.regularPrice) || 0;
     const salePrice = Number(input.salePrice) || 0;
 
-    const onSale = salePrice > 0 && salePrice < price;
+    const onSale = salePrice < price;
     const finalPrice = onSale ? salePrice : price;
 
     const images =
