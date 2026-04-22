@@ -2,6 +2,11 @@
 import mongoose, { Schema } from "mongoose";
 mongoose.models;
 
+interface Product {
+    regularPrice: number;
+    salePrice?: number | null;
+}
+
 export const ProductSchema = new Schema(
     {
         name: { type: String, required: true },
@@ -14,7 +19,17 @@ export const ProductSchema = new Schema(
         },
         taxRate: { type: Number },
         regularPrice: { type: Number, required: true },
-        salePrice: { type: Number },
+        salePrice: {
+            type: Number,
+            default: null,
+            validate: {
+                validator: function (this: Product, value: number | null) {
+                    if (value == null) return true;
+                    return value < this.regularPrice;
+                },
+                message: "salePrice debe ser menor que regularPrice",
+            },
+        },
         onSale: { type: Boolean, default: false },
         image: { type: String },
         images: [{ type: String }],
