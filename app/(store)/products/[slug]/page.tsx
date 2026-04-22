@@ -40,7 +40,7 @@ export default async function ProductPage({ params }: Props) {
                                 Precio especial:
                             </span>
                             <div className="flex items-center gap-3">
-                                {product.onSale && (
+                                {product.salePrice && (
                                     <span className="text-base text-gray-500 line-through">
                                         $
                                         {pricing.finalPrice.toLocaleString(
@@ -63,7 +63,7 @@ export default async function ProductPage({ params }: Props) {
                                 Precio de lista:
                             </span>
                             <div className="flex items-center gap-2">
-                                {product.onSale && (
+                                {product.salePrice && (
                                     <span className="text-sm text-gray-500 line-through">
                                         $
                                         {pricing.listPrice.toLocaleString(
