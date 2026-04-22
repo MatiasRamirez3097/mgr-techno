@@ -14,7 +14,7 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         images: product.images || [],
         name: product.name,
         onSale: product.onSale,
-        salePrice: product.salePrice || 0,
+        salePrice: product.salePrice || null,
         regularPrice: product.regularPrice || 0,
         shortDescription: product.shortDescription || "",
         slug: product.slug,

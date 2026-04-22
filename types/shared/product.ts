@@ -6,7 +6,7 @@ export type ProductDTO = {
     name: string;
     taxRate: number;
     regularPrice: number;
-    salePrice: number;
+    salePrice: number | null;
     shortDescription: string;
     onSale: boolean;
     slug: string;

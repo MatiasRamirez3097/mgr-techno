@@ -31,7 +31,8 @@ export function getPriceNoTax(price: number, taxRate = 1.21) {
 
 export function getPricing({ regularPrice, salePrice }: PriceInput) {
     const finalPrice = getFinalPrice({ regularPrice, salePrice });
-
+    console.log(regularPrice);
+    console.log(salePrice);
     return {
         finalPrice,
         listPrice: getListPrice(regularPrice),
