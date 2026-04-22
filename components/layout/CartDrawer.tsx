@@ -4,6 +4,7 @@ import { useCart } from "@/store/cart";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { getFinalPrice } from "@/lib/pricing";
 
 interface Props {
     open: boolean;
@@ -25,7 +26,13 @@ export function CartDrawer({ open, onClose }: Props) {
     }, []);
 
     const totalPrice = items.reduce(
-        (acc, i) => acc + i.regularPrice * i.quantity,
+        (acc, i) =>
+            acc +
+            getFinalPrice({
+                regularPrice: i.regularPrice,
+                salePrice: i.salePrice > 0 ? i.salePrice : undefined,
+            }) *
+                i.quantity,
         0,
     );
 
@@ -115,12 +122,34 @@ export function CartDrawer({ open, onClose }: Props) {
                                     <p className="text-sm text-gray-100 font-medium line-clamp-2">
                                         {item.name}
                                     </p>
-                                    <p className="text-sm font-bold text-white">
+                                    {/*<p className="text-sm font-bold text-white">
                                         $
                                         {(
                                             item.regularPrice * item.quantity
                                         ).toLocaleString("es-AR")}
-                                    </p>
+                                    </p>*/}
+                                    <div className="mt-1 flex items-center gap-2">
+                                        <span className="text-base font-bold text-white">
+                                            $
+                                            {getFinalPrice({
+                                                regularPrice: item.regularPrice,
+                                                salePrice:
+                                                    item.salePrice > 0
+                                                        ? item.salePrice
+                                                        : undefined,
+                                            }).toLocaleString("es-AR")}
+                                        </span>
+                                        {item.salePrice > 0 &&
+                                            item.salePrice <
+                                                item.regularPrice && (
+                                                <span className="text-sm text-gray-500 line-through">
+                                                    $
+                                                    {item.regularPrice.toLocaleString(
+                                                        "es-AR",
+                                                    )}
+                                                </span>
+                                            )}
+                                    </div>
 
                                     {/* Controles cantidad */}
                                     <div className="flex items-center gap-2 mt-1">

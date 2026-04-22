@@ -537,33 +537,60 @@ export function CheckoutForm({ session }: Props) {
                     </h2>
 
                     {/* Items */}
-                    <div className="flex flex-col gap-3 mb-4">
+                    <div className="flex flex-col gap-4 mb-4">
                         {items.map((item) => {
-                            const itemPrice = usesListPrice
-                                ? getListPriceFinal(
-                                      getFinalPrice({
-                                          regularPrice: item.regularPrice,
-                                          salePrice:
-                                              item.salePrice > 0
-                                                  ? item.salePrice
-                                                  : undefined,
-                                      }),
-                                  )
-                                : item.regularPrice;
+                            const finalPrice = getFinalPrice({
+                                regularPrice: item.regularPrice,
+                                salePrice:
+                                    item.salePrice > 0
+                                        ? item.salePrice
+                                        : undefined,
+                            });
+
+                            const price = usesListPrice
+                                ? getListPriceFinal(finalPrice)
+                                : finalPrice;
+
+                            const hasDiscount =
+                                item.salePrice > 0 &&
+                                item.salePrice < item.regularPrice;
+
                             return (
                                 <div
                                     key={item.id}
-                                    className="flex justify-between text-sm gap-2"
+                                    className="flex gap-4 items-start"
                                 >
-                                    <span className="text-gray-400 line-clamp-1 flex-1">
-                                        {item.name} x{item.quantity}
-                                    </span>
-                                    <span className="text-white shrink-0">
-                                        $
-                                        {(
-                                            itemPrice * item.quantity
-                                        ).toLocaleString("es-AR")}
-                                    </span>
+                                    {/* 🖼 Imagen */}
+                                    <div className="w-14 h-14 bg-gray-800 rounded-md overflow-hidden shrink-0 border border-gray-700">
+                                        <img
+                                            src={item.image}
+                                            alt={item.name}
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+
+                                    {/* 🧠 Info */}
+                                    <div className="flex flex-col min-w-0">
+                                        <p className="text-sm text-gray-200 line-clamp-2">
+                                            {item.name}
+                                        </p>
+
+                                        {/* 💰 precio */}
+                                        <div className="flex items-center gap-2 mt-1">
+                                            {hasDiscount && (
+                                                <span className="text-xs text-gray-500 line-through">
+                                                    $
+                                                    {item.regularPrice.toLocaleString(
+                                                        "es-AR",
+                                                    )}
+                                                </span>
+                                            )}
+
+                                            <span className="text-sm text-white font-medium">
+                                                ${price.toLocaleString("es-AR")}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         })}

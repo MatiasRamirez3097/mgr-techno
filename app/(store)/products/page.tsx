@@ -3,7 +3,7 @@ import { getProducts } from "@/lib/products/getProducts";
 import { ProductCard } from "@/components/productCard/ProductCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { SortSelector } from "@/components/products/SortSelector";
-import type { Category } from "@/types/category";
+import { ProductCardSkeleton } from "@/components/skeletons/ProductCardSkeleton";
 
 interface Props {
     searchParams: Promise<{
@@ -17,7 +17,6 @@ interface Props {
 export default async function ProductsPage({ searchParams }: Props) {
     const { category, search, page, orderby } = await searchParams;
     const currentPage = parseInt(page || "1");
-
     const { products, totalPages, total } = await getProducts({
         category,
         search,
@@ -47,7 +46,6 @@ export default async function ProductsPage({ searchParams }: Props) {
                 </div>
                 <SortSelector />
             </div>
-
             {products.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-500">
                     <p className="text-lg">No se encontraron productos</p>
