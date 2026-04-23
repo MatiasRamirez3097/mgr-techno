@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { CategoryDTO } from "@/types/shared/category";
@@ -188,6 +188,15 @@ export function ProductForm({ product, categories, mode }: Props) {
         categories: product?.categories || [],
     });
 
+    function slugify(text: string) {
+        return text
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9\s-]/g, "") // saca caracteres raros
+            .replace(/\s+/g, "-") // espacios → guiones
+            .replace(/-+/g, "-"); // evita ---
+    }
+
     const handleChange = (
         e: React.ChangeEvent<
             HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -334,7 +343,12 @@ export function ProductForm({ product, categories, mode }: Props) {
                 </div>
             ));
     }
-
+    useEffect(() => {
+        setForm((prev) => ({
+            ...prev,
+            slug: slugify(prev.name),
+        }));
+    }, [form.name]);
     return (
         <form
             onSubmit={handleSubmit}
@@ -367,6 +381,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 value={form.slug}
                                 onChange={handleChange}
                                 className={inputClass}
+                                readOnly
                             />
                         </div>
                         <div>

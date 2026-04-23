@@ -10,7 +10,12 @@ interface Product {
 export const ProductSchema = new Schema(
     {
         name: { type: String, required: true },
-        slug: { type: String, required: true, index: true },
+        slug: {
+            type: String,
+            required: true,
+            unique: true,
+            index: true,
+        },
         type: {
             type: String,
             enum: ["simple", "bundle"],
