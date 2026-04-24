@@ -19,13 +19,13 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         shortDescription: product.shortDescription || "",
         slug: product.slug,
         sku: product.sku || "",
+        hasSerialNumber: product.hasSerialNumber,
         status:
             product.status === "publish" ||
             product.status === "draft" ||
             product.status === "private"
                 ? product.status
                 : "draft",
-        stockQuantity: product.stockQuantity || 0,
         taxRate: product.taxRate || 10.5,
         weight: product.weight || 0,
         dimensions: {

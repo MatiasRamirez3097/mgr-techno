@@ -13,6 +13,20 @@ export const InventoryItemSchema = new Schema(
             index: true,
             sparse: true,
             unique: true,
+            validate: {
+                validator: async function (value: string | undefined) {
+                    // Si el producto requiere serial, debe tenerlo
+                    const product = await mongoose
+                        .model("Product")
+                        .findById(this.productId);
+                    if (product?.hasSerialNumber && !value) {
+                        return false;
+                    }
+                    return true;
+                },
+                message:
+                    "serialNumber es requerido para productos que lo necesitan",
+            },
         },
         status: {
             type: String,
@@ -34,6 +48,35 @@ export const InventoryItemSchema = new Schema(
     { timestamps: true },
 );
 
-//InventoryItemSchema.index({ productId: 1, status: 1 });
+InventoryItemSchema.index({ productId: 1, status: 1 });
+InventoryItemSchema.index({ productId: 1, serialNumber: 1 }); // Para búsquedas específicas
+InventoryItemSchema.pre("save", async function (next) {
+    // Verificar que el producto existe
+    const product = await model("Product").findById(this.productId);
+    if (!product) {
+        throw new Error("Producto no encontrado");
+    }
+
+    // Si el producto tiene manageStock=false, no debería tener InventoryItems
+    if (!product.manageStock) {
+        throw new Error("Este producto no gestiona stock");
+    }
+
+    next();
+});
+
+// Marcar como vendido
+InventoryItemSchema.methods.markAsSold = function (saleId: string) {
+    this.status = "sold";
+    this.saleId = saleId;
+    return this.save();
+};
+
+// Reservar item
+InventoryItemSchema.methods.reserve = function () {
+    this.status = "reserved";
+    return this.save();
+};
+
 export const InventoryItemModel =
     models.InventoryItem || model("InventoryItem", InventoryItemSchema);

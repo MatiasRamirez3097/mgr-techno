@@ -160,6 +160,7 @@ export function ProductForm({ product, categories, mode }: Props) {
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState([]);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [success, setSuccess] = useState("");
 
     // Extraer imágenes del producto — soporta tanto strings como objetos {src}
@@ -179,6 +180,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         shortDescription: product?.shortDescription || "",
         regularPrice: product?.regularPrice || undefined,
         salePrice: product?.salePrice || undefined,
+        hasSerialNumber: product?.hasSerialNumber || false,
         stockQuantity: product?.stockQuantity ?? "",
         manageStock: product?.manageStock ?? true,
         weight: product?.weight || 0,
@@ -231,10 +233,8 @@ export function ProductForm({ product, categories, mode }: Props) {
         shortDescription: form.shortDescription,
         regularPrice: parseFloat(form.regularPrice) || 0,
         salePrice: parseFloat(form.salePrice) || undefined,
+        hasSerialNumber: form.manageStock ? form.hasSerialNumber : false,
         manageStock: form.manageStock,
-        stockQuantity: form.manageStock
-            ? parseInt(form.stockQuantity) || 0
-            : null,
         weight: parseFloat(form.weight) || undefined,
         dimensions: {
             length: parseFloat(form.length) || undefined,
@@ -267,6 +267,12 @@ export function ProductForm({ product, categories, mode }: Props) {
             const data = await res.json();
             if (!res.ok) {
                 setError(data.error);
+                if (Array.isArray(error)) {
+                    const errors = Object.fromEntries(
+                        data.error.map((e) => [e.path.join("."), e.message]),
+                    );
+                    setFieldErrors(errors);
+                }
                 throw new Error(data);
             }
 
@@ -399,6 +405,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 rows={3}
                                 className={`${inputClass} resize-none`}
                             />
+                            {fieldErrors.shortDescription && (
+                                <p className="text-sm text-red-400">
+                                    {fieldErrors.shortDescription}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className={labelClass}>
@@ -411,6 +422,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 rows={6}
                                 className={`${inputClass} resize-none`}
                             />
+                            {fieldErrors.description && (
+                                <p className="text-sm text-red-400">
+                                    {fieldErrors.description}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </section>
@@ -432,6 +448,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 required
                                 className={inputClass}
                             />
+                            {fieldErrors.regularPrice && (
+                                <p className="text-sm text-red-400">
+                                    {fieldErrors.regularPrice}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className={labelClass}>
@@ -446,6 +467,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 className={inputClass}
                                 placeholder="Dejar vacío si no aplica"
                             />
+                            {fieldErrors.salePrice && (
+                                <p className="text-sm text-red-400">
+                                    {fieldErrors.regularPrice}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </section>
@@ -469,17 +495,24 @@ export function ProductForm({ product, categories, mode }: Props) {
                             </span>
                         </label>
                         {form.manageStock && (
-                            <div>
-                                <label className={labelClass}>
-                                    Cantidad en stock
+                            <div className="flex flex-col gap-4">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        name="hasSerialNumber"
+                                        checked={form.hasSerialNumber}
+                                        onChange={handleChange}
+                                        type="checkbox"
+                                        className="w-4 h-4 accent-brand"
+                                    />
+                                    <span className="text-sm text-gray-300">
+                                        Tiene Número de serie?
+                                    </span>
+                                    {fieldErrors.manageStock && (
+                                        <p className="text-sm text-red-400">
+                                            {fieldErrors.manageStock}
+                                        </p>
+                                    )}
                                 </label>
-                                <input
-                                    name="stockQuantity"
-                                    value={form.stockQuantity}
-                                    onChange={handleChange}
-                                    type="number"
-                                    className={inputClass}
-                                />
                             </div>
                         )}
                     </div>
@@ -501,6 +534,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 step="0.01"
                                 className={inputClass}
                             />
+                            {fieldErrors.weight && (
+                                <p className="text-sm text-red-400">
+                                    {fieldErrors.weight}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className={labelClass}>Largo (cm)</label>
@@ -512,6 +550,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 step="0.1"
                                 className={inputClass}
                             />
+                            {fieldErrors.length && (
+                                <p className="text-sm text-red-400">
+                                    {fieldErrors.length}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className={labelClass}>Ancho (cm)</label>
@@ -523,6 +566,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 step="0.1"
                                 className={inputClass}
                             />
+                            {fieldErrors.width && (
+                                <p className="text-sm text-red-400">
+                                    {fieldErrors.width}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className={labelClass}>Alto (cm)</label>
@@ -534,6 +582,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 step="0.1"
                                 className={inputClass}
                             />
+                            {fieldErrors.height && (
+                                <p className="text-sm text-red-400">
+                                    {fieldErrors.height}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </section>
@@ -629,6 +682,11 @@ export function ProductForm({ product, categories, mode }: Props) {
                     <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
                         {renderCategoryTree(null)}
                     </div>
+                    {fieldErrors.categories && (
+                        <p className="text-sm text-red-400">
+                            {fieldErrors.categories}
+                        </p>
+                    )}
                 </section>
             </div>
         </form>

@@ -43,12 +43,6 @@ export const ProductSchema = new Schema(
             default: true,
         },
 
-        stockQuantity: { type: Number },
-        stockStatus: {
-            type: String,
-            enum: ["instock", "outofstock", "onbackorder"],
-            default: "instock",
-        },
         shortDescription: { type: String },
         description: { type: String },
         weight: { type: Number },
@@ -79,6 +73,16 @@ ProductSchema.index({ name: "text", sku: "text" });
 ProductSchema.index({ stockStatus: 1, createdAt: -1 });
 ProductSchema.index({ "categories.slug": 1 });
 ProductSchema.index({ featured: 1 });
+ProductSchema.virtual("stockStatus").get(async function () {
+    const count = await mongoose.model("InventoryItem").countDocuments({
+        productId: this._id,
+        status: "available",
+    });
+
+    if (count === 0) return "outofstock";
+    if (count < 5) return "onbackorder"; // umbral configurable
+    return "instock";
+});
 
 export const ProductModel =
     mongoose.models.Product || mongoose.model("Product", ProductSchema);

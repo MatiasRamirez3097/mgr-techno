@@ -8,11 +8,11 @@ export type ProductDTO = {
     regularPrice: number;
     salePrice: number | null;
     shortDescription: string;
+    hasSerialNumber: boolean;
     onSale: boolean;
     slug: string;
     sku: string;
     status: "publish" | "draft" | "private";
-    stockQuantity: number;
     weight: number;
     dimensions: {
         height: number;
