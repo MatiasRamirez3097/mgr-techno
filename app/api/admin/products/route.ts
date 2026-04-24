@@ -1,14 +1,21 @@
-import { connectDB } from "@/lib/mongodb";
-import { ProductModel } from "@/models/Product";
 import { NextRequest } from "next/server";
 import { createProduct } from "@/lib/products/createProduct";
+import { createProductSchemaRefined } from "@/lib/validators/productSchema";
 
 export async function POST(req: NextRequest) {
     const body = await req.json();
-    const product = await createProduct(body);
+    console.log(body);
+    const parsed = createProductSchemaRefined.safeParse(body);
 
-    return Response.json({
-        success: true,
-        data: product,
-    });
+    if (!parsed.success) {
+        return Response.json({ error: parsed.error.issues }, { status: 400 });
+    }
+
+    const data = parsed.data;
+
+    // 👉 acá ya está todo validado
+
+    const product = await createProduct(data);
+
+    return Response.json(product);
 }

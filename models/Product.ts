@@ -35,7 +35,6 @@ export const ProductSchema = new Schema(
                 message: "salePrice debe ser menor que regularPrice",
             },
         },
-        onSale: { type: Boolean, default: false },
         image: { type: String },
         images: [{ type: String }],
         hasSerialNumber: { type: Boolean, required: true, default: false },
@@ -79,7 +78,6 @@ export const ProductSchema = new Schema(
 ProductSchema.index({ name: "text", sku: "text" });
 ProductSchema.index({ stockStatus: 1, createdAt: -1 });
 ProductSchema.index({ "categories.slug": 1 });
-ProductSchema.index({ onSale: 1 });
 ProductSchema.index({ featured: 1 });
 
 export const ProductModel =

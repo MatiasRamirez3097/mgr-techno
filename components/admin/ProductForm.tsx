@@ -159,7 +159,7 @@ export function ProductForm({ product, categories, mode }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [error, setError] = useState("");
+    const [error, setError] = useState([]);
     const [success, setSuccess] = useState("");
 
     // Extraer imágenes del producto — soporta tanto strings como objetos {src}
@@ -177,8 +177,8 @@ export function ProductForm({ product, categories, mode }: Props) {
         status: product?.status || "publish",
         description: product?.description || "",
         shortDescription: product?.shortDescription || "",
-        regularPrice: product?.regularPrice || "",
-        salePrice: product?.salePrice || "",
+        regularPrice: product?.regularPrice || undefined,
+        salePrice: product?.salePrice || undefined,
         stockQuantity: product?.stockQuantity ?? "",
         manageStock: product?.manageStock ?? true,
         weight: product?.weight || 0,
@@ -229,17 +229,17 @@ export function ProductForm({ product, categories, mode }: Props) {
         status: form.status,
         description: form.description,
         shortDescription: form.shortDescription,
-        regularPrice: form.regularPrice,
-        salePrice: form.salePrice,
+        regularPrice: parseFloat(form.regularPrice) || 0,
+        salePrice: parseFloat(form.salePrice) || undefined,
         manageStock: form.manageStock,
         stockQuantity: form.manageStock
             ? parseInt(form.stockQuantity) || 0
             : null,
-        weight: form.weight,
+        weight: parseFloat(form.weight) || undefined,
         dimensions: {
-            length: form.length,
-            width: form.width,
-            height: form.height,
+            length: parseFloat(form.length) || undefined,
+            width: parseFloat(form.width) || undefined,
+            height: parseFloat(form.height) || undefined,
         },
         categories: form.categories,
         images: images.map((url) => ({ src: url })),
@@ -248,7 +248,7 @@ export function ProductForm({ product, categories, mode }: Props) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError("");
+        setError([]);
         setSuccess("");
 
         try {
@@ -265,7 +265,10 @@ export function ProductForm({ product, categories, mode }: Props) {
             );
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            if (!res.ok) {
+                setError(data.error);
+                throw new Error(data);
+            }
 
             setSuccess(
                 mode === "edit" ? "Producto actualizado" : "Producto creado",
@@ -273,7 +276,8 @@ export function ProductForm({ product, categories, mode }: Props) {
             if (mode === "create") router.push(`/admin/products/${data._id}`);
             else router.refresh();
         } catch (e: any) {
-            setError(e.message || "Error al guardar");
+            console.log(e);
+            //setError(e.error || "Error al guardar");
         } finally {
             setLoading(false);
         }
@@ -389,7 +393,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 Descripción corta
                             </label>
                             <textarea
-                                name="short_description"
+                                name="shortDescription"
                                 value={form.shortDescription}
                                 onChange={handleChange}
                                 rows={3}
@@ -557,9 +561,16 @@ export function ProductForm({ product, categories, mode }: Props) {
                             </select>
                         </div>
 
-                        {error && (
-                            <p className="text-sm text-red-400">{error}</p>
-                        )}
+                        {error &&
+                            (Array.isArray(error) ? (
+                                error.map((e, i) => (
+                                    <p key={i} className="text-sm text-red-400">
+                                        {e.message}
+                                    </p>
+                                ))
+                            ) : (
+                                <p className="text-sm text-red-400">{error}</p>
+                            ))}
                         {success && (
                             <p className="text-sm text-green-400">{success}</p>
                         )}
