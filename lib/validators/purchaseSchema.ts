@@ -1,82 +1,73 @@
 import { z } from "zod";
+import { Types } from "mongoose";
 
-export const purchaseItemSchema = z.object({
-    productId: z.string().min(1, "Producto requerido"),
+// Helper para validar ObjectId
+const objectIdSchema = z
+    .string()
+    .refine((val) => Types.ObjectId.isValid(val), { message: "ID inválido" });
 
-    name: z.string().min(1),
-
-    quantity: z
-        .number()
-        .int("Cantidad inválida")
-        .positive("Debe ser mayor a 0"),
-
-    unitCost: z.number().positive("Costo inválido"),
-
-    subtotal: z.number().min(0),
-});
-
+// Schema para el documento de compra
 export const purchaseDocumentSchema = z.object({
-    type: z.string().optional(), // factura, remito, etc
+    type: z.enum(["invoice", "generic"]).default("generic"),
     number: z.string().optional(),
-    date: z.string().datetime().optional(),
+    fileUrl: z.string().pipe(z.url()).optional(),
+    fileName: z.string().optional(),
+    date: z.coerce.date().optional(), // coerce convierte string a Date automáticamente
 });
 
+// Schema para item de compra
+export const purchaseItemSchema = z.object({
+    productId: objectIdSchema,
+    quantity: z.number().int().min(1, "La cantidad debe ser al menos 1"),
+    unitCost: z.number().min(0, "El costo unitario debe ser positivo"),
+    serialNumbers: z.array(z.string().min(1)).optional(),
+    location: z.string().default("main"),
+});
+
+// Schema para crear compra
 export const createPurchaseSchema = z.object({
-    supplierId: z.string().min(1, "Proveedor requerido"),
-
-    supplierName: z.string().optional(),
-
-    status: z
-        .enum(["draft", "confirmed", "received", "cancelled"])
-        .default("draft"),
-
-    items: z.array(purchaseItemSchema).min(1, "Debe tener al menos un item"),
-
-    document: purchaseDocumentSchema.optional(),
-
-    subtotal: z.number().min(0),
-    tax: z.number().min(0).optional().default(0),
-    total: z.number().min(0),
-
+    supplierId: objectIdSchema,
+    items: z
+        .array(purchaseItemSchema)
+        .min(1, "Debe incluir al menos un producto"),
+    document: purchaseDocumentSchema.optional().default({}),
     notes: z.string().optional(),
-
-    receivedAt: z.string().datetime().optional().nullable(),
+    status: z.string(),
+    /*orderDate: z.coerce
+        .date()
+        .optional()
+        .default(() => new Date()),*/
 });
 
-export const createPurchaseSchemaRefined = createPurchaseSchema.superRefine(
-    (data, ctx) => {
-        // 🧮 validar subtotal vs items
-        const calculatedSubtotal = data.items.reduce(
-            (acc, item) => acc + item.unitCost * item.quantity,
-            0,
-        );
+// Schema para recibir items
+export const receiveItemSchema = z.object({
+    productId: objectIdSchema,
+    quantityReceived: z.number().int().min(1, "Debe recibir al menos 1 unidad"),
+    serialNumbers: z.array(z.string().min(1)).optional(),
+    location: z.string().default("main"),
+});
 
-        if (Math.abs(calculatedSubtotal - data.subtotal) > 1) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "El subtotal no coincide con los items",
-                path: ["subtotal"],
-            });
-        }
+export const receivePurchaseSchema = z.object({
+    purchaseId: objectIdSchema,
+    receivedItems: z
+        .array(receiveItemSchema)
+        .min(1, "Debe recibir al menos un item"),
+    // Opcional: actualizar documento al recibir
+    document: purchaseDocumentSchema.optional(),
+});
 
-        // 🧮 validar total
-        const expectedTotal = data.subtotal + (data.tax || 0);
+// Schema para actualizar documento de compra
+export const updatePurchaseDocumentSchema = z.object({
+    purchaseId: objectIdSchema,
+    document: purchaseDocumentSchema,
+});
 
-        if (Math.abs(expectedTotal - data.total) > 1) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "El total es incorrecto",
-                path: ["total"],
-            });
-        }
-
-        // 📦 receivedAt solo si estado recibido
-        if (data.status === "received" && !data.receivedAt) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Debe indicar fecha de recepción",
-                path: ["receivedAt"],
-            });
-        }
-    },
-);
+// Types inferidos
+export type PurchaseDocumentInput = z.infer<typeof purchaseDocumentSchema>;
+export type PurchaseItemInput = z.infer<typeof purchaseItemSchema>;
+export type CreatePurchaseInput = z.infer<typeof createPurchaseSchema>;
+export type ReceiveItemInput = z.infer<typeof receiveItemSchema>;
+export type ReceivePurchaseInput = z.infer<typeof receivePurchaseSchema>;
+export type UpdatePurchaseDocumentInput = z.infer<
+    typeof updatePurchaseDocumentSchema
+>;

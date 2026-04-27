@@ -6,8 +6,8 @@ export const PurchaseDocumentSchema = new Schema(
     {
         type: {
             type: String,
-            enum: ["invoice", "receipt", "remito", "other"],
-            default: "other",
+            enum: ["invoice", "generic"],
+            default: "generic",
         },
         number: {
             type: String,

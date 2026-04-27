@@ -12,7 +12,7 @@ export const PurchaseItemSchema = new Schema(
         },
         name: { type: String, required: true },
         quantity: { type: Number, required: true, min: 1 },
-        cost: { type: Number, required: true, min: 0 },
+        unitCost: { type: Number, required: true, min: 0 },
     },
     { _id: false },
 );

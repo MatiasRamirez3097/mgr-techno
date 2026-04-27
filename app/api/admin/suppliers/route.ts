@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { SupplierModel } from "@/models/Supplier";
 import { mapSupplierToDTO } from "@/lib/mappers/supplierMapper";
+import { getSuppliers } from "@/lib/suppliers/getSuppliers";
 
 // 🧼 helpers
 function normalizeCUIT(cuit?: string) {
@@ -11,6 +12,12 @@ function normalizeCUIT(cuit?: string) {
 
 function cleanString(v?: string) {
     return v?.trim() || undefined;
+}
+
+export async function GET() {
+    const suppliers = await getSuppliers();
+
+    return Response.json({ suppliers });
 }
 
 export async function POST(req: NextRequest) {

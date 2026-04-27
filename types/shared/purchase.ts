@@ -9,7 +9,7 @@ export type PurchaseDTO = {
     items: {
         productId: string;
         quantity: number;
-        cost: number;
+        unitCost: number;
         total: number;
     }[];
 

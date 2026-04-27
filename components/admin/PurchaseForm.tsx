@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ProductSelector } from "./ProductSelector";
 import { FormModal } from "./FormModal";
@@ -12,6 +12,7 @@ interface Props {
 }
 
 type Document = {
+    date: string;
     type: string;
     number: string;
     fileUrl: string;
@@ -21,7 +22,7 @@ type PurchaseItem = {
     productId: string;
     name?: string;
     quantity: number;
-    cost: number;
+    unitCost: number;
 };
 
 type PurchaseFormState = {
@@ -39,7 +40,17 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [showSupplierModal, setShowSupplierModal] = useState(false);
-
+    const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [loadingSuppliers, setLoadingSuppliers] = useState(true);
+    //useEffect
+    useEffect(() => {
+        fetch("/api/admin/suppliers")
+            .then((res) => res.json())
+            .then((data) => {
+                setSuppliers(data.suppliers);
+            })
+            .finally(() => setLoadingSuppliers(false));
+    }, []);
     // Extraer imágenes del producto — soporta tanto strings como objetos {src}
     const extractImages = (product?: any): string[] => {
         if (!product?.images) return [];
@@ -55,9 +66,10 @@ export function PurchaseForm({ purchase, mode }: Props) {
         items: purchase?.items || [],
 
         document: {
-            type: purchase?.document?.type || "",
+            date: purchase?.document?.date,
+            type: purchase?.document?.type,
             number: purchase?.document?.number || "",
-            fileUrl: purchase?.document?.fileUrl || "",
+            fileUrl: purchase?.document?.fileUrl || undefined,
         },
 
         notes: purchase?.notes || "",
@@ -66,7 +78,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const addItem = () => {
         setForm((prev) => ({
             ...prev,
-            items: [...prev.items, { productId: "", quantity: 1, cost: 0 }],
+            items: [...prev.items, { productId: "", quantity: 1, unitCost: 0 }],
         }));
     };
 
@@ -86,7 +98,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
     };
 
     const subtotal = form.items.reduce(
-        (acc, item) => acc + item.quantity * item.cost,
+        (acc, item) => acc + item.quantity * item.unitCost,
         0,
     );
 
@@ -115,12 +127,13 @@ export function PurchaseForm({ purchase, mode }: Props) {
         items: form.items.map((item) => ({
             productId: item.productId,
             quantity: Number(item.quantity),
-            cost: Number(item.cost),
+            unitCost: Number(item.unitCost),
         })),
 
         document: form.document,
 
         notes: form.notes,
+        subtotal: subtotal,
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -192,16 +205,28 @@ export function PurchaseForm({ purchase, mode }: Props) {
                             Información básica
                         </h2>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="col-span-2">
+                            <div>
                                 <label className={labelClass}>Proveedor</label>
-                                <div className="flex w-1/2 gap-2">
+                                <div className="flex gap-2">
                                     <select
                                         name="supplierId"
                                         value={form.supplierId}
                                         onChange={handleChange}
                                         className={`${inputClass} flex-1`}
+                                        disabled={loadingSuppliers}
                                     >
-                                        {/* map suppliers */}
+                                        <option value="">
+                                            {loadingSuppliers
+                                                ? "Cargando..."
+                                                : "Seleccionar proveedor"}
+                                        </option>
+
+                                        {suppliers.map((s) => (
+                                            <option key={s.id} value={s.id}>
+                                                {s.name}{" "}
+                                                {s.taxId ? `(${s.taxId})` : ""}
+                                            </option>
+                                        ))}
                                     </select>
                                     <button
                                         type="button"
@@ -213,6 +238,14 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                         +
                                     </button>
                                 </div>
+                            </div>
+                            <div>
+                                <label className={labelClass}>Fecha</label>
+                                <input
+                                    value={form.document.date}
+                                    className={inputClass}
+                                    type="date"
+                                ></input>
                             </div>
                             <div>
                                 <label className={labelClass}>
@@ -230,7 +263,12 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                             },
                                         })
                                     }
-                                ></select>
+                                >
+                                    <option value="generic">
+                                        Comprobante Generico
+                                    </option>
+                                    <option value="invoice">Factura</option>
+                                </select>
                             </div>
                             <div>
                                 <label className={labelClass}>
@@ -240,6 +278,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                     className={inputClass}
                                     placeholder="Número"
                                     value={form.document.number}
+                                    disabled={form.document.type === "generic"}
                                     onChange={(e) =>
                                         setForm({
                                             ...form,
@@ -286,6 +325,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
 
                                 <input
                                     type="number"
+                                    min="1"
                                     value={item.quantity}
                                     onChange={(e) =>
                                         updateItem(
@@ -298,10 +338,15 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                 />
 
                                 <input
+                                    min="0"
                                     type="number"
-                                    value={item.cost}
+                                    value={item.unitCost}
                                     onChange={(e) =>
-                                        updateItem(i, "cost", e.target.value)
+                                        updateItem(
+                                            i,
+                                            "unitCost",
+                                            e.target.value,
+                                        )
                                     }
                                     className={inputClass}
                                 />
@@ -343,10 +388,12 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                     onChange={handleChange}
                                     className={inputClass}
                                 >
-                                    <option value="enabled">Habilitado</option>
-                                    <option value="disabled">
-                                        Deshabilitado
+                                    <option value="draft">Borrador</option>
+                                    <option value="confirmed">
+                                        Confirmada
                                     </option>
+                                    <option value="received">Recibida</option>
+                                    <option value="cancelled">Cancelada</option>
                                 </select>
                             </div>
 
