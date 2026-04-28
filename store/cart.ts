@@ -29,7 +29,7 @@ export const useCart = create<CartStore>()(
                     );
 
                     // Si no hay stock definido (null) dejamos agregar libremente
-                    const maxStock = product.stockQuantity ?? Infinity;
+                    const maxStock = product.availableStock ?? Infinity;
 
                     if (existing) {
                         // No superar el stock disponible
