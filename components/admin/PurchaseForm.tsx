@@ -45,7 +45,9 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const [loadingSuppliers, setLoadingSuppliers] = useState(true);
     //useEffect
     useEffect(() => {
-        fetch("/api/admin/suppliers")
+        fetch("/api/admin/suppliers", {
+            credentials: "include",
+        })
             .then((res) => res.json())
             .then((data) => {
                 setSuppliers(data.suppliers);
@@ -155,6 +157,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                     method: mode === "edit" ? "PUT" : "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(buildPayload()),
+                    credentials: "include",
                 },
             );
 
