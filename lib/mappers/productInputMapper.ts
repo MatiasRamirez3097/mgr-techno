@@ -24,11 +24,6 @@ export function mapInputToProductDB(input: ProductInput): Partial<ProductDB> {
 
         regularPrice: price,
         salePrice,
-        onSale,
-
-        //manageStock: input.manageStock,
-        stockQuantity: input.manageStock ? input.stockQuantity || 0 : 0,
-        stockStatus: (input.stockQuantity || 0) > 0 ? "instock" : "outofstock",
 
         weight: Number(input.weight) || 0,
 
