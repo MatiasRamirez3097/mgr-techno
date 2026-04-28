@@ -3,7 +3,6 @@ import { getProducts } from "@/lib/products/getProducts";
 import { ProductCard } from "@/components/productCard/ProductCard";
 import { Pagination } from "@/components/ui/Pagination";
 import { SortSelector } from "@/components/products/SortSelector";
-import { ProductCardSkeleton } from "@/components/skeletons/ProductCardSkeleton";
 
 interface Props {
     searchParams: Promise<{

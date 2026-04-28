@@ -15,6 +15,7 @@ export function mapPurchaseToDTO(purchase: PurchaseDB): PurchaseDTO {
         items:
             purchase.items?.map((item) => ({
                 productId: item.productId.toString(),
+                name: item.name,
                 quantity: item.quantity,
                 unitCost: item.unitCost,
                 total: item.quantity * item.unitCost,

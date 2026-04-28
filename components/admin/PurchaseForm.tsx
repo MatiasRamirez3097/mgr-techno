@@ -13,7 +13,7 @@ interface Props {
 }
 
 type Document = {
-    date: string | undefined;
+    date: string;
     type: string;
     number: string;
     fileUrl: string | undefined;
@@ -59,7 +59,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
             .map((img: any) => (typeof img === "string" ? img : img.src || ""))
             .filter(Boolean);
     };
-
+    console.log(purchase);
     const [form, setForm] = useState<PurchaseFormState>({
         supplierId: purchase?.supplierId || "",
         status: purchase?.status || "draft",
@@ -67,7 +67,9 @@ export function PurchaseForm({ purchase, mode }: Props) {
         items: purchase?.items || [],
 
         document: {
-            date: purchase?.document?.date || undefined,
+            date: purchase?.document?.date
+                ? purchase.document.date.split("T")[0]
+                : "",
             type: purchase?.document?.type || "generic",
             number: purchase?.document?.number || "",
             fileUrl: purchase?.document?.fileUrl || undefined,
@@ -160,7 +162,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
             if (!res.ok) throw new Error(data.error);
 
             setSuccess(
-                mode === "edit" ? "Producto actualizado" : "Producto creado",
+                mode === "edit" ? "Compra actualizada" : "Compra creada",
             );
             if (mode === "create")
                 router.push(`/admin/purchases/${data.data._id}`);
@@ -245,8 +247,18 @@ export function PurchaseForm({ purchase, mode }: Props) {
                             <div>
                                 <label className={labelClass}>Fecha</label>
                                 <input
+                                    name="date"
                                     value={form.document.date}
                                     className={inputClass}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            document: {
+                                                ...form.document,
+                                                date: e.target.value,
+                                            },
+                                        })
+                                    }
                                     type="date"
                                 ></input>
                             </div>

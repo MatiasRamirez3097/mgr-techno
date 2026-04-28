@@ -1,8 +1,5 @@
-// /lib/mappers/productMapper.ts
-
 import { ProductDB } from "@/types/backend/product";
 import { ProductDTO } from "@/types/shared/product";
-import { publicDecrypt } from "crypto";
 
 export function mapProductToDTO(product: ProductDB): ProductDTO {
     return {
@@ -32,6 +29,6 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
             length: product.dimensions?.length || 0,
             width: product.dimensions?.width || 0,
         },
-        availableStock: product.availableStock || undefined,
+        availableStock: product.availableStock,
     };
 }

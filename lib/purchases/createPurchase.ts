@@ -22,10 +22,9 @@ export async function createPurchase(data: unknown) {
     const { document, items, notes, status, supplierId } = result.data;
     //const parsed = result.data;
 
-    /*if (data.document?.type === "generic") {
-        data.document.number = await getNextGenericNumber();
-    }*/
-    console.log("result>>> ", result);
+    if (document.type === "generic")
+        document.number = await getNextGenericNumber();
+
     const subtotal = items.reduce(
         (acc: number, item) => acc + item.quantity * item.unitCost,
         0,

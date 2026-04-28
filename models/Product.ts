@@ -1,6 +1,4 @@
-//import mongoose, { Schema, model, models } from "mongoose";
-import mongoose, { Schema } from "mongoose";
-mongoose.models;
+import { model, models, Schema } from "mongoose";
 
 interface Product {
     regularPrice: number;
@@ -79,5 +77,4 @@ ProductSchema.index({ stockStatus: 1, createdAt: -1 });
 ProductSchema.index({ "categories.slug": 1 });
 ProductSchema.index({ featured: 1 });
 
-export const ProductModel =
-    mongoose.models.Product || mongoose.model("Product", ProductSchema);
+export const ProductModel = models.Product || model("Product", ProductSchema);
