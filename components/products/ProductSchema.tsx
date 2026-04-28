@@ -17,10 +17,12 @@ export function ProductSchema({ product }: { product: ProductDTO }) {
             priceValidUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 .toISOString()
                 .split("T")[0],
-            availability:
-                product.availableStock > 0
-                    ? "https://schema.org/InStock"
-                    : "https://schema.org/OutOfStock",
+            availability: product.availableStock
+                ? product.availableStock === 0
+                    ? "https://schema.org/OutOfStock"
+                    : "https://schema.org/InStock"
+                : "https://schema.org/InStock",
+
             seller: {
                 "@type": "Organization",
                 name: "MGR Techno",
