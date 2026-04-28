@@ -17,6 +17,7 @@ export const purchaseDocumentSchema = z.object({
 
 // Schema para item de compra
 export const purchaseItemSchema = z.object({
+    name: z.string(),
     productId: objectIdSchema,
     quantity: z.number().int().min(1, "La cantidad debe ser al menos 1"),
     unitCost: z.number().min(0, "El costo unitario debe ser positivo"),

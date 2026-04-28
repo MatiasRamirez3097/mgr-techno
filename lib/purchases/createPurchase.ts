@@ -33,7 +33,9 @@ export async function createPurchase(data: unknown) {
 
     try {
         // 2. Validar productos existen
+        console.log(validatedData.items);
         const productIds = validatedData.items.map((item) => item.productId);
+        console.log("productIds>>>>", productIds);
         const products = await ProductModel.find({
             _id: { $in: productIds },
         }).session(session);

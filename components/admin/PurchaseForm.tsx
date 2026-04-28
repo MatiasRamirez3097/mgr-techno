@@ -126,6 +126,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
 
         items: form.items.map((item) => ({
             productId: item.productId,
+            name: item.name,
             quantity: Number(item.quantity),
             unitCost: Number(item.unitCost),
         })),
@@ -160,7 +161,8 @@ export function PurchaseForm({ purchase, mode }: Props) {
             setSuccess(
                 mode === "edit" ? "Producto actualizado" : "Producto creado",
             );
-            if (mode === "create") router.push(`/admin/products/${data._id}`);
+            if (mode === "create")
+                router.push(`/admin/purchases/${data.data._id}`);
             else router.refresh();
         } catch (e: any) {
             setError(e.message || "Error al guardar");

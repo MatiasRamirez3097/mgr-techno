@@ -41,6 +41,7 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
         search,
         page: currentPage,
     });
+    console.log(purchases);
 
     return (
         <div>
@@ -104,7 +105,7 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
 
                                 return (
                                     <tr
-                                        key={purchase._id.toString()}
+                                        key={purchase.id.toString()}
                                         className="border-b border-gray-800 hover:bg-gray-800/50"
                                     >
                                         <td className="px-6 py-4 text-white">
@@ -113,7 +114,7 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
 
                                         <td className="px-6 py-4">
                                             <p className="text-white">
-                                                {purchase.supplierId?.name ||
+                                                {purchase.supplierName ||
                                                     "Sin proveedor"}
                                             </p>
                                         </td>

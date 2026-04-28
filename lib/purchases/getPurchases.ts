@@ -20,7 +20,7 @@ export async function getPurchases(
     //const sort = getMongoSort(filters.orderby);
 
     // Construir query
-    const query: any = { status: "publish" };
+    const query: any = {};
 
     if (filters.search) {
         query.$text = { $search: filters.search };
