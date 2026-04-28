@@ -52,10 +52,10 @@ export async function getProducts(
     // Separamos en stock y sin stock
     if (!adminView) {
         const [inStock, outOfStock] = await Promise.all([
-            ProductModel.find({ ...query, stockStatus: "instock" })
+            ProductModel.find({ ...query, availableStock: { $gt: 0 } })
                 .sort(sort)
                 .lean(),
-            ProductModel.find({ ...query, stockStatus: "outofstock" })
+            ProductModel.find({ ...query, availableStock: 0 })
                 .sort(sort)
                 .lean(),
         ]);

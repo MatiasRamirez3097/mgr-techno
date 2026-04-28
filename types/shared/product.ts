@@ -9,6 +9,7 @@ export type ProductDTO = {
     salePrice: number | null;
     shortDescription: string;
     hasSerialNumber: boolean;
+    availableStock: number;
     onSale: boolean;
     slug: string;
     sku: string;

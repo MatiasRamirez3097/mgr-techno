@@ -60,6 +60,11 @@ export const ProductSchema = new Schema(
         featured: { type: Boolean, default: false },
         status: { type: String, default: "publish" },
         sku: { type: String },
+        availableStock: {
+            type: Number,
+            default: 0,
+            index: true,
+        },
         bundleItemsCount: {
             type: Number,
             default: 0,
@@ -73,16 +78,6 @@ ProductSchema.index({ name: "text", sku: "text" });
 ProductSchema.index({ stockStatus: 1, createdAt: -1 });
 ProductSchema.index({ "categories.slug": 1 });
 ProductSchema.index({ featured: 1 });
-ProductSchema.virtual("stockStatus").get(async function () {
-    const count = await mongoose.model("InventoryItem").countDocuments({
-        productId: this._id,
-        status: "available",
-    });
-
-    if (count === 0) return "outofstock";
-    if (count < 5) return "onbackorder"; // umbral configurable
-    return "instock";
-});
 
 export const ProductModel =
     mongoose.models.Product || mongoose.model("Product", ProductSchema);
