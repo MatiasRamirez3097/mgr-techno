@@ -14,27 +14,33 @@ import { getSupplierById } from "../suppliers/getSupplierById";
 
 export async function createPurchase(data: unknown) {
     // 1. Validar con Zod
-    console.log(">>>data", data);
-    if (data.document?.type === "generic") {
-        data.document.number = await getNextGenericNumber();
+    const result = createPurchaseSchema.safeParse(data);
+
+    if (!result.success) {
+        return result;
     }
-    console.log(data);
-    const subtotal = data.items.reduce(
-        (acc, item) => acc + item.quantity * item.unitCost,
+    const { document, items, notes, status, supplierId } = result.data;
+    //const parsed = result.data;
+
+    /*if (data.document?.type === "generic") {
+        data.document.number = await getNextGenericNumber();
+    }*/
+    console.log("result>>> ", result);
+    const subtotal = items.reduce(
+        (acc: number, item) => acc + item.quantity * item.unitCost,
         0,
     );
 
     const tax = subtotal * 0.21; // si aplica
     const total = subtotal + tax;
-    const validatedData = createPurchaseSchema.parse(data);
-    const supplier = await getSupplierById(data.supplierId);
+    //const validatedData = createPurchaseSchema.parse(data);
+    const supplier = await getSupplierById(result.data.supplierId);
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
         // 2. Validar productos existen
-        console.log(validatedData.items);
-        const productIds = validatedData.items.map((item) => item.productId);
+        const productIds = result.data.items.map((item) => item.productId);
         console.log("productIds>>>>", productIds);
         const products = await ProductModel.find({
             _id: { $in: productIds },
@@ -47,7 +53,7 @@ export async function createPurchase(data: unknown) {
         // 3. Validaciones específicas de negocio
         const validationErrors: string[] = [];
 
-        for (const item of validatedData.items) {
+        for (const item of result.data.items) {
             const product = products.find(
                 (p) => p._id.toString() === item.productId,
             );
@@ -114,7 +120,7 @@ export async function createPurchase(data: unknown) {
         }
 
         // 4. Calcular total
-        const totalCost = validatedData.items.reduce(
+        const totalCost = items.reduce(
             (sum, item) => sum + item.quantity * item.unitCost,
             0,
         );
@@ -123,15 +129,14 @@ export async function createPurchase(data: unknown) {
         const purchase = await PurchaseModel.create(
             [
                 {
-                    supplierId: validatedData.supplierId,
+                    supplierId: supplierId,
                     supplierName: supplier.name,
-                    items: validatedData.items,
+                    items: items,
                     subtotal: subtotal,
                     total: total,
-                    status: validatedData.status,
-                    document: validatedData.document,
-                    orderDate: validatedData.orderDate,
-                    notes: validatedData.notes,
+                    status: status,
+                    document: document,
+                    notes: notes,
                 },
             ],
             { session },
@@ -148,7 +153,7 @@ export async function createPurchase(data: unknown) {
     }
 }
 
-export async function receivePurchase(data: unknown) {
+/*export async function receivePurchase(data: unknown) {
     // 1. Validar con Zod
     const validatedData = receivePurchaseSchema.parse(data);
 
@@ -328,7 +333,7 @@ export async function receivePurchase(data: unknown) {
         await purchase.save({ session });
 
         // 7. Cumplir backorders si existen
-        /*for (const [productId, data] of receivedItemsMap) {
+        for (const [productId, data] of receivedItemsMap) {
             const itemsForProduct = createdItems.filter(
                 (item) => item.productId.toString() === productId,
             );
@@ -338,7 +343,7 @@ export async function receivePurchase(data: unknown) {
                 session,
             );
         }
-        */
+        
         await session.commitTransaction();
 
         return {
@@ -352,7 +357,7 @@ export async function receivePurchase(data: unknown) {
     } finally {
         session.endSession();
     }
-}
+}*/
 
 // Función auxiliar para actualizar solo el documento
 export async function updatePurchaseDocument(data: unknown) {
