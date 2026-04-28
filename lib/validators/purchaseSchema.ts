@@ -31,7 +31,7 @@ export const createPurchaseSchema = z.object({
     items: z
         .array(purchaseItemSchema)
         .min(1, "Debe incluir al menos un producto"),
-    document: purchaseDocumentSchema.optional().default({}),
+    document: purchaseDocumentSchema,
     notes: z.string().optional(),
     status: z.string(),
     /*orderDate: z.coerce
