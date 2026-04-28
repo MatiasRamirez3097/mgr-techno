@@ -15,9 +15,7 @@ export default async function AdminEditPurchasePage({
     const { id } = await params;
 
     await connectDB();
-    const purchase: PurchaseDTO[] | null = await Promise.all([
-        getPurchasesById(id),
-    ]);
+    const purchase: PurchaseDTO | null = await getPurchasesById(id);
 
     if (!purchase) notFound();
 
@@ -32,7 +30,7 @@ export default async function AdminEditPurchasePage({
                 </Link>
                 <h1 className="text-2xl font-bold text-white">Editar compra</h1>
             </div>
-            <PurchaseForm product={purchase} mode="edit" />
+            <PurchaseForm purchase={purchase} mode="edit" />
         </div>
     );
 }

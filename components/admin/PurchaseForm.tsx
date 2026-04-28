@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { ProductSelector } from "./ProductSelector";
 import { FormModal } from "./FormModal";
 import { SupplierForm } from "./SupplierForm";
+import { PurchaseDTO } from "@/types/shared/purchase";
 
 interface Props {
-    purchase?: any;
+    purchase?: PurchaseDTO;
     mode: "create" | "edit";
 }
 
