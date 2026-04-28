@@ -15,7 +15,7 @@ export default async function AdminEditPurchasePage({
     const { id } = await params;
 
     await connectDB();
-    const purchase: PurchaseDTO | null = await Promise.all([
+    const purchase: PurchaseDTO[] | null = await Promise.all([
         getPurchasesById(id),
     ]);
 
