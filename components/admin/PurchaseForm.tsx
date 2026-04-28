@@ -8,15 +8,15 @@ import { SupplierForm } from "./SupplierForm";
 import { PurchaseDTO } from "@/types/shared/purchase";
 
 interface Props {
-    purchase?: PurchaseDTO;
+    purchase?: any;
     mode: "create" | "edit";
 }
 
 type Document = {
-    date: string;
+    date: string | undefined;
     type: string;
     number: string;
-    fileUrl: string;
+    fileUrl: string | undefined;
 };
 
 type PurchaseItem = {
@@ -67,8 +67,8 @@ export function PurchaseForm({ purchase, mode }: Props) {
         items: purchase?.items || [],
 
         document: {
-            date: purchase?.document?.date,
-            type: purchase?.document?.type,
+            date: purchase?.document?.date || undefined,
+            type: purchase?.document?.type || "generic",
             number: purchase?.document?.number || "",
             fileUrl: purchase?.document?.fileUrl || undefined,
         },

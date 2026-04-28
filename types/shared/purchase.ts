@@ -13,9 +13,10 @@ export type PurchaseDTO = {
         total: number;
     }[];
 
-    document?: {
-        type?: string;
-        number?: string;
+    document: {
+        date: string;
+        type: string;
+        number: string;
         fileUrl?: string;
     };
 
