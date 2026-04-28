@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import { Schema, model, models } from "mongoose";
 
 export const InventoryItemSchema = new Schema(
     {
@@ -16,9 +16,9 @@ export const InventoryItemSchema = new Schema(
             validate: {
                 validator: async function (value: string | undefined) {
                     // Si el producto requiere serial, debe tenerlo
-                    const product = await mongoose
-                        .model("Product")
-                        .findById(this.productId);
+                    const product = await model("Product").findById(
+                        this.productId,
+                    );
                     if (product?.hasSerialNumber && !value) {
                         return false;
                     }
@@ -50,7 +50,7 @@ export const InventoryItemSchema = new Schema(
 
 InventoryItemSchema.index({ productId: 1, status: 1 });
 InventoryItemSchema.index({ productId: 1, serialNumber: 1 }); // Para búsquedas específicas
-InventoryItemSchema.pre("save", async function (next) {
+InventoryItemSchema.pre("save", async function () {
     // Verificar que el producto existe
     const product = await model("Product").findById(this.productId);
     if (!product) {
@@ -61,8 +61,6 @@ InventoryItemSchema.pre("save", async function (next) {
     if (!product.manageStock) {
         throw new Error("Este producto no gestiona stock");
     }
-
-    next();
 });
 
 // Marcar como vendido
