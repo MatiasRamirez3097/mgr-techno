@@ -11,6 +11,11 @@ interface Props {
     mode: "create" | "edit";
 }
 
+type FieldError = {
+    path: string[];
+    message: string;
+};
+
 function ImageUploader({
     images,
     onChange,
@@ -159,7 +164,7 @@ export function ProductForm({ product, categories, mode }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [error, setError] = useState([]);
+    const [error, setError] = useState<string | FieldError[] | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [success, setSuccess] = useState("");
 
@@ -269,7 +274,10 @@ export function ProductForm({ product, categories, mode }: Props) {
                 setError(data.error);
                 if (Array.isArray(error)) {
                     const errors = Object.fromEntries(
-                        data.error.map((e) => [e.path.join("."), e.message]),
+                        data.error.map((e: any) => [
+                            e.path.join("."),
+                            e.message,
+                        ]),
                     );
                     setFieldErrors(errors);
                 }
@@ -281,7 +289,7 @@ export function ProductForm({ product, categories, mode }: Props) {
             );
             if (mode === "create") router.push(`/admin/products/${data._id}`);
             else router.refresh();
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.log(e);
             //setError(e.error || "Error al guardar");
         } finally {
