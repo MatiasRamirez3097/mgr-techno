@@ -13,7 +13,6 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         image: product.image || "",
         images: product.images || [],
         name: product.name,
-        onSale: product.onSale,
         salePrice: product.salePrice || null,
         regularPrice: product.regularPrice || 0,
         shortDescription: product.shortDescription || "",
@@ -33,5 +32,6 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
             length: product.dimensions?.length || 0,
             width: product.dimensions?.width || 0,
         },
+        availableStock: product.availableStock || undefined,
     };
 }
