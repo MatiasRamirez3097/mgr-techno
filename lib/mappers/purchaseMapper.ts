@@ -16,18 +16,18 @@ export function mapPurchaseToDTO(purchase: PurchaseDB): PurchaseDTO {
             purchase.items?.map((item) => ({
                 productId: item.productId.toString(),
                 quantity: item.quantity,
-                cost: item.cost,
-                total: item.quantity * item.cost,
+                unitCost: item.unitCost,
+                total: item.quantity * item.unitCost,
             })) || [],
 
-        document: purchase.document
-            ? {
-                  type: purchase.document.type || undefined,
-                  number: purchase.document.number || undefined,
-                  fileUrl: purchase.document.fileUrl || undefined,
-              }
-            : undefined,
-
+        document: {
+            date: purchase.document.date
+                ? purchase.document.date.toISOString()
+                : "",
+            type: purchase.document.type || "generic",
+            number: purchase.document.number || "",
+            fileUrl: purchase.document.fileUrl || undefined,
+        },
         subtotal: purchase.subtotal,
         tax: purchase.tax || 0,
         total: purchase.total,
