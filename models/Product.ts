@@ -73,7 +73,7 @@ export const ProductSchema = new Schema(
 
 // Índices para búsqueda
 ProductSchema.index({ name: "text", sku: "text" });
-ProductSchema.index({ stockStatus: 1, createdAt: -1 });
+//ProductSchema.index({ stockStatus: 1, createdAt: -1 });
 ProductSchema.index({ "categories.slug": 1 });
 ProductSchema.index({ featured: 1 });
 

@@ -66,50 +66,6 @@ export async function createPurchase(data: unknown) {
                 );
                 continue;
             }
-
-            // Validar números de serie
-            if (product.hasSerialNumber) {
-                if (
-                    !item.serialNumbers ||
-                    item.serialNumbers.length !== item.quantity
-                ) {
-                    validationErrors.push(
-                        `El producto "${product.name}" requiere exactamente ${item.quantity} números de serie`,
-                    );
-                    continue;
-                }
-
-                // Verificar duplicados en la base de datos
-                const existingSerials = await InventoryItemModel.find({
-                    serialNumber: { $in: item.serialNumbers },
-                }).session(session);
-
-                if (existingSerials.length > 0) {
-                    validationErrors.push(
-                        `Números de serie ya existentes: ${existingSerials
-                            .map((i) => i.serialNumber)
-                            .join(", ")}`,
-                    );
-                }
-
-                // Verificar duplicados dentro de la misma compra
-                const duplicates = item.serialNumbers.filter(
-                    (serial, index) =>
-                        item.serialNumbers!.indexOf(serial) !== index,
-                );
-                if (duplicates.length > 0) {
-                    validationErrors.push(
-                        `Números de serie duplicados en el item: ${duplicates.join(", ")}`,
-                    );
-                }
-            } else {
-                // Si NO requiere serial, no debería enviarlo
-                if (item.serialNumbers && item.serialNumbers.length > 0) {
-                    validationErrors.push(
-                        `El producto "${product.name}" no usa números de serie`,
-                    );
-                }
-            }
         }
 
         if (validationErrors.length > 0) {

@@ -4,6 +4,11 @@ import type { PurchaseDB } from "@/types/backend/purchase";
 import type { PurchaseDTO } from "@/types/shared/purchase";
 
 export function mapPurchaseToDTO(purchase: PurchaseDB): PurchaseDTO {
+    const getProductId = (productId: any) =>
+        typeof productId === "object" ? productId : productId.toString();
+
+    const getProductName = (item: any) =>
+        typeof item.productId === "object" ? item.productId.name : item.name;
     return {
         id: purchase._id.toString(),
 
@@ -14,7 +19,7 @@ export function mapPurchaseToDTO(purchase: PurchaseDB): PurchaseDTO {
 
         items:
             purchase.items?.map((item) => ({
-                productId: item.productId.toString(),
+                productId: getProductId(item.productId),
                 name: item.name,
                 quantity: item.quantity,
                 unitCost: item.unitCost,

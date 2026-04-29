@@ -247,7 +247,7 @@ export function ProductForm({ product, categories, mode }: Props) {
             height: parseFloat(form.height) || undefined,
         },
         categories: form.categories,
-        images: images.map((url) => ({ src: url })),
+        images: images.map((url) => url) || [],
     });
 
     const handleSubmit = async (e: React.FormEvent) => {

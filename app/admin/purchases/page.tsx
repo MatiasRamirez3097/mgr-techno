@@ -138,6 +138,15 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
                                         </td>
 
                                         <td className="px-6 py-4">
+                                            {purchase.status ===
+                                                "confirmed" && (
+                                                <Link
+                                                    href={`/admin/purchases/${purchase.id}/receive`}
+                                                    className="text-xs text-green-400 hover:brightness-125"
+                                                >
+                                                    Recepcionar →
+                                                </Link>
+                                            )}
                                             <Link
                                                 href={`/admin/purchases/${purchase.id}`}
                                                 className="text-xs text-brand hover:brightness-125"

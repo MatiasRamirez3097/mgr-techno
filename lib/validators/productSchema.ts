@@ -19,9 +19,8 @@ export const createProductSchema = z.object({
 
     taxRate: z.number().optional(),
 
-    image: z.string().url("URL inválida").optional(),
-    images: z.array(z.string().url()).optional(),
-
+    image: z.string().optional(),
+    images: z.array(z.string().optional()),
     hasSerialNumber: z.boolean().optional().default(false),
     manageStock: z.boolean().optional().default(true),
 

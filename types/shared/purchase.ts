@@ -7,7 +7,7 @@ export type PurchaseDTO = {
     status: "draft" | "confirmed" | "received" | "cancelled";
 
     items: {
-        productId: string;
+        productId: string | object;
         quantity: number;
         unitCost: number;
         total: number;
