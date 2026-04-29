@@ -4,7 +4,6 @@ import { createProductSchemaRefined } from "@/lib/validators/productSchema";
 
 export async function POST(req: NextRequest) {
     const body = await req.json();
-    console.log(body);
     const parsed = createProductSchemaRefined.safeParse(body);
 
     if (!parsed.success) {

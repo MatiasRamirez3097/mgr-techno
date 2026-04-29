@@ -7,9 +7,7 @@ import { z } from "zod";
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        console.log(">>>>body", body);
         const purchase = await createPurchase(body);
-        console.log(purchase);
         return Response.json(
             {
                 success: true,
@@ -19,7 +17,6 @@ export async function POST(req: NextRequest) {
         );
     } catch (error) {
         // Errores de validación de Zod
-        console.log(">>>error", error);
         if (error instanceof z.ZodError) {
             return Response.json(
                 {

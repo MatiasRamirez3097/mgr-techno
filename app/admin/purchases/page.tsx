@@ -41,7 +41,6 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
         search,
         page: currentPage,
     });
-    console.log(purchases);
 
     return (
         <div>

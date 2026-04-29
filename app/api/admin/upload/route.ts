@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
         const url = await uploadImage(base64);
         return Response.json({ url });
     } catch (e) {
-        console.log(">>> upload error:", e);
         return Response.json(
             { error: "Error al subir imagen" },
             { status: 500 },

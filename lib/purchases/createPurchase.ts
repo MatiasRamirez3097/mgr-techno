@@ -25,22 +25,15 @@ export async function createPurchase(data: unknown) {
     if (document.type === "generic")
         document.number = await getNextGenericNumber();
 
-    const subtotal = items.reduce(
-        (acc: number, item) => acc + item.quantity * item.unitCost,
-        0,
-    );
-
-    const tax = subtotal * 0.21; // si aplica
-    const total = subtotal + tax;
     //const validatedData = createPurchaseSchema.parse(data);
     const supplier = await getSupplierById(result.data.supplierId);
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        // 2. Validar productos existen
-        const productIds = result.data.items.map((item) => item.productId);
-        console.log("productIds>>>>", productIds);
+        // 🔥 1. Traer productos
+        const productIds = items.map((i) => i.productId);
+
         const products = await ProductModel.find({
             _id: { $in: productIds },
         }).session(session);
@@ -49,22 +42,21 @@ export async function createPurchase(data: unknown) {
             throw new Error("Uno o más productos no existen");
         }
 
-        // 3. Validaciones específicas de negocio
+        // 🧠 Map para lookup rápido
+        const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+        // 🔒 2. Validaciones
         const validationErrors: string[] = [];
 
-        for (const item of result.data.items) {
-            const product = products.find(
-                (p) => p._id.toString() === item.productId,
-            );
+        for (const item of items) {
+            const product = productMap.get(item.productId);
 
             if (!product) continue;
 
-            // Validar que el producto gestione stock
             if (!product.manageStock) {
                 validationErrors.push(
                     `El producto "${product.name}" no gestiona stock`,
                 );
-                continue;
             }
         }
 
@@ -74,24 +66,38 @@ export async function createPurchase(data: unknown) {
             );
         }
 
-        // 4. Calcular total
-        const totalCost = items.reduce(
-            (sum, item) => sum + item.quantity * item.unitCost,
-            0,
-        );
+        // 💰 3. Calcular subtotal + tax dinámico
+        let subtotal = 0;
+        let tax = 0;
 
-        // 5. Crear Purchase (sin purchaseNumber, ya que usas document.number)
+        for (const item of items) {
+            const product = productMap.get(item.productId);
+            if (!product) continue;
+
+            const itemSubtotal = item.quantity * item.unitCost;
+
+            const taxRate = product.taxRate ?? 0; // ej: 0.21
+            const itemTax = itemSubtotal * taxRate;
+
+            subtotal += itemSubtotal;
+            tax += itemTax;
+        }
+
+        const total = subtotal + tax;
+
+        // 🧾 4. Crear compra
         const purchase = await PurchaseModel.create(
             [
                 {
-                    supplierId: supplierId,
+                    supplierId,
                     supplierName: supplier.name,
-                    items: items,
-                    subtotal: subtotal,
-                    total: total,
-                    status: status,
-                    document: document,
-                    notes: notes,
+                    items,
+                    subtotal,
+                    tax, // 👈 agregalo al modelo si no está
+                    total,
+                    status,
+                    document,
+                    notes,
                 },
             ],
             { session },
@@ -100,7 +106,6 @@ export async function createPurchase(data: unknown) {
         await session.commitTransaction();
         return purchase[0];
     } catch (error) {
-        console.log(error);
         await session.abortTransaction();
         throw error;
     } finally {

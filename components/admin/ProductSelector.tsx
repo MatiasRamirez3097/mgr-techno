@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 interface Product {
     id: string;
     name: string;
+    taxRate: number;
 }
 
 interface Props {

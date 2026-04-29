@@ -193,6 +193,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         width: product?.dimensions?.width || 0,
         height: product?.dimensions?.height || 0,
         categories: product?.categories || [],
+        taxRate: product?.taxRate || 10.5,
     });
 
     function slugify(text: string) {
@@ -248,6 +249,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         },
         categories: form.categories,
         images: images.map((url) => url) || [],
+        taxRate: form.taxRate,
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -480,6 +482,20 @@ export function ProductForm({ product, categories, mode }: Props) {
                                     {fieldErrors.regularPrice}
                                 </p>
                             )}
+                        </div>
+                        <div>
+                            <label className={labelClass}>
+                                Porcentaje Impuestos
+                            </label>
+                            <select
+                                name="taxRate"
+                                value={form.taxRate}
+                                onChange={handleChange}
+                                className={inputClass}
+                            >
+                                <option value="10.5">10.5%</option>
+                                <option value="21">21%</option>
+                            </select>
                         </div>
                     </div>
                 </section>

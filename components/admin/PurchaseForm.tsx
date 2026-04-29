@@ -23,6 +23,7 @@ type PurchaseItem = {
     name?: string;
     quantity: number;
     unitCost: number;
+    taxRate: number;
 };
 
 type PurchaseFormState = {
@@ -82,7 +83,10 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const addItem = () => {
         setForm((prev) => ({
             ...prev,
-            items: [...prev.items, { productId: "", quantity: 1, unitCost: 0 }],
+            items: [
+                ...prev.items,
+                { productId: "", quantity: 1, unitCost: 0, taxRate: 10.5 },
+            ],
         }));
     };
 
@@ -131,6 +135,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
         items: form.items.map((item) => ({
             productId: item.productId,
             name: item.name,
+            taxRate: item.taxRate,
             quantity: Number(item.quantity),
             unitCost: Number(item.unitCost),
         })),
@@ -322,6 +327,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                                 ? {
                                                       id: item.productId,
                                                       name: item.name || "",
+                                                      taxRate: item.taxRate,
                                                   }
                                                 : null
                                         }

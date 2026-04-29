@@ -11,6 +11,7 @@ export type PurchaseDTO = {
         quantity: number;
         unitCost: number;
         total: number;
+        taxRate: number;
     }[];
 
     document: {

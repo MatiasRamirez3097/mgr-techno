@@ -22,6 +22,7 @@ export function mapPurchaseToDTO(purchase: PurchaseDB): PurchaseDTO {
                 productId: getProductId(item.productId),
                 name: item.name,
                 quantity: item.quantity,
+                taxRate: item.taxRate,
                 unitCost: item.unitCost,
                 total: item.quantity * item.unitCost,
             })) || [],

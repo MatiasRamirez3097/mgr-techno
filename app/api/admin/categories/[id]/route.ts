@@ -15,7 +15,6 @@ export async function PUT(
 
     const { id } = await params;
     const body = await req.json();
-    console.log(body);
     await connectDB();
     const category = await CategoryModel.findByIdAndUpdate(id, body, {
         returnDocument: "after",

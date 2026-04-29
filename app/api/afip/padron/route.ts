@@ -9,9 +9,7 @@ export async function POST(req: Request) {
         ),
     );
     const { token, sign } = await auth.json();
-    console.log(">>>", token);
     const { cuit } = await req.json();
-    console.log(cuit);
     const soap = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:a5="http://a5.soap.ws.server.puc.sr/">
 <soapenv:Header/>
 <soapenv:Body>
@@ -35,7 +33,6 @@ export async function POST(req: Request) {
     );
 
     const xml = await res.text();
-    console.log(">>>>", xml);
     // 🔥 PARSEAMOS
     const json = await parseStringPromise(xml, {
         explicitArray: false,
@@ -48,7 +45,6 @@ export async function POST(req: Request) {
     // 🧠 navegar la respuesta de AFIP
     const persona = json.Envelope.Body.getPersona_v2Response.personaReturn;
     const supplier = mapPadronToSupplier(persona);
-    console.log(supplier);
     return Response.json({
         success: true,
         supplier,

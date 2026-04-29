@@ -11,7 +11,6 @@ export async function POST(
     const { id } = await params;
     try {
         const body = await req.json(); // seriales, etc
-        console.log("body>>>", body);
         const result = await receivePurchase(id, body);
 
         return Response.json({ success: true, data: result }, { status: 200 });
