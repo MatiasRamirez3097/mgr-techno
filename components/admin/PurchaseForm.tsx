@@ -188,7 +188,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
             await fetch(`/api/admin/purchases/${purchase.id}`, {
                 method: "DELETE",
             });
-            router.push("/admin/products");
+            router.push("/admin/purchases");
         } finally {
             setDeleting(false);
         }

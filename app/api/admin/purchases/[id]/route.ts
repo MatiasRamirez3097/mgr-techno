@@ -2,7 +2,9 @@
 
 import { updatePurchase } from "@/lib/purchases/updatePurchase";
 import { NextRequest } from "next/server";
+import { connectDB } from "@/lib/mongodb";
 import { z } from "zod";
+import { PurchaseModel } from "@/models/Purchase";
 
 export async function PUT(
     req: NextRequest,
@@ -44,4 +46,14 @@ export async function PUT(
             { status: 500 },
         );
     }
+}
+
+export async function DELETE(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> },
+) {
+    const { id } = await params;
+
+    await PurchaseModel.findByIdAndDelete(id);
+    return Response.json({ ok: true });
 }
