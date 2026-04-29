@@ -30,7 +30,7 @@ export async function receivePurchase(
         }
 
         // 🔒 Mapear items de la compra original
-        const purchaseMap = new Map(
+        const purchaseMap = new Map<string, number>(
             purchase.items.map((i: any) => [
                 i.productId.toString(),
                 i.quantity,
@@ -80,7 +80,6 @@ export async function receivePurchase(
                                 status: "available",
                                 quantity: 1,
                                 remainingQuantity: 1,
-                                cost: item.cost ?? product.cost ?? 0,
                             },
                         ],
                         { session },
@@ -98,7 +97,6 @@ export async function receivePurchase(
                             status: "available",
                             quantity: item.quantity,
                             remainingQuantity: item.quantity,
-                            cost: item.cost ?? product.cost ?? 0,
                         },
                     ],
                     { session },
