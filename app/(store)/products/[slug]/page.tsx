@@ -43,16 +43,14 @@ export default async function ProductPage({ params }: Props) {
                                 {product.salePrice && (
                                     <span className="text-base text-gray-500 line-through">
                                         $
-                                        {pricing.finalPrice.toLocaleString(
+                                        {product.regularPrice.toLocaleString(
                                             "es-AR",
                                         )}
                                     </span>
                                 )}
                                 <span className="text-3xl font-bold text-white">
                                     $
-                                    {product.regularPrice.toLocaleString(
-                                        "es-AR",
-                                    )}
+                                    {pricing.finalPrice.toLocaleString("es-AR")}
                                 </span>
                             </div>
                         </div>
