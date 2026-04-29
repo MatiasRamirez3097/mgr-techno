@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 
+type ReceiveItem = {
+    productId: string;
+    receiveQuantity: number;
+    hasSerialNumber?: boolean;
+    serials?: string[];
+};
+
 export function ReceivePurchaseForm({ purchase }: any) {
     console.log(">>>", purchase.items[0].productId._id);
     const [items, setItems] = useState(
@@ -61,7 +68,7 @@ export function ReceivePurchaseForm({ purchase }: any) {
         }
 
         const payload = {
-            items: items.map((item) => ({
+            items: items.map((item: ReceiveItem) => ({
                 productId: item.productId,
                 quantity: item.receiveQuantity,
                 serials: item.hasSerialNumber ? item.serials : undefined,
