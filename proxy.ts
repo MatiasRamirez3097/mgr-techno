@@ -8,7 +8,9 @@ export async function proxy(req: NextRequest) {
     const pathname = req.nextUrl.pathname;
 
     const isProtected =
-        pathname.startsWith("/api/admin") || pathname.startsWith("/api/afip");
+        pathname.startsWith("/api/admin") ||
+        pathname.startsWith("/api/afip") ||
+        pathname.startsWith("/admin");
 
     if (!isProtected) return NextResponse.next();
 
