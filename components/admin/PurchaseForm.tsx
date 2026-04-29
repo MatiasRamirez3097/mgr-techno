@@ -1,5 +1,5 @@
 "use client";
-
+import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ProductSelector } from "./ProductSelector";
@@ -35,6 +35,7 @@ type PurchaseFormState = {
 };
 
 export function PurchaseForm({ purchase, mode }: Props) {
+    const { data: session, status } = useSession();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -45,6 +46,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const [loadingSuppliers, setLoadingSuppliers] = useState(true);
     //useEffect
     useEffect(() => {
+        if (status !== "authenticated") return;
         fetch("/api/admin/suppliers", {
             credentials: "include",
         })
@@ -53,7 +55,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                 setSuppliers(data.suppliers);
             })
             .finally(() => setLoadingSuppliers(false));
-    }, []);
+    }, [status]);
     // Extraer imágenes del producto — soporta tanto strings como objetos {src}
     const extractImages = (product?: any): string[] => {
         if (!product?.images) return [];
