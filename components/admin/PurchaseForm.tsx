@@ -34,7 +34,6 @@ type PurchaseFormState = {
 };
 
 export function PurchaseForm({ purchase, mode }: Props) {
-    const { data: session, status } = useSession();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
