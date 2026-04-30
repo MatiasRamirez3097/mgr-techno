@@ -1,30 +1,11 @@
-import { WOO_HEADERS } from "@/lib/woo";
 import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
-
-async function getCustomers(page: number, perPage: number, search?: string) {
-    const params = new URLSearchParams({
-        page: page.toString(),
-        per_page: perPage.toString(),
-        orderby: "registered_date",
-        order: "desc",
-    });
-    if (search) params.set("search", search);
-
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/customers?${params.toString()}`,
-        { headers: WOO_HEADERS, cache: "no-store" },
-    );
-    const total = parseInt(res.headers.get("X-WP-Total") || "0");
-    const totalPages = parseInt(res.headers.get("X-WP-TotalPages") || "1");
-    const customers = await res.json();
-    return { customers, total, totalPages };
-}
+import { getCustomersWithOrders } from "@/lib/customers/getCustomers";
 
 interface Props {
     searchParams: Promise<{
-        page?: string;
+        page?: number;
         per_page?: string;
         search?: string;
     }>;
@@ -35,11 +16,12 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
     const currentPage = parseInt(page || "1");
     const perPage = parseInt(per_page || "20");
 
-    const { customers, total, totalPages } = await getCustomers(
+    const { customers, total, totalPages } = await getCustomersWithOrders({
         currentPage,
+        page,
         perPage,
         search,
-    );
+    });
 
     return (
         <div>
@@ -117,7 +99,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
                                         </p>
                                     </td>
                                     <td className="px-6 py-4 text-sm text-white">
-                                        {customer.orders_count}
+                                        {customer.orders.length}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-white">
                                         $
@@ -127,7 +109,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-400">
                                         {new Date(
-                                            customer.date_created,
+                                            customer.createdAt,
                                         ).toLocaleDateString("es-AR", {
                                             day: "2-digit",
                                             month: "short",

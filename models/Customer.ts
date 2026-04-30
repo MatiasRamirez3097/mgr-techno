@@ -1,6 +1,6 @@
 import { Schema, model, models } from "mongoose";
 
-const CustomerSchema = new Schema(
+export const CustomerSchema = new Schema(
     {
         email: { type: String, required: true, unique: true, index: true },
         password: { type: String, required: true }, // bcrypt hash
@@ -20,7 +20,6 @@ const CustomerSchema = new Schema(
         },
         tipoDocumento: { type: String, default: "DNI" },
         numeroDocumento: { type: String },
-        wooId: { type: Number, default: null }, // para referencia con Woo durante la migración
     },
     { timestamps: true },
 );

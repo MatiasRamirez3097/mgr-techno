@@ -1,6 +1,9 @@
-import { WOO_HEADERS } from "@/lib/woo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+    getCustomersById,
+    getCustomersByIdWIthOrders,
+} from "@/lib/customers/getCustomersById";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -33,33 +36,13 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     },
 };
 
-async function getCustomer(id: string) {
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/customers/${id}`,
-        { headers: WOO_HEADERS, cache: "no-store" },
-    );
-    if (!res.ok) return null;
-    return res.json();
-}
-
-async function getCustomerOrders(customerId: string) {
-    const res = await fetch(
-        `${process.env.WOO_URL}/wp-json/wc/v3/orders?customer=${customerId}&per_page=20&orderby=date&order=desc`,
-        { headers: WOO_HEADERS, cache: "no-store" },
-    );
-    return res.json();
-}
-
 export default async function AdminCustomerDetailPage({
     params,
 }: {
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const [customer, orders] = await Promise.all([
-        getCustomer(id),
-        getCustomerOrders(id),
-    ]);
+    const customer = await getCustomersByIdWIthOrders(id);
 
     if (!customer) notFound();
 
@@ -73,7 +56,7 @@ export default async function AdminCustomerDetailPage({
                     ← Volver
                 </Link>
                 <h1 className="text-2xl font-bold text-white">
-                    {customer.first_name} {customer.last_name}
+                    {customer.firstName} {customer.lastName}
                 </h1>
             </div>
 
@@ -83,14 +66,12 @@ export default async function AdminCustomerDetailPage({
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <div className="flex items-center gap-4 mb-5">
                             <div className="w-14 h-14 rounded-full bg-brand flex items-center justify-center text-white text-xl font-bold shrink-0">
-                                {customer.first_name
-                                    ?.charAt(0)
-                                    ?.toUpperCase() ||
+                                {customer.firstName?.charAt(0)?.toUpperCase() ||
                                     customer.email?.charAt(0)?.toUpperCase()}
                             </div>
                             <div>
                                 <p className="text-white font-medium">
-                                    {customer.first_name} {customer.last_name}
+                                    {customer.firstName} {customer.lastName}
                                 </p>
                                 <p className="text-sm text-gray-400">
                                     {customer.email}
@@ -111,7 +92,7 @@ export default async function AdminCustomerDetailPage({
                                 </span>
                                 <span className="text-white">
                                     {new Date(
-                                        customer.date_created,
+                                        customer.createdAt,
                                     ).toLocaleDateString("es-AR", {
                                         day: "2-digit",
                                         month: "short",
@@ -172,7 +153,7 @@ export default async function AdminCustomerDetailPage({
                             </h2>
                         </div>
 
-                        {orders.length === 0 ? (
+                        {customer.orders.length === 0 ? (
                             <div className="px-6 py-12 text-center text-gray-400 text-sm">
                                 Este cliente no tiene pedidos aún
                             </div>
@@ -196,7 +177,7 @@ export default async function AdminCustomerDetailPage({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {orders.map((order: any) => {
+                                    {customer.orders.map((order: any) => {
                                         const status = STATUS_LABELS[
                                             order.status
                                         ] || {
