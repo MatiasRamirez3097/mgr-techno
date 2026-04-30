@@ -156,13 +156,20 @@ export function CartDrawer({ open, onClose }: Props) {
                                             {item.quantity}
                                         </span>
                                         <button
+                                            disabled={
+                                                item.availableStock &&
+                                                item.availableStock <=
+                                                    item.quantity
+                                                    ? true
+                                                    : false
+                                            }
                                             onClick={() =>
                                                 updateQuantity(
                                                     item.id,
                                                     item.quantity + 1,
                                                 )
                                             }
-                                            className="w-7 h-7 rounded-lg bg-gray-700 hover:bg-brand text-white text-lg flex items-center justify-center transition-colors"
+                                            className="w-7 h-7 rounded-lg bg-gray-700 hover:bg-brand text-white text-lg flex items-center justify-center transition-colors disabled:cursor-not-allowed"
                                         >
                                             +
                                         </button>

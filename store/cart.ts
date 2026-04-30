@@ -27,7 +27,6 @@ export const useCart = create<CartStore>()(
                     const existing = state.items.find(
                         (i) => i.id === product.id,
                     );
-
                     // Si no hay stock definido (null) dejamos agregar libremente
                     const maxStock = product.availableStock ?? Infinity;
 
@@ -69,14 +68,28 @@ export const useCart = create<CartStore>()(
                 }, 0);
             },
             updateQuantity: (id, quantity) =>
-                set((state) => ({
-                    items:
-                        quantity <= 0
-                            ? state.items.filter((i) => i.id !== id)
-                            : state.items.map((i) =>
-                                  i.id === id ? { ...i, quantity } : i,
-                              ),
-                })),
+                set((state) => {
+                    const existing = state.items.find((i) => i.id === id);
+
+                    if (existing) {
+                        const maxStock = existing.availableStock ?? Infinity;
+                        // No superar el stock disponible
+                        if (
+                            existing.quantity >= maxStock &&
+                            existing.quantity < quantity
+                        )
+                            return state;
+                        return {
+                            items:
+                                quantity <= 0
+                                    ? state.items.filter((i) => i.id !== id)
+                                    : state.items.map((i) =>
+                                          i.id === id ? { ...i, quantity } : i,
+                                      ),
+                        };
+                    }
+                    return state;
+                }),
         }),
         {
             name: "mgr-cart",
