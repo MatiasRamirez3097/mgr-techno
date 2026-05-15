@@ -22,6 +22,12 @@ export type CustomerWithOrdersDTO = CustomerDTO & {
     orders: OrderDTO[];
 };
 
+export type GetCustomersResponse = {
+    customers: CustomerDTO[];
+    totalPages: number;
+    total: number;
+};
+
 export type CustomerFilters = {
     currentPage?: number;
     search?: string;

@@ -12,12 +12,14 @@ import { PRODUCTS_PAGE_SIZE } from "../constants/pagination";
 //import { getMongoSort } from "./utils";
 
 //TYPES
-//import type { GetProductsResponse } from "@/types/shared/purchase";
-import type { CustomerFilters } from "@/types/shared/customer";
+import type {
+    CustomerFilters,
+    GetCustomersResponse,
+} from "@/types/shared/customer";
 
 export async function getCustomers(
     filters: CustomerFilters = {},
-): Promise<GetCustomerResponse> {
+): Promise<GetCustomersResponse> {
     await connectDB();
     const page = filters.page || 1;
     //const sort = getMongoSort(filters.orderby);
@@ -53,7 +55,7 @@ export async function getCustomers(
 
 export async function getCustomersWithOrders(
     filters: CustomerFilters = {},
-): Promise<GetCustomerResponse> {
+): Promise<GetCustomersResponse> {
     await connectDB();
 
     const page = filters.page || 1;
@@ -84,7 +86,7 @@ export async function getCustomersWithOrders(
         },
 
         // opcional: ordenar customers
-        { $sort: { createdAt: -1 } },
+        { $sort: { createdAt: -1 as const } },
 
         // 🔥 facet para paginación + total en una sola query
         {

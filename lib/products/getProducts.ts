@@ -11,7 +11,6 @@ import { PRODUCTS_PAGE_SIZE } from "../constants/pagination";
 import { getMongoSort } from "./utils";
 
 //TYPES
-import type { ProductDTO } from "@/types/shared/product";
 import type { GetProductsResponse } from "@/types/shared/product";
 import type { ProductFilters } from "@/types/shared/product";
 

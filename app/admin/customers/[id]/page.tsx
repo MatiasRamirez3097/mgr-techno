@@ -211,7 +211,7 @@ export default async function AdminCustomerDetailPage({
                                                 </td>
                                                 <td className="px-6 py-3 text-sm text-gray-400">
                                                     {new Date(
-                                                        order.date_created,
+                                                        order.createdAt,
                                                     ).toLocaleDateString(
                                                         "es-AR",
                                                         {
