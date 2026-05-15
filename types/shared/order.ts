@@ -51,6 +51,7 @@ export type OrderDTO = {
     notes?: string;
     createdAt: string;
     updatedAt: string;
+    inventoryAllocatedAt: string | null;
 };
 
 export type OrderFilters = {

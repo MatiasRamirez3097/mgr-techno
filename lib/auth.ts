@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { connectDB } from "./mongodb";
-import { CustomerModel } from "@/models/Customer";
+import { UserModel } from "@/models/User";
 
 export async function hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 12);
@@ -13,12 +13,12 @@ export async function verifyPassword(
     return bcrypt.compare(password, hash);
 }
 
-export async function getCustomerByEmail(email: string) {
+export async function getUserByEmail(email: string) {
     await connectDB();
-    return CustomerModel.findOne({ email }).lean();
+    return UserModel.findOne({ email }).lean();
 }
 
-export async function getCustomerById(id: string) {
+export async function getUserById(id: string) {
     await connectDB();
-    return CustomerModel.findById(id).lean();
+    return UserModel.findById(id).lean();
 }

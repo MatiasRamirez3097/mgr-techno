@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import { startSession } from "mongoose";
 
 import { sendPaymentConfirmedEmail } from "@/lib/email";
+import { reverseInventoryAllocation } from "@/lib/inventory/reverseInventoryAllocation";
 
 export async function PUT(
     req: NextRequest,
@@ -27,19 +28,36 @@ export async function PUT(
                 { status: 404 },
             );
         }
-        console.log("body>>>", body);
+
         const wasCancelled = order.status === "cancelled";
         if (body.status) {
             const willBeCancelled = body.status === "cancelled";
 
             if (!wasCancelled && willBeCancelled) {
+                if (order.inventoryAllocatedAt)
+                    await reverseInventoryAllocation(order.id, session);
+                else {
+                    for (const item of order.items) {
+                        await ProductModel.findByIdAndUpdate(
+                            item.productId,
+                            {
+                                $inc: {
+                                    availableStock: item.quantity,
+                                    reservedStock: -item.quantity,
+                                },
+                            },
+                            { session },
+                        );
+                    }
+                }
+            } else if (body.status !== "cancelled" && wasCancelled) {
                 for (const item of order.items) {
-                    console.log(">>>item", item);
                     await ProductModel.findByIdAndUpdate(
                         item.productId,
                         {
                             $inc: {
-                                availableStock: item.quantity,
+                                availableStock: -item.quantity,
+                                reservedStock: item.quantity,
                             },
                         },
                         { session },
@@ -48,10 +66,10 @@ export async function PUT(
             }
 
             order.status = body.status;
-        } else if (body.paymentStatus && !wasCancelled) {
+        } else if (body.paymentStatus) {
             order.paymentStatus = body.paymentStatus;
-            if (order.paymentMethod === "bacs" && body.paymentStatus === "paid")
-                order.status = "processing";
+            //if (order.paymentMethod === "bacs" && body.paymentStatus === "paid")
+            //    order.status = "processing";
         }
         await order.save({ session });
 

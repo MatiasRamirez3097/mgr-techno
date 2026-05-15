@@ -60,5 +60,6 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
 
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
+        inventoryAllocatedAt: order.inventoryAllocatedAt?.toISOString() || null,
     };
 }

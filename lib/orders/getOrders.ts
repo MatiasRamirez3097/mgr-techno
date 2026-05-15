@@ -45,7 +45,6 @@ export async function getOrders(filters: OrderFilters = {}) {
     const totalPages = Math.ceil(total / PRODUCTS_PAGE_SIZE);
     const start = (page - 1) * PRODUCTS_PAGE_SIZE;
     const paginated = res.slice(start, start + PRODUCTS_PAGE_SIZE);
-    console.log(paginated);
     return {
         orders: paginated.map(mapOrderToDTO),
         totalPages,

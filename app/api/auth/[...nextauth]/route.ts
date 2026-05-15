@@ -1,7 +1,7 @@
 import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getCustomerByEmail } from "@/lib/auth";
-import { verifyPassword } from "@/lib/auth";
+import { getUserByEmail, verifyPassword } from "@/lib/auth";
+import { CustomerModel } from "@/models/Customer";
 
 export const authOptions = {
     providers: [
@@ -67,27 +67,36 @@ export const authOptions = {
             },*/
             async authorize(credentials) {
                 try {
-                    const customer = await getCustomerByEmail(
+                    const user = await getUserByEmail(
                         credentials?.username || "",
                     );
-                    if (!customer) return null;
+
+                    if (!user) return null;
 
                     const valid = await verifyPassword(
                         credentials?.password || "",
-                        customer.password,
+                        user.password,
                     );
+
                     if (!valid) return null;
 
+                    const customer = await CustomerModel.findById(
+                        user.customerId,
+                    );
+
                     return {
-                        id: customer._id.toString(),
-                        name: `${customer.firstName} ${customer.lastName}`,
-                        email: customer.email,
-                        token: "",
-                        customerId: customer._id.toString(),
-                        role: customer.role || "customer",
-                        billing: customer.billing || null,
-                        tipoDocumento: customer.tipoDocumento || "DNI",
-                        numeroDocumento: customer.numeroDocumento || "",
+                        id: user._id.toString(),
+                        name: customer
+                            ? `${customer.firstName} ${customer.lastName}`
+                            : "Usuario",
+                        email: user.email,
+                        customerId: user.customerId.toString(),
+                        role: user.role || "customer",
+
+                        billing: customer?.billing || null,
+                        tipoDocumento:
+                            customer?.document?.documentType || "DNI",
+                        numeroDocumento: customer?.document?.number || "",
                     };
                 } catch (e) {
                     console.log(">>> authorize error:", e);
@@ -99,27 +108,29 @@ export const authOptions = {
     callbacks: {
         async jwt({ token, user }: any) {
             if (user) {
-                token.accessToken = user.token;
                 token.customerId = user.customerId;
                 token.billing = user.billing;
                 token.tipoDocumento = user.tipoDocumento;
                 token.numeroDocumento = user.numeroDocumento;
                 token.role = user.role;
             }
+
             return token;
         },
         async session({ session, token }: any) {
-            session.accessToken = token.accessToken;
             session.customerId = token.customerId;
             session.billing = token.billing;
             session.tipoDocumento = token.tipoDocumento;
             session.numeroDocumento = token.numeroDocumento;
+
             session.user = {
                 ...session.user,
                 name: token.name,
                 email: token.email,
             };
+
             session.role = token.role;
+
             return session;
         },
     },

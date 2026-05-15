@@ -19,8 +19,10 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default async function OrdersPage() {
     const session = await getServerSession(authOptions);
     await connectDB();
-
-    const { orders } = await getOrders((session as any).customerId);
+    console.log("session id", session.customerId);
+    const { orders } = await getOrders({
+        customerId: (session as any).customerId,
+    });
 
     return (
         <div className="flex flex-col gap-4">

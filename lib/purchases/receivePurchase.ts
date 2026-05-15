@@ -108,7 +108,12 @@ export async function receivePurchase(
             // 📦 actualizar stock
             await ProductModel.findByIdAndUpdate(
                 item.productId,
-                { $inc: { availableStock: item.quantity } },
+                {
+                    $inc: {
+                        availableStock: item.quantity,
+                        totalStock: item.quantity,
+                    },
+                },
                 { session },
             );
         }

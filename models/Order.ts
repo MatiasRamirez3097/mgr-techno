@@ -58,6 +58,10 @@ export const OrderSchema = new Schema(
         total: { type: Number, required: true },
         datePaid: { type: Date, default: null },
         notes: { type: String, required: false },
+        inventoryAllocatedAt: {
+            type: Date,
+            default: null,
+        },
     },
     { timestamps: true },
 );

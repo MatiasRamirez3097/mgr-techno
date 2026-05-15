@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { CustomerModel } from "@/models/Customer";
+import { UserModel } from "@/models/User";
 import { ResetTokenModel } from "@/models/ResetToken";
 import { sendPasswordResetEmail } from "@/lib/email";
 import crypto from "crypto";
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
             return Response.json({ error: "Email requerido" }, { status: 400 });
 
         await connectDB();
-        const customer = await CustomerModel.findOne({ email });
+        const customer = await UserModel.findOne({ email });
 
         // Siempre devolvemos ok para no revelar si el email existe
         if (!customer) return Response.json({ ok: true });

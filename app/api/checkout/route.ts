@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         // 🔥 VALIDACIÓN
-        console.log("user>>>", session.user);
         const dataWithEmail = {
             ...body,
             customerEmail: session.user.email,
@@ -21,7 +20,6 @@ export async function POST(req: NextRequest) {
         };
         const result = createOrderSchema.safeParse(dataWithEmail);
         if (!result.success) {
-            console.log(">>>>result", result.error);
             return Response.json(
                 {
                     success: false,

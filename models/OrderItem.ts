@@ -1,4 +1,5 @@
 import { Schema } from "mongoose";
+import { OrderItemAllocationSchema } from "./OrderItemAllocation";
 
 export const OrderItemSchema = new Schema(
     {
@@ -18,6 +19,11 @@ export const OrderItemSchema = new Schema(
         taxRate: { type: Number, required: true, default: 10.5 }, // IVA ventas
 
         total: { type: Number, required: true, min: 0 },
+
+        allocations: {
+            type: [OrderItemAllocationSchema],
+            default: [],
+        },
     },
     { _id: false },
 );

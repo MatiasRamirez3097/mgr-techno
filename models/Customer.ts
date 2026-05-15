@@ -2,12 +2,10 @@ import { Schema, model, models } from "mongoose";
 
 export const CustomerSchema = new Schema(
     {
-        email: { type: String, required: true, unique: true, index: true },
-        password: { type: String, required: true }, // bcrypt hash
+        email: { type: String, unique: true, sparse: true },
         firstName: { type: String, required: true },
         lastName: { type: String, required: true },
         phone: { type: String },
-        role: { type: String, default: "customer" },
         billing: {
             firstName: String,
             lastName: String,

@@ -30,5 +30,7 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
             width: product.dimensions?.width || 0,
         },
         availableStock: product.availableStock,
+        reservedStock: product.reservedStock,
+        totalStock: product.totalStock,
     };
 }

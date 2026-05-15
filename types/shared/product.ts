@@ -10,6 +10,8 @@ export type ProductDTO = {
     shortDescription: string;
     hasSerialNumber: boolean;
     availableStock: number | undefined;
+    reservedStock: number | undefined;
+    totalStock: number | undefined;
     slug: string;
     sku: string;
     status: "publish" | "draft" | "private";

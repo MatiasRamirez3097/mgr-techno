@@ -6,6 +6,8 @@ import { ORDER_STATUSES, ORDER_PAYMENT_STATUSES } from "@/lib/constants/status";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrdersById } from "@/lib/orders/getOrdersById";
+import { getAllocationSuggestions } from "@/lib/inventory/getAllocationSuggestions";
+import { InventoryAllocationSection } from "@/components/admin/InventoryAllocationSection";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -54,7 +56,10 @@ export default async function AdminOrderDetailPage({
         color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
     };
     const orderId = order.id.toString().slice(-6).toUpperCase();
-
+    const allocationSuggestions =
+        order.paymentStatus === "paid"
+            ? await getAllocationSuggestions(order.id)
+            : [];
     return (
         <div className="max-w-7xl w-full">
             <div className="flex items-center gap-4 mb-6">
@@ -204,6 +209,17 @@ export default async function AdminOrderDetailPage({
                             />
                         </section>
                     </div>
+                    {order.paymentStatus === "paid" &&
+                        order.status !== "cancelled" && (
+                            <InventoryAllocationSection
+                                inventoryAllocatedAt={
+                                    order.inventoryAllocatedAt
+                                }
+                                orderId={order.id}
+                                items={order.items}
+                                allocationSuggestions={allocationSuggestions}
+                            />
+                        )}
 
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">

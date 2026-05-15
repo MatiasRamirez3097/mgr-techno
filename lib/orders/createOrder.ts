@@ -91,7 +91,10 @@ export async function createOrder(data: unknown) {
             await ProductModel.updateOne(
                 { _id: item.productId },
                 {
-                    $inc: { availableStock: -item.quantity },
+                    $inc: {
+                        availableStock: -item.quantity,
+                        reservedStock: item.quantity,
+                    },
                 },
                 { session },
             );

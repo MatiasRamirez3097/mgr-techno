@@ -63,6 +63,16 @@ export const ProductSchema = new Schema(
             default: 0,
             index: true,
         },
+        reservedStock: {
+            type: Number,
+            default: 0,
+            index: true,
+        },
+        totalStock: {
+            type: Number,
+            default: 0,
+            index: true,
+        },
         bundleItemsCount: {
             type: Number,
             default: 0,
