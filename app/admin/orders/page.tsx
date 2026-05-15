@@ -102,13 +102,13 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                                     label: order.status,
                                     color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
                                 };
-                                const orderId = order._id
+                                const orderId = order.id
                                     .toString()
                                     .slice(-6)
                                     .toUpperCase();
                                 return (
                                     <tr
-                                        key={order._id.toString()}
+                                        key={order.id.toString()}
                                         className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                                     >
                                         <td className="px-6 py-4 text-sm text-white font-medium">
@@ -147,7 +147,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                                         </td>
                                         <td className="px-6 py-4">
                                             <Link
-                                                href={`/admin/orders/${order._id.toString()}`}
+                                                href={`/admin/orders/${order.id.toString()}`}
                                                 className="text-xs text-brand hover:brightness-125 transition-all"
                                             >
                                                 Ver detalle →

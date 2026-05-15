@@ -1,4 +1,7 @@
 import { Schema, model, models } from "mongoose";
+import { OrderItemSchema } from "./OrderItem";
+import { AddressSchema } from "./common/Address";
+import { BillingSchema } from "./common/Billing";
 
 export const OrderSchema = new Schema(
     {
@@ -6,6 +9,7 @@ export const OrderSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "Customer",
             index: true,
+            required: true,
         },
         customerEmail: { type: String, required: true },
         status: {
@@ -23,41 +27,27 @@ export const OrderSchema = new Schema(
             index: true,
         },
         billing: {
-            firstName: String,
-            lastName: String,
-            address1: String,
-            city: String,
-            state: String,
-            postcode: String,
-            phone: String,
-            country: { type: String, default: "AR" },
-            tipoDocumento: String,
-            numeroDocumento: String,
+            type: BillingSchema,
         },
         shipping: {
-            firstName: String,
-            lastName: String,
-            address1: String,
-            city: String,
-            state: String,
-            postcode: String,
-            country: { type: String, default: "AR" },
+            type: AddressSchema,
         },
-        lineItems: [
-            {
-                productId: { type: String, required: true },
-                name: { type: String, required: true },
-                quantity: { type: Number, required: true },
-                price: { type: Number, required: true },
-                total: { type: Number, required: true },
-            },
-        ],
+        items: {
+            type: [OrderItemSchema],
+            default: [],
+        },
         paymentMethod: {
             type: String,
             enum: ["mercadopago", "bacs", "cod"],
             required: true,
         },
         paymentMethodTitle: String,
+        paymentStatus: {
+            type: String,
+            enum: ["pending", "paid", "failed", "refunded"],
+            default: "pending",
+            index: true,
+        },
         shippingMethod: {
             type: String,
             enum: ["local_pickup", "andreani"],

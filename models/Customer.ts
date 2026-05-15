@@ -18,8 +18,13 @@ export const CustomerSchema = new Schema(
             phone: String,
             country: { type: String, default: "AR" },
         },
-        tipoDocumento: { type: String, default: "DNI" },
-        numeroDocumento: { type: String },
+        document: {
+            documentType: {
+                type: String,
+                default: "DNI",
+            },
+            number: String,
+        },
     },
     { timestamps: true },
 );

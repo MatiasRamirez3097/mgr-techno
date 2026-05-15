@@ -10,6 +10,11 @@ interface Props {
     session: Session;
 }
 
+type FieldError = {
+    path: string[];
+    message: string;
+};
+
 const PAYMENT_METHODS = [
     { id: "mercadopago", label: "MercadoPago", icon: "💳" },
     { id: "bacs", label: "Transferencia bancaria", icon: "🏦" },
@@ -62,19 +67,17 @@ export function CheckoutForm({ session }: Props) {
     const clearCart = useCart((state) => state.clearCart);
 
     const billing = (session as any).billing;
-    const tipoDocumento = (session as any).tipoDocumento;
-    const numeroDocumento = (session as any).numeroDocumento;
 
     const [form, setForm] = useState({
-        first_name: billing?.first_name || "",
-        last_name: billing?.last_name || "",
-        address_1: billing?.address_1 || "",
+        firstName: billing?.firstName || "",
+        lastName: billing?.lastName || "",
+        address1: billing?.address1 || "",
         city: billing?.city || "",
         state: billing?.state || "",
         postcode: billing?.postcode || "",
         phone: billing?.phone || "",
-        tipo_documento: tipoDocumento || "DNI",
-        numero_documento: numeroDocumento || "",
+        documentType: billing?.document?.ducomentType || "DNI",
+        documentNumber: billing?.document?.number || "",
     });
 
     const [shippingMethod, setShippingMethod] = useState<
@@ -87,8 +90,9 @@ export function CheckoutForm({ session }: Props) {
     const [quotingShipping, setQuotingShipping] = useState(false);
     const [shippingError, setShippingError] = useState("");
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-
+    const [error, setError] = useState<string | FieldError[] | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+    const [success, setSuccess] = useState("");
     // Determinamos si el método de pago usa precio de lista
     const usesListPrice = paymentMethod === "mercadopago";
 
@@ -186,40 +190,36 @@ export function CheckoutForm({ session }: Props) {
                     billing: { ...form, country: "AR" },
                     shipping: { ...form, country: "AR" },
                     items: items.map((i) => ({
-                        product_id: parseInt(i.id),
+                        productId: i.id,
                         quantity: i.quantity,
-                        // 👇 precio según método de pago
-                        price: usesListPrice
-                            ? getListPriceFinal(getFinalPrice(i)).toString()
-                            : i.regularPrice.toString(),
                     })),
                     paymentMethod,
                     shippingMethod,
                     shippingCost,
-                    meta_data: [
-                        {
-                            key: "_billing_tipo_documento",
-                            value: form.tipo_documento,
-                        },
-                        {
-                            key: "_billing_numero_documento",
-                            value: form.numero_documento,
-                        },
-                    ],
                 }),
             });
 
             const data = await res.json();
-
             if (!res.ok) {
-                setError(data.error || "Error al procesar el pedido");
-                return;
+                setError(data.error);
+                if (Array.isArray(error)) {
+                    const errors = Object.fromEntries(
+                        data.error.map((e: any) => [
+                            e.path.join("."),
+                            e.message,
+                        ]),
+                    );
+                    setFieldErrors(errors);
+                }
+                throw new Error(data);
             }
-
+            setSuccess("Compra exitosa!");
             clearCart();
-            router.push(`/checkout/success?order=${data.orderId}`);
-        } catch {
-            setError("Error de conexión, intentá de nuevo");
+
+            router.push(`/checkout/success?order=${data}`);
+        } catch (e: unknown) {
+            console.log(e);
+            //setError("Error de conexión, intentá de nuevo");
         } finally {
             setLoading(false);
         }
@@ -251,8 +251,8 @@ export function CheckoutForm({ session }: Props) {
                                 Nombre
                             </label>
                             <input
-                                name="first_name"
-                                value={form.first_name}
+                                name="firstName"
+                                value={form.firstName}
                                 onChange={handleChange}
                                 required
                                 className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
@@ -264,8 +264,8 @@ export function CheckoutForm({ session }: Props) {
                                 Apellido
                             </label>
                             <input
-                                name="last_name"
-                                value={form.last_name}
+                                name="lastName"
+                                value={form.lastName}
                                 onChange={handleChange}
                                 required
                                 className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
@@ -277,8 +277,8 @@ export function CheckoutForm({ session }: Props) {
                                 Tipo de documento
                             </label>
                             <select
-                                name="tipo_documento"
-                                value={form.tipo_documento}
+                                name="documentType"
+                                value={form.documentType}
                                 onChange={handleSelectChange}
                                 className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
                             >
@@ -293,8 +293,8 @@ export function CheckoutForm({ session }: Props) {
                                 Número de documento
                             </label>
                             <input
-                                name="numero_documento"
-                                value={form.numero_documento}
+                                name="documentNumber"
+                                value={form.documentNumber}
                                 onChange={handleChange}
                                 required
                                 className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
@@ -306,8 +306,8 @@ export function CheckoutForm({ session }: Props) {
                                 Dirección
                             </label>
                             <input
-                                name="address_1"
-                                value={form.address_1}
+                                name="address1"
+                                value={form.address1}
                                 onChange={handleChange}
                                 required
                                 className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
@@ -606,8 +606,18 @@ export function CheckoutForm({ session }: Props) {
                         </div>
                     </div>
 
-                    {error && (
-                        <p className="text-sm text-red-400 mt-4">{error}</p>
+                    {error &&
+                        (Array.isArray(error) ? (
+                            error.map((e, i) => (
+                                <p key={i} className="text-sm text-red-400">
+                                    {e.message}
+                                </p>
+                            ))
+                        ) : (
+                            <p className="text-sm text-red-400">{error}</p>
+                        ))}
+                    {success && (
+                        <p className="text-sm text-green-400">{success}</p>
                     )}
 
                     <button

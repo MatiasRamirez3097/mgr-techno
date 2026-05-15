@@ -3,21 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const STATUSES = [
-    { value: "pending", label: "Pendiente" },
-    { value: "processing", label: "En proceso" },
-    { value: "on_hold", label: "En espera" },
-    { value: "completed", label: "Completado" },
-    { value: "cancelled", label: "Cancelado" },
-    { value: "refunded", label: "Reembolsado" },
-];
-
-export function OrderStatusSelector({
+export function StatusSelector({
+    name,
+    keyToChange,
+    apiUrl,
     orderId,
     currentStatus,
+    statusOptions,
 }: {
-    orderId: number;
+    name: string;
+    keyToChange: string;
+    apiUrl: string;
+    orderId: string;
     currentStatus: string;
+    statusOptions: any[];
 }) {
     const router = useRouter();
     const [status, setStatus] = useState(currentStatus);
@@ -30,10 +29,10 @@ export function OrderStatusSelector({
         setSuccess(false);
 
         try {
-            await fetch(`/api/admin/orders/${orderId}`, {
+            await fetch(`${apiUrl}${orderId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: newStatus }),
+                body: JSON.stringify({ [keyToChange]: newStatus }),
             });
             setSuccess(true);
             router.refresh();
@@ -44,7 +43,7 @@ export function OrderStatusSelector({
 
     return (
         <div className="flex flex-col gap-3">
-            {STATUSES.map((s) => (
+            {statusOptions.map((s) => (
                 <label
                     key={s.value}
                     className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
@@ -55,7 +54,7 @@ export function OrderStatusSelector({
                 >
                     <input
                         type="radio"
-                        name="status"
+                        name={name}
                         value={s.value}
                         checked={status === s.value}
                         onChange={() => handleChange(s.value)}

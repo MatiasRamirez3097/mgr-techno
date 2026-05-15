@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models/Order";
+import { getOrders } from "@/lib/orders/getOrders";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: { label: "Pendiente", color: "text-yellow-400 bg-yellow-400/10" },
@@ -19,11 +20,7 @@ export default async function OrdersPage() {
     const session = await getServerSession(authOptions);
     await connectDB();
 
-    const orders = await OrderModel.find({
-        customerId: (session as any).customerId,
-    })
-        .sort({ createdAt: -1 })
-        .lean();
+    const { orders } = await getOrders((session as any).customerId);
 
     return (
         <div className="flex flex-col gap-4">
@@ -41,14 +38,14 @@ export default async function OrdersPage() {
                     };
                     return (
                         <div
-                            key={order._id.toString()}
+                            key={order.id.toString()}
                             className="bg-gray-900 rounded-2xl p-5 border border-gray-800"
                         >
                             <div className="flex items-start justify-between gap-4 mb-4">
                                 <div>
                                     <p className="text-white font-medium">
                                         Pedido #
-                                        {order._id
+                                        {order.id
                                             .toString()
                                             .slice(-6)
                                             .toUpperCase()}
@@ -71,7 +68,7 @@ export default async function OrdersPage() {
                             </div>
 
                             <div className="flex flex-col gap-2 mb-4">
-                                {order.lineItems.map((item: any, i: number) => (
+                                {order.items.map((item: any, i: number) => (
                                     <div
                                         key={i}
                                         className="flex justify-between text-sm"

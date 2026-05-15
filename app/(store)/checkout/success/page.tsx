@@ -6,6 +6,7 @@ interface Props {
 
 export default async function SuccessPage({ searchParams }: Props) {
     const { order } = await searchParams;
+    console.log(">>>", order);
 
     return (
         <main className="min-h-screen flex items-center justify-center px-4">

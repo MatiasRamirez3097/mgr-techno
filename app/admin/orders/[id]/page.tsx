@@ -1,10 +1,11 @@
 export const dynamic = "force-dynamic";
 
 import { connectDB } from "@/lib/mongodb";
-import { OrderModel } from "@/models/Order";
-import { OrderStatusSelector } from "@/components/admin/OrderStatusSelector";
+import { StatusSelector } from "@/components/admin/StatusSelector";
+import { ORDER_STATUSES, ORDER_PAYMENT_STATUSES } from "@/lib/constants/status";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getOrdersById } from "@/lib/orders/getOrdersById";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -45,17 +46,17 @@ export default async function AdminOrderDetailPage({
     const { id } = await params;
     await connectDB();
 
-    const order = (await OrderModel.findById(id).lean()) as any;
+    const order = await getOrdersById(id);
     if (!order) notFound();
 
     const status = STATUS_LABELS[order.status] || {
         label: order.status,
         color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
     };
-    const orderId = order._id.toString().slice(-6).toUpperCase();
+    const orderId = order.id.toString().slice(-6).toUpperCase();
 
     return (
-        <div className="max-w-4xl">
+        <div className="max-w-7xl w-full">
             <div className="flex items-center gap-4 mb-6">
                 <Link
                     href="/admin/orders"
@@ -73,15 +74,15 @@ export default async function AdminOrderDetailPage({
                 </span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 flex flex-col gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-6">
                     {/* Productos */}
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
                             Productos
                         </h2>
                         <div className="flex flex-col gap-3">
-                            {order.lineItems.map((item: any, i: number) => (
+                            {order.items.map((item: any, i: number) => (
                                 <div
                                     key={i}
                                     className="flex justify-between text-sm"
@@ -174,16 +175,35 @@ export default async function AdminOrderDetailPage({
                 </div>
 
                 {/* Panel derecho */}
-                <div className="flex flex-col gap-4">
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Cambiar estado
-                        </h2>
-                        <OrderStatusSelector
-                            orderId={order._id.toString()}
-                            currentStatus={order.status}
-                        />
-                    </section>
+                <div className="flex flex-col gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                            <h2 className="text-base font-bold text-white mb-4">
+                                Cambiar estado de la orden
+                            </h2>
+                            <StatusSelector
+                                name="status"
+                                keyToChange="status"
+                                apiUrl="/api/admin/orders/"
+                                statusOptions={ORDER_STATUSES}
+                                orderId={order.id.toString()}
+                                currentStatus={order.status}
+                            />
+                        </section>
+                        <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                            <h2 className="text-base font-bold text-white mb-4">
+                                Cambiar estado del pago
+                            </h2>
+                            <StatusSelector
+                                name="paymentStatus"
+                                keyToChange="paymentStatus"
+                                apiUrl="/api/admin/orders/"
+                                statusOptions={ORDER_PAYMENT_STATUSES}
+                                orderId={order.id.toString()}
+                                currentStatus={order.paymentStatus}
+                            />
+                        </section>
+                    </div>
 
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
@@ -191,7 +211,7 @@ export default async function AdminOrderDetailPage({
                         </h2>
                         <p className="text-sm text-gray-400">Método</p>
                         <p className="text-sm text-white mb-3">
-                            {order.paymentMethodTitle}
+                            {order.paymentMethod}
                         </p>
                         <p className="text-sm text-gray-400">Envío</p>
                         <p className="text-sm text-white">

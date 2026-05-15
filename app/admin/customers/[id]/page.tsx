@@ -104,20 +104,24 @@ export default async function AdminCustomerDetailPage({
                                 <span className="text-gray-400">
                                     Total pedidos
                                 </span>
+                                {/* 
                                 <span className="text-white">
                                     {customer.orders_count}
                                 </span>
+                                */}
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-400">
                                     Total gastado
                                 </span>
+                                {/*
                                 <span className="text-white font-medium">
                                     $
                                     {parseFloat(
                                         customer.total_spent || "0",
                                     ).toLocaleString("es-AR")}
                                 </span>
+                                */}
                             </div>
                         </div>
                     </section>
@@ -129,7 +133,7 @@ export default async function AdminCustomerDetailPage({
                         </h2>
                         <div className="flex flex-col gap-2 text-sm">
                             <p className="text-white">
-                                {customer.billing?.address_1 || "—"}
+                                {customer.billing?.address1 || "—"}
                             </p>
                             <p className="text-gray-400">
                                 {[

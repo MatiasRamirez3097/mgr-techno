@@ -5,6 +5,16 @@ export type CustomerDTO = {
     email: string;
     firstName: string;
     lastName: string;
+    billing?: {
+        firstName: string;
+        lastName: string;
+        address1: string;
+        city: string;
+        state: string;
+        postcode: string;
+        phone: string;
+        country: string | "AR";
+    };
     createdAt: string;
 };
 

@@ -133,7 +133,7 @@ export default function AboutUsPage() {
                     Ver catálogo
                 </Link>
                 <a
-                    href="https://wa.me/5493413762222"
+                    href="https://wa.me/5493417223739"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-8 py-3 rounded-xl border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 font-medium transition-all"

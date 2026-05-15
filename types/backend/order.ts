@@ -5,7 +5,7 @@ export type OrderDB = InferSchemaType<typeof OrderSchema> & {
     _id: Types.ObjectId;
 };
 
-export type OrderLineItemDB = {
+export type OrderItemDB = {
     productId: string;
     name: string;
     quantity: number;

@@ -5,6 +5,7 @@ import { mapOrderToDTO } from "@/lib/mappers/orderMapper";
 //CONSTANTS
 import { PRODUCTS_PAGE_SIZE } from "../constants/pagination";
 import { OrderFilters } from "@/types/shared/order";
+import { Types } from "mongoose";
 //FUNCTIONS
 //import { getMongoSort } from "./utils";
 
@@ -20,27 +21,31 @@ export async function getOrders(filters: OrderFilters = {}) {
     //const adminView = filters.adminView ? true : false;
 
     // Construir query
-    const query: any = { status: "publish" };
+    const query: any = {};
 
-    if (filters.search) {
-        query.$text = { $search: filters.search };
+    //if (filters.search) {
+    //    query.$text = { $search: filters.search };
+    //}
+
+    if (filters.customerId) {
+        query.customerId = new Types.ObjectId(filters.customerId);
     }
 
     const res = await OrderModel.find({ ...query })
-        //       .sort(sort)
+        .sort({ createdAt: -1 })
         .lean();
     // Filtro adicional por nombre si hay búsqueda (por si $text no está disponible)
-    const filtered = filters.search
+    /*const filtered = filters.search
         ? res.filter((p) =>
               p.name.toLowerCase().includes(filters.search!.toLowerCase()),
           )
         : res;
-
-    const total = filtered.length;
+    */
+    const total = res.length;
     const totalPages = Math.ceil(total / PRODUCTS_PAGE_SIZE);
     const start = (page - 1) * PRODUCTS_PAGE_SIZE;
-    const paginated = filtered.slice(start, start + PRODUCTS_PAGE_SIZE);
-
+    const paginated = res.slice(start, start + PRODUCTS_PAGE_SIZE);
+    console.log(paginated);
     return {
         orders: paginated.map(mapOrderToDTO),
         totalPages,

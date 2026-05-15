@@ -66,10 +66,6 @@ const LINKS = [
         ),
     },
     {
-        href: "/admin/sales",
-        label: "Ventas",
-    },
-    {
         href: "/admin/purchases",
         label: "Compras",
     },

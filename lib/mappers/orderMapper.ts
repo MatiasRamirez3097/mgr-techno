@@ -1,7 +1,7 @@
 // /lib/mappers/orderMapper.ts
 import type { OrderDTO } from "@/types/shared/order";
 
-import type { OrderDB, OrderLineItemDB } from "@/types/backend/order";
+import type { OrderDB, OrderItemDB } from "@/types/backend/order";
 
 export function mapOrderToDTO(order: OrderDB): OrderDTO {
     return {
@@ -36,8 +36,8 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
             country: order.shipping?.country || "AR",
         },
 
-        lineItems:
-            order.lineItems.map((item: OrderLineItemDB) => ({
+        items:
+            order.items.map((item: OrderItemDB) => ({
                 productId: item.productId,
                 name: item.name,
                 quantity: item.quantity,
@@ -47,7 +47,7 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
 
         paymentMethod: order.paymentMethod,
         paymentMethodTitle: order.paymentMethodTitle || "",
-
+        paymentStatus: order.paymentStatus || "",
         shippingMethod: order.shippingMethod,
         shippingCost: order.shippingCost || 0,
 

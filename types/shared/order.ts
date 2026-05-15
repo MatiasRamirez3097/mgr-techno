@@ -2,7 +2,7 @@ export type OrderDTO = {
     id: string;
     customerId: string | null;
     customerEmail: string;
-    lineItems: {
+    items: {
         productId: string;
         name: string;
         quantity: number;
@@ -42,6 +42,7 @@ export type OrderDTO = {
     };
     paymentMethod: "mercadopago" | "bacs" | "cod";
     paymentMethodTitle: string;
+    paymentStatus: "pending" | "paid" | "failed" | "refunded";
     shippingMethod: "local_pickup" | "andreani";
     shippingCost: number;
     subtotal: number;
@@ -56,4 +57,5 @@ export type OrderFilters = {
     search?: string;
     page?: number;
     adminView?: boolean;
+    customerId?: string;
 };
