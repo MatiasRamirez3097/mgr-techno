@@ -458,7 +458,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                 </div>
             </form>
             {showSupplierModal && (
-                <FormModal>
+                <FormModal title="Proveedor">
                     <SupplierForm
                         onCancel={() => setShowSupplierModal(false)}
                         mode="create"
