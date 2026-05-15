@@ -5,7 +5,7 @@ import { getCustomersWithOrders } from "@/lib/customers/getCustomers";
 
 interface Props {
     searchParams: Promise<{
-        page?: number;
+        page?: string;
         per_page?: string;
         search?: string;
     }>;
@@ -18,7 +18,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
 
     const { customers, total, totalPages } = await getCustomersWithOrders({
         currentPage,
-        page,
+        page: page ? parseInt(page) : undefined,
         perPage,
         search,
     });
