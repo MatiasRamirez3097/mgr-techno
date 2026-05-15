@@ -17,48 +17,83 @@ type FieldError = {
 };
 
 function ImageUploader({
+    image,
     images,
     onChange,
 }: {
+    image: string;
     images: string[];
-    onChange: (images: string[]) => void;
+    onChange: (data: { image: string; images: string[] }) => void;
 }) {
     const [uploading, setUploading] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
     const handleUpload = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
+
         setUploading(true);
+
         try {
             const uploaded: string[] = [];
+
             for (const file of Array.from(files)) {
                 const formData = new FormData();
                 formData.append("file", file);
+
                 const res = await fetch("/api/admin/upload", {
                     method: "POST",
                     body: formData,
                 });
+
                 const data = await res.json();
+
                 if (data.url) uploaded.push(data.url);
             }
-            onChange([...images, ...uploaded]);
-        } catch (e) {
-            console.log(">>> upload error:", e);
+
+            let newImage = image;
+            let newImages = [...images];
+
+            if (!newImage && uploaded.length > 0) {
+                newImage = uploaded[0];
+                newImages = [...newImages, ...uploaded.slice(1)];
+            } else {
+                newImages = [...newImages, ...uploaded];
+            }
+
+            onChange({
+                image: newImage,
+                images: newImages,
+            });
         } finally {
             setUploading(false);
         }
     };
 
-    const handleRemove = (index: number) => {
-        onChange(images.filter((_, i) => i !== index));
+    const removeImage = () => {
+        const nextMain = images[0] || "";
+
+        onChange({
+            image: nextMain,
+            images: images.slice(1),
+        });
+    };
+
+    const removeImages = (index: number) => {
+        onChange({
+            image,
+            images: images.filter((_, i) => i !== index),
+        });
     };
 
     const handleSetMain = (index: number) => {
-        if (index === 0) return;
-        const newImages = [...images];
-        const [main] = newImages.splice(index, 1);
-        newImages.unshift(main);
-        onChange(newImages);
+        const selected = images[index];
+
+        onChange({
+            image: selected,
+            images: [image, ...images.filter((_, i) => i !== index)].filter(
+                Boolean,
+            ),
+        });
     };
 
     return (
@@ -71,7 +106,7 @@ function ImageUploader({
                     </p>
                     <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-800 w-full">
                         <Image
-                            src={images[0]}
+                            src={image}
                             alt="Imagen principal"
                             fill
                             sizes="300px"
@@ -79,7 +114,7 @@ function ImageUploader({
                         />
                         <button
                             type="button"
-                            onClick={() => handleRemove(0)}
+                            onClick={() => removeImage()}
                             className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
                         >
                             ✕
@@ -93,7 +128,7 @@ function ImageUploader({
                 <div>
                     <p className="text-xs text-gray-400 mb-2">Galería</p>
                     <div className="grid grid-cols-3 gap-2">
-                        {images.slice(1).map((img, i) => (
+                        {images.map((img, i) => (
                             <div
                                 key={i}
                                 className="relative aspect-square rounded-lg overflow-hidden bg-gray-800 group"
@@ -108,7 +143,7 @@ function ImageUploader({
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                                     <button
                                         type="button"
-                                        onClick={() => handleSetMain(i + 1)}
+                                        onClick={() => handleSetMain(i)}
                                         className="w-7 h-7 rounded-full bg-brand text-white text-xs flex items-center justify-center hover:brightness-110"
                                         title="Establecer como principal"
                                     >
@@ -116,7 +151,7 @@ function ImageUploader({
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => handleRemove(i + 1)}
+                                        onClick={() => removeImages(i)}
                                         className="w-7 h-7 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600"
                                         title="Eliminar"
                                     >
@@ -169,6 +204,12 @@ export function ProductForm({ product, categories, mode }: Props) {
     const [success, setSuccess] = useState("");
 
     // Extraer imágenes del producto — soporta tanto strings como objetos {src}
+    /*const extractImages = (product?: any): string[] => {
+        if (!product?.images) return [];
+        return product.images
+            .map((img: any) => (typeof img === "string" ? img : img.src || ""))
+            .filter(Boolean);
+    };*/
     const extractImages = (product?: any): string[] => {
         if (!product?.images) return [];
         return product.images
@@ -176,15 +217,17 @@ export function ProductForm({ product, categories, mode }: Props) {
             .filter(Boolean);
     };
 
+    const [image, setImage] = useState(product?.image || "");
     const [images, setImages] = useState<string[]>(extractImages(product));
     const [form, setForm] = useState({
         name: product?.name || "",
         slug: product?.slug || "",
+        sku: product?.sku || "",
         status: product?.status || "publish",
         description: product?.description || "",
         shortDescription: product?.shortDescription || "",
-        regularPrice: product?.regularPrice || undefined,
-        salePrice: product?.salePrice || undefined,
+        regularPrice: product?.regularPrice || 0,
+        salePrice: product?.salePrice || 0,
         hasSerialNumber: product?.hasSerialNumber || false,
         stockQuantity: product?.stockQuantity ?? "",
         manageStock: product?.manageStock ?? true,
@@ -234,11 +277,12 @@ export function ProductForm({ product, categories, mode }: Props) {
     const buildPayload = () => ({
         name: form.name,
         slug: form.slug,
+        sku: form.sku,
         status: form.status,
         description: form.description,
         shortDescription: form.shortDescription,
         regularPrice: parseFloat(form.regularPrice) || 0,
-        salePrice: parseFloat(form.salePrice) || undefined,
+        salePrice: form.salePrice > 0 ? parseFloat(form.salePrice) : undefined,
         hasSerialNumber: form.manageStock ? form.hasSerialNumber : false,
         manageStock: form.manageStock,
         weight: parseFloat(form.weight) || undefined,
@@ -248,6 +292,7 @@ export function ProductForm({ product, categories, mode }: Props) {
             height: parseFloat(form.height) || undefined,
         },
         categories: form.categories,
+        image: image || undefined,
         images: images.map((url) => url) || [],
         taxRate: form.taxRate,
     });
@@ -402,6 +447,15 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 onChange={handleChange}
                                 className={inputClass}
                                 readOnly
+                            />
+                        </div>
+                        <div>
+                            <label className={labelClass}>SKU</label>
+                            <input
+                                name="sku"
+                                value={form.sku}
+                                onChange={handleChange}
+                                className={inputClass}
                             />
                         </div>
                         <div>
@@ -695,7 +749,14 @@ export function ProductForm({ product, categories, mode }: Props) {
                     <h2 className="text-base font-bold text-white mb-4">
                         Imágenes
                     </h2>
-                    <ImageUploader images={images} onChange={setImages} />
+                    <ImageUploader
+                        image={image}
+                        images={images}
+                        onChange={({ image, images }) => {
+                            setImage(image);
+                            setImages(images);
+                        }}
+                    />
                 </section>
 
                 {/* Categorías */}

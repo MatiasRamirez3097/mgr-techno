@@ -27,9 +27,6 @@ export async function createProduct(data: CreateProductDTO) {
         hasSerialNumber: data.hasSerialNumber,
         manageStock: data.manageStock,
 
-        stockQuantity: data.stockQuantity,
-        stockStatus: data.stockStatus,
-
         shortDescription: data.shortDescription,
         description: data.description,
 

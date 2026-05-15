@@ -23,7 +23,7 @@ export async function getProducts(
     const adminView = filters.adminView ? true : false;
 
     // Construir query
-    const query: any = { status: "publish" };
+    const query: any = {};
 
     if (filters.search) {
         query.$text = { $search: filters.search };
@@ -50,6 +50,7 @@ export async function getProducts(
     let res: any[] = [];
     // Separamos en stock y sin stock
     if (!adminView) {
+        query.status = "publish";
         const [inStock, outOfStock] = await Promise.all([
             ProductModel.find({ ...query, availableStock: { $gt: 0 } })
                 .sort(sort)

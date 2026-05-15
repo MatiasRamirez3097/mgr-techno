@@ -7,6 +7,7 @@ export type ProductDTO = {
     taxRate: number;
     regularPrice: number;
     salePrice: number | null;
+    description: string;
     shortDescription: string;
     hasSerialNumber: boolean;
     availableStock: number | undefined;

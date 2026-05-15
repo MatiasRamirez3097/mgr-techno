@@ -24,12 +24,6 @@ export const createProductSchema = z.object({
     hasSerialNumber: z.boolean().optional().default(false),
     manageStock: z.boolean().optional().default(true),
 
-    stockQuantity: z.number().int().min(0).optional(),
-
-    stockStatus: z
-        .enum(["instock", "outofstock", "onbackorder"])
-        .default("instock"),
-
     shortDescription: z.string().max(160).optional(),
     description: z.string().optional(),
 
@@ -63,17 +57,6 @@ export const createProductSchemaRefined = createProductSchema.superRefine(
                 message: "El precio de oferta debe ser menor al precio regular",
                 path: ["salePrice"],
             });
-        }
-
-        // 🔴 stock si manageStock
-        if (data.manageStock) {
-            if (data.stockQuantity == null) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "Debe indicar el stock",
-                    path: ["stockQuantity"],
-                });
-            }
         }
 
         // 🔴 bundle
