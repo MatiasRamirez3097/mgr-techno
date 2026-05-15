@@ -7,7 +7,7 @@ export function mapCustomerToDTO(customer: CustomerDB): CustomerDTO {
         id: customer._id.toString(),
         firstName: customer.firstName,
         lastName: customer.lastName,
-        email: customer.email,
+        email: customer.email ?? "",
         billing: customer.billing
             ? {
                   firstName: customer.billing?.firstName ?? "",
