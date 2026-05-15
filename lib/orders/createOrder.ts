@@ -5,8 +5,17 @@ import { findProductsById } from "../products/getProductsById";
 import { getCustomersIdByEmail } from "../customers/getCustomersIdByEmail";
 import { sendOrderConfirmationEmail } from "../email";
 import { mapOrderToDTO } from "../mappers/orderMapper";
+import { createOrderSchema } from "../validators/createOrderSchema";
 
-export async function createOrder(input: CreateOrderInput) {
+export async function createOrder(data: unknown) {
+    const result = createOrderSchema.safeParse(data);
+
+    if (!result.success) {
+        return result;
+    }
+
+    const { items, paymentMethod } = result.data;
+
     const session = await mongoose.startSession();
 
     try {
@@ -14,14 +23,13 @@ export async function createOrder(input: CreateOrderInput) {
 
         // 1. Traer productos
 
-        const priceMultiplicator =
-            input.paymentMethod === "mercadopago" ? 1.1 : 1;
+        const priceMultiplicator = paymentMethod === "mercadopago" ? 1.1 : 1;
         //GET PRODUCTS
         const products = await findProductsById(
-            input.items.map((i: any) => i.productId),
+            items.map((i: any) => i.productId),
             session,
         );
-        const orderItems = input.items.map((item) => {
+        const orderItems = items.map((item) => {
             const product = products.find((p) => p.id === item.productId);
 
             if (!product) throw new Error("Producto no encontrado");
@@ -67,7 +75,7 @@ export async function createOrder(input: CreateOrderInput) {
         const order = await OrderModel.create(
             [
                 {
-                    ...input,
+                    ...result.data,
                     items: orderItems,
                     subtotal,
                     total,
