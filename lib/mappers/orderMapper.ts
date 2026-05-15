@@ -22,8 +22,8 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
             postcode: order.billing?.postcode || "",
             phone: order.billing?.phone || "",
             country: order.billing?.country || "AR",
-            tipoDocumento: order.billing?.tipoDocumento || "",
-            numeroDocumento: order.billing?.numeroDocumento || "",
+            tipoDocumento: order.billing?.documentType || "",
+            numeroDocumento: order.billing?.documentNumber || "",
         },
 
         shipping: {
@@ -37,11 +37,11 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
         },
 
         items:
-            order.items.map((item: OrderItemDB) => ({
-                productId: item.productId,
+            order.items.map((item) => ({
+                productId: item.productId.toString(),
                 name: item.name,
                 quantity: item.quantity,
-                price: item.price,
+                unitPrice: item.unitPrice,
                 total: item.total,
             })) || [],
 

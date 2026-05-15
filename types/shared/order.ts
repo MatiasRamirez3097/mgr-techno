@@ -6,7 +6,7 @@ export type OrderDTO = {
         productId: string;
         name: string;
         quantity: number;
-        price: number;
+        unitPrice: number;
         total: number;
         image?: string;
         slug?: string;

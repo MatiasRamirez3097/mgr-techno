@@ -1,9 +1,9 @@
 import { Schema } from "mongoose";
-import { AddressSchema } from "./Address";
+import { addressDefinition, AddressSchema } from "./Address";
 
 export const BillingSchema = new Schema(
     {
-        ...AddressSchema.obj,
+        ...addressDefinition,
         documentNumber: { type: String, required: true },
         documentType: { type: String, required: true },
     },
