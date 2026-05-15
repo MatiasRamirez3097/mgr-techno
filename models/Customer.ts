@@ -2,7 +2,7 @@ import { Schema, model, models } from "mongoose";
 
 export const CustomerSchema = new Schema(
     {
-        email: { type: String, unique: true, sparse: true },
+        email: { type: String, required: false, unique: true, sparse: true },
         firstName: { type: String, required: true },
         lastName: { type: String, required: true },
         phone: { type: String },
