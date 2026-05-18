@@ -28,8 +28,10 @@ export type OrderDTO = {
         postcode: string;
         phone: string;
         country: string;
-        tipoDocumento: string;
-        numeroDocumento: string;
+        document: {
+            documentType: string;
+            number: string;
+        };
     };
     shipping: {
         firstName: string;
@@ -40,11 +42,20 @@ export type OrderDTO = {
         postcode: string;
         country: string;
     };
-    paymentMethod: "mercadopago" | "bacs" | "cod";
-    paymentMethodTitle: string;
-    paymentStatus: "pending" | "paid" | "failed" | "refunded";
-    shippingMethod: "local_pickup" | "andreani";
-    shippingCost: number;
+    payments: {
+        id: string;
+        method: string;
+        status: string;
+        amount: number;
+        paidAt: string;
+    }[];
+
+    paymentStatus: "pending" | "partial" | "paid" | "failed" | "refunded";
+    shippingMethod: {
+        method: "local_pickup" | "andreani";
+        title: String;
+        cost: number;
+    };
     subtotal: number;
     total: number;
     datePaid: string | null;

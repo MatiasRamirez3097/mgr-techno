@@ -6,6 +6,7 @@ interface Product {
     id: string;
     name: string;
     taxRate: number;
+    regularPrice?: number;
 }
 
 interface Props {

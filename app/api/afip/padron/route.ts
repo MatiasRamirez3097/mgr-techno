@@ -44,9 +44,9 @@ export async function POST(req: Request) {
 
     // 🧠 navegar la respuesta de AFIP
     const persona = json.Envelope.Body.getPersona_v2Response.personaReturn;
-    const supplier = mapPadronToSupplier(persona);
+    const entity = mapPadronToSupplier(persona);
     return Response.json({
         success: true,
-        supplier,
+        entity,
     });
 }

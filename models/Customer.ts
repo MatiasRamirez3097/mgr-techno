@@ -20,8 +20,9 @@ export const CustomerSchema = new Schema(
             documentType: {
                 type: String,
                 default: "DNI",
+                required: true,
             },
-            number: String,
+            number: { type: String, required: true },
         },
     },
     { timestamps: true },

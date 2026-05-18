@@ -5,6 +5,7 @@ import { ProductSelector } from "./ProductSelector";
 import { FormModal } from "./FormModal";
 import { PurchaseDTO } from "@/types/shared/purchase";
 import { CustomerForm } from "./CustomerForm";
+import { $ZodAny } from "zod/v4/core";
 
 interface Props {
     order?: any;
@@ -22,16 +23,28 @@ type OrderItem = {
     productId: string;
     name?: string;
     quantity: number;
-    unitCost: number;
+    unitPrice: number;
     taxRate: number;
 };
 
+type Payment = {
+    method: "cash" | "bank_transfer" | "mercadopago";
+    amount: number;
+    status: "pending" | "paid";
+    reference?: string;
+};
+
 type OrderFormState = {
+    payments: Payment[];
     customerId: string;
     status: string;
     items: OrderItem[];
     document: Document;
     notes: string;
+    shippingMethod: {
+        method: string;
+        cost: number;
+    };
 };
 
 export function OrderForm({ order, mode }: Props) {
@@ -64,7 +77,10 @@ export function OrderForm({ order, mode }: Props) {
     console.log(order);
     const [form, setForm] = useState<OrderFormState>({
         customerId: order?.customerId || "",
-        status: order?.status || "draft",
+
+        payments: order?.payments || [],
+
+        status: order?.status || "pending",
 
         items: order?.items || [],
 
@@ -76,6 +92,10 @@ export function OrderForm({ order, mode }: Props) {
             number: order?.document?.number || "",
             fileUrl: order?.document?.fileUrl || undefined,
         },
+        shippingMethod: {
+            method: "local_pickup",
+            cost: 0,
+        },
 
         notes: order?.notes || "",
     });
@@ -85,7 +105,7 @@ export function OrderForm({ order, mode }: Props) {
             ...prev,
             items: [
                 ...prev.items,
-                { productId: "", quantity: 1, unitCost: 0, taxRate: 10.5 },
+                { productId: "", quantity: 1, unitPrice: 0, taxRate: 10.5 },
             ],
         }));
     };
@@ -106,12 +126,15 @@ export function OrderForm({ order, mode }: Props) {
     };
 
     const subtotal = form.items.reduce(
-        (acc, item) => acc + item.quantity * item.unitCost,
+        (acc, item) => acc + item.quantity * item.unitPrice,
         0,
     );
 
-    const tax = subtotal * 0.21; // si aplica
-    const total = subtotal + tax;
+    const tax = form.items.reduce((acc, item) => {
+        const lineSubtotal = item.quantity * item.unitPrice;
+        return acc + lineSubtotal * (item.taxRate / 100);
+    }, 0);
+    const total = subtotal;
 
     const handleChange = (
         e: React.ChangeEvent<
@@ -137,13 +160,19 @@ export function OrderForm({ order, mode }: Props) {
             name: item.name,
             taxRate: item.taxRate,
             quantity: Number(item.quantity),
-            unitCost: Number(item.unitCost),
+            unitPrice: Number(item.unitPrice),
         })),
-
+        payments: form.payments.map((payment) => ({
+            method: payment.method,
+            amount: Number(payment.amount),
+            status: payment.status,
+            reference: payment.reference,
+        })),
+        shippingMethod: form.shippingMethod,
         document: form.document,
 
         notes: form.notes,
-        subtotal: subtotal,
+        source: "admin",
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -155,8 +184,8 @@ export function OrderForm({ order, mode }: Props) {
         try {
             const res = await fetch(
                 mode === "edit"
-                    ? `/api/admin/purchases/${order.id}`
-                    : "/api/admin/purchases",
+                    ? `/api/admin/orders/${order.id}`
+                    : "/api/admin/orders",
                 {
                     method: mode === "edit" ? "PUT" : "POST",
                     headers: { "Content-Type": "application/json" },
@@ -172,7 +201,7 @@ export function OrderForm({ order, mode }: Props) {
                 mode === "edit" ? "Compra actualizada" : "Compra creada",
             );
             if (mode === "create")
-                router.push(`/admin/purchases/${data.data._id}`);
+                router.push(`/admin/orders/${data.data._id}`);
             else router.refresh();
         } catch (e: any) {
             setError(e.message || "Error al guardar");
@@ -190,10 +219,10 @@ export function OrderForm({ order, mode }: Props) {
             return;
         setDeleting(true);
         try {
-            await fetch(`/api/admin/purchases/${order.id}`, {
+            await fetch(`/api/admin/orders/${order.id}`, {
                 method: "DELETE",
             });
-            router.push("/admin/purchases");
+            router.push("/admin/orders");
         } finally {
             setDeleting(false);
         }
@@ -202,6 +231,43 @@ export function OrderForm({ order, mode }: Props) {
     const inputClass =
         "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
+
+    const addPayment = () => {
+        setForm((prev) => ({
+            ...prev,
+            payments: [
+                ...prev.payments,
+                {
+                    method: "cash",
+                    amount: total,
+                    status: "pending",
+                },
+            ],
+        }));
+    };
+
+    const updatePayment = (index: number, field: string, value: any) => {
+        setForm((prev) => {
+            const payments = [...prev.payments];
+
+            payments[index] = {
+                ...payments[index],
+                [field]: value,
+            };
+
+            return {
+                ...prev,
+                payments,
+            };
+        });
+    };
+
+    const removePayment = (index: number) => {
+        setForm((prev) => ({
+            ...prev,
+            payments: prev.payments.filter((_, i) => i !== index),
+        }));
+    };
 
     return (
         <>
@@ -235,8 +301,10 @@ export function OrderForm({ order, mode }: Props) {
 
                                         {customers.map((s) => (
                                             <option key={s.id} value={s.id}>
-                                                {s.name}{" "}
-                                                {s.taxId ? `(${s.taxId})` : ""}
+                                                {s.firstName} {s.lastName}{" "}
+                                                {s.document?.number
+                                                    ? `(${s.document.number})`
+                                                    : ""}
                                             </option>
                                         ))}
                                     </select>
@@ -332,6 +400,7 @@ export function OrderForm({ order, mode }: Props) {
                                                 : null
                                         }
                                         onChange={(product) => {
+                                            console.log(product);
                                             updateItem(
                                                 i,
                                                 "productId",
@@ -341,6 +410,15 @@ export function OrderForm({ order, mode }: Props) {
                                                 i,
                                                 "name",
                                                 product?.name || "",
+                                            );
+                                            updateItem(
+                                                i,
+                                                "unitPrice",
+                                                product?.regularPrice
+                                                    ? Number(
+                                                          product.regularPrice,
+                                                      )
+                                                    : 0,
                                             );
                                         }}
                                     />
@@ -363,11 +441,11 @@ export function OrderForm({ order, mode }: Props) {
                                 <input
                                     min="0"
                                     type="number"
-                                    value={item.unitCost}
+                                    value={item.unitPrice}
                                     onChange={(e) =>
                                         updateItem(
                                             i,
-                                            "unitCost",
+                                            "unitPrice",
                                             e.target.value,
                                         )
                                     }
@@ -411,12 +489,14 @@ export function OrderForm({ order, mode }: Props) {
                                     onChange={handleChange}
                                     className={inputClass}
                                 >
-                                    <option value="draft">Borrador</option>
-                                    <option value="confirmed">
-                                        Confirmada
+                                    <option value="pending">Pendiente</option>
+                                    <option value="on_old">En espera</option>
+                                    <option value="completed">
+                                        Completada
                                     </option>
-                                    <option value="received">Recibida</option>
                                     <option value="cancelled">Cancelada</option>
+                                    <option value="refunded">Devuelta</option>
+                                    <option value="failed">Fallo</option>
                                 </select>
                             </div>
 
@@ -453,6 +533,188 @@ export function OrderForm({ order, mode }: Props) {
                                         : "Eliminar compra"}
                                 </button>
                             )}
+                        </div>
+                    </section>
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-bold text-white">
+                                Pagos
+                            </h2>
+
+                            <button
+                                type="button"
+                                onClick={addPayment}
+                                className="px-3 py-2 rounded-lg bg-brand text-white text-sm"
+                            >
+                                + Agregar pago
+                            </button>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                            {form.payments.map((payment, i) => (
+                                <div
+                                    key={i}
+                                    className="grid grid-cols-12 gap-2 items-end bg-gray-800/50 border border-gray-700 rounded-xl p-3"
+                                >
+                                    {/* Método */}
+                                    <div className="col-span-3">
+                                        <label className={labelClass}>
+                                            Método
+                                        </label>
+
+                                        <select
+                                            value={payment.method}
+                                            onChange={(e) =>
+                                                updatePayment(
+                                                    i,
+                                                    "method",
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className={inputClass}
+                                        >
+                                            <option value="cash">
+                                                Efectivo
+                                            </option>
+                                            <option value="bank_transfer">
+                                                Transferencia
+                                            </option>
+                                            <option value="mercadopago">
+                                                MercadoPago
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    {/* Monto */}
+                                    <div className="col-span-3">
+                                        <label className={labelClass}>
+                                            Monto
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={payment.amount}
+                                            onChange={(e) =>
+                                                updatePayment(
+                                                    i,
+                                                    "amount",
+                                                    Number(e.target.value),
+                                                )
+                                            }
+                                            className={inputClass}
+                                        />
+                                    </div>
+
+                                    {/* Estado */}
+                                    <div className="col-span-3">
+                                        <label className={labelClass}>
+                                            Estado
+                                        </label>
+
+                                        <select
+                                            value={payment.status}
+                                            onChange={(e) =>
+                                                updatePayment(
+                                                    i,
+                                                    "status",
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className={inputClass}
+                                        >
+                                            <option value="pending">
+                                                Pendiente
+                                            </option>
+                                            <option value="paid">Pagado</option>
+                                            <option value="failed">
+                                                Fallido
+                                            </option>
+                                            <option value="refunded">
+                                                Reembolsado
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    {/* Referencia */}
+                                    <div className="col-span-2">
+                                        <label className={labelClass}>
+                                            Referencia
+                                        </label>
+
+                                        <input
+                                            value={payment.reference || ""}
+                                            onChange={(e) =>
+                                                updatePayment(
+                                                    i,
+                                                    "reference",
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className={inputClass}
+                                            placeholder="# operación"
+                                        />
+                                    </div>
+
+                                    {/* Delete */}
+                                    <div className="col-span-1 flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    payments:
+                                                        prev.payments.filter(
+                                                            (_, idx) =>
+                                                                idx !== i,
+                                                        ),
+                                                }));
+                                            }}
+                                            className="h-11 w-11 rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Resumen pagos */}
+                        <div className="border-t border-gray-700 mt-4 pt-4 text-sm flex flex-col gap-2">
+                            <div className="flex justify-between text-gray-400">
+                                <span>Total orden</span>
+                                <span>${total.toLocaleString("es-AR")}</span>
+                            </div>
+
+                            <div className="flex justify-between text-gray-400">
+                                <span>Total pagos</span>
+                                <span>
+                                    $
+                                    {form.payments
+                                        .reduce(
+                                            (acc, p) =>
+                                                acc + Number(p.amount || 0),
+                                            0,
+                                        )
+                                        .toLocaleString("es-AR")}
+                                </span>
+                            </div>
+
+                            <div className="flex justify-between text-white font-semibold">
+                                <span>Restante</span>
+
+                                <span>
+                                    $
+                                    {(
+                                        total -
+                                        form.payments.reduce(
+                                            (acc, p) =>
+                                                acc + Number(p.amount || 0),
+                                            0,
+                                        )
+                                    ).toLocaleString("es-AR")}
+                                </span>
+                            </div>
                         </div>
                     </section>
                 </div>

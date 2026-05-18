@@ -17,8 +17,8 @@ type FieldError = {
 
 const PAYMENT_METHODS = [
     { id: "mercadopago", label: "MercadoPago", icon: "💳" },
-    { id: "bacs", label: "Transferencia bancaria", icon: "🏦" },
-    { id: "cod", label: "Contra entrega", icon: "📦" },
+    { id: "bank_transfer", label: "Transferencia bancaria", icon: "🏦" },
+    { id: "cash", label: "Pago Efectivo", icon: "📦" },
 ] as const;
 
 const SHIPPING_METHODS = [
@@ -84,7 +84,7 @@ export function CheckoutForm({ session }: Props) {
         "local_pickup" | "andreani"
     >("local_pickup");
     const [paymentMethod, setPaymentMethod] = useState<
-        "mercadopago" | "bacs" | "cod"
+        "mercadopago" | "bank_transfer" | "cash"
     >("mercadopago");
     const [shippingCost, setShippingCost] = useState(0);
     const [quotingShipping, setQuotingShipping] = useState(false);
@@ -183,43 +183,132 @@ export function CheckoutForm({ session }: Props) {
         setError("");
 
         try {
+            const paymentMap = {
+                mercadopago: {
+                    method: "mercadopago",
+                    title: "MercadoPago",
+                },
+
+                bank_transfer: {
+                    method: "bank_transfer",
+                    title: "Transferencia bancaria",
+                },
+
+                cash: {
+                    method: "cash",
+                    title: "Pago contra entrega",
+                },
+            };
+
+            const selectedPayment = paymentMap[paymentMethod];
+
             const res = await fetch("/api/checkout", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+
+                headers: {
+                    "Content-Type": "application/json",
+                },
+
                 body: JSON.stringify({
-                    billing: { ...form, country: "AR" },
-                    shipping: { ...form, country: "AR" },
+                    source: "ecommerce",
+
+                    customerId: (session as any).customerId,
+
+                    customerEmail: session.user?.email,
+
+                    billing: {
+                        firstName: form.firstName,
+                        lastName: form.lastName,
+
+                        address1: form.address1,
+
+                        city: form.city,
+                        state: form.state,
+                        postcode: form.postcode,
+
+                        phone: form.phone,
+
+                        country: "AR",
+
+                        document: {
+                            documentType: form.documentType,
+                            number: form.documentNumber,
+                        },
+                    },
+
+                    shipping: {
+                        firstName: form.firstName,
+                        lastName: form.lastName,
+
+                        address1: form.address1,
+
+                        city: form.city,
+                        state: form.state,
+                        postcode: form.postcode,
+
+                        phone: form.phone,
+
+                        country: "AR",
+                    },
+
                     items: items.map((i) => ({
                         productId: i.id,
                         quantity: i.quantity,
                     })),
-                    paymentMethod,
-                    shippingMethod,
-                    shippingCost,
+
+                    payments: [
+                        {
+                            method: selectedPayment.method,
+                            title: selectedPayment.title,
+
+                            status: "pending",
+
+                            amount: total,
+                        },
+                    ],
+
+                    shippingMethod: {
+                        method: shippingMethod,
+                        title:
+                            shippingMethod === "local_pickup"
+                                ? "Retiro en local"
+                                : "Andreani",
+
+                        cost: shippingMethod === "andreani" ? shippingCost : 0,
+                    },
+
+                    notes: "",
                 }),
+
+                credentials: "include",
             });
 
             const data = await res.json();
+
             if (!res.ok) {
                 setError(data.error);
-                if (Array.isArray(error)) {
+
+                if (Array.isArray(data.error)) {
                     const errors = Object.fromEntries(
                         data.error.map((e: any) => [
                             e.path.join("."),
                             e.message,
                         ]),
                     );
+
                     setFieldErrors(errors);
                 }
-                throw new Error(data);
+
+                throw new Error(data.error);
             }
+
             setSuccess("Compra exitosa!");
+
             clearCart();
 
-            router.push(`/checkout/success?order=${data}`);
-        } catch (e: unknown) {
+            router.push(`/checkout/success?order=${data.order}`);
+        } catch (e) {
             console.log(e);
-            //setError("Error de conexión, intentá de nuevo");
         } finally {
             setLoading(false);
         }

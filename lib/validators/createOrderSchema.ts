@@ -1,5 +1,26 @@
 import { z } from "zod";
 
+export const paymentSchema = z.object({
+    method: z.enum([
+        "mercadopago",
+        "bacs",
+        "cod",
+        "cash",
+        "debit_card",
+        "credit_card",
+    ]),
+
+    amount: z.number().positive(),
+
+    status: z
+        .enum(["pending", "paid", "failed", "refunded"])
+        .default("pending"),
+
+    reference: z.string().optional(),
+
+    notes: z.string().optional(),
+});
+
 export const createOrderSchema = z.object({
     customerId: z.string(),
 
@@ -14,8 +35,10 @@ export const createOrderSchema = z.object({
         postcode: z.string().min(1),
         phone: z.string().min(1),
         country: z.string().default("AR"),
-        documentType: z.string().optional(),
-        documentNumber: z.string().optional(),
+        document: z.object({
+            documentType: z.string(),
+            number: z.string(),
+        }),
     }),
 
     shipping: z.object({
@@ -36,9 +59,13 @@ export const createOrderSchema = z.object({
             }),
         )
         .min(1),
-
-    paymentMethod: z.enum(["mercadopago", "bacs", "cod"]),
-    shippingMethod: z.enum(["local_pickup", "andreani"]),
+    source: z.enum(["ecommerce", "admin"]),
+    payments: z.array(paymentSchema).min(1),
+    shippingMethod: z.object({
+        method: z.enum(["local_pickup", "andreani"]),
+        title: z.string(),
+        cost: z.number().min(0),
+    }),
 
     notes: z.string().optional(),
 });

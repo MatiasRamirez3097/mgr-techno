@@ -16,10 +16,7 @@ export async function getCustomersBase({
 }: BaseOptions): Promise<CustomerDTO[]> {
     await connectDB();
 
-    const customers = await CustomerModel.find({
-        status: "publish",
-        ...query,
-    })
+    const customers = await CustomerModel.find(query)
         .sort(sort)
         .limit(limit)
         .lean();

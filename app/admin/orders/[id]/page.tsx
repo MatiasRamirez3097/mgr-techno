@@ -8,6 +8,46 @@ import { notFound } from "next/navigation";
 import { getOrdersById } from "@/lib/orders/getOrdersById";
 import { getAllocationSuggestions } from "@/lib/inventory/getAllocationSuggestions";
 import { InventoryAllocationSection } from "@/components/admin/InventoryAllocationSection";
+import { PaymentStatusSelector } from "@/components/admin/PaymentStatusSelector";
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+    mercadopago: "MercadoPago",
+    bank_transfer: "Transferencia bancaria",
+    cash: "Efectivo",
+};
+
+const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> =
+    {
+        pending: {
+            label: "Pendiente",
+            color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
+        },
+
+        paid: {
+            label: "Pagado",
+            color: "text-green-400 bg-green-400/10 border-green-400/20",
+        },
+
+        failed: {
+            label: "Fallido",
+            color: "text-red-400 bg-red-400/10 border-red-400/20",
+        },
+
+        refunded: {
+            label: "Reembolsado",
+            color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
+        },
+
+        partial: {
+            label: "Pago parcial",
+            color: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+        },
+    };
+
+const SHIPPING_METHOD_LABELS: Record<string, string> = {
+    local_pickup: "Retiro en local",
+    andreani: "Andreani",
+};
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -56,8 +96,23 @@ export default async function AdminOrderDetailPage({
         color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
     };
     const orderId = order.id.toString().slice(-6).toUpperCase();
+
+    const payments = order.payments || [];
+
+    const paymentStatus = payments.every((p: any) => p.status === "paid")
+        ? "paid"
+        : payments.some((p: any) => p.status === "paid")
+          ? "partial"
+          : payments.some((p: any) => p.status === "failed")
+            ? "failed"
+            : payments.some((p: any) => p.status === "refunded")
+              ? "refunded"
+              : "pending";
+
+    const paymentStatusMeta = PAYMENT_STATUS_LABELS[paymentStatus];
+
     const allocationSuggestions =
-        order.paymentStatus === "paid"
+        paymentStatus === "paid"
             ? await getAllocationSuggestions(order.id)
             : [];
     return (
@@ -108,18 +163,19 @@ export default async function AdminOrderDetailPage({
                                     ${order.subtotal.toLocaleString("es-AR")}
                                 </span>
                             </div>
-                            {order.shippingCost > 0 && (
+                            {order.shippingMethod.cost > 0 && (
                                 <div className="flex justify-between text-sm text-gray-400">
                                     <span>
                                         Envío (
-                                        {order.shippingMethod === "andreani"
+                                        {order.shippingMethod?.method ===
+                                        "andreani"
                                             ? "Andreani"
                                             : "Retiro en local"}
                                         )
                                     </span>
                                     <span>
                                         $
-                                        {order.shippingCost.toLocaleString(
+                                        {order.shippingMethod?.cost.toLocaleString(
                                             "es-AR",
                                         )}
                                     </span>
@@ -162,8 +218,8 @@ export default async function AdminOrderDetailPage({
                             <div>
                                 <p className="text-gray-400 mb-1">Documento</p>
                                 <p className="text-white">
-                                    {order.billing?.tipoDocumento}{" "}
-                                    {order.billing?.numeroDocumento || "—"}
+                                    {order.billing?.document?.documentType}{" "}
+                                    {order.billing?.document?.number || "—"}
                                 </p>
                             </div>
                             <div className="col-span-2">
@@ -195,21 +251,8 @@ export default async function AdminOrderDetailPage({
                                 currentStatus={order.status}
                             />
                         </section>
-                        <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                            <h2 className="text-base font-bold text-white mb-4">
-                                Cambiar estado del pago
-                            </h2>
-                            <StatusSelector
-                                name="paymentStatus"
-                                keyToChange="paymentStatus"
-                                apiUrl="/api/admin/orders/"
-                                statusOptions={ORDER_PAYMENT_STATUSES}
-                                orderId={order.id.toString()}
-                                currentStatus={order.paymentStatus}
-                            />
-                        </section>
                     </div>
-                    {order.paymentStatus === "paid" &&
+                    {paymentStatus === "paid" &&
                         order.status !== "cancelled" && (
                             <InventoryAllocationSection
                                 inventoryAllocatedAt={
@@ -220,18 +263,98 @@ export default async function AdminOrderDetailPage({
                                 allocationSuggestions={allocationSuggestions}
                             />
                         )}
-
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Pago
-                        </h2>
-                        <p className="text-sm text-gray-400">Método</p>
-                        <p className="text-sm text-white mb-3">
-                            {order.paymentMethod}
-                        </p>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-bold text-white">
+                                Pagos
+                            </h2>
+
+                            <span
+                                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${paymentStatusMeta.color}`}
+                            >
+                                {paymentStatusMeta.label}
+                            </span>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            {payments.map((payment: any, i: number) => {
+                                const meta =
+                                    PAYMENT_STATUS_LABELS[payment.status];
+
+                                return (
+                                    <div
+                                        key={i}
+                                        className="rounded-xl border border-gray-700 bg-gray-800/40 p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p className="text-sm font-medium text-white">
+                                                    {
+                                                        PAYMENT_METHOD_LABELS[
+                                                            payment.method
+                                                        ]
+                                                    }
+                                                </p>
+
+                                                <p className="text-xs text-gray-400 mt-1">
+                                                    ID: {payment.id || "—"}
+                                                </p>
+                                            </div>
+
+                                            <div className="text-right flex flex-col items-end gap-2">
+                                                <p className="text-sm font-bold text-white">
+                                                    $
+                                                    {payment.amount.toLocaleString(
+                                                        "es-AR",
+                                                    )}
+                                                </p>
+
+                                                <span
+                                                    className={`inline-flex mt-2 text-[11px] font-medium px-2 py-1 rounded-full border ${meta.color}`}
+                                                >
+                                                    {meta.label}
+                                                </span>
+                                                <PaymentStatusSelector
+                                                    orderId={order.id}
+                                                    paymentId={payment.id}
+                                                    currentStatus={
+                                                        payment.status
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="border-t border-gray-700 mt-4 pt-4">
+                            <p className="text-sm text-gray-400">
+                                Método de envío
+                            </p>
+
+                            <p className="text-sm text-white">
+                                {
+                                    SHIPPING_METHOD_LABELS[
+                                        order.shippingMethod?.method
+                                    ]
+                                }
+                            </p>
+
+                            {order.shippingMethod?.cost > 0 && (
+                                <p className="text-sm text-gray-400 mt-1">
+                                    $
+                                    {order.shippingMethod.cost.toLocaleString(
+                                        "es-AR",
+                                    )}
+                                </p>
+                            )}
+                        </div>
+                    </section>
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <p className="text-sm text-gray-400">Envío</p>
                         <p className="text-sm text-white">
-                            {order.shippingMethod === "local_pickup"
+                            {order.shippingMethod.title === "local_pickup"
                                 ? "Retiro en local"
                                 : "Andreani"}
                         </p>

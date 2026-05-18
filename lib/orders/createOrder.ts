@@ -7,6 +7,18 @@ import { sendOrderConfirmationEmail } from "../email";
 import { mapOrderToDTO } from "../mappers/orderMapper";
 import { createOrderSchema } from "../validators/createOrderSchema";
 
+function getPaymentStatus(total: number, paidAmount: number) {
+    if (paidAmount <= 0) {
+        return "pending";
+    }
+
+    if (paidAmount < total) {
+        return "partial";
+    }
+
+    return "paid";
+}
+
 export async function createOrder(data: unknown) {
     const result = createOrderSchema.safeParse(data);
 
@@ -14,97 +26,172 @@ export async function createOrder(data: unknown) {
         return result;
     }
 
-    const { items, paymentMethod } = result.data;
+    const { items, payments, source } = result.data;
 
     const session = await mongoose.startSession();
 
+    let orderNum = "";
     try {
-        session.startTransaction();
+        await session.withTransaction(async () => {
+            // =====================================
+            // PRODUCTS
+            // =====================================
 
-        // 1. Traer productos
+            const products = await findProductsById(
+                items.map((i) => i.productId),
+                session,
+            );
 
-        const priceMultiplicator = paymentMethod === "mercadopago" ? 1.1 : 1;
-        //GET PRODUCTS
-        const products = await findProductsById(
-            items.map((i: any) => i.productId),
-            session,
-        );
-        const orderItems = items.map((item) => {
-            const product = products.find((p) => p.id === item.productId);
+            // =====================================
+            // PAYMENT SURCHARGE
+            // =====================================
 
-            if (!product) throw new Error("Producto no encontrado");
+            const hasMercadoPago = payments.some(
+                (p) => p.method === "mercadopago",
+            );
 
-            if (
-                product.availableStock &&
-                product.availableStock < item.quantity
-            ) {
-                throw new Error(`Sin stock para ${product.name}`);
-            }
-            const unitPrice = product.regularPrice * priceMultiplicator;
+            const priceMultiplicator = hasMercadoPago ? 1.1 : 1;
 
-            const quantity = item.quantity;
+            // =====================================
+            // ORDER ITEMS
+            // =====================================
 
-            const subtotal = unitPrice * quantity;
+            const orderItems = items.map((item) => {
+                const product = products.find((p) => p.id === item.productId);
 
-            const taxRate = product.taxRate ?? 10.5;
+                if (!product) {
+                    throw new Error("Producto no encontrado");
+                }
 
-            const taxAmount = subtotal - subtotal / (1 + taxRate / 100);
+                if (
+                    product.availableStock &&
+                    product.availableStock < item.quantity
+                ) {
+                    throw new Error(`Sin stock para ${product.name}`);
+                }
 
-            const total = subtotal;
+                const unitPrice = product.regularPrice * priceMultiplicator;
 
-            return {
-                productId: product.id,
-                name: product.name,
+                const quantity = item.quantity;
 
-                quantity,
+                const subtotal = unitPrice * quantity;
 
-                unitPrice,
-                subtotal,
+                const taxRate = product.taxRate ?? 10.5;
 
-                taxRate,
-                taxAmount,
+                const taxAmount = subtotal - subtotal / (1 + taxRate / 100);
 
-                total,
-            };
-        });
-        // 4. Totales
-        const subtotal = orderItems.reduce((acc, i) => acc + i.subtotal, 0);
-        const total = orderItems.reduce((acc, i) => acc + i.total, 0);
+                const total = subtotal;
 
-        // 5. Crear order
-        const order = await OrderModel.create(
-            [
-                {
-                    ...result.data,
-                    items: orderItems,
+                return {
+                    productId: product.id,
+
+                    name: product.name,
+
+                    quantity,
+
+                    unitPrice,
+
                     subtotal,
-                    total,
-                    status: "pending",
-                },
-            ],
-            { session },
-        );
 
-        // 6. (Opcional) reservar stock
-        // 👇 simple version
-        for (const item of orderItems) {
-            await ProductModel.updateOne(
-                { _id: item.productId },
-                {
-                    $inc: {
-                        availableStock: -item.quantity,
-                        reservedStock: item.quantity,
+                    taxRate,
+
+                    taxAmount,
+
+                    total,
+                };
+            });
+
+            // =====================================
+            // TOTALS
+            // =====================================
+
+            const subtotal = orderItems.reduce(
+                (acc, item) => acc + item.subtotal,
+                0,
+            );
+
+            const taxTotal = orderItems.reduce(
+                (acc, item) => acc + item.taxAmount,
+                0,
+            );
+
+            const total = orderItems.reduce((acc, item) => acc + item.total, 0);
+
+            // =====================================
+            // PAYMENTS
+            // =====================================
+
+            const paidAmount = payments
+                .filter((p) => p.status === "paid")
+                .reduce((acc, payment) => acc + payment.amount, 0);
+
+            const remainingAmount = total - paidAmount;
+
+            const paymentStatus = getPaymentStatus(total, paidAmount);
+
+            // =====================================
+            // CREATE ORDER
+            // =====================================
+
+            const [order] = await OrderModel.create(
+                [
+                    {
+                        ...result.data,
+
+                        source,
+
+                        items: orderItems,
+
+                        subtotal,
+
+                        taxTotal,
+
+                        total,
+
+                        paidAmount,
+
+                        remainingAmount,
+
+                        paymentStatus,
+
+                        status: "pending",
                     },
-                },
+                ],
                 { session },
             );
-        }
 
-        await session.commitTransaction();
-        await sendOrderConfirmationEmail(mapOrderToDTO(order[0]));
-        return order[0]._id.toString().slice(-6).toUpperCase();
+            // =====================================
+            // RESERVE STOCK
+            // =====================================
+
+            for (const item of orderItems) {
+                await ProductModel.updateOne(
+                    {
+                        _id: item.productId,
+                    },
+                    {
+                        $inc: {
+                            availableStock: -item.quantity,
+
+                            reservedStock: item.quantity,
+                        },
+                    },
+                    { session },
+                );
+            }
+
+            // =====================================
+            // EMAIL
+            // =====================================
+            orderNum = order._id.toString().slice(-6).toUpperCase();
+            await sendOrderConfirmationEmail(mapOrderToDTO(order));
+        });
+
+        return {
+            success: true,
+            order: orderNum,
+        };
     } catch (error) {
-        await session.abortTransaction();
         throw error;
     } finally {
         session.endSession();

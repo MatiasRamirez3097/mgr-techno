@@ -14,28 +14,30 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
     const [success, setSuccess] = useState("");
 
     const [form, setForm] = useState({
-        name: customer?.name || "",
-        taxId: customer?.taxId || "",
+        documentType: customer?.document?.ducomentType || "DNI",
+        documentNumber: customer?.document?.number || "",
+        taxCondition: customer?.taxCondiction || "",
+        firstName: customer?.firstName || "",
+        lastName: customer?.lastName || "",
+        address1: customer?.address1 || "",
+        city: customer?.city || "",
+        state: customer?.state || "",
+        postcode: customer?.postcode || "",
         email: customer?.email || "",
         phone: customer?.phone || "",
-        website: customer?.website || "",
-        address: customer?.adress || {},
-        contactName: customer?.contactName || "",
-        notes: customer?.notes || "",
-        isActive: customer?.isActive,
     });
 
-    async function fetchSupplierByCUIT(cuit: string) {
+    async function fetchCustomerByCUIT(cuit: string) {
+        console.log(cuit);
         const res = await fetch("/api/afip/padron", {
             method: "POST",
             body: JSON.stringify({ cuit }),
         });
 
         const data = await res.json();
-        console.log("res>>>", data.success);
-        console.log(">>>>", data);
         if (data.success) {
-            return data.supplier;
+            console.log(">>>entity", data.entity);
+            return data.entity;
         }
 
         throw new Error("No encontrado");
@@ -43,13 +45,16 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
 
     const handleCUITBlur = async (cuit: string) => {
         try {
-            const supplier = await fetchSupplierByCUIT(cuit);
+            const customer = await fetchCustomerByCUIT(cuit);
             setForm((prev) => ({
                 ...prev,
-                name: supplier.name,
-                address: supplier.address,
-                isActive: supplier.isActive,
-                notes: supplier.notes,
+                lastName: customer.name,
+                taxCondition: customer.taxCondition,
+                address1: customer.address?.street ?? form.address1,
+                city: customer.address?.city,
+                postcode: customer.address?.zip ?? form.postcode,
+                state: customer.address?.state ?? form.state,
+                notes: customer.notes,
             }));
         } catch (err) {
             console.log("CUIT no encontrado");
@@ -72,32 +77,18 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
     };
 
     const buildPayload = () => ({
-        name: form.name,
-        taxId: form.taxId,
-        contactName: form.contactName != "" ? form.contactName : null,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        documentType: form.documentType,
+        documentNumber: form.documentNumber,
         phone: form.phone != "" ? form.phone : null,
-        notes: form.notes != "" ? form.notes : null,
+        //notes: form.notes != "" ? form.notes : null,
         email: form.email != "" ? form.email : null,
-        website: form.website != "" ? form.website : null,
-        address: {
-            street:
-                form.address.street && form.address.street != ""
-                    ? form.address.street
-                    : null,
-            state:
-                form.address.state && form.address.state != ""
-                    ? form.address.state
-                    : null,
-            city:
-                form.address.city && form.address.city != ""
-                    ? form.address.city
-                    : null,
-            zip:
-                form.address.zip && form.address.zip != ""
-                    ? form.address.zip
-                    : null,
-            country: "AR",
-        },
+        street: form.address1,
+        state: form.state,
+        city: form.city,
+        postcode: form.postcode,
+        country: "AR",
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -109,8 +100,8 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
         try {
             const res = await fetch(
                 mode === "edit"
-                    ? `/api/admin/suppliers/${customer.id}`
-                    : "/api/admin/suppliers",
+                    ? `/api/admin/customers/${customer.id}`
+                    : "/api/admin/customers",
                 {
                     method: mode === "edit" ? "PUT" : "POST",
                     headers: { "Content-Type": "application/json" },
@@ -124,13 +115,16 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
             setSuccess(
                 mode === "edit" ? "Producto actualizado" : "Producto creado",
             );
-            if (mode === "create") router.push(`/admin/suppliers/${data.id}`);
+            if (mode === "create") router.push(`/admin/customers/${data.id}`);
             else router.refresh();
         } catch (e: any) {
             setError(e.message || "Error al guardar");
         } finally {
             setLoading(false);
         }
+    };
+    const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     };
     const inputClass =
         "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
@@ -143,19 +137,34 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
                     Información básica
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className={labelClass}>Tipo de documento</label>
+                        <select
+                            name="documentType"
+                            value={form.documentType}
+                            onChange={handleSelectChange}
+                            className={inputClass}
+                        >
+                            <option value="DNI">DNI</option>
+                            <option value="CUIL">CUIL</option>
+                            <option value="CUIT">CUIT</option>
+                        </select>
+                    </div>
                     <div className="col-span">
-                        <label className={labelClass}>CUIT </label>
+                        <label className={labelClass}>DNI/CUIL/CUIT </label>
                         <div className="flex gap-2">
                             <input
                                 className={inputClass}
-                                placeholder="CUIT"
-                                name="taxId"
-                                value={form.taxId}
+                                placeholder="DNI/CUIL/CUIT"
+                                name="documentNumber"
+                                value={form.documentNumber}
                                 onChange={handleChange}
                             />
                             <button
                                 type="button"
-                                onClick={(e) => handleCUITBlur(form.taxId)}
+                                onClick={(e) =>
+                                    handleCUITBlur(form.documentNumber)
+                                }
                                 className="px-4 py-3 rounded-lg bg-brand text-white text-sm hover:brightness-110 transition"
                             >
                                 i
@@ -166,39 +175,33 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
                         <label className={labelClass}>Nombre </label>
                         <div className="flex gap-2">
                             <input
+                                name="firstName"
                                 className={inputClass}
                                 placeholder="Nombre"
-                                value={form.name}
+                                value={form.firstName}
+                                onChange={handleChange}
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className={labelClass}>Apellido </label>
+                        <div className="flex gap-2">
+                            <input
+                                name="lastName"
+                                className={inputClass}
+                                placeholder="Apellido"
+                                value={form.lastName}
                                 onChange={handleChange}
                             />
                         </div>
                     </div>
                     <div className="col-span">
-                        <label className={labelClass}>Email</label>
-                        <input
-                            className={inputClass}
-                            placeholder="Email"
-                            value={form.email}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="col-span">
-                        <label className={labelClass}>Website</label>
-                        <input
-                            className={inputClass}
-                            placeholder="Webstie"
-                            value={form.website}
-                            onChange={handleChange}
-                        />
-                    </div>
-
-                    <div className="col-span">
                         <label className={labelClass}>Cod Postal </label>
                         <input
                             className={inputClass}
                             placeholder="Codigo Postal"
-                            name="zip"
-                            value={form.address.zip}
+                            name="postcode"
+                            value={form.postcode}
                             onChange={handleChange}
                         />
                     </div>
@@ -207,8 +210,9 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
                         <div className="flex gap-2">
                             <input
                                 className={inputClass}
+                                name="address1"
                                 placeholder="Direccion"
-                                value={form.address.street}
+                                value={form.address1}
                                 onChange={handleChange}
                             />
                         </div>
@@ -218,16 +222,18 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
                         <input
                             className={inputClass}
                             placeholder="Ciudad"
-                            value={form.address.city}
+                            name="city"
+                            value={form.city}
                             onChange={handleChange}
                         />
                     </div>
                     <div className="col-span">
                         <label className={labelClass}>Provincia</label>
                         <input
+                            name="state"
                             className={inputClass}
                             placeholder="Provincia"
-                            value={form.address.state}
+                            value={form.state}
                             onChange={handleChange}
                         />
                     </div>
@@ -239,12 +245,12 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="col-span">
-                        <label className={labelClass}>Nombre Contacto</label>
+                        <label className={labelClass}>Email</label>
                         <input
+                            name="email"
                             className={inputClass}
-                            placeholder="Nombre Contacto"
-                            name="contactName"
-                            value={form.contactName}
+                            placeholder="Email"
+                            value={form.email}
                             onChange={handleChange}
                         />
                     </div>
@@ -252,6 +258,7 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
                         <label className={labelClass}>Tel Contacto </label>
                         <div className="flex gap-2">
                             <input
+                                name="phone"
                                 className={inputClass}
                                 placeholder="Tel contacto"
                                 value={form.phone}
@@ -261,20 +268,7 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
                     </div>
                 </div>
             </section>
-            <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                        <label className={labelClass}>Notas</label>
-                        <textarea
-                            className={inputClass}
-                            placeholder="notas..."
-                            name="notes"
-                            value={form.notes}
-                            onChange={handleChange}
-                        />
-                    </div>
-                </div>
-            </section>
+
             {error && <p className="text-sm text-red-400">{error}</p>}
             {success && <p className="text-sm text-green-400">{success}</p>}
             <div className="flex justify-end gap-2">

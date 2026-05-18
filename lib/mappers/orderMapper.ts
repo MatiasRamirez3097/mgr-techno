@@ -22,8 +22,10 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
             postcode: order.billing?.postcode || "",
             phone: order.billing?.phone || "",
             country: order.billing?.country || "AR",
-            tipoDocumento: order.billing?.documentType || "",
-            numeroDocumento: order.billing?.documentNumber || "",
+            document: {
+                documentType: order.billing?.document?.documentType || "",
+                number: order.billing?.document?.number || "",
+            },
         },
 
         shipping: {
@@ -45,11 +47,16 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
                 total: item.total,
             })) || [],
 
-        paymentMethod: order.paymentMethod,
-        paymentMethodTitle: order.paymentMethodTitle || "",
+        payments:
+            order.payments.map((p) => ({
+                id: p._id.toString(),
+                method: p.method,
+                status: p.status,
+                amount: p.amount,
+                paidAt: p.paidAt ? p.paidAt.toISOString() : "",
+            })) || [],
         paymentStatus: order.paymentStatus || "",
         shippingMethod: order.shippingMethod,
-        shippingCost: order.shippingCost || 0,
 
         subtotal: order.subtotal,
         total: order.total,

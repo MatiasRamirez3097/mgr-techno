@@ -22,6 +22,8 @@ export async function GET(req: NextRequest) {
         products: products.map((p) => ({
             id: p._id.toString(),
             name: p.name,
+            taxRate: p.taxRate,
+            regularPrice: p.regularPrice,
         })),
     });
 }

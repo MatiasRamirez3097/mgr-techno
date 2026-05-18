@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
         };
         const result = createOrderSchema.safeParse(dataWithEmail);
         if (!result.success) {
+            console.log(">error", result.error);
             return Response.json(
                 {
                     success: false,

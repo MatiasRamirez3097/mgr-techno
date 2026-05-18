@@ -2,6 +2,7 @@ import { Schema, model, models } from "mongoose";
 import { OrderItemSchema } from "./OrderItem";
 import { AddressSchema } from "./common/Address";
 import { BillingSchema } from "./common/Billing";
+import { PaymentSchema } from "./Payment";
 
 export const OrderSchema = new Schema(
     {
@@ -36,24 +37,41 @@ export const OrderSchema = new Schema(
             type: [OrderItemSchema],
             default: [],
         },
-        paymentMethod: {
-            type: String,
-            enum: ["mercadopago", "bacs", "cod"],
-            required: true,
-        },
-        paymentMethodTitle: String,
         paymentStatus: {
             type: String,
-            enum: ["pending", "paid", "failed", "refunded"],
+            enum: ["pending", "partial", "paid", "failed", "refunded"],
             default: "pending",
             index: true,
         },
+        payments: {
+            type: [PaymentSchema],
+            default: [],
+        },
         shippingMethod: {
-            type: String,
-            enum: ["local_pickup", "andreani"],
+            type: {
+                method: {
+                    type: String,
+                    enum: ["local_pickup", "andreani"],
+                    required: true,
+                },
+
+                title: {
+                    type: String,
+                    required: true,
+                },
+
+                cost: {
+                    type: Number,
+                    default: 0,
+                },
+            },
             required: true,
         },
-        shippingCost: { type: Number, default: 0 },
+        source: {
+            type: String,
+            enum: ["ecommerce", "admin"],
+            required: true,
+        },
         subtotal: { type: Number, required: true },
         total: { type: Number, required: true },
         datePaid: { type: Date, default: null },

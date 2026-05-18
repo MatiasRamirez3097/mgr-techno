@@ -90,13 +90,3 @@ export async function PUT(
         session.endSession();
     }
 }
-/*const order = await OrderModel.findByIdAndUpdate(
-        id,
-        { status: body.status },
-        { new: true },
-    );
-
-    if (!order)
-        return Response.json({ error: "Orden no encontrada" }, { status: 404 });
-    return Response.json({ ok: true });
-    */
