@@ -5,6 +5,7 @@ import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
 import { getFinalPrice, getListPriceFinal } from "@/lib/pricing";
+import { quoteShipping } from "@/lib/shipping/quoteShipping";
 
 interface Props {
     session: Session;
@@ -123,35 +124,27 @@ export function CheckoutForm({ session }: Props) {
             setShippingCost(0);
 
             try {
-                const res = await fetch("/api/shipping", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        postcode,
-                        items: items.map((i) => ({
-                            weight: (i as any).weight || 0,
-                            dimensions: (i as any).dimensions || {
-                                length: 0,
-                                width: 0,
-                                height: 0,
-                            },
-                            price: getFinalPrice(i),
-                            quantity: i.quantity,
-                        })),
-                    }),
+                const data = await quoteShipping({
+                    postcode,
+
+                    items: items.map((i) => ({
+                        weight: (i as any).weight || 0,
+
+                        dimensions: (i as any).dimensions || {
+                            length: 0,
+                            width: 0,
+                            height: 0,
+                        },
+
+                        price: getFinalPrice(i),
+
+                        quantity: i.quantity,
+                    })),
                 });
 
-                const data = await res.json();
-
-                if (!res.ok) {
-                    setShippingError(
-                        data.error || "No se pudo cotizar el envío",
-                    );
-                } else {
-                    setShippingCost(data.total);
-                }
-            } catch {
-                setShippingError("Error al cotizar el envío");
+                setShippingCost(data.total);
+            } catch (error: any) {
+                setShippingError(error.message);
             } finally {
                 setQuotingShipping(false);
             }

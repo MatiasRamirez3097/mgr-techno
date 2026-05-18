@@ -1,13 +1,29 @@
+import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { OrderModel } from "@/models/Order";
-import { ProductModel } from "@/models/Product";
-import { NextRequest } from "next/server";
-import { startSession } from "mongoose";
+import { createAdminOrder } from "@/lib/orders/createAdminOrder";
 
-import { sendPaymentConfirmedEmail } from "@/lib/email";
-import { reverseInventoryAllocation } from "@/lib/inventory/reverseInventoryAllocation";
+export async function POST(req: Request) {
+    try {
+        await connectDB();
 
-export async function POST(req: NextRequest) {
-    const body = await req.json();
-    console.log(body);
+        const body = await req.json();
+
+        const order = await createAdminOrder(body);
+
+        return NextResponse.json({
+            success: true,
+            data: order,
+        });
+    } catch (error: any) {
+        console.error(error);
+
+        return NextResponse.json(
+            {
+                error: error.message || "Error al crear orden",
+            },
+            {
+                status: 400,
+            },
+        );
+    }
 }

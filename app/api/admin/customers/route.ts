@@ -15,7 +15,7 @@ function cleanString(v?: string) {
 }
 
 export async function GET() {
-    const customers = await getCustomersBase({ limit: 1, query: {} });
+    const customers = await getCustomersBase({ query: {} });
     console.log(">>>", customers);
     return Response.json({ customers });
 }
@@ -28,14 +28,25 @@ export async function POST(req: NextRequest) {
 
         // 🧠 1. Normalizar
         //const taxId = normalizeCUIT(body.taxId);
-
+        console.log(body);
         const customerData = {
             firstName: cleanString(body.firstName),
             lastName: cleanString(body.lastName),
-            document: body.document,
+            document: {
+                documentType: body.documentType,
+                number: body.documentNumber,
+            },
             email: cleanString(body.email),
             phone: cleanString(body.phone),
-
+            billing: {
+                firstName: cleanString(body.firstName),
+                lastName: cleanString(body.lastName),
+                address1: cleanString(body.address1),
+                city: cleanString(body.city),
+                state: cleanString(body.state),
+                postcode: cleanString(body.postcode),
+                phone: cleanString(body.phone),
+            },
             address1: cleanString(body.address?.street),
             city: cleanString(body.address?.city),
             state: cleanString(body.address?.state),
@@ -52,18 +63,18 @@ export async function POST(req: NextRequest) {
         }
 
         // 🛑 3. Evitar duplicado por CUIT
-        if (customerData.document.documentNumber) {
-            const existing = await CustomerModel.findOne({ taxId });
+        const existing = await CustomerModel.findOne({
+            "document.number": customerData.document.number,
+        });
 
-            if (existing) {
-                return Response.json(
-                    {
-                        success: false,
-                        error: "Ya existe un proveedor con ese CUIT",
-                    },
-                    { status: 409 },
-                );
-            }
+        if (existing) {
+            return Response.json(
+                {
+                    success: false,
+                    error: "Ya existe un proveedor con ese CUIT",
+                },
+                { status: 409 },
+            );
         }
 
         // 💾 4. Crear

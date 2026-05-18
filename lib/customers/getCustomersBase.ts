@@ -10,16 +10,17 @@ type BaseOptions = {
 };
 
 export async function getCustomersBase({
-    limit = 8,
+    limit = undefined,
     query = {},
     sort = { createdAt: -1 },
 }: BaseOptions): Promise<CustomerDTO[]> {
     await connectDB();
 
-    const customers = await CustomerModel.find(query)
-        .sort(sort)
-        .limit(limit)
-        .lean();
+    let customerQuery = CustomerModel.find(query).sort(sort);
+
+    if (limit) customerQuery = customerQuery.limit(limit);
+
+    const customers = await customerQuery.lean();
 
     return customers.map(mapCustomerToDTO);
 }

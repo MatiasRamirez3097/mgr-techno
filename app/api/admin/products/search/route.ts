@@ -24,6 +24,8 @@ export async function GET(req: NextRequest) {
             name: p.name,
             taxRate: p.taxRate,
             regularPrice: p.regularPrice,
+            weight: p.weight,
+            dimensions: p.dimensions,
         })),
     });
 }

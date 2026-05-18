@@ -6,6 +6,7 @@ import { FormModal } from "./FormModal";
 import { PurchaseDTO } from "@/types/shared/purchase";
 import { CustomerForm } from "./CustomerForm";
 import { $ZodAny } from "zod/v4/core";
+import { quoteShipping } from "@/lib/shipping/quoteShipping";
 
 interface Props {
     order?: any;
@@ -56,6 +57,9 @@ export function OrderForm({ order, mode }: Props) {
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [customers, setCustomers] = useState<any[]>([]);
     const [loadingSuppliers, setLoadingSuppliers] = useState(true);
+    const [quotingShipping, setQuotingShipping] = useState(false);
+    const [postcode, setPostcode] = useState("");
+
     //useEffect
     useEffect(() => {
         fetch("/api/admin/customers", {
@@ -67,6 +71,7 @@ export function OrderForm({ order, mode }: Props) {
             })
             .finally(() => setLoadingSuppliers(false));
     }, []);
+
     // Extraer imágenes del producto — soporta tanto strings como objetos {src}
     const extractImages = (product?: any): string[] => {
         if (!product?.images) return [];
@@ -74,7 +79,42 @@ export function OrderForm({ order, mode }: Props) {
             .map((img: any) => (typeof img === "string" ? img : img.src || ""))
             .filter(Boolean);
     };
-    console.log(order);
+
+    const quoteOrderShipping = async () => {
+        try {
+            setQuotingShipping(true);
+
+            const data = await quoteShipping({
+                postcode: postcode,
+
+                items: form.items.map((item) => ({
+                    weight: item.weight || 0,
+
+                    dimensions: item.dimensions || {
+                        length: 0,
+                        width: 0,
+                        height: 0,
+                    },
+
+                    price: item.unitPrice,
+
+                    quantity: item.quantity,
+                })),
+            });
+
+            setForm((prev) => ({
+                ...prev,
+
+                shippingMethod: {
+                    ...prev.shippingMethod,
+                    cost: data.total,
+                },
+            }));
+        } finally {
+            setQuotingShipping(false);
+        }
+    };
+
     const [form, setForm] = useState<OrderFormState>({
         customerId: order?.customerId || "",
 
@@ -134,7 +174,7 @@ export function OrderForm({ order, mode }: Props) {
         const lineSubtotal = item.quantity * item.unitPrice;
         return acc + lineSubtotal * (item.taxRate / 100);
     }, 0);
-    const total = subtotal;
+    const total = subtotal + Number(form.shippingMethod.cost || 0);
 
     const handleChange = (
         e: React.ChangeEvent<
@@ -142,6 +182,13 @@ export function OrderForm({ order, mode }: Props) {
         >,
     ) => {
         const { name, value, type } = e.target;
+        if (name === "customerId") {
+            const customer = customers.find((c) => c.id === value);
+            console.log(customer.billing.postcode);
+            setPostcode(customer?.billing?.postcode || "");
+            console.log("postcode>>>", postcode);
+        }
+
         setForm((prev) => ({
             ...prev,
             [name]:
@@ -269,6 +316,10 @@ export function OrderForm({ order, mode }: Props) {
         }));
     };
 
+    useEffect(() => {
+        if (postcode != "" && form.items[0]?.productId) quoteOrderShipping();
+    }, [postcode, form.items]);
+
     return (
         <>
             <form
@@ -380,6 +431,69 @@ export function OrderForm({ order, mode }: Props) {
                                     }
                                 />
                             </div>
+                            <div>
+                                <label className={labelClass}>
+                                    Método de envío
+                                </label>
+
+                                <select
+                                    disabled={
+                                        form.customerId &&
+                                        form.items[0]?.productId
+                                            ? false
+                                            : true
+                                    }
+                                    name="shippingMethod"
+                                    className={inputClass}
+                                    value={form.shippingMethod.method}
+                                    onChange={(e) => {
+                                        if (e.target.value === "andreani")
+                                            quoteOrderShipping();
+                                        else
+                                            setForm({
+                                                ...form,
+                                                shippingMethod: {
+                                                    ...form.shippingMethod,
+                                                    method: e.target.value,
+                                                    cost: 0,
+                                                },
+                                            });
+                                    }}
+                                >
+                                    <option value="local_pickup">
+                                        Retiro en local
+                                    </option>
+
+                                    <option value="delivery">
+                                        Envío local
+                                    </option>
+
+                                    <option value="andreani">Andreani</option>
+
+                                    <option value="other">Otro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className={labelClass}>
+                                    Costo de envío
+                                </label>
+
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={form.shippingMethod.cost}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            shippingMethod: {
+                                                ...form.shippingMethod,
+                                                cost: Number(e.target.value),
+                                            },
+                                        })
+                                    }
+                                    className={inputClass}
+                                />
+                            </div>
                         </div>
                     </section>
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
@@ -466,11 +580,17 @@ export function OrderForm({ order, mode }: Props) {
                         <h2 className="text-base font-bold text-white mb-4">
                             Precios
                         </h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            Subtotal: ${subtotal}
-                            IVA: ${tax}
-                            Total: ${total}
-                        </div>
+                        <span>Subtotal: </span>
+                        <span>${subtotal} </span>
+
+                        <span>IVA: </span>
+                        <span>${tax} </span>
+
+                        <span>Envío: </span>
+                        <span>${form.shippingMethod.cost} </span>
+
+                        <span className="font-bold">Total:</span>
+                        <span className="font-bold">${total}</span>
                     </section>
                 </div>
                 {/* Columna lateral */}
@@ -724,6 +844,7 @@ export function OrderForm({ order, mode }: Props) {
                     <CustomerForm
                         onCancel={() => setShowCustomerModal(false)}
                         mode="create"
+                        modal
                     />
                 </FormModal>
             )}

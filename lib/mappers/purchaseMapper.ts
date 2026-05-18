@@ -5,7 +5,7 @@ import type { PurchaseDTO } from "@/types/shared/purchase";
 
 export function mapPurchaseToDTO(purchase: PurchaseDB): PurchaseDTO {
     const getProductId = (productId: any) =>
-        typeof productId === "object" ? productId : productId.toString();
+        typeof productId === "object" ? productId.toString() : productId;
 
     const getProductName = (item: any) =>
         typeof item.productId === "object" ? item.productId.name : item.name;

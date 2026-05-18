@@ -5,9 +5,10 @@ interface Props {
     customer?: any;
     mode: "create" | "edit";
     onCancel: () => void;
+    modal?: boolean;
 }
 
-export function CustomerForm({ onCancel, mode, customer }: Props) {
+export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -115,7 +116,8 @@ export function CustomerForm({ onCancel, mode, customer }: Props) {
             setSuccess(
                 mode === "edit" ? "Producto actualizado" : "Producto creado",
             );
-            if (mode === "create") router.push(`/admin/customers/${data.id}`);
+            if (mode === "create" && !modal)
+                router.push(`/admin/customers/${data.id}`);
             else router.refresh();
         } catch (e: any) {
             setError(e.message || "Error al guardar");
