@@ -26,6 +26,12 @@ type OrderItem = {
     quantity: number;
     unitPrice: number;
     taxRate: number;
+    weight: number;
+    dimensions: {
+        height: number;
+        width: number;
+        length: number;
+    };
 };
 
 type Payment = {
@@ -46,6 +52,13 @@ type OrderFormState = {
         method: string;
         cost: number;
     };
+};
+
+const SHIPPING_METHOD_LABELS = {
+    local_pickup: "Retiro en local",
+    delivery: "Envío local",
+    andreani: "Andreani",
+    other: "Otro",
 };
 
 export function OrderForm({ order, mode }: Props) {
@@ -83,7 +96,7 @@ export function OrderForm({ order, mode }: Props) {
     const quoteOrderShipping = async () => {
         try {
             setQuotingShipping(true);
-
+            console.log(">>>", form.items);
             const data = await quoteShipping({
                 postcode: postcode,
 
@@ -107,6 +120,7 @@ export function OrderForm({ order, mode }: Props) {
 
                 shippingMethod: {
                     ...prev.shippingMethod,
+                    method: "andreani",
                     cost: data.total,
                 },
             }));
@@ -145,7 +159,18 @@ export function OrderForm({ order, mode }: Props) {
             ...prev,
             items: [
                 ...prev.items,
-                { productId: "", quantity: 1, unitPrice: 0, taxRate: 10.5 },
+                {
+                    productId: "",
+                    quantity: 1,
+                    unitPrice: 0,
+                    taxRate: 10.5,
+                    dimensions: {
+                        width: 0,
+                        height: 0,
+                        length: 0,
+                    },
+                    weight: 0,
+                },
             ],
         }));
     };
@@ -317,7 +342,12 @@ export function OrderForm({ order, mode }: Props) {
     };
 
     useEffect(() => {
-        if (postcode != "" && form.items[0]?.productId) quoteOrderShipping();
+        if (
+            postcode != "" &&
+            form.items[0]?.productId &&
+            form.shippingMethod.method === "andreani"
+        )
+            quoteOrderShipping();
     }, [postcode, form.items]);
 
     return (
@@ -504,17 +534,24 @@ export function OrderForm({ order, mode }: Props) {
                             <div key={i} className="grid grid-cols-6 gap-2">
                                 <div className="col-span-3">
                                     <ProductSelector
+                                        availableStock="y"
                                         value={
                                             item.productId
                                                 ? {
                                                       id: item.productId,
                                                       name: item.name || "",
                                                       taxRate: item.taxRate,
+                                                      weight: item.weight,
+                                                      dimensions:
+                                                          item.dimensions,
                                                   }
                                                 : null
                                         }
                                         onChange={(product) => {
-                                            console.log(product);
+                                            console.log(
+                                                "en select>>>",
+                                                product,
+                                            );
                                             updateItem(
                                                 i,
                                                 "productId",
@@ -532,6 +569,24 @@ export function OrderForm({ order, mode }: Props) {
                                                     ? Number(
                                                           product.regularPrice,
                                                       )
+                                                    : 0,
+                                            );
+                                            updateItem(
+                                                i,
+                                                "dimensions",
+                                                product?.dimensions
+                                                    ? product.dimensions
+                                                    : {
+                                                          width: 0,
+                                                          length: 0,
+                                                          height: 0,
+                                                      },
+                                            );
+                                            updateItem(
+                                                i,
+                                                "weight",
+                                                product?.weight
+                                                    ? Number(product.weight)
                                                     : 0,
                                             );
                                         }}

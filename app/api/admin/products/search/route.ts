@@ -6,17 +6,22 @@ export async function GET(req: NextRequest) {
     await connectDB();
 
     const q = req.nextUrl.searchParams.get("q") || "";
+    const s = req.nextUrl.searchParams.get("s") || "";
 
     if (q.length < 2) {
         return Response.json({ products: [] });
     }
-
-    const products = await ProductModel.find({
+    let find = {
         name: { $regex: q, $options: "i" },
         status: "publish",
-    })
-        .limit(10)
-        .lean();
+    };
+
+    if (s === "y")
+        find = {
+            ...find,
+            availableStock: { $gt: 0 },
+        };
+    const products = await ProductModel.find(find).limit(10).lean();
 
     return Response.json({
         products: products.map((p) => ({

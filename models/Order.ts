@@ -55,11 +55,6 @@ export const OrderSchema = new Schema(
                     required: true,
                 },
 
-                title: {
-                    type: String,
-                    required: true,
-                },
-
                 cost: {
                     type: Number,
                     default: 0,

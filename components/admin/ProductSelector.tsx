@@ -7,14 +7,21 @@ interface Product {
     name: string;
     taxRate: number;
     regularPrice?: number;
+    weight: number;
+    dimensions: {
+        width: number;
+        height: number;
+        length: number;
+    };
 }
 
 interface Props {
+    availableStock: string;
     value: Product | null;
     onChange: (product: Product | null) => void;
 }
 
-export function ProductSelector({ value, onChange }: Props) {
+export function ProductSelector({ availableStock, value, onChange }: Props) {
     const [query, setQuery] = useState(value?.name || "");
     const [results, setResults] = useState<Product[]>([]);
     const [open, setOpen] = useState(false);
@@ -33,7 +40,7 @@ export function ProductSelector({ value, onChange }: Props) {
             setLoading(true);
             try {
                 const res = await fetch(
-                    `/api/admin/products/search?q=${query}`,
+                    `/api/admin/products/search?q=${query}&s=${availableStock}`,
                 );
                 const data = await res.json();
                 setResults(data.products || []);

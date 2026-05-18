@@ -21,6 +21,7 @@ export async function createAdminOrder(data: unknown) {
 
         const {
             customerId,
+            customerEmail,
             items,
             payments,
             shippingMethod,
@@ -100,7 +101,7 @@ export async function createAdminOrder(data: unknown) {
                     source: "admin",
 
                     customerId,
-
+                    customerEmail,
                     items: orderItems,
 
                     payments,

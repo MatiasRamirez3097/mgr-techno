@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createAdminOrderSchema = z.object({
     customerId: z.string().min(1),
-
+    customerEmail: z.string(),
     status: z.enum([
         "pending",
         "processing",
