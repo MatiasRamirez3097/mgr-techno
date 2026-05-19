@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     if (q.length < 2) {
         return Response.json({ products: [] });
     }
-    let find = {
+    let find: any = {
         name: { $regex: q, $options: "i" },
         status: "publish",
     };
