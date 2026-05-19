@@ -7,8 +7,8 @@ interface Product {
     name: string;
     taxRate: number;
     regularPrice?: number;
-    weight: number;
-    dimensions: {
+    weight?: number;
+    dimensions?: {
         width: number;
         height: number;
         length: number;
