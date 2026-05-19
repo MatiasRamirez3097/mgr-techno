@@ -30,12 +30,7 @@ export function mapPurchaseToDTO(
             purchase.items?.map((item) => ({
                 productId: options?.includeProducts
                     ? mapProduct(item.productId)
-                    : {
-                          id:
-                              typeof item.productId === "object"
-                                  ? item.productId._id.toString()
-                                  : item.productId.toString(),
-                      },
+                    : item.productId._id.toString(),
                 name: item.name,
                 quantity: item.quantity,
                 taxRate: item.taxRate,
@@ -66,8 +61,6 @@ export function mapPurchaseToDTO(
 }
 
 function mapProduct(product: any) {
-    if (!product) return null;
-    console.log(">>>product", product._id.toString());
     if (typeof product === "object" && product._id) {
         return {
             id: product._id.toString(),
