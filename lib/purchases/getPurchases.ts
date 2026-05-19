@@ -42,7 +42,7 @@ export async function getPurchases(
     const paginated = filtered.slice(start, start + PRODUCTS_PAGE_SIZE);
 
     return {
-        purchases: paginated.map(mapPurchaseToDTO),
+        purchases: paginated.map((purchase) => mapPurchaseToDTO(purchase)),
         totalPages,
         total,
     };
