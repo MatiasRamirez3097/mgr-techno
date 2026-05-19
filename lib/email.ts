@@ -28,7 +28,7 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
 }
 
 export async function sendOrderConfirmationEmail(order: OrderDTO) {
-    const isBankTransfer = order.paymentMethod === "bacs";
+    const isBankTransfer = order.payments[0].method === "bank_transfer";
     await resend.emails.send({
         from: "MGR Techno <noreply@mgrtechno.com.ar>",
         to: order.customerEmail,
@@ -196,7 +196,7 @@ export async function sendPaymentConfirmedEmail(order: OrderDTO) {
             color: #cbd5e1;
           ">
             ${
-                order.shippingMethod === "local_pickup"
+                order.shippingMethod.method === "local_pickup"
                     ? `
                   <p>
                     Te avisaremos apenas el pedido esté listo
