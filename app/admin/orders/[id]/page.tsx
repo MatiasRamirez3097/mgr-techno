@@ -9,6 +9,8 @@ import { getOrdersById } from "@/lib/orders/getOrdersById";
 import { getAllocationSuggestions } from "@/lib/inventory/getAllocationSuggestions";
 import { InventoryAllocationSection } from "@/components/admin/InventoryAllocationSection";
 import { PaymentStatusSelector } from "@/components/admin/PaymentStatusSelector";
+import { getOrderPaymentStatus } from "@/lib/orders/getOrderPaymentStatus";
+import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
     mercadopago: "MercadoPago",
@@ -98,19 +100,14 @@ export default async function AdminOrderDetailPage({
     const orderId = order.id.toString().slice(-6).toUpperCase();
 
     const payments = order.payments || [];
-
-    const paymentStatus = payments.every((p: any) => p.status === "paid")
-        ? "paid"
-        : payments.some((p: any) => p.status === "paid")
-          ? "partial"
-          : payments.some((p: any) => p.status === "failed")
-            ? "failed"
-            : payments.some((p: any) => p.status === "refunded")
-              ? "refunded"
-              : "pending";
+    const paymentStatus = getOrderPaymentStatus(order.payments || []);
 
     const paymentStatusMeta = PAYMENT_STATUS_LABELS[paymentStatus];
+    const paidAmount = payments
+        .filter((p) => p.status === "paid")
+        .reduce((acc, p) => acc + p.amount, 0);
 
+    const remaining = order.total - paidAmount;
     const allocationSuggestions =
         paymentStatus === "paid"
             ? await getAllocationSuggestions(order.id)
@@ -263,71 +260,13 @@ export default async function AdminOrderDetailPage({
                                 allocationSuggestions={allocationSuggestions}
                             />
                         )}
+                    <OrderPaymentsSection
+                        mode="persisted"
+                        orderId={order.id}
+                        total={order.total}
+                        payments={order.payments || []}
+                    />
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-white">
-                                Pagos
-                            </h2>
-
-                            <span
-                                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${paymentStatusMeta.color}`}
-                            >
-                                {paymentStatusMeta.label}
-                            </span>
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                            {payments.map((payment: any, i: number) => {
-                                const meta =
-                                    PAYMENT_STATUS_LABELS[payment.status];
-
-                                return (
-                                    <div
-                                        key={i}
-                                        className="rounded-xl border border-gray-700 bg-gray-800/40 p-4"
-                                    >
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div>
-                                                <p className="text-sm font-medium text-white">
-                                                    {
-                                                        PAYMENT_METHOD_LABELS[
-                                                            payment.method
-                                                        ]
-                                                    }
-                                                </p>
-
-                                                <p className="text-xs text-gray-400 mt-1">
-                                                    ID: {payment.id || "—"}
-                                                </p>
-                                            </div>
-
-                                            <div className="text-right flex flex-col items-end gap-2">
-                                                <p className="text-sm font-bold text-white">
-                                                    $
-                                                    {payment.amount.toLocaleString(
-                                                        "es-AR",
-                                                    )}
-                                                </p>
-
-                                                <span
-                                                    className={`inline-flex mt-2 text-[11px] font-medium px-2 py-1 rounded-full border ${meta.color}`}
-                                                >
-                                                    {meta.label}
-                                                </span>
-                                                <PaymentStatusSelector
-                                                    orderId={order.id}
-                                                    paymentId={payment.id}
-                                                    currentStatus={
-                                                        payment.status
-                                                    }
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
                         <div className="border-t border-gray-700 mt-4 pt-4">
                             <p className="text-sm text-gray-400">
                                 Método de envío
@@ -350,14 +289,6 @@ export default async function AdminOrderDetailPage({
                                 </p>
                             )}
                         </div>
-                    </section>
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <p className="text-sm text-gray-400">Envío</p>
-                        <p className="text-sm text-white">
-                            {order.shippingMethod.title === "local_pickup"
-                                ? "Retiro en local"
-                                : "Andreani"}
-                        </p>
                     </section>
                 </div>
             </div>

@@ -10,6 +10,9 @@ export async function getPurchasesById(
     const purchase = getProduct
         ? await PurchaseModel.findById(id).populate("items.productId").lean()
         : await PurchaseModel.findById(id).lean();
-
-    return mapPurchaseToDTO(purchase);
+    if (getProduct)
+        return mapPurchaseToDTO(purchase, {
+            includeProducts: true,
+        });
+    else return mapPurchaseToDTO(purchase);
 }

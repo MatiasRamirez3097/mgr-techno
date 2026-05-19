@@ -47,7 +47,7 @@ export async function receivePurchase(
         const productMap = new Map(products.map((p) => [p._id.toString(), p]));
 
         const createdInventoryItems = [];
-
+        console.log("data.items>>>", data.items);
         for (const item of data.items) {
             const product = productMap.get(item.productId);
 

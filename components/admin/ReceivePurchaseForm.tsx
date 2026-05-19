@@ -10,10 +10,10 @@ type ReceiveItem = {
 };
 
 export function ReceivePurchaseForm({ purchase }: any) {
-    console.log(">>>", purchase.items[0].productId._id);
+    console.log(">>>purchaseItem", purchase.items[0].productId);
     const [items, setItems] = useState(
         purchase.items.map((item: any) => ({
-            productId: item.productId._id,
+            productId: item.productId.id,
             name: item.name,
             hasSerialNumber: item.productId.hasSerialNumber,
             quantity: item.quantity,

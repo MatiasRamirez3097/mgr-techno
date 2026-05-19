@@ -3,9 +3,18 @@
 import type { PurchaseDB } from "@/types/backend/purchase";
 import type { PurchaseDTO } from "@/types/shared/purchase";
 
-export function mapPurchaseToDTO(purchase: PurchaseDB): PurchaseDTO {
+type MapPurchaseOptions = {
+    includeProducts?: boolean;
+};
+
+export function mapPurchaseToDTO(
+    purchase: PurchaseDB,
+    options?: MapPurchaseOptions,
+): PurchaseDTO {
     const getProductId = (productId: any) =>
-        typeof productId === "object" ? productId.toString() : productId;
+        typeof productId === "object"
+            ? productId.toObject()
+            : productId.toString();
 
     const getProductName = (item: any) =>
         typeof item.productId === "object" ? item.productId.name : item.name;
@@ -19,7 +28,14 @@ export function mapPurchaseToDTO(purchase: PurchaseDB): PurchaseDTO {
 
         items:
             purchase.items?.map((item) => ({
-                productId: getProductId(item.productId),
+                productId: options?.includeProducts
+                    ? mapProduct(item.productId)
+                    : {
+                          id:
+                              typeof item.productId === "object"
+                                  ? item.productId._id.toString()
+                                  : item.productId.toString(),
+                      },
                 name: item.name,
                 quantity: item.quantity,
                 taxRate: item.taxRate,
@@ -46,5 +62,21 @@ export function mapPurchaseToDTO(purchase: PurchaseDB): PurchaseDTO {
             : null,
 
         createdAt: purchase.createdAt.toISOString(),
+    };
+}
+
+function mapProduct(product: any) {
+    if (!product) return null;
+    console.log(">>>product", product._id.toString());
+    if (typeof product === "object" && product._id) {
+        return {
+            id: product._id.toString(),
+            name: product.name,
+            hasSerialNumber: product.hasSerialNumber,
+        };
+    }
+
+    return {
+        id: product.toString(),
     };
 }

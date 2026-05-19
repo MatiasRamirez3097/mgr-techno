@@ -1,11 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models/Order";
 
-const VALID_STATUSES = ["pending", "paid", "failed", "refunded"];
-
 export async function PATCH(
-    req: NextRequest,
+    req: Request,
     {
         params,
     }: {
@@ -15,78 +13,72 @@ export async function PATCH(
         }>;
     },
 ) {
-    try {
-        await connectDB();
+    await connectDB();
 
-        const { id, paymentId } = await params;
+    const { id, paymentId } = await params;
 
-        const body = await req.json();
+    const body = await req.json();
 
-        const status = body.status;
+    const order = await OrderModel.findById(id);
 
-        if (!VALID_STATUSES.includes(status)) {
-            return NextResponse.json(
-                {
-                    error: "Estado inválido",
-                },
-                {
-                    status: 400,
-                },
-            );
-        }
-
-        const order = await OrderModel.findOne({
-            _id: id,
-            "payments._id": paymentId,
-        });
-
-        if (!order) {
-            return NextResponse.json(
-                {
-                    error: "Pago no encontrado",
-                },
-                {
-                    status: 404,
-                },
-            );
-        }
-
-        const payment = order.payments.find((p: any) => p.id === paymentId);
-
-        if (!payment) {
-            return NextResponse.json(
-                {
-                    error: "Pago no encontrado",
-                },
-                {
-                    status: 404,
-                },
-            );
-        }
-
-        payment.status = status;
-
-        if (status === "paid") {
-            payment.paidAt = new Date();
-        } else {
-            payment.paidAt = null;
-        }
-
-        await order.save();
-
-        return NextResponse.json({
-            success: true,
-        });
-    } catch (error) {
-        console.log(error);
-
+    if (!order) {
         return NextResponse.json(
-            {
-                error: "Error interno",
-            },
-            {
-                status: 500,
-            },
+            { error: "Orden no encontrada" },
+            { status: 404 },
         );
     }
+
+    const payment = order.payments.id(paymentId);
+
+    if (!payment) {
+        return NextResponse.json(
+            { error: "Pago no encontrado" },
+            { status: 404 },
+        );
+    }
+
+    Object.assign(payment, body);
+
+    if ("status" in body) {
+        payment.paidAt = body.status === "paid" ? new Date() : null;
+    }
+
+    await order.save();
+
+    return NextResponse.json({
+        success: true,
+    });
+}
+
+export async function DELETE(
+    req: Request,
+    {
+        params,
+    }: {
+        params: Promise<{
+            id: string;
+            paymentId: string;
+        }>;
+    },
+) {
+    await connectDB();
+
+    const { id, paymentId } = await params;
+
+    const order = await OrderModel.findById(id);
+
+    if (!order) {
+        return NextResponse.json(
+            { error: "Orden no encontrada" },
+            { status: 404 },
+        );
+    }
+
+    order.payments.pull(paymentId);
+
+    await order.save();
+
+    return NextResponse.json({
+        success: true,
+    });
 }
