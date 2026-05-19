@@ -26,5 +26,5 @@ export async function getPurchasesBase({
         .limit(limit)
         .lean();
 
-    return products.map(mapPurchaseToDTO);
+    return products.map((purchase) => mapPurchaseToDTO(purchase));
 }
