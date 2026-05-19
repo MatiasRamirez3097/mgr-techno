@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 type Payment = {
     id?: string;
 
-    method: "cash" | "bank_transfer" | "mercadopago";
+    method:
+        | "cash"
+        | "bank_transfer"
+        | "debit_card"
+        | "credit_card"
+        | "mercadopago"
+        | "other";
 
     amount: number;
 

@@ -44,8 +44,14 @@ export type OrderDTO = {
     };
     payments: {
         id: string;
-        method: string;
-        status: string;
+        method:
+            | "cash"
+            | "bank_transfer"
+            | "debit_card"
+            | "credit_card"
+            | "mercadopago"
+            | "other";
+        status: "pending" | "paid" | "failed" | "refunded";
         amount: number;
         paidAt: string;
     }[];
