@@ -11,6 +11,7 @@ import { InventoryAllocationSection } from "@/components/admin/InventoryAllocati
 import { PaymentStatusSelector } from "@/components/admin/PaymentStatusSelector";
 import { getOrderPaymentStatus } from "@/lib/orders/getOrderPaymentStatus";
 import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
+import { GenerateReceiptButton } from "@/components/admin/documents/GenerateReceiptButton";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
     mercadopago: "MercadoPago",
@@ -266,6 +267,28 @@ export default async function AdminOrderDetailPage({
                         total={order.total}
                         payments={order.payments || []}
                     />
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-4">
+                            Documentos
+                        </h2>
+
+                        <div className="flex flex-col gap-3">
+                            <GenerateReceiptButton
+                                orderId={order.id}
+                                hasReceipt={!!order.receipt?.url}
+                                receiptUrl={order.receipt?.url}
+                            />
+
+                            {order.receipt?.generatedAt && (
+                                <p className="text-xs text-gray-500">
+                                    Generado el{" "}
+                                    {new Date(
+                                        order.receipt.generatedAt,
+                                    ).toLocaleString("es-AR")}
+                                </p>
+                            )}
+                        </div>
+                    </section>
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <div className="border-t border-gray-700 mt-4 pt-4">
                             <p className="text-sm text-gray-400">

@@ -39,3 +39,37 @@ export async function uploadImageFromUrl(
 export async function deleteImage(publicId: string): Promise<void> {
     await cloudinary.uploader.destroy(publicId);
 }
+
+interface UploadBufferOptions {
+    buffer: Buffer;
+    folder?: string;
+    fileName: string;
+}
+
+export async function uploadBuffer({
+    buffer,
+    folder = "mgrtechno/documents",
+    fileName,
+}: UploadBufferOptions) {
+    return new Promise<any>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                resource_type: "raw",
+                folder,
+                public_id: fileName,
+                format: "pdf",
+            },
+
+            (error, result) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+
+                resolve(result);
+            },
+        );
+
+        stream.end(buffer);
+    });
+}
