@@ -2,10 +2,8 @@
 
 import { AFIP_CONCEPTS, AFIP_CURRENCY, AFIP_IVA } from "../constants";
 
-import type { Invoice } from "@/types/invoice";
-
 interface Params {
-    invoice: Invoice;
+    invoice: any;
 
     voucherNumber: number;
 
