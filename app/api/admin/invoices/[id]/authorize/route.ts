@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createInvoice } from "@/services/invoices/createInvoice";
+import { createInvoice } from "@/lib/invoices/createInvoice";
 
 export async function POST(
     req: Request,
