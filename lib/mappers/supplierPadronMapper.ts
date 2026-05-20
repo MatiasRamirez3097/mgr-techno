@@ -4,7 +4,7 @@ export function mapPadronToSupplier(data: PadronData) {
     console.log(data);
     const taxConditon = () => {
         if (data.datosRegimenGeneral) {
-            for (const imp of data.datosRegimenGeneral.inmpuesto) {
+            for (const imp of data.datosRegimenGeneral.impuesto) {
                 if (imp.descriptionImpuesto == "IVA")
                     return "RESPONSABLE INSCRIPTO";
                 else if (imp.descripcionImpuesto == "IVA NO ALCANZADO")
@@ -25,6 +25,7 @@ export function mapPadronToSupplier(data: PadronData) {
                 : `${data.datosGenerales.apellido || ""} ${data.datosGenerales.nombre || ""}`.trim();
         } else return data.errorConstancia.apellido;
     };
+    console.log("name>>>", name());
     return {
         name: name(),
         taxCondition: taxConditon(),

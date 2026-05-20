@@ -19,7 +19,12 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
         email: supplier?.email || "",
         phone: supplier?.phone || "",
         website: supplier?.website || "",
-        address: supplier?.adress || {},
+        address: supplier?.address || {
+            city: supplier?.address?.city || "",
+            state: supplier?.address?.state || "",
+            zip: supplier?.address?.zip || "",
+            street: supplier?.address?.street || "",
+        },
         contactName: supplier?.contactName || "",
         notes: supplier?.notes || "",
         isActive: supplier?.isActive,
@@ -35,7 +40,7 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
         console.log("res>>>", data.success);
         console.log(">>>>", data);
         if (data.success) {
-            return data.supplier;
+            return data.entity;
         }
 
         throw new Error("No encontrado");
@@ -44,6 +49,7 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
     const handleCUITBlur = async (cuit: string) => {
         try {
             const supplier = await fetchSupplierByCUIT(cuit);
+            console.log("supplier>>>>>", supplier);
             setForm((prev) => ({
                 ...prev,
                 name: supplier.name,

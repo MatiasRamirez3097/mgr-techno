@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         const { cuit } = await req.json();
 
         const { token, sign } = await getAuth("ws_sr_constancia_inscripcion");
-
+        console.log(sign);
         const { json, xml } = await soapRequest({
             url: PADRON_URL,
 
@@ -24,13 +24,8 @@ export async function POST(req: Request) {
                 <a5:getPersona_v2
                     xmlns:a5="http://a5.soap.ws.server.puc.sr/"
                 >
-                    <token>
-                        ${token}
-                    </token>
-
-                    <sign>
-                        ${sign}
-                    </sign>
+                    <token>${token}</token>
+                    <sign>${sign}</sign>
 
                     <cuitRepresentada>
                         ${process.env.AFIP_CUIT}
@@ -42,7 +37,7 @@ export async function POST(req: Request) {
                 </a5:getPersona_v2>
             `,
         });
-
+        console.log(json.Envelope);
         const persona = json.Envelope.Body.getPersona_v2Response.personaReturn;
 
         const entity = mapPadronToSupplier(persona);
