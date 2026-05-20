@@ -16,5 +16,5 @@ export async function generateAfipInvoicePdf(html: string) {
 
     await browser.close();
 
-    return pdf;
+    return Buffer.from(pdf);
 }
