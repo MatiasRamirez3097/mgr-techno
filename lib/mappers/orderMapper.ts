@@ -64,7 +64,9 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
         datePaid: order.datePaid ? order.datePaid.toISOString() : null,
 
         notes: order.notes || "",
-
+        receipt: {
+            url: order.receipt?.url || "",
+        },
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
         inventoryAllocatedAt: order.inventoryAllocatedAt?.toISOString() || null,

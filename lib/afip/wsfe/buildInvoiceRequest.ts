@@ -1,90 +1,26 @@
-// /lib/afip/wsfe/buildInvoiceRequest.ts
-
-import { AFIP_DOCUMENT_TYPES } from "../constants";
-
-interface InvoiceItem {
-    title: string;
-
-    quantity: number;
-
-    unitPrice: number;
-}
-
-interface InvoiceCustomer {
-    documentType: number;
-
-    documentNumber: string;
-
-    taxCondition: {
-        id: number;
-
-        label: string;
-    };
-}
-
-interface BuildInvoiceRequestParams {
-    invoiceNumber: number;
-
+interface Params {
     pointOfSale: number;
 
     voucherType: number;
 
-    customer: InvoiceCustomer;
+    voucherNumber: number;
 
-    items: InvoiceItem[];
+    customer: any;
+
+    totals: {
+        subtotal: number;
+        iva: number;
+        total: number;
+    };
 }
 
 export function buildInvoiceRequest({
-    invoiceNumber,
     pointOfSale,
     voucherType,
+    voucherNumber,
     customer,
-    items,
-}: BuildInvoiceRequestParams) {
-    // =========================
-    // Totales
-    // =========================
-
-    const net = Number(
-        items
-            .reduce((acc, item) => acc + item.quantity * item.unitPrice, 0)
-            .toFixed(2),
-    );
-
-    // 21% IVA
-    const ivaAmount = Number((net * 0.21).toFixed(2));
-
-    const total = Number((net + ivaAmount).toFixed(2));
-
-    // =========================
-    // Fecha comprobante
-    // =========================
-
-    const today = new Date();
-
-    const cbteFch = `${today.getFullYear()}${String(
-        today.getMonth() + 1,
-    ).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
-
-    // =========================
-    // Documento receptor
-    // =========================
-
-    let docType = customer.documentType;
-
-    let docNumber = Number(customer.documentNumber);
-
-    // Consumidor Final
-    if (!customer.documentNumber) {
-        docType = AFIP_DOCUMENT_TYPES.CONSUMIDOR_FINAL;
-
-        docNumber = 0;
-    }
-
-    // =========================
-    // Request WSFE
-    // =========================
-
+    totals,
+}: Params) {
     return {
         FeCabReq: {
             CantReg: 1,
@@ -98,25 +34,27 @@ export function buildInvoiceRequest({
             FECAEDetRequest: {
                 Concepto: 1,
 
-                DocTipo: docType,
+                DocTipo: customer.documentType,
 
-                DocNro: docNumber,
+                DocNro: Number(customer.documentNumber),
 
-                CbteDesde: invoiceNumber,
+                CbteDesde: voucherNumber,
 
-                CbteHasta: invoiceNumber,
+                CbteHasta: voucherNumber,
 
-                CbteFch: cbteFch,
+                CbteFch: Number(
+                    new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+                ),
 
-                ImpTotal: total,
+                ImpTotal: totals.total,
 
                 ImpTotConc: 0,
 
-                ImpNeto: net,
+                ImpNeto: totals.subtotal,
 
                 ImpOpEx: 0,
 
-                ImpIVA: ivaAmount,
+                ImpIVA: totals.iva,
 
                 ImpTrib: 0,
 
@@ -124,16 +62,16 @@ export function buildInvoiceRequest({
 
                 MonCotiz: 1,
 
-                CondicionIVAReceptorId: customer.taxCondition.id,
-
                 Iva: {
-                    AlicIva: {
-                        Id: 5,
+                    AlicIva: [
+                        {
+                            Id: 5,
 
-                        BaseImp: net,
+                            BaseImp: totals.subtotal,
 
-                        Importe: ivaAmount,
-                    },
+                            Importe: totals.iva,
+                        },
+                    ],
                 },
             },
         },

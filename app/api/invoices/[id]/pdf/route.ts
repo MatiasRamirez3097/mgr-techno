@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { afipInvoiceTemplate } from "@/lib/pdf/templates/afipInvoiceTemplate";
-import { generateInvoicePdf } from "@/lib/pdf/generators/generateInvoicePdf";
+import { generateAfipInvoicePdf } from "@/lib/pdf/generators/generateAfipInvoicePdf";
 
 export async function GET() {
     const html = afipInvoiceTemplate({
@@ -47,7 +47,7 @@ export async function GET() {
         },
     });
 
-    const pdf = await generateInvoicePdf(html);
+    const pdf = await generateAfipInvoicePdf(html);
 
     return new NextResponse(pdf, {
         headers: {

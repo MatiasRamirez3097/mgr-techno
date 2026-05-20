@@ -68,6 +68,10 @@ export type OrderDTO = {
     createdAt: string;
     updatedAt: string;
     inventoryAllocatedAt: string | null;
+    receipt: {
+        url: string;
+        generatedAt: string;
+    };
 };
 
 export type OrderFilters = {

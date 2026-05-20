@@ -1,5 +1,3 @@
-// /lib/afip/wsfe/createVoucher.ts
-
 import { soapRequest } from "../client";
 
 interface Params {
@@ -7,23 +5,25 @@ interface Params {
 
     sign: string;
 
-    cuit: number;
+    cuit: string;
 
-    payload: any;
+    feCAEReq: any;
 }
 
-export async function createVoucher({ token, sign, cuit, payload }: Params) {
+export async function createVoucher({ token, sign, cuit, feCAEReq }: Params) {
     const response = await soapRequest({
         operation: "FECAESolicitar",
 
         body: {
             Auth: {
                 Token: token,
+
                 Sign: sign,
+
                 Cuit: cuit,
             },
 
-            FeCAEReq: payload.FeCAEReq,
+            FeCAEReq: feCAEReq,
         },
     });
 

@@ -1,5 +1,3 @@
-// /lib/afip/wsfe/getLastVoucher.ts
-
 import { soapRequest } from "../client";
 
 interface Params {
@@ -7,7 +5,7 @@ interface Params {
 
     sign: string;
 
-    cuit: number;
+    cuit: string;
 
     pointOfSale: number;
 
@@ -23,10 +21,13 @@ export async function getLastVoucher({
 }: Params) {
     const response = await soapRequest({
         operation: "FECompUltimoAutorizado",
+
         body: {
             Auth: {
                 Token: token,
+
                 Sign: sign,
+
                 Cuit: cuit,
             },
 
