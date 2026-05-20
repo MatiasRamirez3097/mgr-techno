@@ -15,7 +15,7 @@ export async function generatePdf(html: string) {
             printBackground: true,
         });
 
-        return pdf;
+        return Buffer.from(pdf);
     } finally {
         await browser.close();
     }
