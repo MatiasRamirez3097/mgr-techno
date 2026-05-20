@@ -1,5 +1,3 @@
-// /lib/afip/adapters/buildVoucherPayload.ts
-
 import { AFIP_CONCEPTS, AFIP_CURRENCY, AFIP_IVA } from "../constants";
 
 interface Params {
