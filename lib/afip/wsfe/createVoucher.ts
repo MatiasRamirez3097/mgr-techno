@@ -9,23 +9,29 @@ interface Params {
 
     feCAEReq: any;
 }
+const WSFE_URL = "https://servicios1.afip.gov.ar/wsfev1/service.asmx";
 
 export async function createVoucher({ token, sign, cuit, feCAEReq }: Params) {
     const response = await soapRequest({
+        url: WSFE_URL,
         operation: "FECAESolicitar",
+        body: `
+                <feCAEReq
+                    xmlns=""http://ar.gov.afip.dif.FEV1/""
+                >
+                    <token>${token}</token>
+                    <sign>${sign}</sign>
 
-        body: {
-            Auth: {
-                Token: token,
+                    <cuitRepresentada>
+                        ${process.env.AFIP_CUIT}
+                    </cuitRepresentada>
 
-                Sign: sign,
-
-                Cuit: cuit,
-            },
-
-            FeCAEReq: feCAEReq,
-        },
+                    <idPersona>
+                        ${cuit}
+                    </idPersona>
+                </feCAEReq>
+            `,
     });
 
-    return response.FECAESolicitarResult;
+    return response;
 }
