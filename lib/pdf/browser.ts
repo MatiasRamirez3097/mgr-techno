@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer";
 
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = !!process.env.VERCEL;
 
 export async function getBrowser() {
     /*
