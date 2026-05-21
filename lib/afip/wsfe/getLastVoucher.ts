@@ -24,6 +24,7 @@ export async function getLastVoucher({
     const response = await soapRequest({
         operation: "FECompUltimoAutorizado",
         url: WSFE_URL,
+        useLegacySSL: true,
         body: `
                 <feCAEReq
                     xmlns=""http://ar.gov.afip.dif.FEV1/""
