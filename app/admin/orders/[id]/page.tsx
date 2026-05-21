@@ -13,6 +13,7 @@ import { getOrderPaymentStatus } from "@/lib/orders/getOrderPaymentStatus";
 import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
 import { GenerateReceiptButton } from "@/components/admin/documents/GenerateReceiptButton";
 import { DownloadReceiptButton } from "@/components/admin/documents/DownloadReceiptButton";
+import { GenerateInvoiceButton } from "@/components/admin/documents/GenerateInvoiceButton";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
     mercadopago: "MercadoPago",
@@ -284,6 +285,116 @@ export default async function AdminOrderDetailPage({
                                 <DownloadReceiptButton orderId={order.id} />
                             )}
                         </div>
+                    </section>
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-4">
+                            Facturación AFIP
+                        </h2>
+
+                        {order.invoices?.length ? (
+                            <div className="flex flex-col gap-3">
+                                {order.invoices.map((invoice: any) => (
+                                    <div
+                                        key={invoice._id}
+                                        className="
+                                    rounded-xl
+                                    border border-gray-700
+                                    p-4
+                                "
+                                    >
+                                        <div
+                                            className="
+                                    flex items-center
+                                    justify-between
+                                "
+                                        >
+                                            <div>
+                                                <p
+                                                    className="
+                                            text-sm
+                                            font-semibold
+                                            text-white
+                                        "
+                                                >
+                                                    Factura {invoice.type}
+                                                </p>
+
+                                                <p
+                                                    className="
+                                            text-xs
+                                            text-gray-400
+                                            mt-1
+                                        "
+                                                >
+                                                    Nº {invoice.pointOfSale}-
+                                                    {String(
+                                                        invoice.voucherNumber,
+                                                    ).padStart(8, "0")}
+                                                </p>
+                                            </div>
+
+                                            <span
+                                                className="
+                                            text-xs
+                                            px-2 py-1
+                                            rounded-full
+                                            border
+                                            text-green-400
+                                            border-green-400/20
+                                            bg-green-400/10
+                                        "
+                                            >
+                                                Autorizada
+                                            </span>
+                                        </div>
+
+                                        <div
+                                            className="
+                                    mt-4
+                                    text-xs
+                                    text-gray-400
+                                    space-y-1
+                                "
+                                        >
+                                            <p>CAE: {invoice.cae}</p>
+
+                                            <p>
+                                                Vencimiento:{" "}
+                                                {invoice.caeExpiration}
+                                            </p>
+                                        </div>
+
+                                        {invoice.pdfUrl && (
+                                            <a
+                                                href={invoice.pdfUrl}
+                                                target="_blank"
+                                                className="
+                                                mt-4
+                                                inline-flex
+                                                text-sm
+                                                text-cyan-400
+                                                hover:text-cyan-300
+                                            "
+                                            >
+                                                Descargar PDF
+                                            </a>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : paymentStatus === "paid" ? (
+                            <GenerateInvoiceButton orderId={order.id} />
+                        ) : (
+                            <p
+                                className="
+                text-sm
+                text-gray-400
+            "
+                            >
+                                La orden debe estar pagada para emitir factura
+                                AFIP.
+                            </p>
+                        )}
                     </section>
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <div className="border-t border-gray-700 mt-4 pt-4">

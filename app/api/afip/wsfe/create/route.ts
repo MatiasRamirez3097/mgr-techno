@@ -157,7 +157,12 @@ export async function POST(req: Request) {
         });
 
         const voucherNumber = lastVoucher + 1;
+        //TESTING
+        return Response.json({
+            success: true,
 
+            voucherNumber,
+        });
         /*
         |--------------------------------------------------------------------------
         | BUILD AFIP REQUEST

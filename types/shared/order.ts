@@ -73,6 +73,25 @@ export type OrderDTO = {
         generatedAt: string;
         receiptPdfPublicId: string;
     };
+    invoices?: {
+        id: string;
+
+        type: string;
+
+        pointOfSale?: number;
+
+        voucherNumber?: number;
+
+        cae?: string;
+
+        caeExpiration?: string;
+
+        afipStatus: string;
+
+        pdfUrl?: string;
+
+        createdAt: Date;
+    }[];
 };
 
 export type OrderFilters = {
