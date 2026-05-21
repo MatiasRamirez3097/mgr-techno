@@ -19,7 +19,7 @@ export async function GET(
 
         const order = await OrderModel.findById(id);
 
-        if (!order?.receiptPdfPublicId) {
+        if (!order?.receipt?.receiptPdfPublicId) {
             return Response.json(
                 {
                     success: false,
@@ -32,7 +32,7 @@ export async function GET(
             );
         }
 
-        const url = getAuthenticatedPdfUrl(order.receiptPdfPublicId);
+        const url = getAuthenticatedPdfUrl(order.receipt.receiptPdfPublicId);
 
         return Response.json({
             success: true,
