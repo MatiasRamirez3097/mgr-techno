@@ -12,6 +12,11 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
         <style>
 
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+
             * {
                 box-sizing: border-box;
             }
@@ -20,25 +25,24 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 margin: 0;
 
-                padding: 16px;
-
                 font-family:
+                    Helvetica,
                     Arial,
                     sans-serif;
 
-                background: #f3f4f6;
+                font-size: 11px;
 
                 color: #000;
+
+                background: #fff;
             }
 
-            .invoice {
+            .document {
 
                 width: 100%;
 
                 border:
-                    2px solid #000;
-
-                background: #fff;
+                    1px solid #000;
             }
 
             /*
@@ -52,25 +56,25 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
                 display: flex;
 
                 border-bottom:
-                    2px solid #000;
+                    1px solid #000;
             }
 
             .header-left {
 
                 width: 50%;
 
-                padding: 14px;
+                padding: 10px;
 
                 border-right:
-                    2px solid #000;
+                    1px solid #000;
             }
 
             .header-center {
 
-                width: 80px;
+                width: 70px;
 
                 border-right:
-                    2px solid #000;
+                    1px solid #000;
 
                 display: flex;
 
@@ -80,12 +84,12 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 align-items: center;
 
-                padding: 10px;
+                padding: 8px;
             }
 
             .voucher-letter {
 
-                font-size: 44px;
+                font-size: 34px;
 
                 font-weight: bold;
 
@@ -94,9 +98,9 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
             .voucher-code {
 
-                font-size: 12px;
+                font-size: 10px;
 
-                margin-top: 8px;
+                margin-top: 4px;
 
                 text-align: center;
             }
@@ -105,89 +109,91 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 flex: 1;
 
-                padding: 14px;
+                padding: 10px;
 
                 text-align: right;
             }
 
             .business-name {
 
-                font-size: 24px;
+                font-size: 22px;
 
                 font-weight: bold;
 
                 margin-bottom: 6px;
+
+                text-transform: uppercase;
             }
 
             .business-info {
 
-                font-size: 11px;
+                font-size: 10px;
 
-                line-height: 1.5;
+                line-height: 1.45;
             }
 
-            .invoice-title {
+            .document-title {
 
-                font-size: 34px;
+                font-size: 26px;
+
+                font-weight: bold;
+
+                text-transform: uppercase;
+            }
+
+            .document-number {
+
+                margin-top: 4px;
+
+                font-size: 20px;
 
                 font-weight: bold;
             }
 
-            .invoice-number {
-
-                font-size: 24px;
+            .document-date {
 
                 margin-top: 6px;
 
-                font-weight: bold;
-            }
-
-            .invoice-date {
-
-                margin-top: 8px;
-
-                font-size: 12px;
+                font-size: 11px;
             }
 
             /*
             |--------------------------------------------------------------------------
-            | BOXES
+            | INFO BOXES
             |--------------------------------------------------------------------------
             */
 
-            .box {
+            .info-box {
 
                 border-bottom:
-                    2px solid #000;
+                    1px solid #000;
 
-                padding: 10px 14px;
+                padding: 6px 8px;
             }
 
-            .row {
+            .info-row {
 
                 display: flex;
 
-                gap: 24px;
+                gap: 16px;
 
-                margin-bottom: 6px;
+                margin-bottom: 4px;
             }
 
-            .row:last-child {
+            .info-row:last-child {
                 margin-bottom: 0;
             }
 
-            .field {
+            .info-col {
 
                 flex: 1;
-
-                font-size: 12px;
             }
 
             .label {
 
                 font-weight: bold;
 
-                margin-right: 6px;
+                text-transform: uppercase;
             }
 
             /*
@@ -213,11 +219,11 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
                 border:
                     1px solid #000;
 
-                padding: 8px;
+                padding: 5px 6px;
 
-                font-size: 12px;
+                font-size: 10px;
 
-                text-align: left;
+                text-transform: uppercase;
             }
 
             td {
@@ -225,9 +231,9 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
                 border:
                     1px solid #000;
 
-                padding: 8px;
+                padding: 5px 6px;
 
-                font-size: 12px;
+                font-size: 10px;
             }
 
             .text-right {
@@ -243,10 +249,10 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
             .spacer {
 
-                height: 380px;
+                height: 420px;
 
                 border-bottom:
-                    2px solid #000;
+                    1px solid #000;
             }
 
             /*
@@ -263,22 +269,22 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 align-items: flex-end;
 
-                padding: 14px;
+                padding: 10px;
             }
 
             .footer-left {
 
-                width: 260px;
+                width: 220px;
             }
 
-            .qr-placeholder {
+            .qr {
 
-                width: 100px;
+                width: 90px;
 
-                height: 100px;
+                height: 90px;
 
                 border:
-                    2px solid #000;
+                    1px solid #000;
 
                 display: flex;
 
@@ -286,21 +292,21 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 justify-content: center;
 
-                font-size: 10px;
+                margin-bottom: 8px;
 
-                margin-bottom: 10px;
+                font-size: 9px;
             }
 
             .cae {
 
-                font-size: 12px;
+                font-size: 10px;
 
-                line-height: 1.6;
+                line-height: 1.5;
             }
 
             .totals {
 
-                width: 280px;
+                width: 260px;
             }
 
             .total-row {
@@ -309,35 +315,41 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 justify-content: space-between;
 
-                margin-bottom: 10px;
+                margin-bottom: 6px;
 
-                font-size: 13px;
+                font-size: 11px;
             }
 
             .grand-total {
 
-                font-size: 24px;
+                margin-top: 8px;
+
+                padding-top: 8px;
+
+                border-top:
+                    1px solid #000;
+
+                font-size: 18px;
 
                 font-weight: bold;
-
-                border-top:
-                    2px solid #000;
-
-                padding-top: 12px;
-
-                margin-top: 12px;
             }
 
-            .footer-note {
+            /*
+            |--------------------------------------------------------------------------
+            | NOTE
+            |--------------------------------------------------------------------------
+            */
+
+            .note {
 
                 border-top:
-                    2px solid #000;
+                    1px solid #000;
 
                 text-align: center;
 
-                padding: 8px;
+                padding: 6px;
 
-                font-size: 11px;
+                font-size: 10px;
             }
 
         </style>
@@ -346,7 +358,7 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
     <body>
 
-        <div class="invoice">
+        <div class="document">
 
             <!-- HEADER -->
 
@@ -387,15 +399,15 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 <div class="header-right">
 
-                    <div class="invoice-title">
-                        COMPROBANTE
+                    <div class="document-title">
+                        Comprobante
                     </div>
 
-                    <div class="invoice-number">
+                    <div class="document-number">
                         Nº ${order.number}
                     </div>
 
-                    <div class="invoice-date">
+                    <div class="document-date">
                         FECHA: ${order.date}
                     </div>
 
@@ -405,24 +417,24 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
             <!-- CUSTOMER -->
 
-            <div class="box">
+            <div class="info-box">
 
-                <div class="row">
+                <div class="info-row">
 
-                    <div class="field">
+                    <div class="info-col">
 
                         <span class="label">
-                            CLIENTE:
+                            Cliente:
                         </span>
 
                         ${customer.name}
 
                     </div>
 
-                    <div class="field">
+                    <div class="info-col">
 
                         <span class="label">
-                            EMAIL:
+                            Email:
                         </span>
 
                         ${customer.email || "-"}
@@ -431,22 +443,22 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 </div>
 
-                <div class="row">
+                <div class="info-row">
 
-                    <div class="field">
+                    <div class="info-col">
 
                         <span class="label">
-                            TEL:
+                            Teléfono:
                         </span>
 
                         ${customer.phone || "-"}
 
                     </div>
 
-                    <div class="field">
+                    <div class="info-col">
 
                         <span class="label">
-                            CONDICIÓN:
+                            Condición:
                         </span>
 
                         Consumidor Final
@@ -457,7 +469,7 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
             </div>
 
-            <!-- TABLE -->
+            <!-- PRODUCTS -->
 
             <table>
 
@@ -469,15 +481,15 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
                             Descripción
                         </th>
 
-                        <th width="90">
+                        <th width="70">
                             Cant.
                         </th>
 
-                        <th width="120">
+                        <th width="110">
                             Precio Uni.
                         </th>
 
-                        <th width="140">
+                        <th width="130">
                             Sub Total
                         </th>
 
@@ -517,7 +529,7 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
             </table>
 
-            <!-- SPACER -->
+            <!-- EMPTY SPACE -->
 
             <div class="spacer"></div>
 
@@ -527,7 +539,7 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 <div class="footer-left">
 
-                    <div class="qr-placeholder">
+                    <div class="qr">
                         QR AFIP
                     </div>
 
@@ -584,7 +596,7 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
             </div>
 
-            <div class="footer-note">
+            <div class="note">
 
                 Este comprobante no posee validez fiscal.
 

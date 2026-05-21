@@ -1,10 +1,10 @@
 export function mapOrderToSaleReceipt(order: any) {
     return {
         business: {
-            name: "MGR Tech",
+            name: "MGR Techno",
             address: "Rosario, Santa Fe",
-            phone: "",
-            email: "",
+            phone: "3417223739",
+            email: "ventas@mgrtechno.com.ar",
         },
 
         customer: {
