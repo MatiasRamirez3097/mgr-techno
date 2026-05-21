@@ -69,6 +69,7 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
             generatedAt: order.receipt?.generatedAt
                 ? order.receipt?.generatedAt.toISOString()
                 : "",
+            receiptPdfPublicId: order.receipt?.receiptPdfPublicId || "",
         },
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
