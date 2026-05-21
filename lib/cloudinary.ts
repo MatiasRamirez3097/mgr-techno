@@ -92,13 +92,19 @@ export async function uploadBuffer({
 }
 
 export function getAuthenticatedPdfUrl(publicId: string) {
-    return cloudinary.url(publicId, {
-        resource_type: "raw",
+    return cloudinary.utils.private_download_url(
+        publicId,
 
-        type: "authenticated",
+        "pdf",
 
-        sign_url: true,
+        {
+            resource_type: "raw",
 
-        secure: true,
-    });
+            type: "authenticated",
+
+            attachment: true,
+
+            expires_at: Math.floor(Date.now() / 1000) + 60 * 10,
+        },
+    );
 }
