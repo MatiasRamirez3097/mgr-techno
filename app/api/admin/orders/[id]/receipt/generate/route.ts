@@ -66,7 +66,7 @@ export async function POST(
         });
 
         await OrderModel.findByIdAndUpdate(id, {
-            receiptPdfPublicId: uploaded.public_id,
+            "receipt.receiptPdfPublicId": uploaded.public_id,
         });
 
         return NextResponse.json({
