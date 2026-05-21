@@ -155,7 +155,7 @@ export async function POST(req: Request) {
 
             voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
         });
-
+        console.log("lastVoucher>>>", lastVoucher);
         const voucherNumber = lastVoucher + 1;
         //TESTING
         return Response.json({

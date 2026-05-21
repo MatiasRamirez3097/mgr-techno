@@ -25,23 +25,19 @@ export async function getLastVoucher({
         operation: "FECompUltimoAutorizado",
         url: WSFE_URL,
         useLegacySSL: true,
-        body: `
-                <feCAEReq
+        body: `<feCAEReq
                     xmlns=""http://ar.gov.afip.dif.FEV1/""
                 >
                     <token>${token}</token>
                     <sign>${sign}</sign>
-
                     <cuitRepresentada>
                         ${process.env.AFIP_CUIT}
                     </cuitRepresentada>
-
                     <idPersona>
                         ${cuit}
                     </idPersona>
-                </feCAEReq>
-            `,
+                </feCAEReq>`,
     });
-
+    console.log("response json>>>", response?.json?.Envelope?.Body);
     return Number(response?.json?.FECompUltimoAutorizadoResult.CbteNro);
 }
