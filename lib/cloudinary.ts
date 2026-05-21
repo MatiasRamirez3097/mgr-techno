@@ -55,6 +55,7 @@ export async function uploadBuffer({
         const stream = cloudinary.uploader.upload_stream(
             {
                 resource_type: "raw",
+                type: "upload",
                 folder,
                 public_id: fileName,
                 format: "pdf",
