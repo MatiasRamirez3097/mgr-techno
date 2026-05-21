@@ -1,29 +1,35 @@
 import puppeteer from "puppeteer";
 
-const isProduction = !!process.env.VERCEL;
+const isVercel = !!process.env.VERCEL;
 
 export async function getBrowser() {
     /*
-     * LOCAL WINDOWS
-     */
+    |--------------------------------------------------------------------------
+    | LOCAL
+    |--------------------------------------------------------------------------
+    */
 
-    if (!isProduction) {
+    if (!isVercel) {
         return puppeteer.launch({
+            executablePath: process.env.CHROME_EXECUTABLE_PATH,
+
             headless: true,
 
-            executablePath: process.env.CHROME_EXECUTABLE_PATH,
+            protocolTimeout: 120000,
 
             args: ["--no-sandbox", "--disable-setuid-sandbox"],
         });
     }
 
     /*
-     * VERCEL
-     */
-
-    const puppeteerCore = (await import("puppeteer-core")).default;
+    |--------------------------------------------------------------------------
+    | VERCEL
+    |--------------------------------------------------------------------------
+    */
 
     const chromium = (await import("@sparticuz/chromium")).default;
+
+    const puppeteerCore = (await import("puppeteer-core")).default;
 
     return puppeteerCore.launch({
         args: chromium.args,
@@ -31,5 +37,7 @@ export async function getBrowser() {
         executablePath: await chromium.executablePath(),
 
         headless: true,
+
+        protocolTimeout: 120000,
     });
 }
