@@ -36,6 +36,9 @@ export async function getLastVoucher({
                 <CbteTipo>${voucherType}</CbteTipo>`,
         },
     });
-    console.log("response json>>>", response?.json?.Envelope?.Body);
-    return Number(response?.json?.FECompUltimoAutorizadoResult.CbteNro);
+
+    return Number(
+        response?.json?.Envelope?.Body?.FECompUltimoAutorizadoResponse
+            ?.FECompUltimoAutorizadoResult?.CbteNro || "-1",
+    );
 }

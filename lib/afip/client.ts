@@ -75,7 +75,7 @@ export async function soapRequest({
                 <Sign>${body.auth.sign}</Sign>
                 <Cuit>${body.auth.cuit}</Cuit>
                 </Auth>
-                ${body}
+                ${body.payload}
                 </${operation}>
             </soapenv:Body>
         </soapenv:Envelope>

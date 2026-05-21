@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         |--------------------------------------------------------------------------
         */
 
-        const invoice = await InvoiceModel.create({
+        /*const invoice = await InvoiceModel.create({
             orderId,
 
             customerSnapshot,
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
             voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
 
             afipStatus: "pending",
-        });
+        });*/
 
         /*
         |--------------------------------------------------------------------------
@@ -155,7 +155,10 @@ export async function POST(req: Request) {
 
             voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
         });
-        console.log("lastVoucher>>>", lastVoucher);
+
+        if (lastVoucher === -1)
+            throw new Error("Error al obtener nro ultimo voucher");
+
         const voucherNumber = lastVoucher + 1;
         //TESTING
         return Response.json({
