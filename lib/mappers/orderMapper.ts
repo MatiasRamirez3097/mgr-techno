@@ -66,6 +66,9 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
         notes: order.notes || "",
         receipt: {
             url: order.receipt?.url || "",
+            generatedAt: order.receipt?.generatedAt
+                ? order.receipt?.generatedAt.toISOString()
+                : "",
         },
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
