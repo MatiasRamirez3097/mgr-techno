@@ -85,10 +85,21 @@ export async function POST(req: Request) {
 
             unitPrice: item.unitPrice ?? item.price,
 
+            taxRate: item.taxRate ?? item.taxRate,
+
             subtotal: Number(
                 (item.quantity * (item.unitPrice ?? item.price)).toFixed(2),
             ),
         }));
+
+        console.log("itemsSnapshot>>>>", itemsSnapshot);
+
+        //TESTING
+        return Response.json({
+            success: true,
+
+            itemsSnapshot,
+        });
 
         const subtotal = Number(
             itemsSnapshot
@@ -160,12 +171,7 @@ export async function POST(req: Request) {
             throw new Error("Error al obtener nro ultimo voucher");
 
         const voucherNumber = lastVoucher + 1;
-        //TESTING
-        return Response.json({
-            success: true,
 
-            voucherNumber,
-        });
         /*
         |--------------------------------------------------------------------------
         | BUILD AFIP REQUEST
@@ -184,6 +190,13 @@ export async function POST(req: Request) {
             totals: totalsSnapshot,
         });
 
+        console.log(">>>>>>>", feCAEReq);
+        //TESTING
+        return Response.json({
+            success: true,
+
+            voucherNumber,
+        });
         /*
         |--------------------------------------------------------------------------
         | CREATE AFIP VOUCHER
