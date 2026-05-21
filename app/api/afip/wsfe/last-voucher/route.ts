@@ -16,22 +16,18 @@ export async function GET() {
 
         const { json, xml } = await soapRequest({
             url: WSFE_URL,
-
+            xmlns: "http://ar.gov.afip.dif.FEV1/",
             operation: "FECompUltimoAutorizado",
             useLegacySSL: true,
-            body: `
-<FECompUltimoAutorizado xmlns="http://ar.gov.afip.dif.FEV1/">
-<Auth>
-<Token>${token}</Token>
-<Sign>${sign}</Sign>
-<Cuit>${process.env.AFIP_CUIT}</Cuit>
-</Auth>
-
-<PtoVta>5</PtoVta>
-
-<CbteTipo>6</CbteTipo>
-</FECompUltimoAutorizado>
-`,
+            body: {
+                auth: {
+                    token: token,
+                    sign: sign,
+                    cuit: process.env.AFIP_CUIT,
+                },
+                payload: `<PtoVta>5</PtoVta>
+                <CbteTipo>6</CbteTipo>`,
+            },
         });
 
         const result =

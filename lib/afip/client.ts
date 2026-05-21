@@ -7,8 +7,16 @@ import crypto from "crypto";
 interface SoapRequestParams {
     url: string;
     operation: string;
-    body: string;
+    body: {
+        auth: {
+            token: string;
+            sign: string;
+            cuit: string | undefined;
+        };
+        payload: string;
+    };
     useLegacySSL?: boolean;
+    xmlns: string;
 }
 
 // Agente https nativo — SÍ respeta SSL_OP_LEGACY_SERVER_CONNECT
@@ -55,12 +63,20 @@ export async function soapRequest({
     operation,
     body,
     useLegacySSL = false,
+    xmlns,
 }: SoapRequestParams) {
     const soap = `
         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
             <soapenv:Header/>
             <soapenv:Body>
+                <${operation} xmlns="${xmlns}">
+                <Auth>
+                <Token>${body.auth.token}</Token>
+                <Sign>${body.auth.sign}</Sign>
+                <Cuit>${body.auth.cuit}</Cuit>
+                </Auth>
                 ${body}
+                </${operation}>
             </soapenv:Body>
         </soapenv:Envelope>
     `;

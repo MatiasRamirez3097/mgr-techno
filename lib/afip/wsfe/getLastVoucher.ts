@@ -22,21 +22,19 @@ export async function getLastVoucher({
     voucherType,
 }: Params) {
     const response = await soapRequest({
-        operation: "FECompUltimoAutorizado",
         url: WSFE_URL,
+        xmlns: "http://ar.gov.afip.dif.FEV1/",
+        operation: "FECompUltimoAutorizado",
         useLegacySSL: true,
-        body: `<feCAEReq
-                    xmlns=""http://ar.gov.afip.dif.FEV1/""
-                >
-                    <token>${token}</token>
-                    <sign>${sign}</sign>
-                    <cuitRepresentada>
-                        ${process.env.AFIP_CUIT}
-                    </cuitRepresentada>
-                    <idPersona>
-                        ${cuit}
-                    </idPersona>
-                </feCAEReq>`,
+        body: {
+            auth: {
+                token: token,
+                sign: sign,
+                cuit: process.env.AFIP_CUIT,
+            },
+            payload: `<PtoVta>${pointOfSale}</PtoVta>
+                <CbteTipo>${voucherType}</CbteTipo>`,
+        },
     });
     console.log("response json>>>", response?.json?.Envelope?.Body);
     return Number(response?.json?.FECompUltimoAutorizadoResult.CbteNro);
