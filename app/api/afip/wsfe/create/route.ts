@@ -198,14 +198,14 @@ export async function POST(req: Request) {
         |--------------------------------------------------------------------------
         */
 
-        const detail = afipResponse?.FeDetResp?.FECAEDetResponse;
+        const detail = afipResponse?.json?.FeDetResp?.FECAEDetResponse;
 
         if (!detail?.CAE) {
             invoice.afipStatus = "rejected";
 
-            invoice.afipErrors = afipResponse.Errors || [];
+            invoice.afipErrors = afipResponse?.json?.Errors || [];
 
-            invoice.afipObservations = afipResponse.Observaciones || [];
+            invoice.afipObservations = afipResponse?.json?.Observaciones || [];
 
             await invoice.save();
 
@@ -237,7 +237,7 @@ export async function POST(req: Request) {
 
         invoice.afipStatus = "authorized";
 
-        invoice.afipResult = afipResponse.Resultado;
+        invoice.afipResult = afipResponse?.json?.Resultado;
 
         invoice.afipResponse = afipResponse;
 

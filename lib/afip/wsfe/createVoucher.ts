@@ -33,5 +33,9 @@ export async function createVoucher({ token, sign, cuit, feCAEReq }: Params) {
             `,
     });
 
-    return response;
+    return {
+        xml: response.xml,
+
+        json: response.json.FECAESolicitarResponse.FECAESolicitarResult,
+    };
 }
