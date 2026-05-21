@@ -4,360 +4,358 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
     const { business, customer, order, items, totals } = data;
 
     return `
-        <html>
+    <html>
 
-        <head>
+    <head>
 
-            <meta charset="UTF-8" />
+        <meta charset="UTF-8" />
 
-            <style>
+        <style>
 
-                * {
-                    box-sizing: border-box;
-                }
+            * {
+                box-sizing: border-box;
+            }
 
-                body {
+            body {
 
-                    margin: 0;
+                margin: 0;
 
-                    padding: 40px;
+                padding: 16px;
 
-                    background: #f4f4f5;
+                font-family:
+                    Arial,
+                    sans-serif;
 
-                    font-family:
-                        Arial,
-                        sans-serif;
+                background: #f3f4f6;
 
-                    color: #18181b;
-                }
+                color: #000;
+            }
 
-                .page {
+            .invoice {
 
-                    background: white;
+                width: 100%;
 
-                    border-radius: 24px;
+                border:
+                    2px solid #000;
 
-                    overflow: hidden;
+                background: #fff;
+            }
 
-                    box-shadow:
-                        0 10px 40px rgba(0,0,0,.08);
-                }
+            /*
+            |--------------------------------------------------------------------------
+            | HEADER
+            |--------------------------------------------------------------------------
+            */
 
-                /*
-                |--------------------------------------------------------------------------
-                | HEADER
-                |--------------------------------------------------------------------------
-                */
+            .header {
 
-                .header {
+                display: flex;
 
-                    background:
-                        linear-gradient(
-                            135deg,
-                            #111827,
-                            #1f2937
-                        );
+                border-bottom:
+                    2px solid #000;
+            }
 
-                    color: white;
+            .header-left {
 
-                    padding: 40px;
-                }
+                width: 50%;
 
-                .header-top {
+                padding: 14px;
 
-                    display: flex;
+                border-right:
+                    2px solid #000;
+            }
 
-                    justify-content: space-between;
+            .header-center {
 
-                    align-items: flex-start;
-                }
+                width: 80px;
 
-                .brand {
+                border-right:
+                    2px solid #000;
 
-                    font-size: 34px;
+                display: flex;
 
-                    font-weight: 800;
+                flex-direction: column;
 
-                    letter-spacing: 1px;
-                }
+                justify-content: center;
 
-                .document-label {
+                align-items: center;
 
-                    margin-top: 8px;
+                padding: 10px;
+            }
 
-                    font-size: 13px;
+            .voucher-letter {
 
-                    letter-spacing: 1px;
+                font-size: 44px;
 
-                    text-transform: uppercase;
+                font-weight: bold;
 
-                    opacity: .8;
-                }
+                line-height: 1;
+            }
 
-                .order-box {
+            .voucher-code {
 
-                    text-align: right;
-                }
+                font-size: 12px;
 
-                .order-number {
+                margin-top: 8px;
 
-                    font-size: 28px;
+                text-align: center;
+            }
 
-                    font-weight: bold;
-                }
+            .header-right {
 
-                .order-date {
+                flex: 1;
 
-                    margin-top: 8px;
+                padding: 14px;
 
-                    font-size: 14px;
+                text-align: right;
+            }
 
-                    opacity: .8;
-                }
+            .business-name {
 
-                .business-info {
+                font-size: 24px;
 
-                    margin-top: 24px;
+                font-weight: bold;
 
-                    font-size: 13px;
+                margin-bottom: 6px;
+            }
 
-                    line-height: 1.7;
+            .business-info {
 
-                    opacity: .9;
-                }
+                font-size: 11px;
 
-                /*
-                |--------------------------------------------------------------------------
-                | CONTENT
-                |--------------------------------------------------------------------------
-                */
+                line-height: 1.5;
+            }
 
-                .content {
+            .invoice-title {
 
-                    padding: 40px;
-                }
+                font-size: 34px;
 
-                .section {
+                font-weight: bold;
+            }
 
-                    margin-bottom: 36px;
-                }
+            .invoice-number {
 
-                .section-title {
+                font-size: 24px;
 
-                    font-size: 12px;
+                margin-top: 6px;
 
-                    text-transform: uppercase;
+                font-weight: bold;
+            }
 
-                    letter-spacing: 1px;
+            .invoice-date {
 
-                    color: #71717a;
+                margin-top: 8px;
 
-                    margin-bottom: 14px;
+                font-size: 12px;
+            }
 
-                    font-weight: bold;
-                }
+            /*
+            |--------------------------------------------------------------------------
+            | BOXES
+            |--------------------------------------------------------------------------
+            */
 
-                /*
-                |--------------------------------------------------------------------------
-                | CUSTOMER
-                |--------------------------------------------------------------------------
-                */
+            .box {
 
-                .customer-card {
+                border-bottom:
+                    2px solid #000;
 
-                    background: #fafafa;
+                padding: 10px 14px;
+            }
 
-                    border:
-                        1px solid #e5e7eb;
+            .row {
 
-                    border-radius: 18px;
+                display: flex;
 
-                    padding: 22px;
-                }
+                gap: 24px;
 
-                .customer-name {
+                margin-bottom: 6px;
+            }
 
-                    font-size: 18px;
+            .row:last-child {
+                margin-bottom: 0;
+            }
 
-                    font-weight: bold;
+            .field {
 
-                    margin-bottom: 10px;
-                }
+                flex: 1;
 
-                .customer-line {
+                font-size: 12px;
+            }
 
-                    color: #52525b;
+            .label {
 
-                    font-size: 14px;
+                font-weight: bold;
 
-                    margin-bottom: 5px;
-                }
+                margin-right: 6px;
+            }
 
-                /*
-                |--------------------------------------------------------------------------
-                | TABLE
-                |--------------------------------------------------------------------------
-                */
+            /*
+            |--------------------------------------------------------------------------
+            | TABLE
+            |--------------------------------------------------------------------------
+            */
 
-                table {
+            table {
 
-                    width: 100%;
+                width: 100%;
 
-                    border-collapse: collapse;
-                }
+                border-collapse: collapse;
+            }
 
-                thead th {
+            thead {
 
-                    text-align: left;
+                background: #efefef;
+            }
 
-                    font-size: 12px;
+            th {
 
-                    text-transform: uppercase;
+                border:
+                    1px solid #000;
 
-                    letter-spacing: .5px;
+                padding: 8px;
 
-                    color: #71717a;
+                font-size: 12px;
 
-                    padding-bottom: 14px;
+                text-align: left;
+            }
 
-                    border-bottom:
-                        1px solid #e5e7eb;
-                }
+            td {
 
-                tbody td {
+                border:
+                    1px solid #000;
 
-                    padding: 18px 0;
+                padding: 8px;
 
-                    border-bottom:
-                        1px solid #f1f5f9;
+                font-size: 12px;
+            }
 
-                    font-size: 14px;
-                }
+            .text-right {
 
-                .product-name {
+                text-align: right;
+            }
 
-                    font-weight: 600;
-                }
+            /*
+            |--------------------------------------------------------------------------
+            | SPACER
+            |--------------------------------------------------------------------------
+            */
 
-                .price {
+            .spacer {
 
-                    text-align: right;
-                }
+                height: 380px;
 
-                /*
-                |--------------------------------------------------------------------------
-                | TOTALS
-                |--------------------------------------------------------------------------
-                */
+                border-bottom:
+                    2px solid #000;
+            }
 
-                .totals-wrapper {
+            /*
+            |--------------------------------------------------------------------------
+            | FOOTER
+            |--------------------------------------------------------------------------
+            */
 
-                    display: flex;
+            .footer {
 
-                    justify-content: flex-end;
+                display: flex;
 
-                    margin-top: 32px;
-                }
+                justify-content: space-between;
 
-                .totals {
+                align-items: flex-end;
 
-                    width: 340px;
+                padding: 14px;
+            }
 
-                    background: #fafafa;
+            .footer-left {
 
-                    border:
-                        1px solid #e5e7eb;
+                width: 260px;
+            }
 
-                    border-radius: 18px;
+            .qr-placeholder {
 
-                    padding: 24px;
-                }
+                width: 100px;
 
-                .totals-row {
+                height: 100px;
 
-                    display: flex;
+                border:
+                    2px solid #000;
 
-                    justify-content: space-between;
+                display: flex;
 
-                    margin-bottom: 14px;
+                align-items: center;
 
-                    font-size: 14px;
-                }
+                justify-content: center;
 
-                .grand-total {
+                font-size: 10px;
 
-                    border-top:
-                        1px solid #d4d4d8;
+                margin-bottom: 10px;
+            }
 
-                    margin-top: 18px;
+            .cae {
 
-                    padding-top: 18px;
+                font-size: 12px;
 
-                    font-size: 22px;
+                line-height: 1.6;
+            }
 
-                    font-weight: bold;
-                }
+            .totals {
 
-                /*
-                |--------------------------------------------------------------------------
-                | FOOTER
-                |--------------------------------------------------------------------------
-                */
+                width: 280px;
+            }
 
-                .footer {
+            .total-row {
 
-                    margin-top: 48px;
+                display: flex;
 
-                    padding-top: 24px;
+                justify-content: space-between;
 
-                    border-top:
-                        1px solid #e5e7eb;
+                margin-bottom: 10px;
 
-                    text-align: center;
+                font-size: 13px;
+            }
 
-                    font-size: 12px;
+            .grand-total {
 
-                    color: #71717a;
+                font-size: 24px;
 
-                    line-height: 1.8;
-                }
+                font-weight: bold;
 
-            </style>
+                border-top:
+                    2px solid #000;
 
-        </head>
+                padding-top: 12px;
 
-        <body>
+                margin-top: 12px;
+            }
 
-            <div class="page">
+            .footer-note {
 
-                <div class="header">
+                border-top:
+                    2px solid #000;
 
-                    <div class="header-top">
+                text-align: center;
 
-                        <div>
+                padding: 8px;
 
-                            <div class="brand">
-                                ${business.name}
-                            </div>
+                font-size: 11px;
+            }
 
-                            <div class="document-label">
-                                Comprobante de venta
-                            </div>
+        </style>
 
-                        </div>
+    </head>
 
-                        <div class="order-box">
+    <body>
 
-                            <div class="order-number">
-                                #${order.number}
-                            </div>
+        <div class="invoice">
 
-                            <div class="order-date">
-                                ${order.date}
-                            </div>
+            <!-- HEADER -->
 
-                        </div>
+            <div class="header">
 
+                <div class="header-left">
+
+                    <div class="business-name">
+                        ${business.name}
                     </div>
 
                     <div class="business-info">
@@ -372,161 +370,86 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
                 </div>
 
-                <div class="content">
+                <div class="header-center">
 
-                    <div class="section">
+                    <div class="voucher-letter">
+                        X
+                    </div>
 
-                        <div class="section-title">
-                            Cliente
-                        </div>
+                    <div class="voucher-code">
 
-                        <div class="customer-card">
-
-                            <div class="customer-name">
-                                ${customer.name}
-                            </div>
-
-                            ${
-                                customer.email
-                                    ? `
-                                        <div class="customer-line">
-                                            ${customer.email}
-                                        </div>
-                                    `
-                                    : ""
-                            }
-
-                            ${
-                                customer.phone
-                                    ? `
-                                        <div class="customer-line">
-                                            ${customer.phone}
-                                        </div>
-                                    `
-                                    : ""
-                            }
-
-                        </div>
+                        Cod.<br />
+                        999
 
                     </div>
 
-                    <div class="section">
+                </div>
 
-                        <div class="section-title">
-                            Productos
-                        </div>
+                <div class="header-right">
 
-                        <table>
+                    <div class="invoice-title">
+                        COMPROBANTE
+                    </div>
 
-                            <thead>
+                    <div class="invoice-number">
+                        Nº ${order.number}
+                    </div>
 
-                                <tr>
+                    <div class="invoice-date">
+                        FECHA: ${order.date}
+                    </div>
 
-                                    <th>
-                                        Producto
-                                    </th>
+                </div>
 
-                                    <th>
-                                        Cantidad
-                                    </th>
+            </div>
 
-                                    <th class="price">
-                                        Unitario
-                                    </th>
+            <!-- CUSTOMER -->
 
-                                    <th class="price">
-                                        Total
-                                    </th>
+            <div class="box">
 
-                                </tr>
+                <div class="row">
 
-                            </thead>
+                    <div class="field">
 
-                            <tbody>
+                        <span class="label">
+                            CLIENTE:
+                        </span>
 
-                                ${items
-                                    .map(
-                                        (item) => `
-                                            <tr>
-
-                                                <td>
-                                                    <div class="product-name">
-                                                        ${item.name}
-                                                    </div>
-                                                </td>
-
-                                                <td>
-                                                    ${item.quantity}
-                                                </td>
-
-                                                <td class="price">
-                                                    $${item.price.toLocaleString("es-AR")}
-                                                </td>
-
-                                                <td class="price">
-                                                    $${item.total.toLocaleString("es-AR")}
-                                                </td>
-
-                                            </tr>
-                                        `,
-                                    )
-                                    .join("")}
-
-                            </tbody>
-
-                        </table>
-
-                        <div class="totals-wrapper">
-
-                            <div class="totals">
-
-                                <div class="totals-row">
-
-                                    <span>
-                                        Subtotal
-                                    </span>
-
-                                    <span>
-                                        $${totals.subtotal.toLocaleString("es-AR")}
-                                    </span>
-
-                                </div>
-
-                                <div class="totals-row">
-
-                                    <span>
-                                        Envío
-                                    </span>
-
-                                    <span>
-                                        $${totals.shipping.toLocaleString("es-AR")}
-                                    </span>
-
-                                </div>
-
-                                <div class="totals-row grand-total">
-
-                                    <span>
-                                        Total
-                                    </span>
-
-                                    <span>
-                                        $${totals.total.toLocaleString("es-AR")}
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                        </div>
+                        ${customer.name}
 
                     </div>
 
-                    <div class="footer">
+                    <div class="field">
 
-                        Este comprobante no posee validez fiscal.
-                        <br />
-                        ${business.name}
+                        <span class="label">
+                            EMAIL:
+                        </span>
+
+                        ${customer.email || "-"}
+
+                    </div>
+
+                </div>
+
+                <div class="row">
+
+                    <div class="field">
+
+                        <span class="label">
+                            TEL:
+                        </span>
+
+                        ${customer.phone || "-"}
+
+                    </div>
+
+                    <div class="field">
+
+                        <span class="label">
+                            CONDICIÓN:
+                        </span>
+
+                        Consumidor Final
 
                     </div>
 
@@ -534,8 +457,143 @@ export function saleReceiptTemplate(data: SaleReceiptTemplateData) {
 
             </div>
 
-        </body>
+            <!-- TABLE -->
 
-        </html>
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Descripción
+                        </th>
+
+                        <th width="90">
+                            Cant.
+                        </th>
+
+                        <th width="120">
+                            Precio Uni.
+                        </th>
+
+                        <th width="140">
+                            Sub Total
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    ${items
+                        .map(
+                            (item) => `
+                                <tr>
+
+                                    <td>
+                                        ${item.name}
+                                    </td>
+
+                                    <td class="text-right">
+                                        ${item.quantity}
+                                    </td>
+
+                                    <td class="text-right">
+                                        $${item.price.toLocaleString("es-AR")}
+                                    </td>
+
+                                    <td class="text-right">
+                                        $${item.total.toLocaleString("es-AR")}
+                                    </td>
+
+                                </tr>
+                            `,
+                        )
+                        .join("")}
+
+                </tbody>
+
+            </table>
+
+            <!-- SPACER -->
+
+            <div class="spacer"></div>
+
+            <!-- FOOTER -->
+
+            <div class="footer">
+
+                <div class="footer-left">
+
+                    <div class="qr-placeholder">
+                        QR AFIP
+                    </div>
+
+                    <div class="cae">
+
+                        CAE: 00000000000000
+                        <br />
+
+                        VTO: ${order.date}
+
+                    </div>
+
+                </div>
+
+                <div class="totals">
+
+                    <div class="total-row">
+
+                        <span>
+                            SUBTOTAL:
+                        </span>
+
+                        <span>
+                            $${totals.subtotal.toLocaleString("es-AR")}
+                        </span>
+
+                    </div>
+
+                    <div class="total-row">
+
+                        <span>
+                            ENVÍO:
+                        </span>
+
+                        <span>
+                            $${totals.shipping.toLocaleString("es-AR")}
+                        </span>
+
+                    </div>
+
+                    <div class="total-row grand-total">
+
+                        <span>
+                            TOTAL:
+                        </span>
+
+                        <span>
+                            $${totals.total.toLocaleString("es-AR")}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="footer-note">
+
+                Este comprobante no posee validez fiscal.
+
+            </div>
+
+        </div>
+
+    </body>
+
+    </html>
     `;
 }
