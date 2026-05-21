@@ -56,27 +56,17 @@ export async function POST(
          */
         console.log("html>>>", html);
         const pdf = await generatePdf(html);
-        console.log("pdf>>>", pdf);
-        /*
-         * UPLOAD TO CLOUDINARY
-         */
 
         const uploaded = await uploadBuffer({
-            buffer: pdf,
+            buffer: Buffer.from(pdf),
+
             folder: "receipts",
+
             fileName: `receipt-${id}`,
         });
 
-        /*
-         * SAVE IN ORDER
-         */
-
         await OrderModel.findByIdAndUpdate(id, {
-            receipt: {
-                url: uploaded.secure_url,
-                publicId: uploaded.public_id,
-                generatedAt: new Date(),
-            },
+            receiptPdfPublicId: uploaded.public_id,
         });
 
         return NextResponse.json({

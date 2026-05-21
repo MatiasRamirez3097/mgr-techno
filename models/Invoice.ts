@@ -81,6 +81,8 @@ const InvoiceSchema = new mongoose.Schema(
         afipResult: mongoose.Schema.Types.Mixed,
 
         pdfUrl: String,
+
+        pdfPublicId: String,
     },
 
     {

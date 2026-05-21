@@ -48,29 +48,57 @@ interface UploadBufferOptions {
 
 export async function uploadBuffer({
     buffer,
-    folder = "mgrtechno/documents",
+    folder,
     fileName,
-}: UploadBufferOptions) {
-    return new Promise<any>((resolve, reject) => {
+}: {
+    buffer: Buffer;
+
+    folder: string;
+
+    fileName: string;
+}) {
+    return new Promise<{
+        secure_url: string;
+        public_id: string;
+    }>((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
             {
-                resource_type: "raw",
-                type: "upload",
                 folder,
+
                 public_id: fileName,
+
+                resource_type: "raw",
+
+                type: "authenticated",
+
                 format: "pdf",
             },
 
             (error, result) => {
-                if (error) {
-                    reject(error);
-                    return;
+                if (error || !result) {
+                    return reject(error);
                 }
 
-                resolve(result);
+                resolve({
+                    secure_url: result.secure_url,
+
+                    public_id: result.public_id,
+                });
             },
         );
 
         stream.end(buffer);
+    });
+}
+
+export function getAuthenticatedPdfUrl(publicId: string) {
+    return cloudinary.url(publicId, {
+        resource_type: "raw",
+
+        type: "authenticated",
+
+        sign_url: true,
+
+        secure: true,
     });
 }

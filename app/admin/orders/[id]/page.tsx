@@ -12,6 +12,7 @@ import { PaymentStatusSelector } from "@/components/admin/PaymentStatusSelector"
 import { getOrderPaymentStatus } from "@/lib/orders/getOrderPaymentStatus";
 import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
 import { GenerateReceiptButton } from "@/components/admin/documents/GenerateReceiptButton";
+import { DownloadReceiptButton } from "@/components/admin/documents/DownloadReceiptButton";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
     mercadopago: "MercadoPago",
@@ -279,13 +280,8 @@ export default async function AdminOrderDetailPage({
                                 receiptUrl={order.receipt?.url}
                             />
 
-                            {order.receipt?.generatedAt && (
-                                <p className="text-xs text-gray-500">
-                                    Generado el{" "}
-                                    {new Date(
-                                        order.receipt.generatedAt,
-                                    ).toLocaleString("es-AR")}
-                                </p>
+                            {order.receipt?.receiptPdfPublicId && (
+                                <DownloadReceiptButton orderId={order.id} />
                             )}
                         </div>
                     </section>

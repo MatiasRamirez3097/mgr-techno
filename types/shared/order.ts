@@ -71,6 +71,7 @@ export type OrderDTO = {
     receipt: {
         url: string;
         generatedAt: string;
+        receiptPdfPublicId: string;
     };
 };
 
