@@ -2,7 +2,7 @@
 
 import { InvoiceModel } from "@/models/Invoice";
 
-import { AFIP_VOUCHER_TYPES } from "@/lib/afip/constants";
+import { AFIP_VOUCHER_TYPES, AfipVoucherType } from "@/lib/afip/constants";
 
 import { getAuth } from "@/lib/afip/auth/getAuth";
 
@@ -30,8 +30,8 @@ export async function createInvoice({ invoiceId }: Params) {
     }
 
     const auth = await getAuth();
-
-    const voucherType = AFIP_VOUCHER_TYPES[invoice.type];
+    const type: AfipVoucherType = invoice.type;
+    const voucherType = AFIP_VOUCHER_TYPES[type];
 
     const pointOfSale = 1;
 
@@ -39,7 +39,7 @@ export async function createInvoice({ invoiceId }: Params) {
         token: auth.token,
         sign: auth.sign,
 
-        cuit: Number(process.env.AFIP_CUIT),
+        cuit: process.env.AFIP_CUIT || "",
 
         pointOfSale,
 
@@ -63,12 +63,12 @@ export async function createInvoice({ invoiceId }: Params) {
         token: auth.token,
         sign: auth.sign,
 
-        cuit: Number(process.env.AFIP_CUIT),
+        cuit: process.env.AFIP_CUIT || "",
 
-        payload,
+        feCAEReq: payload,
     });
 
-    const detail = response.FeDetResp?.FECAEDetResponse?.[0];
+    const detail = response?.json?.FeDetResp?.FECAEDetResponse?.[0];
 
     if (detail?.Resultado !== "A") {
         invoice.status = "rejected";

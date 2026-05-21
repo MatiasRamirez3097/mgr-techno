@@ -4,7 +4,9 @@ export const AFIP_VOUCHER_TYPES = {
     FA: 1,
     FB: 6,
     FC: 11,
-};
+} as const;
+
+export type AfipVoucherType = keyof typeof AFIP_VOUCHER_TYPES;
 
 export const AFIP_IVA = {
     IVA_21: 5,
