@@ -72,7 +72,7 @@ export function CheckoutForm({ session }: Props) {
     const [form, setForm] = useState({
         firstName: billing?.firstName || "",
         lastName: billing?.lastName || "",
-        address1: billing?.address1 || "",
+        address: billing?.address || "",
         city: billing?.city || "",
         state: billing?.state || "",
         postcode: billing?.postcode || "",
@@ -213,7 +213,7 @@ export function CheckoutForm({ session }: Props) {
                         firstName: form.firstName,
                         lastName: form.lastName,
 
-                        address1: form.address1,
+                        address: form.address,
 
                         city: form.city,
                         state: form.state,
@@ -233,7 +233,7 @@ export function CheckoutForm({ session }: Props) {
                         firstName: form.firstName,
                         lastName: form.lastName,
 
-                        address1: form.address1,
+                        address: form.address,
 
                         city: form.city,
                         state: form.state,
@@ -388,8 +388,8 @@ export function CheckoutForm({ session }: Props) {
                                 Dirección
                             </label>
                             <input
-                                name="address1"
-                                value={form.address1}
+                                name="address"
+                                value={form.address}
                                 onChange={handleChange}
                                 required
                                 className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"

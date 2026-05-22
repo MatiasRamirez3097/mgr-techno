@@ -73,48 +73,7 @@ export async function POST(req: Request) {
                 label: "Consumidor Final",
             },
 
-            address: order.customer?.address ?? order.billing?.address1 ?? "",
-        };
-
-        const itemsSnapshot = order.items.map((item: any) => ({
-            productId: item.productId,
-
-            title: item.title ?? item.name,
-
-            quantity: item.quantity,
-
-            unitPrice: item.unitPrice ?? item.price,
-
-            taxRate: item.taxRate ?? item.taxRate,
-
-            subtotal: Number(
-                (item.quantity * (item.unitPrice ?? item.price)).toFixed(2),
-            ),
-        }));
-
-        console.log("itemsSnapshot>>>>", itemsSnapshot);
-
-        //TESTING
-        return Response.json({
-            success: true,
-
-            itemsSnapshot,
-        });
-
-        const subtotal = Number(
-            itemsSnapshot
-                .reduce((acc: number, item: any) => acc + item.subtotal, 0)
-                .toFixed(2),
-        );
-
-        const iva = Number((subtotal * 0.21).toFixed(2));
-
-        const total = Number((subtotal + iva).toFixed(2));
-
-        const totalsSnapshot = {
-            subtotal,
-            iva,
-            total,
+            address: order.customer?.address ?? order.billing?.address ?? "",
         };
 
         /*
@@ -178,19 +137,20 @@ export async function POST(req: Request) {
         |--------------------------------------------------------------------------
         */
 
-        const feCAEReq = buildInvoiceRequest({
-            pointOfSale: POINT_OF_SALE,
-
-            voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
+        const payload = buildInvoiceRequest({
+            order,
 
             voucherNumber,
 
-            customer: customerSnapshot,
+            pointOfSale: 5,
 
-            totals: totalsSnapshot,
+            voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
         });
-
-        console.log(">>>>>>>", feCAEReq);
+        console.log("payload>>>", payload.FeCAEReq.FeDetReq);
+        console.log(
+            "payload>>>",
+            payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].Iva,
+        );
         //TESTING
         return Response.json({
             success: true,

@@ -1,78 +1,181 @@
-interface Params {
-    pointOfSale: number;
+import { buildIvaBreakdown } from "./buildIvaBreakdown";
 
-    voucherType: number;
+import { AFIP_IVA_IDS } from "../constants";
+
+interface Params {
+    order: any;
 
     voucherNumber: number;
 
-    customer: any;
+    pointOfSale: number;
 
-    totals: {
-        subtotal: number;
-        iva: number;
-        total: number;
-    };
+    voucherType: number;
 }
 
 export function buildInvoiceRequest({
+    order,
+    voucherNumber,
     pointOfSale,
     voucherType,
-    voucherNumber,
-    customer,
-    totals,
 }: Params) {
+    const items = order.items.map((item: any) => {
+        const quantity = item.quantity;
+
+        /*
+        |--------------------------------------------------------------------------
+        | PRECIO FINAL (IVA INCLUIDO)
+        |--------------------------------------------------------------------------
+        */
+
+        const unitPrice = item.unitPrice ?? item.price;
+
+        const taxRate = item.taxRate ?? 21;
+
+        /*
+        |--------------------------------------------------------------------------
+        | TOTAL FINAL
+        |--------------------------------------------------------------------------
+        */
+
+        const total = Number((quantity * unitPrice).toFixed(2));
+
+        /*
+        |--------------------------------------------------------------------------
+        | DESGLOSE IVA
+        |--------------------------------------------------------------------------
+        */
+
+        const divisor = 1 + taxRate / 100;
+
+        const netSubtotal = Number((total / divisor).toFixed(2));
+
+        const ivaAmount = Number((total - netSubtotal).toFixed(2));
+
+        return {
+            ...item,
+
+            quantity,
+
+            taxRate,
+
+            unitPrice,
+
+            total,
+
+            netSubtotal,
+
+            ivaAmount,
+        };
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | IVA BREAKDOWN
+    |--------------------------------------------------------------------------
+    */
+
+    const ivaBreakdown = buildIvaBreakdown(items);
+
+    /*
+    |--------------------------------------------------------------------------
+    | TOTALS
+    |--------------------------------------------------------------------------
+    */
+
+    const impNeto = Number(
+        ivaBreakdown
+            .reduce((acc: number, item: any) => acc + item.net, 0)
+            .toFixed(2),
+    );
+
+    const impIVA = Number(
+        ivaBreakdown
+            .reduce((acc: number, item: any) => acc + item.iva, 0)
+            .toFixed(2),
+    );
+
+    const impTotal = Number((impNeto + impIVA).toFixed(2));
+
+    /*
+    |--------------------------------------------------------------------------
+    | IVA LINES
+    |--------------------------------------------------------------------------
+    */
+
+    const ivaLines = ivaBreakdown.map((item: any) => ({
+        Id: AFIP_IVA_IDS[item.rate],
+
+        BaseImp: item.net,
+
+        Importe: item.iva,
+    }));
+
+    /*
+    |--------------------------------------------------------------------------
+    | DATE
+    |--------------------------------------------------------------------------
+    */
+
+    const today = new Date();
+
+    const cbteFch = today.toISOString().slice(0, 10).replaceAll("-", "");
+
+    /*
+    |--------------------------------------------------------------------------
+    | AFIP REQUEST
+    |--------------------------------------------------------------------------
+    */
+
     return {
-        FeCabReq: {
-            CantReg: 1,
+        FeCAEReq: {
+            FeCabReq: {
+                CantReg: 1,
 
-            PtoVta: pointOfSale,
+                PtoVta: pointOfSale,
 
-            CbteTipo: voucherType,
-        },
+                CbteTipo: voucherType,
+            },
 
-        FeDetReq: {
-            FECAEDetRequest: {
-                Concepto: 1,
+            FeDetReq: {
+                FECAEDetRequest: [
+                    {
+                        Concepto: 1,
 
-                DocTipo: customer.documentType,
+                        DocTipo:
+                            order.billing?.document?.documentType.toLowerCase() ===
+                            "dni"
+                                ? 96
+                                : 99,
 
-                DocNro: Number(customer.documentNumber),
+                        DocNro: Number(order.billing?.document?.number || 0),
 
-                CbteDesde: voucherNumber,
+                        CbteDesde: voucherNumber,
 
-                CbteHasta: voucherNumber,
+                        CbteHasta: voucherNumber,
 
-                CbteFch: Number(
-                    new Date().toISOString().slice(0, 10).replace(/-/g, ""),
-                ),
+                        CbteFch: Number(cbteFch),
 
-                ImpTotal: totals.total,
+                        ImpTotal: impTotal,
 
-                ImpTotConc: 0,
+                        ImpTotConc: 0,
 
-                ImpNeto: totals.subtotal,
+                        ImpNeto: impNeto,
 
-                ImpOpEx: 0,
+                        ImpOpEx: 0,
 
-                ImpIVA: totals.iva,
+                        ImpIVA: impIVA,
 
-                ImpTrib: 0,
+                        ImpTrib: 0,
 
-                MonId: "PES",
+                        MonId: "PES",
 
-                MonCotiz: 1,
+                        MonCotiz: 1,
 
-                Iva: {
-                    AlicIva: [
-                        {
-                            Id: 5,
-
-                            BaseImp: totals.subtotal,
-
-                            Importe: totals.iva,
+                        Iva: {
+                            AlicIva: ivaLines,
                         },
-                    ],
-                },
+                    },
+                ],
             },
         },
     };

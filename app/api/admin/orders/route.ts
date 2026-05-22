@@ -14,7 +14,15 @@ export async function POST(req: Request) {
         const dataWithEmail = {
             ...body,
             customerEmail: customer.email,
+            billing: {
+                ...customer.billing,
+                document: {
+                    documentType: customer.document.documentType,
+                    number: customer.document.number,
+                },
+            },
         };
+        console.log("dataWithEmail>>>", dataWithEmail);
         const order = await createAdminOrder(dataWithEmail);
 
         return NextResponse.json({

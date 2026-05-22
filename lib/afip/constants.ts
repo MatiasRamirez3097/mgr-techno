@@ -47,3 +47,35 @@ export const AFIP_TAX_CONDITIONS = {
 
     MONOTRIBUTISTA: 6,
 } as const;
+
+export const AFIP_IVA_IDS: Record<number, number> = {
+    0: 3,
+
+    10.5: 4,
+
+    21: 5,
+
+    27: 6,
+};
+
+export const IVA_CONDITIONS = {
+    RI: {
+        label: "Responsable Inscripto",
+        afipId: 1,
+    },
+
+    MONOTRIBUTO: {
+        label: "Monotributista",
+        afipId: 6,
+    },
+
+    CF: {
+        label: "Consumidor Final",
+        afipId: 5,
+    },
+
+    EXENTO: {
+        label: "IVA Exento",
+        afipId: 4,
+    },
+} as const;

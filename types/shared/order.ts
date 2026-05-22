@@ -22,7 +22,7 @@ export type OrderDTO = {
     billing: {
         firstName: string;
         lastName: string;
-        address1: string;
+        address: string;
         city: string;
         state: string;
         postcode: string;
@@ -36,7 +36,7 @@ export type OrderDTO = {
     shipping: {
         firstName: string;
         lastName: string;
-        address1: string;
+        address: string;
         city: string;
         state: string;
         postcode: string;

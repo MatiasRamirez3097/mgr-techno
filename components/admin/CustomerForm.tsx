@@ -20,7 +20,8 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
         taxCondition: customer?.taxCondiction || "",
         firstName: customer?.firstName || "",
         lastName: customer?.lastName || "",
-        address1: customer?.address1 || "",
+        ivaCondition: customer?.ivaCondition?.code || "CF",
+        address: customer?.address || "",
         city: customer?.city || "",
         state: customer?.state || "",
         postcode: customer?.postcode || "",
@@ -51,7 +52,7 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
                 ...prev,
                 lastName: customer.name,
                 taxCondition: customer.taxCondition,
-                address1: customer.address?.street ?? form.address1,
+                address: customer.address?.street ?? form.address,
                 city: customer.address?.city,
                 postcode: customer.address?.zip ?? form.postcode,
                 state: customer.address?.state ?? form.state,
@@ -85,7 +86,7 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
         phone: form.phone != "" ? form.phone : null,
         //notes: form.notes != "" ? form.notes : null,
         email: form.email != "" ? form.email : null,
-        street: form.address1,
+        address: form.address,
         state: form.state,
         city: form.city,
         postcode: form.postcode,
@@ -174,6 +175,21 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
                         </div>
                     </div>
                     <div>
+                        <label className={labelClass}>CONDICION IVA</label>
+                        <select
+                            name="ivaCondition"
+                            value={form.ivaCondition}
+                            onChange={handleSelectChange}
+                            className={inputClass}
+                        >
+                            <option value="CF">CONSUMIDOR FINAL</option>
+                            <option value="MONOTRIBUTO">MONOTRIBUTO</option>
+                            <option value="RI">RESPONSABLE INSCRIPTO</option>
+                            <option value="EXENTO">IVA EXENTO</option>
+                        </select>
+                    </div>
+                    <div />
+                    <div>
                         <label className={labelClass}>Nombre </label>
                         <div className="flex gap-2">
                             <input
@@ -212,9 +228,9 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
                         <div className="flex gap-2">
                             <input
                                 className={inputClass}
-                                name="address1"
+                                name="address"
                                 placeholder="Direccion"
-                                value={form.address1}
+                                value={form.address}
                                 onChange={handleChange}
                             />
                         </div>

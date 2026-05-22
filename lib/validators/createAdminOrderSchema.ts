@@ -58,7 +58,20 @@ export const createAdminOrderSchema = z.object({
 
         fileUrl: z.string().optional(),
     }),
-
+    billing: z.object({
+        firstName: z.string(),
+        lastName: z.string(),
+        address: z.string(),
+        city: z.string(),
+        state: z.string(),
+        postcode: z.string(),
+        phone: z.string(),
+        country: z.string(),
+        document: z.object({
+            documentType: z.string(),
+            number: z.string(),
+        }),
+    }),
     notes: z.string().optional(),
 });
 

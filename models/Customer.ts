@@ -9,7 +9,7 @@ export const CustomerSchema = new Schema(
         billing: {
             firstName: String,
             lastName: String,
-            address1: String,
+            address: String,
             city: String,
             state: String,
             postcode: String,
@@ -23,6 +23,18 @@ export const CustomerSchema = new Schema(
                 required: true,
             },
             number: { type: String, required: true },
+        },
+        ivaCondition: {
+            code: {
+                type: String,
+                enum: ["RI", "MONOTRIBUTO", "CF", "EXENTO"],
+                required: true,
+            },
+
+            afipId: {
+                type: Number,
+                required: true,
+            },
         },
     },
     { timestamps: true },

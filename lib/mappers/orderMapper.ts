@@ -16,7 +16,7 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
         billing: {
             firstName: order.billing?.firstName || "",
             lastName: order.billing?.lastName || "",
-            address1: order.billing?.address1 || "",
+            address: order.billing?.address || "",
             city: order.billing?.city || "",
             state: order.billing?.state || "",
             postcode: order.billing?.postcode || "",
@@ -31,7 +31,7 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
         shipping: {
             firstName: order.shipping?.firstName || "",
             lastName: order.shipping?.lastName || "",
-            address1: order.shipping?.address1 || "",
+            address: order.shipping?.address || "",
             city: order.shipping?.city || "",
             state: order.shipping?.state || "",
             postcode: order.shipping?.postcode || "",

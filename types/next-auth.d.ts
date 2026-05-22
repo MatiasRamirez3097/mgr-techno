@@ -10,7 +10,7 @@ declare module "next-auth" {
         billing: {
             firstName?: string;
             lastName?: string;
-            address1?: string;
+            address?: string;
             city?: string;
             state?: string;
             postcode?: string;

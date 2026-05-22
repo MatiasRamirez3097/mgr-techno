@@ -21,7 +21,7 @@ export async function PUT(req: NextRequest) {
         billing: {
             firstName: body.first_name,
             lastName: body.last_name,
-            address1: body.address_1,
+            address: body.address,
             city: body.city,
             state: body.state,
             postcode: body.postcode,

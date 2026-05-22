@@ -3,7 +3,7 @@ import { Schema } from "mongoose";
 export const addressDefinition = {
     firstName: { type: String },
     lastName: { type: String },
-    address1: { type: String },
+    address: { type: String },
     city: { type: String },
     state: { type: String },
     postcode: { type: String },

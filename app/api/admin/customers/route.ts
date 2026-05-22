@@ -30,28 +30,24 @@ export async function POST(req: NextRequest) {
         //const taxId = normalizeCUIT(body.taxId);
         console.log(body);
         const customerData = {
+            email: cleanString(body.email),
             firstName: cleanString(body.firstName),
             lastName: cleanString(body.lastName),
-            document: {
-                documentType: body.documentType,
-                number: body.documentNumber,
-            },
-            email: cleanString(body.email),
             phone: cleanString(body.phone),
             billing: {
                 firstName: cleanString(body.firstName),
                 lastName: cleanString(body.lastName),
-                address1: cleanString(body.address1),
+                address: cleanString(body.address),
                 city: cleanString(body.city),
                 state: cleanString(body.state),
                 postcode: cleanString(body.postcode),
                 phone: cleanString(body.phone),
+                country: "AR",
             },
-            address1: cleanString(body.address?.street),
-            city: cleanString(body.address?.city),
-            state: cleanString(body.address?.state),
-            zip: cleanString(body.address?.zip),
-            country: body.address?.country || "AR",
+            document: {
+                documentType: body.documentType,
+                number: body.documentNumber,
+            },
         };
 
         // 🛑 2. Validaciones básicas
@@ -76,7 +72,7 @@ export async function POST(req: NextRequest) {
                 { status: 409 },
             );
         }
-
+        console.log("customerData>>>", customerData);
         // 💾 4. Crear
         const customer = await CustomerModel.create(customerData);
 

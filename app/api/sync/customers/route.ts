@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
             billing: {
                 firstName: customer.billing?.first_name || "",
                 lastName: customer.billing?.last_name || "",
-                address1: customer.billing?.address_1 || "",
+                address: customer.billing?.address || "",
                 city: customer.billing?.city || "",
                 state: customer.billing?.state || "",
                 postcode: customer.billing?.postcode || "",

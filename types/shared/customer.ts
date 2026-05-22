@@ -8,12 +8,20 @@ export type CustomerDTO = {
     billing?: {
         firstName: string;
         lastName: string;
-        address1: string;
+        address: string;
         city: string;
         state: string;
         postcode: string;
         phone: string;
         country: string | "AR";
+    };
+    document: {
+        documentType: string;
+        number: string;
+    };
+    ivaCondition: {
+        code: "RI" | "MONOTRIBUTO" | "CF" | "EXENTO";
+        afipId: number;
     };
     createdAt: string;
 };

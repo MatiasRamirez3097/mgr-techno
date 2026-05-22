@@ -12,7 +12,7 @@ export function mapCustomerToDTO(customer: CustomerDB): CustomerDTO {
             ? {
                   firstName: customer.billing?.firstName ?? "",
                   lastName: customer.billing?.lastName ?? "",
-                  address1: customer.billing?.address1 ?? "",
+                  address: customer.billing?.address ?? "",
                   city: customer.billing?.city ?? "",
                   state: customer.billing?.state ?? "",
                   postcode: customer.billing?.postcode ?? "",
@@ -20,6 +20,14 @@ export function mapCustomerToDTO(customer: CustomerDB): CustomerDTO {
                   country: customer.billing?.country ?? "AR",
               }
             : undefined,
+        document: {
+            documentType: customer.document?.documentType ?? "",
+            number: customer.document?.number ?? "",
+        },
+        ivaCondition: {
+            code: customer.ivaCondition?.code ?? "CF",
+            afipId: customer.ivaCondition?.afipId ?? 5,
+        },
         createdAt: customer.createdAt.toISOString(),
     };
 }

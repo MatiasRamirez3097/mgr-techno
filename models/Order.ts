@@ -29,6 +29,7 @@ export const OrderSchema = new Schema(
         },
         billing: {
             type: BillingSchema,
+            required: true,
         },
         shipping: {
             type: AddressSchema,
@@ -76,10 +77,13 @@ export const OrderSchema = new Schema(
             default: null,
         },
         receipt: {
-            generatedAt: { type: Date, required: true },
-            url: { type: String, required: true },
-            publicId: { type: String, required: true },
-            receiptPdfPublicId: { type: String, required: true },
+            type: {
+                generatedAt: { type: Date, required: true },
+                url: { type: String, required: true },
+                publicId: { type: String, required: true },
+                receiptPdfPublicId: { type: String, required: true },
+            },
+            required: false,
         },
     },
     { timestamps: true },

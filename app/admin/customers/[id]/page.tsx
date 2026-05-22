@@ -133,7 +133,7 @@ export default async function AdminCustomerDetailPage({
                         </h2>
                         <div className="flex flex-col gap-2 text-sm">
                             <p className="text-white">
-                                {customer.billing?.address1 || "—"}
+                                {customer.billing?.address || "—"}
                             </p>
                             <p className="text-gray-400">
                                 {[

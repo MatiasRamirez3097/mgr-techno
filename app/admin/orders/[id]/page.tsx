@@ -225,7 +225,7 @@ export default async function AdminOrderDetailPage({
                             <div className="col-span-2">
                                 <p className="text-gray-400 mb-1">Dirección</p>
                                 <p className="text-white">
-                                    {order.billing?.address1},{" "}
+                                    {order.billing?.address},{" "}
                                     {order.billing?.city},{" "}
                                     {order.billing?.state} (
                                     {order.billing?.postcode})

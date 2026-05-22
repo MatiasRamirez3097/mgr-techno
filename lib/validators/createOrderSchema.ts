@@ -29,7 +29,7 @@ export const createOrderSchema = z.object({
     billing: z.object({
         firstName: z.string().min(1),
         lastName: z.string().min(1),
-        address1: z.string().min(1),
+        address: z.string().min(1),
         city: z.string().min(1),
         state: z.string().min(1),
         postcode: z.string().min(1),
@@ -44,7 +44,7 @@ export const createOrderSchema = z.object({
     shipping: z.object({
         firstName: z.string().min(1),
         lastName: z.string().min(1),
-        address1: z.string().min(1),
+        address: z.string().min(1),
         city: z.string().min(1),
         state: z.string().min(1),
         postcode: z.string().min(1),

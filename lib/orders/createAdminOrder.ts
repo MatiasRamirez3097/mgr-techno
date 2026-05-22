@@ -20,6 +20,7 @@ export async function createAdminOrder(data: unknown) {
         session.startTransaction();
 
         const {
+            billing,
             customerId,
             customerEmail,
             items,
@@ -56,7 +57,7 @@ export async function createAdminOrder(data: unknown) {
             return {
                 productId: product.id,
                 name: product.name,
-
+                billing,
                 quantity,
 
                 unitPrice,
@@ -103,7 +104,7 @@ export async function createAdminOrder(data: unknown) {
                     customerId,
                     customerEmail,
                     items: orderItems,
-
+                    billing,
                     payments,
 
                     shippingMethod,
