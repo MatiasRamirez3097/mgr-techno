@@ -36,6 +36,8 @@ const InvoiceSchema = new mongoose.Schema(
 
                 unitPrice: Number,
 
+                taxRate: Number,
+
                 subtotal: Number,
             },
         ],
