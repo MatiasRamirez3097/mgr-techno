@@ -50,58 +50,6 @@ export async function POST(req: Request) {
 
         /*
         |--------------------------------------------------------------------------
-        | SNAPSHOTS
-        |--------------------------------------------------------------------------
-        */
-
-        const customerSnapshot = {
-            name:
-                order.customer?.name ??
-                `${order.billing?.firstName || ""} ${order.billing?.lastName || ""}`,
-
-            documentType:
-                order.customer?.documentType ?? AFIP_DOCUMENT_TYPES.DNI,
-
-            documentNumber:
-                order.customer?.documentNumber ??
-                order.billing?.document?.number ??
-                "",
-
-            taxCondition: order.customer?.taxCondition ?? {
-                id: AFIP_TAX_CONDITIONS.CONSUMIDOR_FINAL,
-
-                label: "Consumidor Final",
-            },
-
-            address: order.customer?.address ?? order.billing?.address ?? "",
-        };
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE INVOICE PENDING
-        |--------------------------------------------------------------------------
-        */
-
-        const invoice = await InvoiceModel.create({
-            orderId,
-
-            customerSnapshot,
-
-            itemsSnapshot,
-
-            totalsSnapshot,
-
-            type: "FB",
-
-            pointOfSale: POINT_OF_SALE,
-
-            voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
-
-            afipStatus: "pending",
-        });
-
-        /*
-        |--------------------------------------------------------------------------
         | AFIP AUTH
         |--------------------------------------------------------------------------
         */
@@ -146,6 +94,77 @@ export async function POST(req: Request) {
 
             voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
         });
+
+        /*
+        |--------------------------------------------------------------------------
+        | SNAPSHOTS
+        |--------------------------------------------------------------------------
+        */
+
+        const customerSnapshot = {
+            name:
+                order.customer?.name ??
+                `${order.billing?.firstName || ""} ${order.billing?.lastName || ""}`,
+
+            documentType:
+                order.customer?.documentType ?? AFIP_DOCUMENT_TYPES.DNI,
+
+            documentNumber:
+                order.customer?.documentNumber ??
+                order.billing?.document?.number ??
+                "",
+
+            taxCondition: order.customer?.taxCondition ?? {
+                id: AFIP_TAX_CONDITIONS.CONSUMIDOR_FINAL,
+
+                label: "Consumidor Final",
+            },
+
+            address: order.customer?.address ?? order.billing?.address ?? "",
+        };
+
+        const itemsSnapshot =
+            order.items?.map((item: any) => ({
+                productId: item.productId,
+                title: item.title,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                subtotal: item.subtotal,
+                taxRate: item.taxRate,
+            })) || [];
+
+        const totalsSnapshot = {
+            subtotal: payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].ImpNeto,
+
+            iva: payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].ImpIVA,
+
+            total: payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].ImpTotal,
+        };
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE INVOICE PENDING
+        |--------------------------------------------------------------------------
+        */
+
+        const invoice = await InvoiceModel.create({
+            orderId,
+
+            customerSnapshot,
+
+            itemsSnapshot,
+
+            totalsSnapshot,
+
+            type: "FB",
+
+            pointOfSale: POINT_OF_SALE,
+
+            voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
+
+            afipStatus: "pending",
+        });
+
         console.log("payload>>>", payload.FeCAEReq.FeDetReq);
         console.log(
             "payload>>>",
