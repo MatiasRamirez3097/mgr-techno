@@ -77,13 +77,10 @@ export const OrderSchema = new Schema(
             default: null,
         },
         receipt: {
-            type: {
-                generatedAt: { type: Date, required: true },
-                url: { type: String, required: true },
-                publicId: { type: String, required: true },
-                receiptPdfPublicId: { type: String, required: true },
-            },
-            required: false,
+            generatedAt: { type: Date },
+            url: { type: String },
+            publicId: { type: String },
+            receiptPdfPublicId: { type: String },
         },
     },
     { timestamps: true },

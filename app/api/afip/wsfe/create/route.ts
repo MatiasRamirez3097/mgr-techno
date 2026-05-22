@@ -82,7 +82,7 @@ export async function POST(req: Request) {
         |--------------------------------------------------------------------------
         */
 
-        /*const invoice = await InvoiceModel.create({
+        const invoice = await InvoiceModel.create({
             orderId,
 
             customerSnapshot,
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
             voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
 
             afipStatus: "pending",
-        });*/
+        });
 
         /*
         |--------------------------------------------------------------------------
@@ -152,11 +152,11 @@ export async function POST(req: Request) {
             payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].Iva,
         );
         //TESTING
-        return Response.json({
+        /*return Response.json({
             success: true,
 
             voucherNumber,
-        });
+        });*/
         /*
         |--------------------------------------------------------------------------
         | CREATE AFIP VOUCHER
@@ -170,7 +170,7 @@ export async function POST(req: Request) {
 
             cuit: process.env.AFIP_CUIT || "",
 
-            feCAEReq,
+            feCAEReq: payload,
         });
 
         /*
@@ -180,7 +180,7 @@ export async function POST(req: Request) {
         */
 
         const detail = afipResponse?.json?.FeDetResp?.FECAEDetResponse;
-
+        console.log("detail>>>", detail);
         if (!detail?.CAE) {
             invoice.afipStatus = "rejected";
 
