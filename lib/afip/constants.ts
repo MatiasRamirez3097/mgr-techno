@@ -79,3 +79,5 @@ export const IVA_CONDITIONS = {
         afipId: 4,
     },
 } as const;
+
+export type IvaConditionCode = keyof typeof IVA_CONDITIONS;

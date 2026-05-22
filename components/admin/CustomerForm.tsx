@@ -84,6 +84,7 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
         documentType: form.documentType,
         documentNumber: form.documentNumber,
         phone: form.phone != "" ? form.phone : null,
+        ivaCondition: form.ivaCondition,
         //notes: form.notes != "" ? form.notes : null,
         email: form.email != "" ? form.email : null,
         address: form.address,

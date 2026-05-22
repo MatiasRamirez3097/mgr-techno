@@ -3,7 +3,8 @@ import { connectDB } from "@/lib/mongodb";
 import { CustomerModel } from "@/models/Customer";
 import { mapCustomerToDTO } from "@/lib/mappers/customerMapper";
 import { getCustomersBase } from "@/lib/customers/getCustomersBase";
-
+import { IVA_CONDITIONS } from "@/lib/afip/constants";
+import { IvaConditionCode } from "@/lib/afip/constants";
 // 🧼 helpers
 function normalizeCUIT(cuit?: string) {
     if (!cuit) return undefined;
@@ -29,11 +30,18 @@ export async function POST(req: NextRequest) {
         // 🧠 1. Normalizar
         //const taxId = normalizeCUIT(body.taxId);
         console.log(body);
+
+        const ivaCode = cleanString(body.ivaCondition) as IvaConditionCode;
+
         const customerData = {
             email: cleanString(body.email),
             firstName: cleanString(body.firstName),
             lastName: cleanString(body.lastName),
             phone: cleanString(body.phone),
+            ivaCondition: {
+                code: cleanString(body.ivaCondition),
+                afipId: IVA_CONDITIONS[ivaCode].afipId,
+            },
             billing: {
                 firstName: cleanString(body.firstName),
                 lastName: cleanString(body.lastName),
