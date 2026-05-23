@@ -16,9 +16,11 @@ export async function POST(req: Request) {
         const { token, sign } = await getAuth("ws_sr_constancia_inscripcion");
         console.log(sign);
         const { json, xml } = await soapRequest({
+            authRequired: false,
+            env: "a5",
+            envXmlns: "http://a5.soap.ws.server.puc.sr/",
             url: PADRON_URL,
-            operation: "a5:getPersona_v2",
-            xmlns: "http://a5.soap.ws.server.puc.sr/",
+            operation: "getPersona_v2",
             body: {
                 auth: {
                     token,
@@ -26,7 +28,10 @@ export async function POST(req: Request) {
                     cuit: process.env.AFIP_CUIT || "",
                 },
                 payload: `
-                    <idPersona>${cuit}</idPersona>
+                <token>${token}</token>
+                <sign>${sign}</sign>
+                <cuitRepresentada>${process.env.AFIP_CUIT}</cuitRepresentada>
+                <idPersona>${cuit}</idPersona>
                 `,
             },
         });

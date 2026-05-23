@@ -5,6 +5,9 @@ import https from "https";
 import crypto from "crypto";
 
 interface SoapRequestParams {
+    authRequired?: boolean;
+    env?: string;
+    envXmlns?: string | undefined;
     url: string;
     operation: string;
     body: {
@@ -16,7 +19,7 @@ interface SoapRequestParams {
         payload: string;
     };
     useLegacySSL?: boolean;
-    xmlns: string;
+    xmlns?: string;
 }
 
 // Agente https nativo — SÍ respeta SSL_OP_LEGACY_SERVER_CONNECT
@@ -59,13 +62,16 @@ function httpsPost(
 }
 
 export async function soapRequest({
+    env,
     url,
     operation,
     body,
+    authRequired = true,
     useLegacySSL = false,
+    envXmlns = undefined,
     xmlns,
 }: SoapRequestParams) {
-    const soap = `
+    /*const soap = `
         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
             <soapenv:Header/>
             <soapenv:Body>
@@ -79,7 +85,26 @@ export async function soapRequest({
                 </${operation}>
             </soapenv:Body>
         </soapenv:Envelope>
-    `;
+    `;*/
+    const textEnv = envXmlns ? `xmlns:${env}="${envXmlns}"` : "";
+    const soap = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                    ${textEnv}>
+                    <soapenv:Header/>
+                    <soapenv:Body>
+                        <${env ? env + ":" : ""}${operation}${xmlns ? ` xmlns="${xmlns}"` : ""}>
+                        ${
+                            authRequired
+                                ? `<Auth>
+                                <Token>${body.auth.token}</Token>
+                                <Sign>${body.auth.sign}</Sign>
+                                <Cuit>${process.env.AFIP_CUIT}</Cuit>
+                            </Auth>`
+                                : ""
+                        }
+                        ${body.payload}
+                        </${env ? env + ":" : ""}${operation}>
+                    </soapenv:Body>
+                </soapenv:Envelope>`;
     console.log("soap>>>", soap);
     const headers = { "Content-Type": "text/xml; charset=utf-8" };
     const xml = useLegacySSL
