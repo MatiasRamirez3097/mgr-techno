@@ -17,25 +17,20 @@ export async function POST(req: Request) {
         console.log(sign);
         const { json, xml } = await soapRequest({
             url: PADRON_URL,
-
-            operation: "getPersona_v2",
-
-            body: `
-                <a5:getPersona_v2
-                    xmlns:a5="http://a5.soap.ws.server.puc.sr/"
-                >
-                    <token>${token}</token>
-                    <sign>${sign}</sign>
-
-                    <cuitRepresentada>
-                        ${process.env.AFIP_CUIT}
-                    </cuitRepresentada>
-
+            operation: "a5:getPersona_v2",
+            xmlns: "http://a5.soap.ws.server.puc.sr/",
+            body: {
+                auth: {
+                    token,
+                    sign,
+                    cuit: process.env.AFIP_CUIT || "",
+                },
+                payload: `
                     <idPersona>
                         ${cuit}
                     </idPersona>
-                </a5:getPersona_v2>
-            `,
+                `,
+            },
         });
         console.log(json.Envelope);
         const persona = json.Envelope.Body.getPersona_v2Response.personaReturn;
