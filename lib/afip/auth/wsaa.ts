@@ -58,30 +58,27 @@ export function signTRA(xml: string): string {
     let certPath: string;
 
     let keyPath: string;
-
-    if (process.env.AFIP_CERT_BASE64 && process.env.AFIP_KEY_BASE64) {
-        certPath = path.join(tmpDir, "afip_cert.crt");
-
-        keyPath = path.join(tmpDir, "afip_key.pem");
-
-        fs.writeFileSync(
-            certPath,
-
-            Buffer.from(process.env.AFIP_CERT_BASE64, "base64"),
-        );
-
-        fs.writeFileSync(
-            keyPath,
-
-            Buffer.from(process.env.AFIP_KEY_BASE64, "base64"),
-        );
-    } else {
-        certPath = path.resolve("certs/certificate.crt");
-
-        keyPath = path.resolve("certs/private.key");
-    }
-
     try {
+        if (process.env.AFIP_CERT_BASE64 && process.env.AFIP_KEY_BASE64) {
+            certPath = path.join(tmpDir, "afip_cert.crt");
+
+            keyPath = path.join(tmpDir, "afip_key.pem");
+
+            fs.writeFileSync(
+                certPath,
+
+                Buffer.from(process.env.AFIP_CERT_BASE64, "base64"),
+            );
+
+            fs.writeFileSync(
+                keyPath,
+
+                Buffer.from(process.env.AFIP_KEY_BASE64, "base64"),
+            );
+        } else {
+            throw new Error("No se encontraron los certificados");
+        }
+
         fs.writeFileSync(traPath, xml, "utf8");
 
         execSync(
