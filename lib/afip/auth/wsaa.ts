@@ -1,12 +1,5 @@
 // /lib/afip/auth/wsaa.ts
-
-import { execSync } from "child_process";
-
-import fs from "fs";
-
-import os from "os";
-
-import path from "path";
+import forge from "node-forge";
 
 import { parseStringPromise } from "xml2js";
 
@@ -48,7 +41,7 @@ export async function callWSAA(cms: string) {
     return response.text();
 }
 
-export function signTRA(xml: string): string {
+/*export function signTRA(xml: string): string {
     const tmpDir = os.tmpdir();
 
     const traPath = path.join(tmpDir, `tra_${Date.now()}.xml`);
@@ -97,6 +90,92 @@ export function signTRA(xml: string): string {
             fs.unlinkSync(derPath);
         }
     }
+}*/
+
+export function signTRA(xml: string): string {
+    if (!process.env.AFIP_CERT_BASE64 || !process.env.AFIP_KEY_BASE64) {
+        throw new Error("No se encontraron los certificados");
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | DECODE BASE64
+    |----------------------------------------------------------------------
+    */
+
+    const certificate = Buffer.from(
+        process.env.AFIP_CERT_BASE64,
+        "base64",
+    ).toString("utf8");
+
+    const privateKey = Buffer.from(
+        process.env.AFIP_KEY_BASE64,
+        "base64",
+    ).toString("utf8");
+
+    /*
+    |----------------------------------------------------------------------
+    | VALIDATIONS
+    |----------------------------------------------------------------------
+    */
+
+    if (!certificate.includes("BEGIN CERTIFICATE")) {
+        throw new Error("AFIP certificate inválido");
+    }
+
+    if (!privateKey.includes("BEGIN")) {
+        throw new Error("AFIP private key inválida");
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | PARSE PEM
+    |----------------------------------------------------------------------
+    */
+
+    const cert = forge.pki.certificateFromPem(certificate);
+
+    const key = forge.pki.privateKeyFromPem(privateKey);
+
+    /*
+    |----------------------------------------------------------------------
+    | CREATE PKCS7
+    |----------------------------------------------------------------------
+    */
+
+    const p7 = forge.pkcs7.createSignedData();
+
+    p7.content = forge.util.createBuffer(xml, "utf8");
+
+    p7.addCertificate(cert);
+
+    p7.addSigner({
+        key: key as any,
+
+        certificate: cert,
+
+        digestAlgorithm: forge.pki.oids.sha1,
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | SIGN
+    |----------------------------------------------------------------------
+    */
+
+    p7.sign({
+        detached: true,
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | DER → BASE64
+    |----------------------------------------------------------------------
+    */
+
+    const der = forge.asn1.toDer(p7.toAsn1()).getBytes();
+
+    return forge.util.encode64(der);
 }
 
 export async function parseWSAAResponse(raw: string) {
