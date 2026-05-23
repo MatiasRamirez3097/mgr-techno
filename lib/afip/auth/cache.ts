@@ -1,5 +1,13 @@
 import { AfipTokenModel } from "@/models/AfipToken";
 
+export interface TicketAcceso {
+    token: string;
+
+    sign: string;
+
+    expirationTime: string | Date;
+}
+
 export async function getCachedTA(ws: string) {
     const cached = await AfipTokenModel.findOne({
         ws,
