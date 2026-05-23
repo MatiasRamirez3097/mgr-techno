@@ -1,23 +1,13 @@
-// /lib/afip/auth/cache.ts
+import { AfipTokenModel } from "@/models/AfipToken";
 
-import { existsSync, readFileSync, writeFileSync } from "fs";
+export async function getCachedTA(ws: string) {
+    const cached = await AfipTokenModel.findOne({
+        ws,
+    }).lean();
 
-export interface TicketAcceso {
-    token: string;
-
-    sign: string;
-
-    expirationTime: string;
-}
-
-export function getCachedTA(ws: string): TicketAcceso | null {
-    const path = `./tmp/afip_${ws}.json`;
-
-    if (!existsSync(path)) {
+    if (!cached) {
         return null;
     }
-
-    const cached = JSON.parse(readFileSync(path, "utf8"));
 
     const expiration = new Date(cached.expirationTime);
 
@@ -30,6 +20,20 @@ export function getCachedTA(ws: string): TicketAcceso | null {
     return null;
 }
 
-export function saveTA(ws: string, ta: TicketAcceso) {
-    writeFileSync(`./tmp/afip_${ws}.json`, JSON.stringify(ta), "utf8");
+export async function saveTA(ws: string, ta: TicketAcceso) {
+    await AfipTokenModel.findOneAndUpdate(
+        {
+            ws,
+        },
+        {
+            token: ta.token,
+
+            sign: ta.sign,
+
+            expirationTime: ta.expirationTime,
+        },
+        {
+            upsert: true,
+        },
+    );
 }

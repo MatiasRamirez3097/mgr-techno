@@ -7,7 +7,7 @@ import { createTRA } from "./tra";
 import { callWSAA, parseWSAAResponse, signTRA } from "./wsaa";
 
 export async function getAuth(ws = "wsfe") {
-    const cached = getCachedTA(ws);
+    const cached = await getCachedTA(ws);
 
     if (cached) {
         return cached;
@@ -21,7 +21,7 @@ export async function getAuth(ws = "wsfe") {
 
     const ta = await parseWSAAResponse(raw);
 
-    saveTA(ws, ta);
+    await saveTA(ws, ta);
 
     return ta;
 }
