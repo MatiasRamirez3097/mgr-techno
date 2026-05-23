@@ -155,17 +155,27 @@ export function signTRA(xml: string): string {
         certificate: cert,
 
         digestAlgorithm: forge.pki.oids.sha1,
+
+        authenticatedAttributes: [
+            {
+                type: forge.pki.oids.contentType,
+
+                value: forge.pki.oids.data,
+            },
+
+            {
+                type: forge.pki.oids.messageDigest,
+            },
+
+            {
+                type: forge.pki.oids.signingTime,
+
+                value: new Date() as any,
+            },
+        ],
     });
 
-    /*
-    |----------------------------------------------------------------------
-    | SIGN
-    |----------------------------------------------------------------------
-    */
-
-    p7.sign({
-        detached: true,
-    });
+    p7.sign();
 
     /*
     |----------------------------------------------------------------------
