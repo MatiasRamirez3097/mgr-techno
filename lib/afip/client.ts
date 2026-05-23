@@ -80,9 +80,7 @@ export async function soapRequest({
             </soapenv:Body>
         </soapenv:Envelope>
     `;
-
     const headers = { "Content-Type": "text/xml; charset=utf-8" };
-
     const xml = useLegacySSL
         ? await httpsPost(url, soap, headers) // https nativo con agente legacy
         : await fetch(url, { method: "POST", headers, body: soap }).then((r) =>
@@ -94,6 +92,5 @@ export async function soapRequest({
         ignoreAttrs: true,
         tagNameProcessors: [(name) => name.replace(/^.*:/, "")],
     });
-
     return { xml, json };
 }

@@ -181,7 +181,7 @@ export async function POST(req: Request) {
         | CREATE AFIP VOUCHER
         |--------------------------------------------------------------------------
         */
-
+        console.log(auth);
         const afipResponse = await createVoucher({
             token: auth.token,
 
@@ -198,9 +198,9 @@ export async function POST(req: Request) {
         |--------------------------------------------------------------------------
         */
 
-        const detail = afipResponse?.json?.FeDetResp?.FECAEDetResponse;
+        const detail = afipResponse?.json;
         console.log("detail>>>", detail);
-        if (!detail?.CAE) {
+        if (!detail?.FeDetResp?.FECAEDetResponse?.CAE) {
             invoice.afipStatus = "rejected";
 
             invoice.afipErrors = afipResponse?.json?.Errors || [];
@@ -228,18 +228,20 @@ export async function POST(req: Request) {
         | SAVE AFIP RESULT
         |--------------------------------------------------------------------------
         */
+        console.log("CAE>>>", detail.CAE);
+        const toSave = detail?.FeDetResp?.FECAEDetResponse;
 
         invoice.voucherNumber = voucherNumber;
 
-        invoice.cae = detail.CAE;
+        invoice.cae = toSave.CAE;
 
-        invoice.caeExpiration = detail.CAEFchVto;
+        invoice.caeExpiration = toSave.CAEFchVto;
 
         invoice.afipStatus = "authorized";
 
-        invoice.afipResult = afipResponse?.json?.Resultado;
+        invoice.afipResult = toSave.Resultado;
 
-        invoice.afipResponse = afipResponse;
+        invoice.afipResponseXml = afipResponse?.xml;
 
         await invoice.save();
 
