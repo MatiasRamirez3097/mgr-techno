@@ -52,13 +52,11 @@ export async function createVoucher({ token, sign, cuit, feCAEReq }: Params) {
                 cuit,
             },
             payload: `<FeCAEReq>
-
             <FeCabReq>
                <CantReg>1</CantReg>
                <PtoVta>5</PtoVta>
                <CbteTipo>6</CbteTipo>
             </FeCabReq>
-
             <FeDetReq>
                <FECAEDetRequest>
                   <Concepto>${Concepto}</Concepto>
@@ -78,17 +76,13 @@ export async function createVoucher({ token, sign, cuit, feCAEReq }: Params) {
                   <Iva>
                      ${ivaXml}
                   </Iva>
-
                </FECAEDetRequest>
-
             </FeDetReq>
-
          </FeCAEReq>`,
         },
     });
     return {
         xml: response.xml,
-
         json: response.json.Envelope.Body.FECAESolicitarResponse
             .FECAESolicitarResult,
     };

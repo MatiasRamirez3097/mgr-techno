@@ -14,6 +14,8 @@ import { getLastVoucher } from "@/lib/afip/wsfe/getLastVoucher";
 
 import { buildInvoiceRequest } from "@/lib/afip/wsfe/buildInvoiceRequest";
 
+import { generateAfipQr } from "@/lib/afip/qr/generateAfipQr";
+
 import {
     AFIP_DOCUMENT_TYPES,
     AFIP_INVOICE_TYPES,
@@ -242,6 +244,30 @@ export async function POST(req: Request) {
         invoice.afipResult = toSave.Resultado;
 
         invoice.afipResponseXml = afipResponse?.xml;
+
+        const qr = generateAfipQr({
+            cuit: Number(process.env.AFIP_CUIT),
+
+            pointOfSale: invoice.pointOfSale,
+
+            voucherType: invoice.voucherType,
+
+            voucherNumber,
+
+            total: invoice.totalsSnapshot.total,
+
+            documentType: customerSnapshot.documentType,
+
+            documentNumber: Number(customerSnapshot.documentNumber),
+
+            cae: detail.CAE,
+
+            date: new Date().toISOString().split("T")[0],
+        });
+
+        invoice.qrPayload = qr.qrPayload;
+
+        invoice.qrUrl = qr.qrUrl;
 
         await invoice.save();
 

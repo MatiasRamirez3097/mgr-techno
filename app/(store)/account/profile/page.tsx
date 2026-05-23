@@ -33,8 +33,10 @@ const PROVINCIAS = [
 export default function ProfilePage() {
     const { data: session } = useSession();
     const billing = (session as any)?.billing;
-    const tipoDocumento = (session as any)?.tipoDocumento;
-    const numeroDocumento = (session as any)?.numeroDocumento;
+    const document = {
+        documentType: (session as any)?.documentType,
+        number: (session as any)?.number,
+    };
 
     const [form, setForm] = useState({
         firstName: billing?.firstName || "",
@@ -44,8 +46,10 @@ export default function ProfilePage() {
         state: billing?.state || "",
         postcode: billing?.postcode || "",
         phone: billing?.phone || "",
-        tipo_documento: tipoDocumento || "DNI",
-        numero_documento: numeroDocumento || "",
+        document: {
+            documentType: document.documentType || "DNI",
+            number: document.number || "",
+        },
     });
 
     const [loading, setLoading] = useState(false);
@@ -97,8 +101,8 @@ export default function ProfilePage() {
                             Nombre
                         </label>
                         <input
-                            name="first_name"
-                            value={form.first_name}
+                            name="firstName"
+                            value={form.firstName}
                             onChange={handleChange}
                             required
                             className={inputClass}
@@ -109,8 +113,8 @@ export default function ProfilePage() {
                             Apellido
                         </label>
                         <input
-                            name="last_name"
-                            value={form.last_name}
+                            name="lastName"
+                            value={form.lastName}
                             onChange={handleChange}
                             required
                             className={inputClass}
@@ -121,8 +125,8 @@ export default function ProfilePage() {
                             Tipo de documento
                         </label>
                         <select
-                            name="tipo_documento"
-                            value={form.tipo_documento}
+                            name="documentType"
+                            value={form.document.documentType}
                             onChange={handleChange}
                             className={inputClass}
                         >
@@ -136,8 +140,8 @@ export default function ProfilePage() {
                             Número de documento
                         </label>
                         <input
-                            name="numero_documento"
-                            value={form.numero_documento}
+                            name="number"
+                            value={form.document.number}
                             onChange={handleChange}
                             required
                             className={inputClass}
@@ -148,8 +152,8 @@ export default function ProfilePage() {
                             Dirección
                         </label>
                         <input
-                            name="address_1"
-                            value={form.address_1}
+                            name="address"
+                            value={form.address}
                             onChange={handleChange}
                             required
                             className={inputClass}
