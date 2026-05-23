@@ -26,9 +26,7 @@ export async function POST(req: Request) {
                     cuit: process.env.AFIP_CUIT || "",
                 },
                 payload: `
-                    <idPersona>
-                        ${cuit}
-                    </idPersona>
+                    <idPersona>${cuit}</idPersona>
                 `,
             },
         });
