@@ -1,22 +1,17 @@
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
-import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 
 import { connectDB } from "@/lib/mongodb";
 
 import { OrderModel } from "@/models/Order";
 
-import { saleReceiptTemplate } from "@/lib/pdf/templates/saleReceiptTemplate";
+import { mapOrderToDocument } from "@/lib/pdf/mappers/mapOrderToDocument";
 
 import { generatePdf } from "@/lib/pdf/generators/generatePdf";
 
-import { mapOrderToDocumentData } from "@/lib/mappers/saleReceiptMapper";
-
-import { uploadBuffer } from "@/lib/cloudinary";
-
-export async function POST(
-    req: Request,
+export async function GET(
+    _req: Request,
     context: {
         params: Promise<{
             id: string;
@@ -28,12 +23,19 @@ export async function POST(
 
         const { id } = await context.params;
 
-        const order = await OrderModel.findById(id).lean();
+        /*
+        |------------------------------------------------------------------
+        | ORDER
+        |------------------------------------------------------------------
+        */
+
+        const order = await OrderModel.findById(id).populate("invoices").lean();
 
         if (!order) {
-            return NextResponse.json(
+            return Response.json(
                 {
                     success: false,
+
                     error: "Order not found",
                 },
                 {
@@ -43,57 +45,60 @@ export async function POST(
         }
 
         /*
-         * MAP DATA
-         */
+        |------------------------------------------------------------------
+        | INVOICE
+        |------------------------------------------------------------------
+        */
 
         const invoice = order.invoices?.find(
-            (i) => i.afipStatus === "authorized",
+            (invoice: any) => invoice.afipStatus === "authorized",
         );
 
-        if (invoice) {
-            const data = mapOrderToDocumentData(order);
-            const html = saleReceiptTemplate(data);
-        } else {
-            const data = mapOrderToDocumentData(order);
-            const html = saleReceiptTemplate(data);
-        }
-
         /*
-         * BUILD HTML
-         */
+        |------------------------------------------------------------------
+        | MAP DOCUMENT DATA
+        |------------------------------------------------------------------
+        */
 
-        /*
-         * GENERATE PDF
-         */
-        console.log("html>>>", html);
-        const pdf = await generatePdf(html);
+        const data = mapOrderToDocument({
+            order,
 
-        const uploaded = await uploadBuffer({
-            buffer: Buffer.from(pdf),
-
-            folder: "receipts",
-
-            fileName: `receipt-${id}`,
+            invoice,
         });
 
-        await OrderModel.findByIdAndUpdate(id, {
-            "receipt.receiptPdfPublicId": uploaded.public_id,
-        });
+        /*
+        |------------------------------------------------------------------
+        | GENERATE PDF
+        |------------------------------------------------------------------
+        */
 
-        return NextResponse.json({
-            success: true,
+        const pdf = await generatePdf(data);
 
-            receipt: {
-                url: uploaded.secure_url,
+        /*
+        |------------------------------------------------------------------
+        | RESPONSE
+        |------------------------------------------------------------------
+        */
+
+        return new Response(pdf, {
+            status: 200,
+
+            headers: {
+                "Content-Type": "application/pdf",
+
+                "Content-Disposition": `inline; filename="${
+                    invoice ? "factura" : "comprobante"
+                }-${data.document.number}.pdf"`,
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
 
-        return NextResponse.json(
+        return Response.json(
             {
                 success: false,
-                error: "Failed to generate receipt",
+
+                error: error.message || "Internal server error",
             },
             {
                 status: 500,

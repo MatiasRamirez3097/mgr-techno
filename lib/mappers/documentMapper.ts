@@ -1,4 +1,4 @@
-export function mapOrderToDocumentData({
+export function mapOrderToDocument({
     order,
     invoice,
 }: {
@@ -18,7 +18,11 @@ export function mapOrderToDocumentData({
         },
 
         document: {
+            isFiscal: Boolean(invoice),
+
             type: invoice ? "FACTURA B" : "COMPROBANTE",
+
+            letter: invoice ? "B" : null,
 
             number: invoice
                 ? `${invoice.pointOfSale
@@ -34,20 +38,25 @@ export function mapOrderToDocumentData({
         },
 
         customer: {
-            name:
-                invoice?.customerSnapshot?.name ||
-                `${order.billing?.firstName || ""} ${
-                    order.billing?.lastName || ""
-                }`,
+            name: invoice
+                ? invoice.customerSnapshot.name
+                : `${order.billing?.firstName || ""} ${
+                      order.billing?.lastName || ""
+                  }`,
 
             email: order.customerEmail,
 
             phone: order.billing?.phone,
 
-            address:
-                invoice?.customerSnapshot?.address || order.billing?.address,
+            address: invoice
+                ? invoice.customerSnapshot.address
+                : order.billing?.address,
 
-            document: invoice?.customerSnapshot?.documentNumber,
+            document: invoice ? invoice.customerSnapshot.documentNumber : null,
+
+            taxCondition: invoice
+                ? invoice.customerSnapshot.taxCondition
+                : null,
         },
 
         items: (invoice?.itemsSnapshot || order.items).map((item: any) => ({
@@ -74,7 +83,11 @@ export function mapOrderToDocumentData({
 
                   caeExpiration: invoice.caeExpiration,
 
-                  qrUrl: invoice.qrUrl,
+                  pointOfSale: invoice.pointOfSale,
+
+                  voucherNumber: invoice.voucherNumber,
+
+                  voucherType: invoice.voucherType,
               }
             : null,
     };
