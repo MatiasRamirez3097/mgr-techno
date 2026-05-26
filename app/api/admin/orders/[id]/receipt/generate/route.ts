@@ -11,7 +11,7 @@ import { saleReceiptTemplate } from "@/lib/pdf/templates/saleReceiptTemplate";
 
 import { generatePdf } from "@/lib/pdf/generators/generatePdf";
 
-import { mapOrderToSaleReceipt } from "@/lib/mappers/saleReceiptMapper";
+import { mapOrderToDocumentData } from "@/lib/mappers/saleReceiptMapper";
 
 import { uploadBuffer } from "@/lib/cloudinary";
 
@@ -29,6 +29,7 @@ export async function POST(
         const { id } = await context.params;
 
         const order = await OrderModel.findById(id).lean();
+
         if (!order) {
             return NextResponse.json(
                 {
@@ -45,12 +46,22 @@ export async function POST(
          * MAP DATA
          */
 
-        const data = mapOrderToSaleReceipt(order);
+        const invoice = order.invoices?.find(
+            (i) => i.afipStatus === "authorized",
+        );
+
+        if (invoice) {
+            const data = mapOrderToDocumentData(order);
+            const html = saleReceiptTemplate(data);
+        } else {
+            const data = mapOrderToDocumentData(order);
+            const html = saleReceiptTemplate(data);
+        }
+
         /*
          * BUILD HTML
          */
 
-        const html = saleReceiptTemplate(data);
         /*
          * GENERATE PDF
          */

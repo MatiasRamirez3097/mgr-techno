@@ -8,7 +8,6 @@ import { notFound } from "next/navigation";
 import { getOrdersById } from "@/lib/orders/getOrdersById";
 import { getAllocationSuggestions } from "@/lib/inventory/getAllocationSuggestions";
 import { InventoryAllocationSection } from "@/components/admin/InventoryAllocationSection";
-import { PaymentStatusSelector } from "@/components/admin/PaymentStatusSelector";
 import { getOrderPaymentStatus } from "@/lib/orders/getOrderPaymentStatus";
 import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
 import { GenerateReceiptButton } from "@/components/admin/documents/GenerateReceiptButton";
@@ -295,7 +294,7 @@ export default async function AdminOrderDetailPage({
                             <div className="flex flex-col gap-3">
                                 {order.invoices.map((invoice: any) => (
                                     <div
-                                        key={invoice._id}
+                                        key={invoice.id}
                                         className="
                                     rounded-xl
                                     border border-gray-700
