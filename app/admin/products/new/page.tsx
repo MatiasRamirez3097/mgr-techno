@@ -24,11 +24,7 @@ export default async function AdminNewProductPage() {
                     Nuevo producto
                 </h1>
             </div>
-            <ProductForm
-                brands={brands}
-                categories={categories}
-                mode="create"
-            />
+            <ProductForm categories={categories} mode="create" />
         </div>
     );
 }

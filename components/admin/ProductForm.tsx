@@ -10,7 +10,6 @@ import type { BrandDTO } from "@/types/shared/brand";
 interface Props {
     product?: any;
     categories: CategoryDTO[];
-    brands: BrandDTO[];
     mode: "create" | "edit";
 }
 
@@ -198,14 +197,31 @@ function ImageUploader({
     );
 }
 
-export function ProductForm({ product, brands, categories, mode }: Props) {
+export function ProductForm({ product, categories, mode }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState<string | FieldError[] | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [success, setSuccess] = useState("");
+    const [brands, setBrands] = useState<BrandDTO[]>([]);
 
+    const loadBrands = async () => {
+        try {
+            const res = await fetch("/api/admin/brands");
+
+            const data = await res.json();
+            if (data.success) {
+                setBrands(data.brands);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        loadBrands();
+    }, []);
     // Extraer imágenes del producto — soporta tanto strings como objetos {src}
     /*const extractImages = (product?: any): string[] => {
         if (!product?.images) return [];
@@ -845,7 +861,16 @@ export function ProductForm({ product, brands, categories, mode }: Props) {
             {showCreateBrand && (
                 <CreateBrandModal
                     onClose={() => setShowCreateBrand(false)}
-                    onCreated={() => router.refresh}
+                    onCreated={(brand) => {
+                        setBrands((prev) => [...prev, brand]);
+
+                        setForm((prev) => ({
+                            ...prev,
+                            brand: brand.id,
+                        }));
+
+                        setShowCreateBrand(false);
+                    }}
                 />
             )}
         </>

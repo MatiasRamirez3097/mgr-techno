@@ -20,20 +20,17 @@ export const CustomerSchema = new Schema(
             documentType: {
                 type: String,
                 default: "DNI",
-                required: true,
             },
-            number: { type: String, required: true },
+            number: { type: String },
         },
         ivaCondition: {
             code: {
                 type: String,
                 enum: ["RI", "MONOTRIBUTO", "CF", "EXENTO"],
-                required: true,
             },
 
             afipId: {
                 type: Number,
-                required: true,
             },
         },
     },

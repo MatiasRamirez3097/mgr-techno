@@ -65,7 +65,7 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
 
         notes: order.notes || "",
         vouchers:
-            order.vouchers.map((p) => ({
+            order.vouchers?.map((p) => ({
                 id: p._id.toString(),
                 type: p.type,
                 number: p.number,

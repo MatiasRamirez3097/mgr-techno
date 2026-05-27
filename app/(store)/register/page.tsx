@@ -59,7 +59,7 @@ export default function RegisterPage() {
                 redirect: false,
             });
 
-            router.push("/account/orders");
+            router.push("/productos");
             router.refresh();
         } catch (e: any) {
             setError(e.message || "Error al registrarse");

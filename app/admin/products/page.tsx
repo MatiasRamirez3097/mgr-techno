@@ -38,7 +38,6 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     >
                         + Nuevo
                     </Link>
-                    <SyncButton />
                 </div>
             </div>
 
