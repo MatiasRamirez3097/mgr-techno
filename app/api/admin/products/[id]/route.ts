@@ -10,6 +10,7 @@ export async function PUT(
 ) {
     const { id } = await params;
     const body = await req.json();
+    console.log("body>>>", body);
     try {
         const product = await updateProductById(id, body);
         return Response.json({ success: true, product });

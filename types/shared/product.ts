@@ -22,6 +22,7 @@ export type ProductDTO = {
         length: number;
         width: number;
     };
+    brand: string;
 };
 
 export type GetProductsResponse = {
