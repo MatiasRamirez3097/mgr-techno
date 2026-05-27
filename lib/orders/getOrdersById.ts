@@ -4,8 +4,6 @@ import { OrderDTO } from "@/types/shared/order";
 
 import { OrderModel } from "@/models/Order";
 
-import { InvoiceModel } from "@/models/Invoice";
-
 import { mapOrderToDTO } from "../mappers/orderMapper";
 
 export async function getOrdersById(id: string): Promise<OrderDTO | null> {

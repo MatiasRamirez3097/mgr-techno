@@ -25,7 +25,7 @@ export function ProductCard({ product }: { product: ProductDTO }) {
 
     return (
         <div className="group relative rounded-xl overflow-hidden border border-gray-800 bg-gray-900 hover:border-brand transition-colors">
-            <Link href={`/products/${product.slug}`}>
+            <Link href={`/productos/${product.slug}`}>
                 <div className="relative aspect-square bg-gray-800">
                     <Image
                         src={product.image}
