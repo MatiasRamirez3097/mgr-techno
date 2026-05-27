@@ -60,8 +60,8 @@ const LINKS = {
     ],
     "Mi cuenta": [
         { label: "Iniciar sesión", href: "/login" },
-        { label: "Mis pedidos", href: "/account/orders" },
-        { label: "Mis datos", href: "/account/profile" },
+        { label: "Mis pedidos", href: "/mi-cuenta/ordenes" },
+        { label: "Mis datos", href: "/mi-cuenta/perfil" },
     ],
 };
 
