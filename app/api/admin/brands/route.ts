@@ -1,8 +1,5 @@
 import { NextRequest } from "next/server";
 
-export async function PUT(
-    req: NextRequest,
-    { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(req: NextRequest) {
     return Response.json({ ok: true });
 }
