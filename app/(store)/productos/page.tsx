@@ -6,7 +6,7 @@ import { SortSelector } from "@/components/products/SortSelector";
 
 interface Props {
     searchParams: Promise<{
-        category?: string;
+        categoria?: string;
         search?: string;
         page?: string;
         orderby?: "date" | "price" | "price-desc" | "name" | "popularity";
@@ -14,10 +14,10 @@ interface Props {
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
-    const { category, search, page, orderby } = await searchParams;
+    const { categoria, search, page, orderby } = await searchParams;
     const currentPage = parseInt(page || "1");
     const { products, totalPages, total } = await getProducts({
-        category,
+        category: categoria,
         search,
         page: currentPage,
         orderby,
@@ -25,12 +25,12 @@ export default async function ProductsPage({ searchParams }: Props) {
 
     const title = search
         ? `Resultados para "${search}"`
-        : category
-          ? category.replace(/-/g, " ")
+        : categoria
+          ? categoria.replace(/-/g, " ")
           : "Todos los productos";
 
     const basePath = new URLSearchParams();
-    if (category) basePath.set("category", category);
+    if (categoria) basePath.set("categoria", categoria);
     if (search) basePath.set("search", search);
     if (orderby) basePath.set("orderby", orderby);
 
@@ -62,7 +62,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
-                        basePath={`/products?${basePath.toString()}`}
+                        basePath={`/productos?${basePath.toString()}`}
                     />
                 </>
             )}
@@ -73,7 +73,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 export async function generateMetadata({
     searchParams,
 }: Props): Promise<Metadata> {
-    const { category, search } = await searchParams;
+    const { categoria: category, search } = await searchParams;
 
     const title = search
         ? `Resultados para "${search}"`

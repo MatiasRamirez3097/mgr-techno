@@ -117,7 +117,7 @@ export default function FAQPage() {
             {/* CTA */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                    href="/products"
+                    href="/productos"
                     className="
                         px-8 py-3
                         rounded-xl

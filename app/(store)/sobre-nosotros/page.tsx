@@ -127,7 +127,7 @@ export default function AboutUsPage() {
             {/* CTA */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                    href="/products"
+                    href="/productos"
                     className="px-8 py-3 rounded-xl bg-brand text-white font-medium hover:brightness-110 transition-all"
                 >
                     Ver catálogo

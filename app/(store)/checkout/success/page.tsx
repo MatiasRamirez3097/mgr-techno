@@ -40,7 +40,7 @@ export default async function SuccessPage({ searchParams }: Props) {
                     entrega.
                 </p>
                 <Link
-                    href="/products"
+                    href="/productos"
                     className="inline-block px-6 py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 transition-all"
                 >
                     Seguir comprando

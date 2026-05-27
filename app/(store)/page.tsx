@@ -23,7 +23,7 @@ export default async function HomePage() {
             <ProductRow
                 title="🔥 Ofertas"
                 products={onSale}
-                href="/products?on_sale=true"
+                href="/productos?on_sale=true"
                 linkLabel="Ver todas las ofertas"
             />
 
@@ -31,7 +31,7 @@ export default async function HomePage() {
             <ProductRow
                 title="✨ Novedades"
                 products={newProducts}
-                href="/products"
+                href="/productos"
                 linkLabel="Ver todos"
             />
         </div>

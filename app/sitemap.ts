@@ -16,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 1,
         },
         {
-            url: `${baseUrl}/products`,
+            url: `${baseUrl}/productos`,
             lastModified: new Date(),
             changeFrequency: "daily",
             priority: 0.9,
@@ -26,7 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Categorías
     const categories = await getCategoriesBase({ limit: 0 });
     const categoryPages: MetadataRoute.Sitemap = categories.map((cat) => ({
-        url: `${baseUrl}/products?category=${cat.slug}`,
+        url: `${baseUrl}/productos?categoria=${cat.slug}`,
         lastModified: new Date(),
         changeFrequency: "weekly",
         priority: 0.8,
@@ -35,7 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Productos — traemos todos sin paginar
     const products = await getProductsBase({ limit: 0 });
     const productPages: MetadataRoute.Sitemap = products.map((product) => ({
-        url: `${baseUrl}/products/${product.slug}`,
+        url: `${baseUrl}/productos/${product.slug}`,
         lastModified: new Date(),
         changeFrequency: "weekly",
         priority: 0.7,
