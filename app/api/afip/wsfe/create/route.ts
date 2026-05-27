@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
         // Verificar si ya tiene factura fiscal
         const existingInvoice = order.vouchers?.find(
-            (v) => v.type === "fiscal_invoice" && v.status === "issued",
+            (v: any) => v.type === "fiscal_invoice" && v.status === "issued",
         );
 
         if (existingInvoice) {
