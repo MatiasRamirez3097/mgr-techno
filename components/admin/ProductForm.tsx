@@ -4,10 +4,12 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { CategoryDTO } from "@/types/shared/category";
+import type { BrandDTO } from "@/types/shared/brand";
 
 interface Props {
     product?: any;
     categories: CategoryDTO[];
+    brands: BrandDTO[];
     mode: "create" | "edit";
 }
 
@@ -195,7 +197,7 @@ function ImageUploader({
     );
 }
 
-export function ProductForm({ product, categories, mode }: Props) {
+export function ProductForm({ product, brands, categories, mode }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -220,6 +222,7 @@ export function ProductForm({ product, categories, mode }: Props) {
     const [image, setImage] = useState(product?.image || "");
     const [images, setImages] = useState<string[]>(extractImages(product));
     const [form, setForm] = useState({
+        brand: product?.brand || "",
         name: product?.name || "",
         slug: product?.slug || "",
         sku: product?.sku || "",
@@ -278,6 +281,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         name: form.name,
         slug: form.slug,
         sku: form.sku,
+        brand: form.brand,
         status: form.status,
         description: form.description,
         shortDescription: form.shortDescription,
@@ -770,6 +774,26 @@ export function ProductForm({ product, categories, mode }: Props) {
                     {fieldErrors.categories && (
                         <p className="text-sm text-red-400">
                             {fieldErrors.categories}
+                        </p>
+                    )}
+                </section>
+                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                    <h2 className="text-base font-bold text-white mb-4">
+                        Marcas
+                    </h2>
+                    <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                        <select value={form.brand} onChange={handleChange}>
+                            <option value="">Seleccionar marca</option>
+                            {brands.map((brand) => (
+                                <option key={brand.id} value={brand.id}>
+                                    {brand.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    {fieldErrors.brand && (
+                        <p className="text-sm text-red-400">
+                            {fieldErrors.brand}
                         </p>
                     )}
                 </section>

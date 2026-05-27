@@ -2,11 +2,14 @@ import { connectDB } from "@/lib/mongodb";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
 import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { getBrandsBase } from "@/lib/brands/getBrandsBase";
 import type { CategoryDTO } from "@/types/shared/category";
+import type { BrandDTO } from "@/types/shared/brand";
 
 export default async function AdminNewProductPage() {
     await connectDB();
     const categories: CategoryDTO[] = await getCategoriesBase({ limit: 0 });
+    const brands: BrandDTO[] = await getBrandsBase({ limit: 0 });
 
     return (
         <div>
@@ -21,7 +24,11 @@ export default async function AdminNewProductPage() {
                     Nuevo producto
                 </h1>
             </div>
-            <ProductForm categories={categories} mode="create" />
+            <ProductForm
+                brands={brands}
+                categories={categories}
+                mode="create"
+            />
         </div>
     );
 }

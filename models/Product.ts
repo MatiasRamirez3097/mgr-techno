@@ -77,6 +77,11 @@ export const ProductSchema = new Schema(
             type: Number,
             default: 0,
         },
+        brand: {
+            type: Schema.Types.ObjectId,
+
+            ref: "Brand",
+        },
     },
     { timestamps: true },
 );
