@@ -10,7 +10,7 @@ export default async function AccountLayout({
 }) {
     const session = await getServerSession(authOptions);
 
-    if (!session) redirect("/login?next=/account/orders");
+    if (!session) redirect("/login?next=/mi-cuenta/ordenes");
 
     return (
         <main className="max-w-6xl mx-auto px-4 py-10">
