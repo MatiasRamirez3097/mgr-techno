@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { CreateBrandModal } from "./CreateBrandModal";
 import type { CategoryDTO } from "@/types/shared/category";
 import type { BrandDTO } from "@/types/shared/brand";
 
@@ -218,7 +219,7 @@ export function ProductForm({ product, brands, categories, mode }: Props) {
             .map((img: any) => (typeof img === "string" ? img : img.src || ""))
             .filter(Boolean);
     };
-
+    const [showCreateBrand, setShowCreateBrand] = useState(false);
     const [image, setImage] = useState(product?.image || "");
     const [images, setImages] = useState<string[]>(extractImages(product));
     const [form, setForm] = useState({
@@ -419,385 +420,434 @@ export function ProductForm({ product, brands, categories, mode }: Props) {
         }));
     }, [form.name]);
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-        >
-            {/* Columna principal */}
-            <div className="lg:col-span-2 flex flex-col gap-6">
-                {/* Info básica */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Información básica
-                    </h2>
-                    <div className="flex flex-col gap-4">
-                        <div>
-                            <label className={labelClass}>
-                                Nombre del producto
-                            </label>
-                            <input
-                                name="name"
-                                value={form.name}
-                                onChange={handleChange}
-                                required
-                                className={inputClass}
-                            />
-                        </div>
-                        <div>
-                            <label className={labelClass}>Slug (URL)</label>
-                            <input
-                                name="slug"
-                                value={form.slug}
-                                onChange={handleChange}
-                                className={inputClass}
-                                readOnly
-                            />
-                        </div>
-                        <div>
-                            <label className={labelClass}>SKU</label>
-                            <input
-                                name="sku"
-                                value={form.sku}
-                                onChange={handleChange}
-                                className={inputClass}
-                            />
-                        </div>
-                        <div>
-                            <label className={labelClass}>
-                                Descripción corta
-                            </label>
-                            <textarea
-                                name="shortDescription"
-                                value={form.shortDescription}
-                                onChange={handleChange}
-                                rows={3}
-                                className={`${inputClass} resize-none`}
-                            />
-                            {fieldErrors.shortDescription && (
-                                <p className="text-sm text-red-400">
-                                    {fieldErrors.shortDescription}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className={labelClass}>
-                                Descripción completa
-                            </label>
-                            <textarea
-                                name="description"
-                                value={form.description}
-                                onChange={handleChange}
-                                rows={6}
-                                className={`${inputClass} resize-none`}
-                            />
-                            {fieldErrors.description && (
-                                <p className="text-sm text-red-400">
-                                    {fieldErrors.description}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Precios */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Precios
-                    </h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className={labelClass}>Precio regular</label>
-                            <input
-                                name="regularPrice"
-                                value={form.regularPrice}
-                                onChange={handleChange}
-                                type="number"
-                                step="0.01"
-                                required
-                                className={inputClass}
-                            />
-                            {fieldErrors.regularPrice && (
-                                <p className="text-sm text-red-400">
-                                    {fieldErrors.regularPrice}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className={labelClass}>
-                                Precio de oferta
-                            </label>
-                            <input
-                                name="salePrice"
-                                value={form.salePrice}
-                                onChange={handleChange}
-                                type="number"
-                                step="0.01"
-                                className={inputClass}
-                                placeholder="Dejar vacío si no aplica"
-                            />
-                            {fieldErrors.salePrice && (
-                                <p className="text-sm text-red-400">
-                                    {fieldErrors.regularPrice}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className={labelClass}>
-                                Porcentaje Impuestos
-                            </label>
-                            <select
-                                name="taxRate"
-                                value={form.taxRate}
-                                onChange={handleChange}
-                                className={inputClass}
-                            >
-                                <option value="10.5">10.5%</option>
-                                <option value="21">21%</option>
-                            </select>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Stock */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Stock
-                    </h2>
-                    <div className="flex flex-col gap-4">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                name="manageStock"
-                                checked={form.manageStock}
-                                onChange={handleChange}
-                                className="w-4 h-4 accent-brand"
-                            />
-                            <span className="text-sm text-gray-300">
-                                Gestionar stock
-                            </span>
-                        </label>
-                        {form.manageStock && (
-                            <div className="flex flex-col gap-4">
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        name="hasSerialNumber"
-                                        checked={form.hasSerialNumber}
-                                        onChange={handleChange}
-                                        type="checkbox"
-                                        className="w-4 h-4 accent-brand"
-                                    />
-                                    <span className="text-sm text-gray-300">
-                                        Tiene Número de serie?
-                                    </span>
-                                    {fieldErrors.manageStock && (
-                                        <p className="text-sm text-red-400">
-                                            {fieldErrors.manageStock}
-                                        </p>
-                                    )}
+        <>
+            <form
+                onSubmit={handleSubmit}
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            >
+                {/* Columna principal */}
+                <div className="lg:col-span-2 flex flex-col gap-6">
+                    {/* Info básica */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-4">
+                            Información básica
+                        </h2>
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <label className={labelClass}>
+                                    Nombre del producto
                                 </label>
+                                <input
+                                    name="name"
+                                    value={form.name}
+                                    onChange={handleChange}
+                                    required
+                                    className={inputClass}
+                                />
                             </div>
-                        )}
-                    </div>
-                </section>
-
-                {/* Envío */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Envío
-                    </h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                            <label className={labelClass}>Peso (kg)</label>
-                            <input
-                                name="weight"
-                                value={form.weight}
-                                onChange={handleChange}
-                                type="number"
-                                step="0.01"
-                                className={inputClass}
-                            />
-                            {fieldErrors.weight && (
-                                <p className="text-sm text-red-400">
-                                    {fieldErrors.weight}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className={labelClass}>Largo (cm)</label>
-                            <input
-                                name="length"
-                                value={form.length}
-                                onChange={handleChange}
-                                type="number"
-                                step="0.1"
-                                className={inputClass}
-                            />
-                            {fieldErrors.length && (
-                                <p className="text-sm text-red-400">
-                                    {fieldErrors.length}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className={labelClass}>Ancho (cm)</label>
-                            <input
-                                name="width"
-                                value={form.width}
-                                onChange={handleChange}
-                                type="number"
-                                step="0.1"
-                                className={inputClass}
-                            />
-                            {fieldErrors.width && (
-                                <p className="text-sm text-red-400">
-                                    {fieldErrors.width}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className={labelClass}>Alto (cm)</label>
-                            <input
-                                name="height"
-                                value={form.height}
-                                onChange={handleChange}
-                                type="number"
-                                step="0.1"
-                                className={inputClass}
-                            />
-                            {fieldErrors.height && (
-                                <p className="text-sm text-red-400">
-                                    {fieldErrors.height}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            {/* Columna lateral */}
-            <div className="flex flex-col gap-4">
-                {/* Acciones */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Publicación
-                    </h2>
-                    <div className="flex flex-col gap-4">
-                        <div>
-                            <label className={labelClass}>Estado</label>
-                            <select
-                                name="status"
-                                value={form.status}
-                                onChange={handleChange}
-                                className={inputClass}
-                            >
-                                <option value="publish">Publicado</option>
-                                <option value="draft">Borrador</option>
-                                <option value="private">Privado</option>
-                            </select>
-                        </div>
-
-                        {error &&
-                            (Array.isArray(error) ? (
-                                error.map((e, i) => (
-                                    <p key={i} className="text-sm text-red-400">
-                                        {e.message}
+                            <div>
+                                <label className={labelClass}>Slug (URL)</label>
+                                <input
+                                    name="slug"
+                                    value={form.slug}
+                                    onChange={handleChange}
+                                    className={inputClass}
+                                    readOnly
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClass}>SKU</label>
+                                <input
+                                    name="sku"
+                                    value={form.sku}
+                                    onChange={handleChange}
+                                    className={inputClass}
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClass}>
+                                    Descripción corta
+                                </label>
+                                <textarea
+                                    name="shortDescription"
+                                    value={form.shortDescription}
+                                    onChange={handleChange}
+                                    rows={3}
+                                    className={`${inputClass} resize-none`}
+                                />
+                                {fieldErrors.shortDescription && (
+                                    <p className="text-sm text-red-400">
+                                        {fieldErrors.shortDescription}
                                     </p>
-                                ))
-                            ) : (
-                                <p className="text-sm text-red-400">{error}</p>
-                            ))}
-                        {success && (
-                            <p className="text-sm text-green-400">{success}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className={labelClass}>
+                                    Descripción completa
+                                </label>
+                                <textarea
+                                    name="description"
+                                    value={form.description}
+                                    onChange={handleChange}
+                                    rows={6}
+                                    className={`${inputClass} resize-none`}
+                                />
+                                {fieldErrors.description && (
+                                    <p className="text-sm text-red-400">
+                                        {fieldErrors.description}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Precios */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-4">
+                            Precios
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className={labelClass}>
+                                    Precio regular
+                                </label>
+                                <input
+                                    name="regularPrice"
+                                    value={form.regularPrice}
+                                    onChange={handleChange}
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    className={inputClass}
+                                />
+                                {fieldErrors.regularPrice && (
+                                    <p className="text-sm text-red-400">
+                                        {fieldErrors.regularPrice}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className={labelClass}>
+                                    Precio de oferta
+                                </label>
+                                <input
+                                    name="salePrice"
+                                    value={form.salePrice}
+                                    onChange={handleChange}
+                                    type="number"
+                                    step="0.01"
+                                    className={inputClass}
+                                    placeholder="Dejar vacío si no aplica"
+                                />
+                                {fieldErrors.salePrice && (
+                                    <p className="text-sm text-red-400">
+                                        {fieldErrors.regularPrice}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className={labelClass}>
+                                    Porcentaje Impuestos
+                                </label>
+                                <select
+                                    name="taxRate"
+                                    value={form.taxRate}
+                                    onChange={handleChange}
+                                    className={inputClass}
+                                >
+                                    <option value="10.5">10.5%</option>
+                                    <option value="21">21%</option>
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Stock */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-4">
+                            Stock
+                        </h2>
+                        <div className="flex flex-col gap-4">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    name="manageStock"
+                                    checked={form.manageStock}
+                                    onChange={handleChange}
+                                    className="w-4 h-4 accent-brand"
+                                />
+                                <span className="text-sm text-gray-300">
+                                    Gestionar stock
+                                </span>
+                            </label>
+                            {form.manageStock && (
+                                <div className="flex flex-col gap-4">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input
+                                            name="hasSerialNumber"
+                                            checked={form.hasSerialNumber}
+                                            onChange={handleChange}
+                                            type="checkbox"
+                                            className="w-4 h-4 accent-brand"
+                                        />
+                                        <span className="text-sm text-gray-300">
+                                            Tiene Número de serie?
+                                        </span>
+                                        {fieldErrors.manageStock && (
+                                            <p className="text-sm text-red-400">
+                                                {fieldErrors.manageStock}
+                                            </p>
+                                        )}
+                                    </label>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Envío */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-4">
+                            Envío
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <label className={labelClass}>Peso (kg)</label>
+                                <input
+                                    name="weight"
+                                    value={form.weight}
+                                    onChange={handleChange}
+                                    type="number"
+                                    step="0.01"
+                                    className={inputClass}
+                                />
+                                {fieldErrors.weight && (
+                                    <p className="text-sm text-red-400">
+                                        {fieldErrors.weight}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className={labelClass}>Largo (cm)</label>
+                                <input
+                                    name="length"
+                                    value={form.length}
+                                    onChange={handleChange}
+                                    type="number"
+                                    step="0.1"
+                                    className={inputClass}
+                                />
+                                {fieldErrors.length && (
+                                    <p className="text-sm text-red-400">
+                                        {fieldErrors.length}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className={labelClass}>Ancho (cm)</label>
+                                <input
+                                    name="width"
+                                    value={form.width}
+                                    onChange={handleChange}
+                                    type="number"
+                                    step="0.1"
+                                    className={inputClass}
+                                />
+                                {fieldErrors.width && (
+                                    <p className="text-sm text-red-400">
+                                        {fieldErrors.width}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className={labelClass}>Alto (cm)</label>
+                                <input
+                                    name="height"
+                                    value={form.height}
+                                    onChange={handleChange}
+                                    type="number"
+                                    step="0.1"
+                                    className={inputClass}
+                                />
+                                {fieldErrors.height && (
+                                    <p className="text-sm text-red-400">
+                                        {fieldErrors.height}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                {/* Columna lateral */}
+                <div className="flex flex-col gap-4">
+                    {/* Acciones */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-4">
+                            Publicación
+                        </h2>
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <label className={labelClass}>Estado</label>
+                                <select
+                                    name="status"
+                                    value={form.status}
+                                    onChange={handleChange}
+                                    className={inputClass}
+                                >
+                                    <option value="publish">Publicado</option>
+                                    <option value="draft">Borrador</option>
+                                    <option value="private">Privado</option>
+                                </select>
+                            </div>
+
+                            {error &&
+                                (Array.isArray(error) ? (
+                                    error.map((e, i) => (
+                                        <p
+                                            key={i}
+                                            className="text-sm text-red-400"
+                                        >
+                                            {e.message}
+                                        </p>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-red-400">
+                                        {error}
+                                    </p>
+                                ))}
+                            {success && (
+                                <p className="text-sm text-green-400">
+                                    {success}
+                                </p>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
+                            >
+                                {loading
+                                    ? "Guardando..."
+                                    : mode === "edit"
+                                      ? "Guardar cambios"
+                                      : "Crear producto"}
+                            </button>
+
+                            {mode === "edit" && (
+                                <button
+                                    type="button"
+                                    onClick={handleDelete}
+                                    disabled={deleting}
+                                    className="w-full py-2.5 rounded-xl text-red-400 text-sm font-medium border border-red-400/20 hover:bg-red-400/10 disabled:opacity-50 transition-all"
+                                >
+                                    {deleting
+                                        ? "Eliminando..."
+                                        : "Eliminar producto"}
+                                </button>
+                            )}
+
+                            {mode === "edit" && (
+                                <a
+                                    href={`/products/${product.slug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full py-2.5 rounded-xl text-gray-400 text-sm text-center hover:text-white transition-colors"
+                                >
+                                    Ver en tienda →
+                                </a>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Imágenes */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-4">
+                            Imágenes
+                        </h2>
+                        <ImageUploader
+                            image={image}
+                            images={images}
+                            onChange={({ image, images }) => {
+                                setImage(image);
+                                setImages(images);
+                            }}
+                        />
+                    </section>
+
+                    {/* Categorías */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-4">
+                            Categorías
+                        </h2>
+                        <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                            {renderCategoryTree(null)}
+                        </div>
+                        {fieldErrors.categories && (
+                            <p className="text-sm text-red-400">
+                                {fieldErrors.categories}
+                            </p>
                         )}
+                    </section>
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-bold text-white">
+                                Marcas
+                            </h2>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
-                        >
-                            {loading
-                                ? "Guardando..."
-                                : mode === "edit"
-                                  ? "Guardar cambios"
-                                  : "Crear producto"}
-                        </button>
-
-                        {mode === "edit" && (
                             <button
                                 type="button"
-                                onClick={handleDelete}
-                                disabled={deleting}
-                                className="w-full py-2.5 rounded-xl text-red-400 text-sm font-medium border border-red-400/20 hover:bg-red-400/10 disabled:opacity-50 transition-all"
+                                onClick={() => setShowCreateBrand(true)}
+                                className="
+                px-3 py-1.5
+                rounded-lg
+                bg-brand
+                text-white
+                text-sm
+                hover:brightness-110
+                transition-all
+            "
                             >
-                                {deleting
-                                    ? "Eliminando..."
-                                    : "Eliminar producto"}
+                                Nueva marca
                             </button>
-                        )}
+                        </div>
 
-                        {mode === "edit" && (
-                            <a
-                                href={`/products/${product.slug}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full py-2.5 rounded-xl text-gray-400 text-sm text-center hover:text-white transition-colors"
+                        <div className="flex flex-col gap-2">
+                            <select
+                                name="brand"
+                                value={form.brand}
+                                onChange={handleChange}
+                                className="
+                bg-gray-800
+                border border-gray-700
+                rounded-xl
+                px-4 py-3
+                text-white
+            "
                             >
-                                Ver en tienda →
-                            </a>
+                                <option value="">Seleccionar marca</option>
+
+                                {brands.map((brand) => (
+                                    <option key={brand.id} value={brand.id}>
+                                        {brand.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {fieldErrors.brand && (
+                            <p className="text-sm text-red-400 mt-2">
+                                {fieldErrors.brand}
+                            </p>
                         )}
-                    </div>
-                </section>
-
-                {/* Imágenes */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Imágenes
-                    </h2>
-                    <ImageUploader
-                        image={image}
-                        images={images}
-                        onChange={({ image, images }) => {
-                            setImage(image);
-                            setImages(images);
-                        }}
-                    />
-                </section>
-
-                {/* Categorías */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Categorías
-                    </h2>
-                    <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
-                        {renderCategoryTree(null)}
-                    </div>
-                    {fieldErrors.categories && (
-                        <p className="text-sm text-red-400">
-                            {fieldErrors.categories}
-                        </p>
-                    )}
-                </section>
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Marcas
-                    </h2>
-                    <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
-                        <select value={form.brand} onChange={handleChange}>
-                            <option value="">Seleccionar marca</option>
-                            {brands.map((brand) => (
-                                <option key={brand.id} value={brand.id}>
-                                    {brand.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    {fieldErrors.brand && (
-                        <p className="text-sm text-red-400">
-                            {fieldErrors.brand}
-                        </p>
-                    )}
-                </section>
-            </div>
-        </form>
+                    </section>
+                </div>
+            </form>
+            {showCreateBrand && (
+                <CreateBrandModal
+                    onClose={() => setShowCreateBrand(false)}
+                    onCreated={() => router.refresh}
+                />
+            )}
+        </>
     );
 }
