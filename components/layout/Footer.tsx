@@ -55,7 +55,7 @@ const LINKS = {
     ],
     Compras: [
         { label: "Cómo comprar", href: "/como-comprar" },
-        { label: "Métodos de pago", href: "/medios-de-pago" },
+        { label: "Métodos de pago", href: "/metodos-de-pago" },
         { label: "Envíos", href: "/envios" },
         { label: "Cambios y devoluciones", href: "/devoluciones" },
     ],

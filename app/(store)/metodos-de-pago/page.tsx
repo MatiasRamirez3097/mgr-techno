@@ -62,7 +62,7 @@ export default function PaymentMethodsPage() {
             {/* Hero */}
             <div className="text-center mb-16">
                 <h1 className="text-4xl font-bold text-white mb-4">
-                    Medios de <span className="text-brand">pago</span>
+                    Metodos de <span className="text-brand">pago</span>
                 </h1>
 
                 <p className="text-gray-400 text-lg max-w-2xl mx-auto">
