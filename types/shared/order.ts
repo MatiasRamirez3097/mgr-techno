@@ -79,10 +79,6 @@ export type OrderDTO = {
         url: string;
         publicId: string;
     }[];
-    number: string;
-    generatedAt: string;
-    url: string;
-    publicId: string;
 };
 
 export type OrderFilters = {
