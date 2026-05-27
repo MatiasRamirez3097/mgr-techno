@@ -114,7 +114,7 @@ export default async function AdminOrderDetailPage({
         paymentStatus === "paid"
             ? await getAllocationSuggestions(order.id)
             : [];
-    function getVoucherLabel(voucher: Voucher) {
+    function getVoucherLabel(voucher: any) {
         switch (voucher.type) {
             case "non_fiscal_receipt":
                 return "Comprobante no fiscal";
@@ -327,11 +327,11 @@ export default async function AdminOrderDetailPage({
                             Facturación AFIP
                         </h2>
 
-                        {order.invoices?.length ? (
+                        {order.vouchers?.length ? (
                             <div className="flex flex-col gap-3">
-                                {order.invoices.map((invoice: any) => (
+                                {order.vouchers.map((voucher: any) => (
                                     <div
-                                        key={invoice.id}
+                                        key={voucher.id}
                                         className="
                                     rounded-xl
                                     border border-gray-700
@@ -352,7 +352,7 @@ export default async function AdminOrderDetailPage({
                                             text-white
                                         "
                                                 >
-                                                    Factura {invoice.type}
+                                                    Factura {voucher.type}
                                                 </p>
 
                                                 <p
@@ -362,9 +362,9 @@ export default async function AdminOrderDetailPage({
                                             mt-1
                                         "
                                                 >
-                                                    Nº {invoice.pointOfSale}-
+                                                    Nº {voucher.pointOfSale}-
                                                     {String(
-                                                        invoice.voucherNumber,
+                                                        voucher.voucherNumber,
                                                     ).padStart(8, "0")}
                                                 </p>
                                             </div>
@@ -392,17 +392,17 @@ export default async function AdminOrderDetailPage({
                                     space-y-1
                                 "
                                         >
-                                            <p>CAE: {invoice.cae}</p>
+                                            <p>CAE: {voucher.cae}</p>
 
                                             <p>
                                                 Vencimiento:{" "}
-                                                {invoice.caeExpiration}
+                                                {voucher.caeExpiration}
                                             </p>
                                         </div>
 
-                                        {invoice.pdfUrl && (
+                                        {voucher.pdfUrl && (
                                             <a
-                                                href={invoice.pdfUrl}
+                                                href={voucher.pdfUrl}
                                                 target="_blank"
                                                 className="
                                                 mt-4
