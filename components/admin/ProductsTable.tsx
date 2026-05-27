@@ -128,7 +128,7 @@ export function ProductsTable({ products }: { products: any[] }) {
                                                 setQuickEditId(
                                                     quickEditId === product.id
                                                         ? null
-                                                        : product._id,
+                                                        : product.id,
                                                 )
                                             }
                                             className={`text-xs transition-all ${
@@ -150,9 +150,9 @@ export function ProductsTable({ products }: { products: any[] }) {
                             </tr>
 
                             {/* Fila del quick edit */}
-                            {quickEditId === product._id && (
+                            {quickEditId === product.id && (
                                 <tr
-                                    key={`qe-${product._id}`}
+                                    key={`qe-${product.id}`}
                                     className="bg-gray-800/30"
                                 >
                                     <td colSpan={6} className="px-6 py-4">
