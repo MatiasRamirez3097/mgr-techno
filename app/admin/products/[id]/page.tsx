@@ -6,6 +6,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ProductDTO } from "@/types/shared/product";
 import type { CategoryDTO } from "@/types/shared/category";
+import { BrandDTO } from "@/types/shared/brand";
+import { getBrandsBase } from "@/lib/brands/getBrandsBase";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +19,15 @@ export default async function AdminEditProductPage({
     const { id } = await params;
 
     await connectDB();
-    const [product, categories]: [ProductDTO | null, CategoryDTO[]] =
-        await Promise.all([
-            getProductsById(id),
-            getCategoriesBase({ limit: 0 }),
-        ]);
+    const [product, categories, brands]: [
+        ProductDTO | null,
+        CategoryDTO[],
+        BrandDTO[],
+    ] = await Promise.all([
+        getProductsById(id),
+        getCategoriesBase({ limit: 0 }),
+        getBrandsBase({ limit: 0 }),
+    ]);
 
     if (!product) notFound();
 
@@ -39,6 +45,7 @@ export default async function AdminEditProductPage({
                 </h1>
             </div>
             <ProductForm
+                brands={brands}
                 product={product}
                 categories={categories}
                 mode="edit"
