@@ -7,7 +7,7 @@ import { Session } from "next-auth";
 
 const LINKS = [
     {
-        href: "/account/orders",
+        href: "/mi-cuenta/ordenes",
         label: "Mis pedidos",
         icon: (
             <svg
@@ -27,7 +27,7 @@ const LINKS = [
         ),
     },
     {
-        href: "/account/profile",
+        href: "/mi-cuenta/perfil",
         label: "Mis datos",
         icon: (
             <svg
@@ -47,7 +47,7 @@ const LINKS = [
         ),
     },
     {
-        href: "/account/password",
+        href: "/mi-cuenta/password",
         label: "Cambiar contraseña",
         icon: (
             <svg
