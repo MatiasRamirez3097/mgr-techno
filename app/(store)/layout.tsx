@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     metadataBase: new URL("https://www.mgrtechno.com.ar"),
     title: {
         default: "MGR Techno — Tecnología en Rosario",
-        template: "%s | MGR Techno",
+        template: "MGR Techno | %s",
     },
     description:
         "Componentes de PC, periféricos, refrigeración y más. Envíos a todo el país desde Rosario.",
