@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const SOCIAL_LINKS = [
     {
@@ -121,14 +122,34 @@ export function Footer() {
                 </div>
 
                 {/* Bottom bar */}
-                <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <p className="text-xs text-gray-500">
-                        © {new Date().getFullYear()} MGR Techno. Todos los
-                        derechos reservados.
-                    </p>
-                    <p className="text-xs text-gray-600">
-                        Rosario, Santa Fe, Argentina
-                    </p>
+                <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex flex-col items-center md:items-start gap-1">
+                        <p className="text-xs text-gray-500">
+                            © {new Date().getFullYear()} MGR Techno. Todos los
+                            derechos reservados.
+                        </p>
+
+                        <p className="text-xs text-gray-600">
+                            Rosario, Santa Fe, Argentina
+                        </p>
+                    </div>
+
+                    {/* QR AFIP */}
+                    <a
+                        href="http://qr.afip.gob.ar/?qr=ortWhzN-H8VPwgLOlVeItw,,"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="QR AFIP"
+                        className="opacity-80 hover:opacity-100 transition-opacity"
+                    >
+                        <Image
+                            src="https://www.afip.gob.ar/images/f960/DATAWEB.jpg"
+                            alt="QR AFIP"
+                            width={70}
+                            height={95}
+                            className="rounded-sm"
+                        />
+                    </a>
                 </div>
             </div>
         </footer>
