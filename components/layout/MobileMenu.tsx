@@ -107,7 +107,7 @@ export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
                     </p>
 
                     <Link
-                        href="/products"
+                        href="/productos"
                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
                     >
                         Todos los productos
@@ -122,7 +122,7 @@ export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
                             <div key={cat.id}>
                                 <div className="flex items-center">
                                     <Link
-                                        href={`/products?category=${cat.slug}`}
+                                        href={`/productos?categoria=${cat.slug}`}
                                         className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
                                     >
                                         {cat.name}
@@ -160,7 +160,7 @@ export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
                                         {subs.map((sub) => (
                                             <Link
                                                 key={sub.id}
-                                                href={`/products?category=${sub.slug}`}
+                                                href={`/productos?categoria=${sub.slug}`}
                                                 className="flex items-center px-3 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
                                             >
                                                 {sub.name}
@@ -194,7 +194,7 @@ export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
                             </div>
                             <div className="flex gap-2">
                                 <Link
-                                    href="/account/orders"
+                                    href="/mi-cuenta/ordenes"
                                     className="flex-1 text-center text-sm py-2 rounded-lg bg-gray-800 text-gray-300 hover:text-white transition-colors"
                                 >
                                     Mi cuenta
