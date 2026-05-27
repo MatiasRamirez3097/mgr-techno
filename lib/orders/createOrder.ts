@@ -1,11 +1,17 @@
 import mongoose from "mongoose";
+
 import { OrderModel } from "@/models/Order";
 import { ProductModel } from "@/models/Product";
+
 import { findProductsById } from "../products/getProductsById";
-import { getCustomersIdByEmail } from "../customers/getCustomersIdByEmail";
+
 import { sendOrderConfirmationEmail } from "../email";
+
 import { mapOrderToDTO } from "../mappers/orderMapper";
+
 import { createOrderSchema } from "../validators/createOrderSchema";
+
+import { notifyNewOrder } from "@/lib/notifications/discord/notifyNewOrder";
 
 function getPaymentStatus(total: number, paidAmount: number) {
     if (paidAmount <= 0) {
@@ -23,7 +29,7 @@ export async function createOrder(data: unknown) {
     const result = createOrderSchema.safeParse(data);
 
     if (!result.success) {
-        return result;
+        throw new Error("Invalid order data");
     }
 
     const { items, payments, source } = result.data;
@@ -31,6 +37,9 @@ export async function createOrder(data: unknown) {
     const session = await mongoose.startSession();
 
     let orderNum = "";
+
+    let createdOrder: any = null;
+
     try {
         await session.withTransaction(async () => {
             // =====================================
@@ -78,6 +87,7 @@ export async function createOrder(data: unknown) {
 
                 const taxRate = product.taxRate ?? 10.5;
 
+                // unitPrice YA incluye IVA
                 const taxAmount = subtotal - subtotal / (1 + taxRate / 100);
 
                 const total = subtotal;
@@ -160,6 +170,8 @@ export async function createOrder(data: unknown) {
                 { session },
             );
 
+            createdOrder = order;
+
             // =====================================
             // RESERVE STOCK
             // =====================================
@@ -181,10 +193,24 @@ export async function createOrder(data: unknown) {
             }
 
             // =====================================
-            // EMAIL
+            // ORDER NUMBER
             // =====================================
+
             orderNum = order._id.toString().slice(-6).toUpperCase();
-            await sendOrderConfirmationEmail(mapOrderToDTO(order));
+        });
+
+        // =====================================
+        // EMAIL
+        // =====================================
+
+        await sendOrderConfirmationEmail(mapOrderToDTO(createdOrder));
+
+        // =====================================
+        // DISCORD
+        // =====================================
+
+        notifyNewOrder(createdOrder).catch((err) => {
+            console.error("Discord notification failed", err);
         });
 
         return {
@@ -194,6 +220,6 @@ export async function createOrder(data: unknown) {
     } catch (error) {
         throw error;
     } finally {
-        session.endSession();
+        await session.endSession();
     }
 }
