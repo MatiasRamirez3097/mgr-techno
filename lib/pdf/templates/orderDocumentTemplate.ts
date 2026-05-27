@@ -1,289 +1,735 @@
 import QRCode from "qrcode";
 
-import { generateAfipQr } from "@/lib/afip/qr/generateAfipQr";
-
 export async function orderDocumentTemplate(data: any) {
     let qrImage = "";
 
-    if (data.document.isFiscal) {
-        const qrUrl = generateAfipQr({
-            cuit: Number(process.env.AFIP_CUIT),
+    /*
+    |------------------------------------------------------------------
+    | QR
+    |------------------------------------------------------------------
+    */
 
-            pointOfSale: data.afip.pointOfSale,
-
-            voucherType: data.afip.voucherType,
-
-            voucherNumber: data.afip.voucherNumber,
-
-            total: data.totals.total,
-
-            documentType: 96,
-
-            documentNumber: Number(data.customer.document),
-
-            cae: data.afip.cae,
-
-            date: new Date().toISOString().split("T")[0],
-        });
-
+    if (data.document.qrData) {
+        const base64 = Buffer.from(
+            JSON.stringify(data.document.qrData),
+        ).toString("base64");
+        const qrUrl = `https://www.afip.gob.ar/fe/qr/?p=${base64}`;
         qrImage = await QRCode.toDataURL(qrUrl);
     }
 
     return `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8" />
+    <html>
 
-<style>
-body{
-    font-family: Arial, sans-serif;
-    padding:40px;
-    color:#111;
-}
+    <head>
 
-.header{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    margin-bottom:30px;
-}
+        <meta charset="UTF-8" />
 
-.business h1{
-    margin:0;
-    font-size:28px;
-}
+        <style>
 
-.afip-box{
-    border:1px solid #000;
-    width:80px;
-    height:80px;
-    text-align:center;
-}
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
 
-.afip-letter{
-    font-size:42px;
-    font-weight:bold;
-}
+            * {
+                box-sizing: border-box;
+            }
 
-.section{
-    margin-bottom:30px;
-}
+            body {
 
-table{
-    width:100%;
-    border-collapse:collapse;
-}
+                margin: 0;
 
-th, td{
-    border-bottom:1px solid #ddd;
-    padding:10px;
-    text-align:left;
-}
+                font-family:
+                    Helvetica,
+                    Arial,
+                    sans-serif;
 
-.totals{
-    margin-top:30px;
-    width:300px;
-    margin-left:auto;
-}
+                font-size: 11px;
 
-.total-row{
-    display:flex;
-    justify-content:space-between;
-    margin-bottom:10px;
-}
+                color: #000;
 
-.final-total{
-    font-size:22px;
-    font-weight:bold;
-}
+                background: #fff;
+            }
 
-.footer{
-    margin-top:50px;
-    display:flex;
-    align-items:flex-start;
-    gap:30px;
-}
+            .document {
 
-.qr img{
-    width:110px;
-}
-</style>
-</head>
+                width: 100%;
 
-<body>
+                border:
+                    1px solid #000;
+            }
 
-<div class="header">
+            /*
+            |------------------------------------------------------------------
+            | HEADER
+            |------------------------------------------------------------------
+            */
 
-<div class="business">
-<h1>${data.business.name}</h1>
+            .header {
 
-<p>${data.business.address}</p>
+                display: flex;
 
-<p>${data.business.phone}</p>
+                border-bottom:
+                    1px solid #000;
+            }
 
-<p>${data.business.email}</p>
-</div>
+            .header-left {
 
-<div>
+                width: 50%;
 
-${
-    data.document.isFiscal
-        ? `
-<div class="afip-box">
-<div class="afip-letter">
-${data.document.letter}
-</div>
+                padding: 10px;
 
-<div>COD. 006</div>
-</div>
-`
-        : ""
-}
+                border-right:
+                    1px solid #000;
+            }
 
-<h2>${data.document.type}</h2>
+            .header-center {
 
-<p>
-N°
-${data.document.number}
-</p>
+                width: 70px;
 
-<p>
-${data.document.date}
-</p>
+                border-right:
+                    1px solid #000;
 
-</div>
+                display: flex;
 
-</div>
+                flex-direction: column;
 
-<div class="section">
+                justify-content: center;
 
-<h3>Cliente</h3>
+                align-items: center;
 
-<p>${data.customer.name}</p>
+                padding: 8px;
+            }
 
-${data.customer.email ? `<p>${data.customer.email}</p>` : ""}
+            .voucher-letter {
 
-${data.customer.phone ? `<p>${data.customer.phone}</p>` : ""}
+                font-size: 34px;
 
-${data.customer.address ? `<p>${data.customer.address}</p>` : ""}
+                font-weight: bold;
 
-${
-    data.document.isFiscal
-        ? `
-<p>
-Documento:
-${data.customer.document || "-"}
-</p>
+                line-height: 1;
+            }
 
-<p>
-Condición IVA:
-${data.customer.taxCondition?.label || "-"}
-</p>
-`
-        : ""
-}
+            .voucher-code {
 
-</div>
+                font-size: 10px;
 
-<table>
-<thead>
-<tr>
-<th>Producto</th>
-<th>Cant.</th>
-<th>Precio</th>
-<th>Total</th>
-</tr>
-</thead>
+                margin-top: 4px;
 
-<tbody>
+                text-align: center;
+            }
 
-${data.items
-    .map(
-        (item: any) => `
-<tr>
-<td>${item.name}</td>
+            .header-right {
 
-<td>${item.quantity}</td>
+                flex: 1;
 
-<td>
-$ ${item.price.toFixed(2)}
-</td>
+                padding: 10px;
 
-<td>
-$ ${item.total.toFixed(2)}
-</td>
-</tr>
-`,
-    )
-    .join("")}
+                text-align: right;
+            }
 
-</tbody>
-</table>
+            .business-name {
 
-<div class="totals">
+                font-size: 22px;
 
-<div class="total-row">
-<span>Subtotal</span>
+                font-weight: bold;
 
-<span>
-$ ${data.totals.subtotal.toFixed(2)}
-</span>
-</div>
+                margin-bottom: 6px;
 
-<div class="total-row">
-<span>Envío</span>
+                text-transform: uppercase;
+            }
 
-<span>
-$ ${data.totals.shipping.toFixed(2)}
-</span>
-</div>
+            .business-info {
 
-<div class="total-row final-total">
-<span>TOTAL</span>
+                font-size: 10px;
 
-<span>
-$ ${data.totals.total.toFixed(2)}
-</span>
-</div>
+                line-height: 1.45;
+            }
 
-</div>
+            .document-title {
 
-<div class="footer">
+                font-size: 26px;
 
-${
-    data.document.isFiscal
-        ? `
-<div class="qr">
-<img src="${qrImage}" />
-</div>
+                font-weight: bold;
 
-<div>
-<p>
-CAE:
-${data.afip.cae}
-</p>
+                text-transform: uppercase;
+            }
 
-<p>
-Vto. CAE:
-${data.afip.caeExpiration}
-</p>
+            .document-number {
 
-<p>
-Comprobante autorizado por AFIP
-</p>
-</div>
-`
-        : `
-<p>
-Comprobante no fiscal
-</p>
-`
-}
+                margin-top: 4px;
 
-</div>
+                font-size: 20px;
 
-</body>
-</html>
-`;
+                font-weight: bold;
+            }
+
+            .document-date {
+
+                margin-top: 6px;
+
+                font-size: 11px;
+            }
+
+            /*
+            |------------------------------------------------------------------
+            | INFO BOXES
+            |------------------------------------------------------------------
+            */
+
+            .info-box {
+
+                border-bottom:
+                    1px solid #000;
+
+                padding: 6px 8px;
+            }
+
+            .info-row {
+
+                display: flex;
+
+                gap: 16px;
+
+                margin-bottom: 4px;
+            }
+
+            .info-row:last-child {
+                margin-bottom: 0;
+            }
+
+            .info-col {
+
+                flex: 1;
+            }
+
+            .label {
+
+                font-weight: bold;
+
+                text-transform: uppercase;
+            }
+
+            /*
+            |------------------------------------------------------------------
+            | TABLE
+            |------------------------------------------------------------------
+            */
+
+            table {
+
+                width: 100%;
+
+                border-collapse: collapse;
+            }
+
+            thead {
+
+                background: #efefef;
+            }
+
+            th {
+
+                border:
+                    1px solid #000;
+
+                padding: 5px 6px;
+
+                font-size: 10px;
+
+                text-transform: uppercase;
+            }
+
+            td {
+
+                border:
+                    1px solid #000;
+
+                padding: 5px 6px;
+
+                font-size: 10px;
+            }
+
+            .text-right {
+
+                text-align: right;
+            }
+
+            /*
+            |------------------------------------------------------------------
+            | SPACER
+            |------------------------------------------------------------------
+            */
+
+            .spacer {
+
+                height: 420px;
+
+                border-bottom:
+                    1px solid #000;
+            }
+
+            /*
+            |------------------------------------------------------------------
+            | FOOTER
+            |------------------------------------------------------------------
+            */
+
+            .footer {
+
+                display: flex;
+
+                justify-content: space-between;
+
+                align-items: flex-end;
+
+                padding: 10px;
+            }
+
+            .footer-left {
+
+                width: 220px;
+            }
+
+            .qr img {
+
+                width: 90px;
+
+                height: 90px;
+
+                border:
+                    1px solid #000;
+
+                padding: 4px;
+
+                background: #fff;
+
+                margin-bottom: 8px;
+            }
+
+            .cae {
+
+                font-size: 10px;
+
+                line-height: 1.5;
+            }
+
+            .totals {
+
+                width: 260px;
+            }
+
+            .total-row {
+
+                display: flex;
+
+                justify-content: space-between;
+
+                margin-bottom: 6px;
+
+                font-size: 11px;
+            }
+
+            .grand-total {
+
+                margin-top: 8px;
+
+                padding-top: 8px;
+
+                border-top:
+                    1px solid #000;
+
+                font-size: 18px;
+
+                font-weight: bold;
+            }
+
+            /*
+            |------------------------------------------------------------------
+            | NOTE
+            |------------------------------------------------------------------
+            */
+
+            .note {
+
+                border-top:
+                    1px solid #000;
+
+                text-align: center;
+
+                padding: 6px;
+
+                font-size: 10px;
+            }
+
+        </style>
+
+    </head>
+
+    <body>
+
+        <div class="document">
+
+            <!-- HEADER -->
+
+            <div class="header">
+
+                <div class="header-left">
+
+                    <div class="business-name">
+                        ${data.business.name}
+                    </div>
+
+                    <div class="business-info">
+
+                        ${data.business.address || ""}
+                        <br />
+
+                        ${data.business.phone || ""}
+                        <br />
+
+                        ${data.business.email || ""}
+
+                        ${
+                            data.business.cuit
+                                ? `
+                                <br />
+                                CUIT:
+                                ${data.business.cuit}
+                                `
+                                : ""
+                        }
+
+                        ${
+                            data.business.ivaCondition
+                                ? `
+                                <br />
+                                IVA:
+                                ${data.business.ivaCondition}
+                                `
+                                : ""
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="header-center">
+
+                    <div class="voucher-letter">
+                        ${
+                            data.document.isFiscal
+                                ? data.document.fiscalType
+                                : "X"
+                        }
+                    </div>
+
+                    <div class="voucher-code">
+
+                        Cod.
+                        <br />
+
+                        ${data.document.afipVoucherType || "999"}
+
+                    </div>
+
+                </div>
+
+                <div class="header-right">
+
+                    <div class="document-title">
+                        ${data.document.title}
+                    </div>
+
+                    <div class="document-number">
+                        Nº ${data.document.number}
+                    </div>
+
+                    <div class="document-date">
+                        FECHA:
+                        ${data.document.date}
+                    </div>
+
+                    ${
+                        data.document.pointOfSale
+                            ? `
+                            <div class="document-date">
+                                PTO. VTA:
+                                ${data.document.pointOfSale}
+                            </div>
+                            `
+                            : ""
+                    }
+
+                </div>
+
+            </div>
+
+            <!-- CUSTOMER -->
+
+            <div class="info-box">
+
+                <div class="info-row">
+
+                    <div class="info-col">
+
+                        <span class="label">
+                            Cliente:
+                        </span>
+
+                        ${data.customer.name}
+
+                    </div>
+
+                    <div class="info-col">
+
+                        <span class="label">
+                            Email:
+                        </span>
+
+                        ${data.customer.email || "-"}
+
+                    </div>
+
+                </div>
+
+                <div class="info-row">
+
+                    <div class="info-col">
+
+                        <span class="label">
+                            Documento:
+                        </span>
+
+                        ${data.customer.document || "-"}
+
+                    </div>
+
+                    <div class="info-col">
+
+                        <span class="label">
+                            Condición:
+                        </span>
+
+                        ${
+                            data.customer.taxCondition?.label ||
+                            "Consumidor Final"
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="info-row">
+
+                    <div class="info-col">
+
+                        <span class="label">
+                            Dirección:
+                        </span>
+
+                        ${data.customer.address || "-"}
+
+                    </div>
+
+                    <div class="info-col">
+
+                        <span class="label">
+                            Teléfono:
+                        </span>
+
+                        ${data.customer.phone || "-"}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- PRODUCTS -->
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Descripción
+                        </th>
+
+                        <th width="70">
+                            Cant.
+                        </th>
+
+                        <th width="110">
+                            Precio Uni.
+                        </th>
+
+                        <th width="130">
+                            Sub Total
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    ${data.items
+                        .map(
+                            (item: any) => `
+                                <tr>
+
+                                    <td>
+                                        ${item.name}
+                                    </td>
+
+                                    <td class="text-right">
+                                        ${item.quantity}
+                                    </td>
+
+                                    <td class="text-right">
+                                        $${item.price.toLocaleString("es-AR")}
+                                    </td>
+
+                                    <td class="text-right">
+                                        $${item.total.toLocaleString("es-AR")}
+                                    </td>
+
+                                </tr>
+                            `,
+                        )
+                        .join("")}
+
+                </tbody>
+
+            </table>
+
+            <!-- EMPTY SPACE -->
+
+            <div class="spacer"></div>
+
+            <!-- FOOTER -->
+
+            <div class="footer">
+
+                <div class="footer-left">
+
+                    ${
+                        qrImage
+                            ? `
+                            <div class="qr">
+                                <img src="${qrImage}" />
+                            </div>
+                            `
+                            : ""
+                    }
+
+                    ${
+                        data.document.cae
+                            ? `
+                            <div class="cae">
+
+                                CAE:
+                                ${data.document.cae}
+
+                                <br />
+
+                                VTO:
+                                ${data.document.caeExpiration}
+
+                            </div>
+                            `
+                            : `
+                            <div class="cae">
+                                Comprobante no fiscal
+                            </div>
+                            `
+                    }
+
+                </div>
+
+                <div class="totals">
+
+                    <div class="total-row">
+
+                        <span>
+                            SUBTOTAL:
+                        </span>
+
+                        <span>
+                            $${data.totals.subtotal.toLocaleString("es-AR")}
+                        </span>
+
+                    </div>
+
+                    ${
+                        typeof data.totals.iva === "number"
+                            ? `
+                            <div class="total-row">
+
+                                <span>
+                                    IVA:
+                                </span>
+
+                                <span>
+                                    $${data.totals.iva.toLocaleString("es-AR")}
+                                </span>
+
+                            </div>
+                            `
+                            : ""
+                    }
+
+                    ${
+                        typeof data.totals.shipping === "number"
+                            ? `
+                            <div class="total-row">
+
+                                <span>
+                                    ENVÍO:
+                                </span>
+
+                                <span>
+                                    $${data.totals.shipping.toLocaleString("es-AR")}
+                                </span>
+
+                            </div>
+                            `
+                            : ""
+                    }
+
+                    <div class="total-row grand-total">
+
+                        <span>
+                            TOTAL:
+                        </span>
+
+                        <span>
+                            $${data.totals.total.toLocaleString("es-AR")}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="note">
+
+                ${
+                    data.document.isFiscal
+                        ? "Comprobante autorizado por AFIP."
+                        : "Este comprobante no posee validez fiscal."
+                }
+
+            </div>
+
+        </div>
+
+    </body>
+
+    </html>
+    `;
 }

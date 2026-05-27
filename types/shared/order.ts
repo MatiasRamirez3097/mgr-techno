@@ -68,30 +68,21 @@ export type OrderDTO = {
     createdAt: string;
     updatedAt: string;
     inventoryAllocatedAt: string | null;
-    receipt: {
-        url: string;
-        generatedAt: string;
-        receiptPdfPublicId: string;
-    };
-    invoices?: {
+    vouchers: {
         id: string;
-
-        type: string;
-
-        pointOfSale?: number;
-
-        voucherNumber?: number;
-
-        cae?: string;
-
-        caeExpiration?: string;
-
-        afipStatus: string;
-
-        pdfUrl?: string;
-
-        createdAt: Date;
+        type:
+            | "non_fiscal_receipt"
+            | "fiscal_invoice"
+            | "credit_note"
+            | "debit_note";
+        number: string;
+        url: string;
+        publicId: string;
     }[];
+    number: string;
+    generatedAt: string;
+    url: string;
+    publicId: string;
 };
 
 export type OrderFilters = {

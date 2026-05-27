@@ -3,6 +3,7 @@ import { OrderItemSchema } from "./OrderItem";
 import { AddressSchema } from "./common/Address";
 import { BillingSchema } from "./common/Billing";
 import { PaymentSchema } from "./Payment";
+import { VoucherSchema } from "./Voucher";
 
 export const OrderSchema = new Schema(
     {
@@ -76,11 +77,9 @@ export const OrderSchema = new Schema(
             type: Date,
             default: null,
         },
-        receipt: {
-            generatedAt: { type: Date },
-            url: { type: String },
-            publicId: { type: String },
-            receiptPdfPublicId: { type: String },
+        vouchers: {
+            type: [VoucherSchema],
+            default: [],
         },
     },
     { timestamps: true },

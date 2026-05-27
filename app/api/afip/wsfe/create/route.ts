@@ -2,20 +2,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { connectDB } from "@/lib/mongodb";
-
 import { OrderModel } from "@/models/Order";
-import { InvoiceModel } from "@/models/Invoice";
-
 import { getAuth } from "@/lib/afip/auth/getAuth";
-
 import { createVoucher } from "@/lib/afip/wsfe/createVoucher";
-
 import { getLastVoucher } from "@/lib/afip/wsfe/getLastVoucher";
-
 import { buildInvoiceRequest } from "@/lib/afip/wsfe/buildInvoiceRequest";
-
 import { generateAfipQr } from "@/lib/afip/qr/generateAfipQr";
-
 import {
     AFIP_DOCUMENT_TYPES,
     AFIP_INVOICE_TYPES,
@@ -36,7 +28,7 @@ export async function POST(req: Request) {
         |--------------------------------------------------------------------------
         */
 
-        const order = await OrderModel.findById(orderId).lean();
+        const order = await OrderModel.findById(orderId);
 
         if (!order) {
             return Response.json(
@@ -44,9 +36,29 @@ export async function POST(req: Request) {
                     success: false,
                     error: "Order not found",
                 },
+                { status: 404 },
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDACIONES
+        |--------------------------------------------------------------------------
+        */
+
+        // Verificar si ya tiene factura fiscal
+        const existingInvoice = order.vouchers?.find(
+            (v) => v.type === "fiscal_invoice" && v.status === "issued",
+        );
+
+        if (existingInvoice) {
+            return Response.json(
                 {
-                    status: 404,
+                    success: false,
+                    error: "Order already has a fiscal invoice",
+                    invoice: existingInvoice,
                 },
+                { status: 400 },
             );
         }
 
@@ -66,18 +78,15 @@ export async function POST(req: Request) {
 
         const lastVoucher = await getLastVoucher({
             token: auth.token,
-
             sign: auth.sign,
-
             cuit: process.env.AFIP_CUIT || "",
-
             pointOfSale: POINT_OF_SALE,
-
             voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
         });
 
-        if (lastVoucher === -1)
+        if (lastVoucher === -1) {
             throw new Error("Error al obtener nro ultimo voucher");
+        }
 
         const voucherNumber = lastVoucher + 1;
 
@@ -88,109 +97,53 @@ export async function POST(req: Request) {
         */
 
         const payload = buildInvoiceRequest({
-            order,
-
+            order: order.toObject(), // Convertir a plain object
             voucherNumber,
-
-            pointOfSale: 5,
-
-            voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
-        });
-
-        /*
-        |--------------------------------------------------------------------------
-        | SNAPSHOTS
-        |--------------------------------------------------------------------------
-        */
-
-        const customerSnapshot = {
-            name:
-                order.customer?.name ??
-                `${order.billing?.firstName || ""} ${order.billing?.lastName || ""}`,
-
-            documentType:
-                order.customer?.documentType ?? AFIP_DOCUMENT_TYPES.DNI,
-
-            documentNumber:
-                order.customer?.documentNumber ??
-                order.billing?.document?.number ??
-                "",
-
-            taxCondition: order.customer?.taxCondition ?? {
-                id: AFIP_TAX_CONDITIONS.CONSUMIDOR_FINAL,
-
-                label: "Consumidor Final",
-            },
-
-            address: order.customer?.address ?? order.billing?.address ?? "",
-        };
-
-        const itemsSnapshot =
-            order.items?.map((item: any) => ({
-                productId: item.productId,
-                title: item.title,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                subtotal: item.subtotal,
-                taxRate: item.taxRate,
-            })) || [];
-
-        const totalsSnapshot = {
-            subtotal: payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].ImpNeto,
-
-            iva: payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].ImpIVA,
-
-            total: payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].ImpTotal,
-        };
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE INVOICE PENDING
-        |--------------------------------------------------------------------------
-        */
-
-        const invoice = await InvoiceModel.create({
-            orderId,
-
-            customerSnapshot,
-
-            itemsSnapshot,
-
-            totalsSnapshot,
-
-            type: "FB",
-
             pointOfSale: POINT_OF_SALE,
-
             voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
-
-            afipStatus: "pending",
         });
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE VOUCHER IN ORDER (status: draft)
+        |--------------------------------------------------------------------------
+        */
+
+        const fiscalNumber = `${String(POINT_OF_SALE).padStart(5, "0")}-${String(voucherNumber).padStart(8, "0")}`;
+
+        order.vouchers.push({
+            type: "fiscal_invoice",
+            number: fiscalNumber,
+            status: "draft", // Empieza como borrador
+            amount: payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].ImpTotal,
+            fiscalData: {
+                fiscalNumber,
+                fiscalPointOfSale: POINT_OF_SALE,
+                fiscalType: "B",
+            },
+        });
+
+        await order.save();
+
+        const newVoucher = order.vouchers[order.vouchers.length - 1];
 
         console.log("payload>>>", payload.FeCAEReq.FeDetReq);
         console.log(
             "payload>>>",
             payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].Iva,
         );
-        //TESTING
-        /*return Response.json({
-            success: true,
 
-            voucherNumber,
-        });*/
         /*
         |--------------------------------------------------------------------------
         | CREATE AFIP VOUCHER
         |--------------------------------------------------------------------------
         */
+
         console.log(auth);
         const afipResponse = await createVoucher({
             token: auth.token,
-
             sign: auth.sign,
-
             cuit: process.env.AFIP_CUIT || "",
-
             feCAEReq: payload,
         });
 
@@ -202,86 +155,74 @@ export async function POST(req: Request) {
 
         const detail = afipResponse?.json;
         console.log("detail>>>", detail);
+
         if (!detail?.FeDetResp?.FECAEDetResponse?.CAE) {
-            invoice.afipStatus = "rejected";
+            // AFIP rechazó la factura
+            newVoucher.status = "cancelled";
+            newVoucher.cancelReason = "AFIP rejected";
 
-            invoice.afipErrors = afipResponse?.json?.Errors || [];
+            // Guardar errores en un campo extra si querés trackearlos
+            // Podrías agregar un campo `afipErrors` al VoucherSchema
 
-            invoice.afipObservations = afipResponse?.json?.Observaciones || [];
-
-            await invoice.save();
+            await order.save();
 
             return Response.json(
                 {
                     success: false,
-
                     error: "AFIP rejected invoice",
-
-                    afipResponse,
+                    afipErrors: afipResponse?.json?.Errors || [],
+                    afipObservations: afipResponse?.json?.Observaciones || [],
                 },
-                {
-                    status: 400,
-                },
+                { status: 400 },
             );
         }
 
         /*
         |--------------------------------------------------------------------------
-        | SAVE AFIP RESULT
+        | SAVE AFIP RESULT IN VOUCHER
         |--------------------------------------------------------------------------
         */
-        console.log("CAE>>>", detail.CAE);
+
         const toSave = detail?.FeDetResp?.FECAEDetResponse;
 
-        invoice.voucherNumber = voucherNumber;
-
-        invoice.cae = toSave.CAE;
-
-        invoice.caeExpiration = toSave.CAEFchVto;
-
-        invoice.afipStatus = "authorized";
-
-        invoice.afipResult = toSave.Resultado;
-
-        invoice.afipResponseXml = afipResponse?.xml;
+        // Generar QR de AFIP
+        const customerDocumentType =
+            order.customer?.documentType ?? AFIP_DOCUMENT_TYPES.DNI;
+        const customerDocumentNumber =
+            order.customer?.documentNumber ??
+            order.billing?.document?.number ??
+            "";
 
         const qr = generateAfipQr({
             cuit: Number(process.env.AFIP_CUIT),
-
-            pointOfSale: invoice.pointOfSale,
-
-            voucherType: invoice.voucherType,
-
+            pointOfSale: POINT_OF_SALE,
+            voucherType: AFIP_INVOICE_TYPES.FACTURA_B,
             voucherNumber,
-
-            total: invoice.totalsSnapshot.total,
-
-            documentType: customerSnapshot.documentType,
-
-            documentNumber: Number(customerSnapshot.documentNumber),
-
-            cae: detail.CAE,
-
+            total: payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].ImpTotal,
+            documentType: customerDocumentType,
+            documentNumber: Number(customerDocumentNumber),
+            cae: toSave.CAE,
             date: new Date().toISOString().split("T")[0],
         });
 
-        invoice.qrPayload = qr.qrPayload;
+        // Actualizar el voucher con los datos de AFIP
+        newVoucher.status = "issued";
+        newVoucher.fiscalData.cae = toSave.CAE;
+        newVoucher.fiscalData.caeExpirationDate = new Date(
+            toSave.CAEFchVto.toString().replace(
+                /(\d{4})(\d{2})(\d{2})/,
+                "$1-$2-$3",
+            ),
+        );
+        newVoucher.fiscalData.afipAuthorizedAt = new Date();
+        newVoucher.fiscalData.qrData = qr.qrPayload;
+        newVoucher.generatedAt = new Date();
 
-        invoice.qrUrl = qr.qrUrl;
+        // Aquí generarías el PDF y lo subirías a Cloudinary/S3
+        // newVoucher.url = await generateInvoicePDF(order, newVoucher);
+        // newVoucher.publicId = "cloudinary_public_id";
 
-        await invoice.save();
-
-        /*
-        |--------------------------------------------------------------------------
-        | LINK ORDER
-        |--------------------------------------------------------------------------
-        */
-
-        await OrderModel.findByIdAndUpdate(orderId, {
-            $push: {
-                invoices: invoice._id,
-            },
-        });
+        await order.save();
 
         /*
         |--------------------------------------------------------------------------
@@ -291,8 +232,13 @@ export async function POST(req: Request) {
 
         return Response.json({
             success: true,
-
-            invoice,
+            voucher: newVoucher,
+            qrUrl: qr.qrUrl,
+            order: {
+                _id: order._id,
+                total: order.total,
+                status: order.status,
+            },
         });
     } catch (error: any) {
         console.error(error);
@@ -300,12 +246,9 @@ export async function POST(req: Request) {
         return Response.json(
             {
                 success: false,
-
                 error: error.message || "Internal server error",
             },
-            {
-                status: 500,
-            },
+            { status: 500 },
         );
     }
 }

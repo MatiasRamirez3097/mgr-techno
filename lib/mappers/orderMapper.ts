@@ -64,13 +64,15 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
         datePaid: order.datePaid ? order.datePaid.toISOString() : null,
 
         notes: order.notes || "",
-        receipt: {
-            url: order.receipt?.url || "",
-            generatedAt: order.receipt?.generatedAt
-                ? order.receipt?.generatedAt.toISOString()
-                : "",
-            receiptPdfPublicId: order.receipt?.receiptPdfPublicId || "",
-        },
+        vouchers:
+            order.vouchers.map((p) => ({
+                id: p._id.toString(),
+                type: p.type,
+                number: p.number,
+                generatedAt: p.generatedAt.toISOString(),
+                url: p.url,
+                publicId: p.publicId,
+            })) || [],
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
         inventoryAllocatedAt: order.inventoryAllocatedAt?.toISOString() || null,

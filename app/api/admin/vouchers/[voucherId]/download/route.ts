@@ -4,39 +4,39 @@ export const dynamic = "force-dynamic";
 
 import { connectDB } from "@/lib/mongodb";
 
-import { OrderModel } from "@/models/Order";
+import { getAuthenticatedPdfUrl } from "@/lib/cloudinary";
 
-import { mapOrderToDocument } from "@/lib/pdf/mappers/mapOrderToDocument";
-
-import { generatePdf } from "@/lib/pdf/generators/generatePdf";
+import { OrderModel } from "@/models";
 
 export async function GET(
     _req: Request,
     context: {
         params: Promise<{
-            id: string;
+            voucherId: string;
         }>;
     },
 ) {
     try {
         await connectDB();
 
-        const { id } = await context.params;
+        const { voucherId } = await context.params;
 
         /*
         |------------------------------------------------------------------
-        | ORDER
+        | FIND ORDER WITH VOUCHER
         |------------------------------------------------------------------
         */
 
-        const order = await OrderModel.findById(id).populate("invoices").lean();
+        const order = await OrderModel.findOne({
+            "vouchers._id": voucherId,
+        });
 
         if (!order) {
             return Response.json(
                 {
                     success: false,
 
-                    error: "Order not found",
+                    error: "Voucher not found",
                 },
                 {
                     status: 404,
@@ -46,51 +46,59 @@ export async function GET(
 
         /*
         |------------------------------------------------------------------
-        | INVOICE
+        | FIND VOUCHER
         |------------------------------------------------------------------
         */
 
-        const invoice = order.invoices?.find(
-            (invoice: any) => invoice.afipStatus === "authorized",
-        );
+        const voucher = order.vouchers.id(voucherId);
+
+        if (!voucher) {
+            return Response.json(
+                {
+                    success: false,
+
+                    error: "Voucher not found",
+                },
+                {
+                    status: 404,
+                },
+            );
+        }
 
         /*
         |------------------------------------------------------------------
-        | MAP DOCUMENT DATA
+        | VALIDATE PDF
         |------------------------------------------------------------------
         */
 
-        const data = mapOrderToDocument({
-            order,
+        if (!voucher.publicId) {
+            return Response.json(
+                {
+                    success: false,
 
-            invoice,
-        });
+                    error: "Voucher PDF not available",
+                },
+                {
+                    status: 404,
+                },
+            );
+        }
 
         /*
         |------------------------------------------------------------------
-        | GENERATE PDF
+        | GENERATE SIGNED URL
         |------------------------------------------------------------------
         */
 
-        const pdf = await generatePdf(data);
+        const url = getAuthenticatedPdfUrl(voucher.publicId);
 
         /*
         |------------------------------------------------------------------
-        | RESPONSE
+        | REDIRECT
         |------------------------------------------------------------------
         */
 
-        return new Response(pdf, {
-            status: 200,
-
-            headers: {
-                "Content-Type": "application/pdf",
-
-                "Content-Disposition": `inline; filename="${
-                    invoice ? "factura" : "comprobante"
-                }-${data.document.number}.pdf"`,
-            },
-        });
+        return Response.redirect(url);
     } catch (error: any) {
         console.error(error);
 

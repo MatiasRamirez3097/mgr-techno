@@ -10,9 +10,9 @@ import { getAllocationSuggestions } from "@/lib/inventory/getAllocationSuggestio
 import { InventoryAllocationSection } from "@/components/admin/InventoryAllocationSection";
 import { getOrderPaymentStatus } from "@/lib/orders/getOrderPaymentStatus";
 import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
-import { GenerateReceiptButton } from "@/components/admin/documents/GenerateReceiptButton";
-import { DownloadReceiptButton } from "@/components/admin/documents/DownloadReceiptButton";
 import { GenerateInvoiceButton } from "@/components/admin/documents/GenerateInvoiceButton";
+import { GenerateVoucherButton } from "@/components/admin/documents/GenerateVoucherButton";
+import { VoucherCard } from "@/components/admin/VoucherCard";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
     mercadopago: "MercadoPago",
@@ -114,6 +114,25 @@ export default async function AdminOrderDetailPage({
         paymentStatus === "paid"
             ? await getAllocationSuggestions(order.id)
             : [];
+    function getVoucherLabel(voucher: Voucher) {
+        switch (voucher.type) {
+            case "non_fiscal_receipt":
+                return "Comprobante no fiscal";
+
+            case "fiscal_invoice":
+                return `Factura ${voucher.fiscalData?.fiscalType ?? ""}`;
+
+            case "credit_note":
+                return "Nota de crédito";
+
+            case "debit_note":
+                return "Nota de débito";
+
+            default:
+                return "Documento";
+        }
+    }
+
     return (
         <div className="max-w-7xl w-full">
             <div className="flex items-center gap-4 mb-6">
@@ -269,19 +288,37 @@ export default async function AdminOrderDetailPage({
                         payments={order.payments || []}
                     />
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Documentos
-                        </h2>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-bold text-white">
+                                Documentos
+                            </h2>
+
+                            <div className="flex gap-2">
+                                <GenerateVoucherButton
+                                    orderId={order.id}
+                                    type="non_fiscal_receipt"
+                                />
+
+                                <GenerateVoucherButton
+                                    orderId={order.id}
+                                    type="fiscal_invoice"
+                                />
+                            </div>
+                        </div>
 
                         <div className="flex flex-col gap-3">
-                            <GenerateReceiptButton
-                                orderId={order.id}
-                                hasReceipt={!!order.receipt?.url}
-                                receiptUrl={order.receipt?.url}
-                            />
-
-                            {order.receipt?.receiptPdfPublicId && (
-                                <DownloadReceiptButton orderId={order.id} />
+                            {order.vouchers?.length ? (
+                                order.vouchers.map((voucher: any) => (
+                                    <VoucherCard
+                                        key={voucher.id}
+                                        orderId={order.id}
+                                        voucher={voucher}
+                                    />
+                                ))
+                            ) : (
+                                <div className="text-sm text-gray-400">
+                                    No hay comprobantes generados
+                                </div>
                             )}
                         </div>
                     </section>

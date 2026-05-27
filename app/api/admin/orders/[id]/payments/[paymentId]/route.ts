@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models/Order";
+import { recalculateOrderPaymentStatus } from "@/services/orders/recalculateOrderPaymentStatus";
 
 export async function PATCH(
     req: Request,
@@ -43,6 +44,8 @@ export async function PATCH(
         payment.paidAt = body.status === "paid" ? new Date() : null;
     }
 
+    recalculateOrderPaymentStatus(order);
+
     await order.save();
 
     return NextResponse.json({
@@ -75,6 +78,8 @@ export async function DELETE(
     }
 
     order.payments.pull(paymentId);
+
+    recalculateOrderPaymentStatus(order);
 
     await order.save();
 
