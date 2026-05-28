@@ -6,8 +6,6 @@ export const generateProductSearch = (text: string) => {
     const searchTerms = normalized.split(/\s+/).filter(Boolean);
 
     return {
-        searchKey: normalized,
-
         searchTerms: [...new Set(searchTerms)],
     };
 };
