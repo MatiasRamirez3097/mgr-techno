@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 
-import { ProductModel } from "@/models/Product";
+import { ProductModel } from "@/models";
 
 import { normalizeSearch } from "@/lib/search/normalize";
 

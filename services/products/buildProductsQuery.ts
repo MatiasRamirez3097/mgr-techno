@@ -1,4 +1,6 @@
-import { CategoryModel } from "@/models/Category";
+import type { SortOrder } from "mongoose";
+
+import { CategoryModel } from "@/models";
 
 import { normalizeSearch } from "@/lib/search/normalize";
 
@@ -59,8 +61,9 @@ export const buildProductsQuery = async (filters: ProductFilters = {}) => {
     // SORT
     // =========================
 
-    const sort = {
+    const sort: Record<string, SortOrder> = {
         availableStock: -1,
+
         ...getMongoSort(filters.orderby),
     };
 

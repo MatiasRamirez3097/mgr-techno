@@ -36,6 +36,14 @@ export type ProductFilters = {
     categoryId?: string;
     search?: string;
     page?: number;
-    orderby?: "date" | "price" | "price-desc" | "name" | "popularity";
+    orderby?: ProductOrderBy;
     adminView?: boolean;
 };
+
+export type ProductOrderBy =
+    | "newest"
+    | "oldest"
+    | "price-asc"
+    | "price-desc"
+    | "name-asc"
+    | "name-desc";
