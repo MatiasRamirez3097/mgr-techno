@@ -68,12 +68,30 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
         >,
     ) => {
         const { name, value, type } = e.target;
+
+        const finalValue =
+            type === "checkbox"
+                ? (e.target as HTMLInputElement).checked
+                : value;
+
+        // soporte para campos anidados
+        if (name.includes(".")) {
+            const [parent, child] = name.split(".");
+
+            setForm((prev: any) => ({
+                ...prev,
+                [parent]: {
+                    ...prev[parent],
+                    [child]: finalValue,
+                },
+            }));
+
+            return;
+        }
+
         setForm((prev) => ({
             ...prev,
-            [name]:
-                type === "checkbox"
-                    ? (e.target as HTMLInputElement).checked
-                    : value,
+            [name]: finalValue,
         }));
     };
 
@@ -172,6 +190,7 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                         <label className={labelClass}>Nombre </label>
                         <div className="flex gap-2">
                             <input
+                                name="name"
                                 className={inputClass}
                                 placeholder="Nombre"
                                 value={form.name}
@@ -182,6 +201,7 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                     <div className="col-span">
                         <label className={labelClass}>Email</label>
                         <input
+                            name="email"
                             className={inputClass}
                             placeholder="Email"
                             value={form.email}
@@ -191,8 +211,9 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                     <div className="col-span">
                         <label className={labelClass}>Website</label>
                         <input
+                            name="website"
                             className={inputClass}
-                            placeholder="Webstie"
+                            placeholder="Website"
                             value={form.website}
                             onChange={handleChange}
                         />
@@ -203,7 +224,7 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                         <input
                             className={inputClass}
                             placeholder="Codigo Postal"
-                            name="zip"
+                            name="address.zip"
                             value={form.address.zip}
                             onChange={handleChange}
                         />
@@ -212,6 +233,7 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                         <label className={labelClass}>Direccion </label>
                         <div className="flex gap-2">
                             <input
+                                name="address.street"
                                 className={inputClass}
                                 placeholder="Direccion"
                                 value={form.address.street}
@@ -222,6 +244,7 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                     <div className="col-span">
                         <label className={labelClass}>Ciudad</label>
                         <input
+                            name="address.city"
                             className={inputClass}
                             placeholder="Ciudad"
                             value={form.address.city}
@@ -231,6 +254,7 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                     <div className="col-span">
                         <label className={labelClass}>Provincia</label>
                         <input
+                            name="address.state"
                             className={inputClass}
                             placeholder="Provincia"
                             value={form.address.state}
@@ -258,6 +282,7 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                         <label className={labelClass}>Tel Contacto </label>
                         <div className="flex gap-2">
                             <input
+                                name="phone"
                                 className={inputClass}
                                 placeholder="Tel contacto"
                                 value={form.phone}

@@ -1,34 +1,79 @@
 // /lib/products/getProducts.ts
+
 import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models/Product";
 import { CategoryModel } from "@/models/Category";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
 import { getCategoriesDescendants } from "@/lib/categories/getCategoriesDescendants";
-//CONSTANTS
+
+// CONSTANTS
 import { PRODUCTS_PAGE_SIZE } from "../constants/pagination";
 
-//FUNCTIONS
+// FUNCTIONS
 import { getMongoSort } from "./utils";
 
-//TYPES
+// TYPES
 import type { GetProductsResponse } from "@/types/shared/product";
 import type { ProductFilters } from "@/types/shared/product";
+
+function normalizeSearch(text: string) {
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\w\s]/g, "")
+        .trim();
+}
 
 export async function getProducts(
     filters: ProductFilters = {},
 ): Promise<GetProductsResponse> {
     await connectDB();
+
     const page = filters.page || 1;
     const sort = getMongoSort(filters.orderby);
     const adminView = filters.adminView ? true : false;
 
-    // Construir query
+    const start = (page - 1) * PRODUCTS_PAGE_SIZE;
+
+    // QUERY BASE
     const query: any = {};
 
+    // =========================
+    // SEARCH
+    // =========================
     if (filters.search) {
-        query.$text = { $search: filters.search };
+        const normalizedSearch = normalizeSearch(filters.search);
+
+        const searchTerms = normalizedSearch.split(/\s+/).filter(Boolean);
+
+        query.$and = searchTerms.map((term) => ({
+            $or: [
+                {
+                    name: {
+                        $regex: term,
+                        $options: "i",
+                    },
+                },
+                {
+                    sku: {
+                        $regex: term,
+                        $options: "i",
+                    },
+                },
+                {
+                    description: {
+                        $regex: term,
+                        $options: "i",
+                    },
+                },
+            ],
+        }));
     }
 
+    // =========================
+    // CATEGORY
+    // =========================
     if (filters.category) {
         const category = await CategoryModel.findOne({
             slug: filters.category,
@@ -41,45 +86,42 @@ export async function getProducts(
 
             const allCategoryIds = [category._id.toString(), ...childIds];
 
-            query.categories = { $in: allCategoryIds };
-            console.log(query.categories);
+            query.categories = {
+                $in: allCategoryIds,
+            };
         } else {
             query._id = null;
         }
     }
-    let res: any[] = [];
-    // Separamos en stock y sin stock
+
+    // =========================
+    // PUBLIC VIEW
+    // =========================
     if (!adminView) {
         query.status = "publish";
-        const [inStock, outOfStock] = await Promise.all([
-            ProductModel.find({ ...query, availableStock: { $gt: 0 } })
-                .sort(sort)
-                .lean(),
-            ProductModel.find({ ...query, availableStock: 0 })
-                .sort(sort)
-                .lean(),
-        ]);
-        res = [...inStock, ...outOfStock];
-    } else {
-        res = await ProductModel.find({ ...query })
-            .sort(sort)
-            .lean();
     }
-    const all = res;
-    // Filtro adicional por nombre si hay búsqueda (por si $text no está disponible)
-    const filtered = filters.search
-        ? all.filter((p) =>
-              p.name.toLowerCase().includes(filters.search!.toLowerCase()),
-          )
-        : all;
 
-    const total = filtered.length;
+    // =========================
+    // TOTAL
+    // =========================
+    const total = await ProductModel.countDocuments(query);
+
     const totalPages = Math.ceil(total / PRODUCTS_PAGE_SIZE);
-    const start = (page - 1) * PRODUCTS_PAGE_SIZE;
-    const paginated = filtered.slice(start, start + PRODUCTS_PAGE_SIZE);
+
+    // =========================
+    // PRODUCTS
+    // =========================
+    const products = await ProductModel.find(query)
+        .sort({
+            availableStock: -1,
+            ...sort,
+        })
+        .skip(start)
+        .limit(PRODUCTS_PAGE_SIZE)
+        .lean();
 
     return {
-        products: paginated.map(mapProductToDTO),
+        products: products.map(mapProductToDTO),
         totalPages,
         total,
     };

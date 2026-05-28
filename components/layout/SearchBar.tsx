@@ -6,12 +6,12 @@ import Image from "next/image";
 import Link from "next/link";
 
 interface Suggestion {
-    id: number;
+    id: string;
     name: string;
     slug: string;
-    price: number;
+    regularPrice: number;
     image: string;
-    inStock: boolean;
+    availableStock: number;
 }
 
 export function SearchBar() {
@@ -47,13 +47,16 @@ export function SearchBar() {
             setLoading(true);
             try {
                 const res = await fetch(
-                    `/api/search?q=${encodeURIComponent(query)}`,
+                    `/api/search?q=${encodeURIComponent(query)}&s=y`,
                 );
+
                 const data = await res.json();
-                setSuggestions(data);
+                console.log("data>>>>", data);
+                setSuggestions(data.products);
                 setOpen(true);
             } finally {
                 setLoading(false);
+                console.log("suggestions>>>", suggestions);
             }
         }, 350);
 
@@ -66,7 +69,7 @@ export function SearchBar() {
         e.preventDefault();
         if (!query.trim()) return;
         setOpen(false);
-        router.push(`/products?search=${encodeURIComponent(query.trim())}`);
+        router.push(`/productos?search=${encodeURIComponent(query.trim())}`);
     };
 
     const handleSelect = () => {
@@ -131,7 +134,7 @@ export function SearchBar() {
                     {suggestions.map((s) => (
                         <Link
                             key={s.id}
-                            href={`/products/${s.slug}`}
+                            href={`/productos/${s.slug}`}
                             onClick={handleSelect}
                             className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition-colors"
                         >
@@ -155,8 +158,8 @@ export function SearchBar() {
                                     {s.name}
                                 </p>
                                 <p className="text-xs text-gray-400">
-                                    ${s.price.toLocaleString("es-AR")}
-                                    {!s.inStock && (
+                                    ${s.regularPrice.toLocaleString("es-AR")}
+                                    {s.availableStock > 0 && (
                                         <span className="ml-2 text-red-400">
                                             Sin stock
                                         </span>
@@ -187,7 +190,7 @@ export function SearchBar() {
                         onClick={() => {
                             setOpen(false);
                             router.push(
-                                `/products?search=${encodeURIComponent(query)}`,
+                                `/productos?search=${encodeURIComponent(query)}`,
                             );
                         }}
                         className="w-full px-4 py-3 text-sm text-brand hover:bg-gray-800 transition-colors text-left border-t border-gray-800"

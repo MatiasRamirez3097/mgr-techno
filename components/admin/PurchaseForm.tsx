@@ -61,7 +61,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
             .map((img: any) => (typeof img === "string" ? img : img.src || ""))
             .filter(Boolean);
     };
-    console.log(purchase);
+
     const [form, setForm] = useState<PurchaseFormState>({
         supplierId: purchase?.supplierId || "",
         status: purchase?.status || "draft",
