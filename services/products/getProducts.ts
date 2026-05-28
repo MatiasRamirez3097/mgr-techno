@@ -18,25 +18,45 @@ export async function getProducts(
 ): Promise<GetProductsResponse> {
     await connectDB();
 
+    // =========================
+    // PAGINATION
+    // =========================
+
     const page = Math.max(1, Number(filters.page) || 1);
 
-    const skip = (page - 1) * PRODUCTS_PAGE_SIZE;
+    const perPage = Math.max(1, Number(filters.perPage) || PRODUCTS_PAGE_SIZE);
+
+    const skip = (page - 1) * perPage;
+
+    // =========================
+    // QUERY
+    // =========================
 
     const { query, sort } = await buildProductsQuery(filters);
 
+    // =========================
+    // TOTAL
+    // =========================
+
     const total = await ProductModel.countDocuments(query);
 
-    const totalPages = Math.ceil(total / PRODUCTS_PAGE_SIZE);
+    const totalPages = Math.ceil(total / perPage);
+
+    // =========================
+    // PRODUCTS
+    // =========================
 
     const products = await ProductModel.find(query)
         .sort(sort)
         .skip(skip)
-        .limit(PRODUCTS_PAGE_SIZE)
+        .limit(perPage)
         .lean();
 
     return {
         products: products.map(mapProductToDTO),
+
         total,
+
         totalPages,
     };
 }

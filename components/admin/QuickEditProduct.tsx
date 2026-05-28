@@ -2,14 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ProductDTO } from "@/types/shared/product";
 
 interface Props {
-    product: {
-        id: string;
-        regularPrice: string;
-        salePrice: string;
-        featured: boolean;
-    };
+    product: ProductDTO;
     onClose: () => void;
 }
 

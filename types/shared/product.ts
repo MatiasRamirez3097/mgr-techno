@@ -23,6 +23,7 @@ export type ProductDTO = {
         width: number;
     };
     brand: string;
+    featured: boolean;
 };
 
 export type GetProductsResponse = {
@@ -36,6 +37,7 @@ export type ProductFilters = {
     categoryId?: string;
     search?: string;
     page?: number;
+    perPage?: number;
     orderby?: ProductOrderBy;
     adminView?: boolean;
 };
