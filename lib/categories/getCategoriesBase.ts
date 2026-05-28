@@ -1,6 +1,6 @@
 // /lib/products/getProductsBase.ts
 
-import { CategoryModel } from "@/models/Category";
+import { CategoryModel } from "@/models";
 import { mapCategoryToDTO } from "@/lib/mappers/categoryMapper";
 import { connectDB } from "@/lib/mongodb";
 import type { CategoryDTO } from "@/types/shared/category";

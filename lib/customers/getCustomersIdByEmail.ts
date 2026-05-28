@@ -1,4 +1,4 @@
-import { CustomerModel } from "@/models/Customer";
+import { CustomerModel } from "@/models";
 import { connectDB } from "../mongodb";
 import {
     mapCustomerToDTO,

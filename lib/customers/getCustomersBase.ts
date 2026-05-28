@@ -1,4 +1,4 @@
-import { CustomerModel } from "@/models/Customer";
+import { CustomerModel } from "@/models";
 import { mapCustomerToDTO } from "@/lib/mappers/customerMapper";
 import { connectDB } from "@/lib/mongodb";
 import type { CustomerDTO } from "@/types/shared/customer";

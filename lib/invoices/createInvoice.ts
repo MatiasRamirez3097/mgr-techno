@@ -1,6 +1,6 @@
 // /services/invoices/createInvoice.ts
 
-import { InvoiceModel } from "@/models/Invoice";
+import { InvoiceModel } from "@/models";
 
 import { AFIP_VOUCHER_TYPES, AfipVoucherType } from "@/lib/afip/constants";
 

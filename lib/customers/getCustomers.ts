@@ -1,5 +1,5 @@
 import { connectDB } from "@/lib/mongodb";
-import { CustomerModel } from "@/models/Customer";
+import { CustomerModel } from "@/models";
 import {
     mapCustomerToDTO,
     mapCustomerWithOrdersToDTO,

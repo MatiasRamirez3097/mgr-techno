@@ -1,4 +1,4 @@
-import { InventoryItemModel } from "@/models/InventoryItem";
+import { InventoryItemModel } from "@/models";
 
 export async function consumeInventory({
     productId,

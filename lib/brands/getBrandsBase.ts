@@ -1,5 +1,5 @@
 // /lib/products/getProductsBase.ts
-import { BrandModel } from "@/models/Brand";
+import { BrandModel } from "@/models";
 import { mapBrandToDTO } from "@/lib/mappers/brandMapper";
 import { connectDB } from "@/lib/mongodb";
 import type { BrandDTO } from "@/types/shared/brand";

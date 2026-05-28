@@ -1,8 +1,6 @@
 import { ClientSession } from "mongoose";
 
-import { OrderModel } from "@/models/Order";
-import { ProductModel } from "@/models/Product";
-import { InventoryItemModel } from "@/models/InventoryItem";
+import { InventoryItemModel, OrderModel, ProductModel } from "@/models";
 
 export async function reverseInventoryAllocation(
     orderId: string,

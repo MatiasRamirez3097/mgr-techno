@@ -2,9 +2,7 @@
 
 import mongoose from "mongoose";
 
-import { OrderModel } from "@/models/Order";
-import { ProductModel } from "@/models/Product";
-import { InventoryItemModel } from "@/models/InventoryItem";
+import { OrderModel, ProductModel, InventoryItemModel } from "@/models";
 
 type AllocationInput = {
     productId: string;

@@ -1,8 +1,6 @@
 // lib/inventory/getAllocationSuggestions.ts
 
-import { OrderModel } from "@/models/Order";
-import { ProductModel } from "@/models/Product";
-import { InventoryItemModel } from "@/models/InventoryItem";
+import { OrderModel, ProductModel, InventoryItemModel } from "@/models";
 
 export async function getAllocationSuggestions(orderId: string) {
     const order = await OrderModel.findById(orderId).lean();
