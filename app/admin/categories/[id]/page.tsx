@@ -5,7 +5,6 @@ import { CategoryForm } from "@/components/admin/CategoryForm";
 import type { CategoryDTO } from "@/types/shared/category";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Category } from "@/types/category";
 
 export const dynamic = "force-dynamic";
 
