@@ -1,5 +1,6 @@
 import { ProductModel } from "@/models/Product";
 import { Types } from "mongoose";
+import { generateProductSearch } from "../search/generateProductSearch";
 import type { CreateProductDTO } from "@/lib/validators/productSchema";
 
 export async function createProduct(data: CreateProductDTO) {
@@ -10,12 +11,16 @@ export async function createProduct(data: CreateProductDTO) {
     // 🧠 convertir categorías a ObjectId
     const categories = data.categories?.map((id) => new Types.ObjectId(id));
 
+    //GENERAR SEARCH DATA
+    const searchData = generateProductSearch(data.name);
+
     // 🚀 create
     const product = await ProductModel.create({
         name: data.name,
         slug: data.slug,
         type: data.type,
-
+        searchKey: searchData.searchKey,
+        searchTerms: searchData.searchTerms,
         regularPrice: data.regularPrice,
         salePrice,
 

@@ -1,5 +1,5 @@
 // app/api/products/route.ts
-import { getProducts } from "@/lib/products/getProducts";
+import { getProducts } from "@/services/products/getProducts";
 
 export async function GET() {
     const products = await getProducts();

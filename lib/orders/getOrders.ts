@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models/Order";
 import { mapOrderToDTO } from "@/lib/mappers/orderMapper";
 //CONSTANTS
-import { PRODUCTS_PAGE_SIZE } from "../constants/pagination";
+import { PRODUCTS_PAGE_SIZE } from "../../constants/pagination";
 import { OrderFilters } from "@/types/shared/order";
 import { Types } from "mongoose";
 //FUNCTIONS

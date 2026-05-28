@@ -6,7 +6,7 @@ import {
 } from "@/lib/mappers/customerMapper";
 import { CustomerWithOrdersDB } from "@/types/backend/customer";
 //CONSTANTS
-import { PRODUCTS_PAGE_SIZE } from "../constants/pagination";
+import { PRODUCTS_PAGE_SIZE } from "../../constants/pagination";
 
 //FUNCTIONS
 //import { getMongoSort } from "./utils";
