@@ -8,8 +8,8 @@ import { extractProductImages } from "@/lib/products/extractProductImages";
 import { CreateBrandModal } from "./CreateBrandModal";
 import { slugify } from "@/lib/utils/slugify";
 import { useBrands } from "./products/hooks/useBrands";
-import type { ProductFormState } from "@/types/admin/productForm";
 import type { CategoryDTO } from "@/types/shared/category";
+import type { ProductFormState } from "@/types/admin/ProductForm";
 
 interface Props {
     product?: any;
