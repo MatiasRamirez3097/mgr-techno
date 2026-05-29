@@ -36,14 +36,20 @@ export function ProductSelector({ availableStock, value, onChange }: Props) {
             return;
         }
 
+        // 👇 evita reabrir cuando ya hay un producto seleccionado
+        if (value && query === value.name) {
+            return;
+        }
+
         const timeout = setTimeout(async () => {
             setLoading(true);
             try {
                 const res = await fetch(
-                    `/api/admin/products/search?q=${query}&s=${availableStock}`,
+                    `/api/products/search?q=${query}&s=${availableStock}`,
                 );
                 const data = await res.json();
-                setResults(data.products || []);
+                console.log(data);
+                setResults(data || []);
                 setOpen(true);
             } catch (e) {
                 console.error(e);
