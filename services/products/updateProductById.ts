@@ -24,7 +24,6 @@ export async function updateProductById(id: string, data: any) {
     // =========================
     // NORMALIZE
     // =========================
-
     const salePrice =
         data.salePrice && data.salePrice > 0 ? data.salePrice : null;
 
@@ -49,6 +48,8 @@ export async function updateProductById(id: string, data: any) {
     // =========================
 
     product.name = data.name;
+
+    product.brand = data.brand;
 
     product.slug = data.slug;
 

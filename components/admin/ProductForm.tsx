@@ -3,16 +3,13 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ProductFormSidebar } from "@/components/admin/products/ProductFormSiderbar";
-import { ImageUploader } from "./products/components/ImageUploader";
-import { CategoryTree } from "./products/components/CategoryTree";
 import { buildProductPayload } from "@/lib/products/buildProductPayload";
 import { extractProductImages } from "@/lib/products/extractProductImages";
 import { CreateBrandModal } from "./CreateBrandModal";
 import { slugify } from "@/lib/utils/slugify";
 import { useBrands } from "./products/hooks/useBrands";
-import type { ProductFormState } from "@/types/admin/ProductForm";
+import type { ProductFormState } from "@/types/admin/productForm";
 import type { CategoryDTO } from "@/types/shared/category";
-import type { BrandDTO } from "@/types/shared/brand";
 
 interface Props {
     product?: any;
