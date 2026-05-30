@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 
 interface Product {
     id: string;
+    image: string;
     name: string;
     taxRate: number;
     regularPrice?: number;
@@ -29,26 +31,26 @@ export function ProductSelector({ availableStock, value, onChange }: Props) {
 
     const ref = useRef<HTMLDivElement>(null);
 
-    // 🔎 buscar productos
     useEffect(() => {
         if (query.length < 2) {
             setResults([]);
             return;
         }
 
-        // 👇 evita reabrir cuando ya hay un producto seleccionado
         if (value && query === value.name) {
             return;
         }
 
         const timeout = setTimeout(async () => {
             setLoading(true);
+
             try {
                 const res = await fetch(
                     `/api/products/search?q=${query}&s=${availableStock}`,
                 );
+
                 const data = await res.json();
-                console.log(data);
+
                 setResults(data || []);
                 setOpen(true);
             } catch (e) {
@@ -61,44 +63,68 @@ export function ProductSelector({ availableStock, value, onChange }: Props) {
         return () => clearTimeout(timeout);
     }, [query]);
 
-    // cerrar al hacer click afuera
     useEffect(() => {
-        const handleClick = (e: any) => {
-            if (!ref.current?.contains(e.target)) {
+        const handleClick = (e: MouseEvent) => {
+            if (!ref.current?.contains(e.target as Node)) {
                 setOpen(false);
             }
         };
+
         document.addEventListener("click", handleClick);
+
         return () => document.removeEventListener("click", handleClick);
     }, []);
 
     return (
         <div ref={ref} className="relative">
-            <input
-                value={query}
-                onChange={(e) => {
-                    setQuery(e.target.value);
-                    onChange(null);
-                }}
-                placeholder="Buscar producto..."
-                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none"
-            />
+            <div className="relative">
+                {value?.image && (
+                    <Image
+                        src={value.image}
+                        alt={value.name}
+                        width={32}
+                        height={32}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 rounded object-cover"
+                    />
+                )}
+
+                <input
+                    value={query}
+                    onChange={(e) => {
+                        setQuery(e.target.value);
+                        onChange(null);
+                    }}
+                    placeholder="Buscar producto..."
+                    className={`w-full bg-gray-800 text-white text-sm rounded-lg py-3 border border-gray-700 focus:border-brand outline-none ${
+                        value?.image ? "pl-14 pr-4" : "px-4"
+                    }`}
+                />
+            </div>
 
             {open && results.length > 0 && (
                 <div className="absolute z-50 mt-1 w-full bg-gray-900 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {results.map((p) => (
-                        <button
+                        <div
                             key={p.id}
-                            type="button"
                             onClick={() => {
                                 onChange(p);
                                 setQuery(p.name);
                                 setOpen(false);
                             }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                            className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800 cursor-pointer"
                         >
-                            {p.name}
-                        </button>
+                            {p.image && (
+                                <Image
+                                    src={p.image}
+                                    alt={p.name}
+                                    width={40}
+                                    height={40}
+                                    className="rounded object-cover"
+                                />
+                            )}
+
+                            <span className="text-white">{p.name}</span>
+                        </div>
                     ))}
                 </div>
             )}

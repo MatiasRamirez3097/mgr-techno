@@ -24,6 +24,7 @@ type PurchaseItem = {
     quantity: number;
     unitCost: number;
     taxRate: number;
+    image?: string;
 };
 
 type PurchaseFormState = {
@@ -329,6 +330,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                                       id: item.productId,
                                                       name: item.name || "",
                                                       taxRate: item.taxRate,
+                                                      image: item.image || "",
                                                   }
                                                 : null
                                         }
@@ -342,6 +344,11 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                                 i,
                                                 "name",
                                                 product?.name || "",
+                                            );
+                                            updateItem(
+                                                i,
+                                                "image",
+                                                product?.image || "",
                                             );
                                         }}
                                     />
