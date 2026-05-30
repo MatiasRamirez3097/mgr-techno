@@ -9,7 +9,6 @@ interface Params {
 export function buildProductPayload({ form, image, images }: Params) {
     return {
         name: form.name,
-        slug: form.slug,
         sku: form.sku,
         brand: form.brand,
         status: form.status,

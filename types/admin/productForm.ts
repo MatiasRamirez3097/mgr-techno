@@ -3,8 +3,6 @@ export interface ProductFormState {
 
     name: string;
 
-    slug: string;
-
     sku: string;
 
     status: string;

@@ -7,6 +7,7 @@ import { ProductModel } from "@/models";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
 
 import { generateProductSearch } from "@/lib/search/generateProductSearch";
+import { slugify } from "@/lib/utils/slugify";
 
 export async function updateProductById(id: string, data: any) {
     await connectDB();
@@ -51,7 +52,7 @@ export async function updateProductById(id: string, data: any) {
 
     product.brand = data.brand;
 
-    product.slug = data.slug;
+    product.slug = slugify(data.name);
 
     product.type = data.type;
 

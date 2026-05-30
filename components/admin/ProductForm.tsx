@@ -40,7 +40,6 @@ export function ProductForm({ product, categories, mode }: Props) {
     const [form, setForm] = useState<ProductFormState>({
         brand: product?.brand || "",
         name: product?.name || "",
-        slug: product?.slug || "",
         sku: product?.sku || "",
         status: product?.status || "publish",
         description: product?.description || "",
@@ -189,16 +188,6 @@ export function ProductForm({ product, categories, mode }: Props) {
                                     onChange={handleChange}
                                     required
                                     className={inputClass}
-                                />
-                            </div>
-                            <div>
-                                <label className={labelClass}>Slug (URL)</label>
-                                <input
-                                    name="slug"
-                                    value={form.slug}
-                                    onChange={handleChange}
-                                    className={inputClass}
-                                    readOnly
                                 />
                             </div>
                             <div>
