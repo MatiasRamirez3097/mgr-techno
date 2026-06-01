@@ -33,6 +33,8 @@ type PurchaseFormState = {
     items: PurchaseItem[];
     document: Document;
     notes: string;
+    currency: "ARS" | "USD";
+    exchangeRate: number;
 };
 
 export function PurchaseForm({ purchase, mode }: Props) {
@@ -63,10 +65,21 @@ export function PurchaseForm({ purchase, mode }: Props) {
             .filter(Boolean);
     };
 
+    const getUnitCostARS = (item: PurchaseItem) => {
+        const cost = Number(item.unitCost);
+
+        if (form.currency === "USD") {
+            return cost * Number(form.exchangeRate || 0);
+        }
+
+        return cost;
+    };
+
     const [form, setForm] = useState<PurchaseFormState>({
         supplierId: purchase?.supplierId || "",
         status: purchase?.status || "draft",
-
+        currency: purchase?.currency || "ARS",
+        exchangeRate: purchase?.exchangeRate || 0,
         items: purchase?.items || [],
 
         document: {
@@ -107,11 +120,16 @@ export function PurchaseForm({ purchase, mode }: Props) {
     };
 
     const subtotal = form.items.reduce(
-        (acc, item) => acc + item.quantity * item.unitCost,
+        (acc, item) => acc + Number(item.quantity) * getUnitCostARS(item),
         0,
     );
 
-    const tax = subtotal * 0.21; // si aplica
+    const tax = form.items.reduce((acc, item) => {
+        const lineSubtotal = Number(item.quantity) * getUnitCostARS(item);
+
+        return acc + lineSubtotal * (Number(item.taxRate) / 100);
+    }, 0);
+
     const total = subtotal + tax;
 
     const handleChange = (
@@ -138,7 +156,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
             name: item.name,
             taxRate: item.taxRate,
             quantity: Number(item.quantity),
-            unitCost: Number(item.unitCost),
+            unitCost: getUnitCostARS(item),
         })),
 
         document: form.document,
@@ -313,12 +331,63 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                     }
                                 />
                             </div>
+                            <div>
+                                <label className={labelClass}>Moneda</label>
+
+                                <select
+                                    className={inputClass}
+                                    value={form.currency}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            currency: e.target.value as
+                                                | "ARS"
+                                                | "USD",
+                                        })
+                                    }
+                                >
+                                    <option value="ARS">Pesos (ARS)</option>
+                                    <option value="USD">Dólares (USD)</option>
+                                </select>
+                            </div>
+                            {form.currency === "USD" && (
+                                <div>
+                                    <label className={labelClass}>
+                                        Cotización USD
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={form.exchangeRate}
+                                        className={inputClass}
+                                        onChange={(e) =>
+                                            setForm({
+                                                ...form,
+                                                exchangeRate: Number(
+                                                    e.target.value,
+                                                ),
+                                            })
+                                        }
+                                    />
+                                </div>
+                            )}
                         </div>
                     </section>
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
                             Productos
                         </h2>
+                        <div className="grid grid-cols-6 gap-2 mb-2 text-xs font-medium text-gray-400">
+                            <div className="col-span-3">Producto</div>
+                            <div>Cantidad</div>
+                            <div>
+                                {form.currency === "USD"
+                                    ? "Costo USD"
+                                    : "Costo ARS"}
+                            </div>
+                            <div>Quitar</div>
+                        </div>
                         {form.items.map((item, i) => (
                             <div key={i} className="grid grid-cols-6 gap-2">
                                 <div className="col-span-3">
@@ -350,6 +419,11 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                                 "image",
                                                 product?.image || "",
                                             );
+                                            updateItem(
+                                                i,
+                                                "taxRate",
+                                                product?.taxRate || 10.5,
+                                            );
                                         }}
                                     />
                                 </div>
@@ -380,6 +454,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                         )
                                     }
                                     className={inputClass}
+                                    step="0.01"
                                 />
 
                                 <button onClick={() => removeItem(i)}>✕</button>
