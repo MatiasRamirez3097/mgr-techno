@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -9,68 +10,132 @@ interface Suggestion {
     id: string;
     name: string;
     slug: string;
-    regularPrice: number;
-    image: string;
-    availableStock: number;
+    price: number;
+    image: string | null;
+    inStock: boolean;
 }
 
-export function SearchBar() {
+export const SearchBar = () => {
     const router = useRouter();
+
     const [query, setQuery] = useState("");
+
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+
     const [loading, setLoading] = useState(false);
+
     const [open, setOpen] = useState(false);
+
     const containerRef = useRef<HTMLDivElement>(null);
+
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Cerrar al hacer click afuera
+    // =========================
+    // CLOSE ON OUTSIDE CLICK
+    // =========================
+
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (!containerRef.current?.contains(e.target as Node)) {
                 setOpen(false);
             }
         };
+
         document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
+
+        return () => {
+            document.removeEventListener("mousedown", handler);
+        };
     }, []);
 
-    // Debounce de búsqueda
+    // =========================
+    // SEARCH
+    // =========================
+
     useEffect(() => {
-        if (query.length < 2) {
+        const trimmedQuery = query.trim();
+
+        // Minimum chars
+
+        if (trimmedQuery.length < 2) {
             setSuggestions([]);
             setOpen(false);
             return;
         }
 
-        if (debounceRef.current) clearTimeout(debounceRef.current);
+        // Abort previous request
+
+        const controller = new AbortController();
+
+        // Clear previous debounce
+
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
         debounceRef.current = setTimeout(async () => {
             setLoading(true);
+
             try {
                 const res = await fetch(
-                    `/api/search?q=${encodeURIComponent(query)}&s=y`,
+                    `/api/products/search?q=${encodeURIComponent(
+                        trimmedQuery,
+                    )}`,
+                    {
+                        signal: controller.signal,
+                    },
                 );
 
+                if (!res.ok) {
+                    throw new Error("Error searching products");
+                }
+
                 const data = await res.json();
-                console.log("data>>>>", data);
-                setSuggestions(data.products);
+
+                setSuggestions(data);
+
                 setOpen(true);
+            } catch (error: any) {
+                // Ignore aborted requests
+
+                if (error.name !== "AbortError") {
+                    console.error(error);
+
+                    setSuggestions([]);
+                }
             } finally {
                 setLoading(false);
-                console.log("suggestions>>>", suggestions);
             }
-        }, 350);
+        }, 300);
 
         return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
+            controller.abort();
+
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
         };
     }, [query]);
 
+    // =========================
+    // SUBMIT
+    // =========================
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!query.trim()) return;
+
+        const trimmedQuery = query.trim();
+
+        if (!trimmedQuery) return;
+
         setOpen(false);
-        router.push(`/productos?search=${encodeURIComponent(query.trim())}`);
+
+        router.push(`/productos?search=${encodeURIComponent(trimmedQuery)}`);
     };
+
+    // =========================
+    // SELECT
+    // =========================
 
     const handleSelect = () => {
         setQuery("");
@@ -79,7 +144,13 @@ export function SearchBar() {
 
     return (
         <div ref={containerRef} className="relative w-full">
+            {/* ========================= */}
+            {/* FORM */}
+            {/* ========================= */}
+
             <form onSubmit={handleSubmit} className="relative">
+                {/* ICON */}
+
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                     {loading ? (
                         <svg
@@ -95,6 +166,7 @@ export function SearchBar() {
                                 stroke="currentColor"
                                 strokeWidth="4"
                             />
+
                             <path
                                 className="opacity-75"
                                 fill="currentColor"
@@ -118,32 +190,91 @@ export function SearchBar() {
                         </svg>
                     )}
                 </span>
+
+                {/* INPUT */}
+
                 <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    onFocus={() => suggestions.length > 0 && setOpen(true)}
+                    onFocus={() => {
+                        if (suggestions.length > 0) {
+                            setOpen(true);
+                        }
+                    }}
                     placeholder="Buscar productos..."
-                    className="w-full bg-gray-800 text-white text-sm rounded-full py-2 pl-9 pr-4 outline-none border border-gray-700 focus:border-brand transition-colors placeholder:text-gray-500"
+                    className="
+                        w-full
+                        bg-gray-800
+                        text-white
+                        text-sm
+                        rounded-full
+                        py-2
+                        pl-9
+                        pr-4
+                        outline-none
+                        border
+                        border-gray-700
+                        focus:border-brand
+                        transition-colors
+                        placeholder:text-gray-500
+                    "
                 />
             </form>
 
-            {/* Sugerencias */}
+            {/* ========================= */}
+            {/* SUGGESTIONS */}
+            {/* ========================= */}
+
             {open && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
-                    {suggestions.map((s) => (
+                <div
+                    className="
+                            absolute
+                            top-full
+                            left-0
+                            right-0
+                            mt-2
+                            bg-gray-900
+                            border
+                            border-gray-700
+                            rounded-xl
+                            shadow-2xl
+                            overflow-hidden
+                            z-50
+                        "
+                >
+                    {suggestions.map((suggestion) => (
                         <Link
-                            key={s.id}
-                            href={`/productos/${s.slug}`}
+                            key={suggestion.id}
+                            href={`/productos/${suggestion.slug}`}
                             onClick={handleSelect}
-                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition-colors"
+                            className="
+                                        flex
+                                        items-center
+                                        gap-3
+                                        px-4
+                                        py-3
+                                        hover:bg-gray-800
+                                        transition-colors
+                                    "
                         >
-                            {/* Imagen */}
-                            <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-800 shrink-0">
-                                {s.image ? (
+                            {/* IMAGE */}
+
+                            <div
+                                className="
+                                            relative
+                                            w-10
+                                            h-10
+                                            rounded-lg
+                                            overflow-hidden
+                                            bg-gray-800
+                                            shrink-0
+                                        "
+                            >
+                                {suggestion.image ? (
                                     <Image
-                                        src={s.image}
-                                        alt={s.name}
+                                        src={suggestion.image}
+                                        alt={suggestion.name}
                                         fill
                                         className="object-cover"
                                     />
@@ -152,14 +283,16 @@ export function SearchBar() {
                                 )}
                             </div>
 
-                            {/* Info */}
+                            {/* INFO */}
+
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm text-white truncate">
-                                    {s.name}
+                                    {suggestion.name}
                                 </p>
+
                                 <p className="text-xs text-gray-400">
-                                    ${s.regularPrice.toLocaleString("es-AR")}
-                                    {s.availableStock > 0 && (
+                                    ${suggestion.price.toLocaleString("es-AR")}
+                                    {!suggestion.inStock && (
                                         <span className="ml-2 text-red-400">
                                             Sin stock
                                         </span>
@@ -167,7 +300,8 @@ export function SearchBar() {
                                 </p>
                             </div>
 
-                            {/* Flecha */}
+                            {/* ARROW */}
+
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 className="w-4 h-4 text-gray-600 shrink-0"
@@ -185,27 +319,59 @@ export function SearchBar() {
                         </Link>
                     ))}
 
-                    {/* Ver todos los resultados */}
+                    {/* VIEW ALL */}
+
                     <button
                         onClick={() => {
                             setOpen(false);
+
                             router.push(
-                                `/productos?search=${encodeURIComponent(query)}`,
+                                `/productos?search=${encodeURIComponent(
+                                    query.trim(),
+                                )}`,
                             );
                         }}
-                        className="w-full px-4 py-3 text-sm text-brand hover:bg-gray-800 transition-colors text-left border-t border-gray-800"
+                        className="
+                                w-full
+                                px-4
+                                py-3
+                                text-sm
+                                text-brand
+                                hover:bg-gray-800
+                                transition-colors
+                                text-left
+                                border-t
+                                border-gray-800
+                            "
                     >
                         Ver todos los resultados para "{query}" →
                     </button>
                 </div>
             )}
 
-            {/* Sin resultados */}
+            {/* ========================= */}
+            {/* EMPTY */}
+            {/* ========================= */}
+
             {open &&
                 !loading &&
                 suggestions.length === 0 &&
-                query.length >= 2 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50">
+                query.trim().length >= 2 && (
+                    <div
+                        className="
+                            absolute
+                            top-full
+                            left-0
+                            right-0
+                            mt-2
+                            bg-gray-900
+                            border
+                            border-gray-700
+                            rounded-xl
+                            shadow-2xl
+                            z-50
+                        "
+                    >
                         <p className="px-4 py-3 text-sm text-gray-400">
                             No se encontraron productos para "{query}"
                         </p>
@@ -213,4 +379,4 @@ export function SearchBar() {
                 )}
         </div>
     );
-}
+};

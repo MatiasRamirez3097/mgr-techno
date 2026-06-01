@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { PurchaseModel } from "@/models/Purchase";
 import { mapPurchaseToDTO } from "@/lib/mappers/purchaseMapper";
 //CONSTANTS
-import { PRODUCTS_PAGE_SIZE } from "../constants/pagination";
+import { PRODUCTS_PAGE_SIZE } from "../../constants/pagination";
 
 //FUNCTIONS
 //import { getMongoSort } from "./utils";

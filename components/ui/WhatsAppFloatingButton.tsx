@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 
+import { usePathname } from "next/navigation";
+
 export function WhatsAppFloatingButton() {
     const phone = "5493417223739"; // 👈 tu número
     const message = encodeURIComponent(
         "¡Hola! Quería hacer una consulta sobre un producto.",
     );
-
+    // =========================
+    // HIDE IN ADMIN
+    // =========================
+    const pathname = usePathname();
+    if (pathname.startsWith("/admin")) {
+        return null;
+    }
     return (
         <div className="fixed bottom-5 right-5 z-[9999] flex items-end gap-3">
             {/* Tooltip */}

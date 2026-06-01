@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { connectDB } from "@/lib/mongodb";
+
 import { AdminPagination } from "@/components/admin/AdminPagination";
+
 import { AdminSearch } from "@/components/admin/AdminSearch";
+
 import { ProductsTable } from "@/components/admin/ProductsTable";
-import { SyncButton } from "@/components/admin/SyncButton";
-import { ProductModel } from "@/models/Product";
-import { getProducts } from "@/lib/products/getProducts";
+
+import { getProducts } from "@/services/products/getProducts";
 
 interface Props {
     searchParams: Promise<{
@@ -17,35 +18,108 @@ interface Props {
 
 export default async function AdminProductsPage({ searchParams }: Props) {
     const { page, per_page, search } = await searchParams;
-    const currentPage = parseInt(page || "1");
-    const perPage = parseInt(per_page || "20");
+
+    const currentPage = Number(page) || 1;
+
+    const perPage = Number(per_page) || 20;
 
     const { products, total, totalPages } = await getProducts({
         search,
+
         page: currentPage,
+
+        perPage,
+
         adminView: true,
     });
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-white">Productos</h1>
-                <div className="flex items-center gap-3">
-                    <AdminSearch placeholder="Buscar por nombre, SKU o GTIN..." />
+            {/* ========================= */}
+            {/* HEADER */}
+            {/* ========================= */}
+
+            <div
+                className="
+                flex
+                items-center
+                justify-between
+                mb-6
+                gap-4
+                flex-wrap
+            "
+            >
+                <h1
+                    className="
+                    text-2xl
+                    font-bold
+                    text-white
+                "
+                >
+                    Productos
+                </h1>
+
+                <div
+                    className="
+                    flex
+                    items-center
+                    gap-3
+                    w-full
+                    sm:w-auto
+                "
+                >
+                    <AdminSearch
+                        placeholder="
+                            Buscar por nombre,
+                            SKU o GTIN...
+                        "
+                    />
+
                     <Link
                         href="/admin/products/new"
-                        className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-medium hover:brightness-110 transition-all shrink-0"
+                        className="
+                            px-4
+                            py-2
+                            rounded-xl
+                            bg-brand
+                            text-white
+                            text-sm
+                            font-medium
+                            hover:brightness-110
+                            transition-all
+                            shrink-0
+                        "
                     >
                         + Nuevo
                     </Link>
                 </div>
             </div>
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-                {/* Tabla como componente cliente para manejar el quick edit */}
+            {/* ========================= */}
+            {/* TABLE */}
+            {/* ========================= */}
+
+            <div
+                className="
+                bg-gray-900
+                rounded-2xl
+                border
+                border-gray-800
+                overflow-hidden
+            "
+            >
                 <ProductsTable products={products} />
 
-                <div className="px-6 py-4 border-t border-gray-800">
+                {/* PAGINATION */}
+
+                <div
+                    className="
+                    px-6
+                    py-4
+                    border-t
+                    border-gray-800
+                "
+                >
                     <AdminPagination
                         currentPage={currentPage}
                         totalPages={totalPages}

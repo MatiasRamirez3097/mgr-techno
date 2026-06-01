@@ -82,6 +82,7 @@ export const ProductSchema = new Schema(
 
             ref: "Brand",
         },
+        searchTerms: [String],
     },
     { timestamps: true },
 );

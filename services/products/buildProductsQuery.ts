@@ -1,0 +1,74 @@
+import type { SortOrder } from "mongoose";
+
+import { CategoryModel } from "@/models";
+
+import { normalizeSearch } from "@/lib/search/normalize";
+
+import { getCategoriesDescendants } from "@/services/categories/getCategoriesDescendants";
+
+import { getMongoSort } from "./utils";
+
+import type { ProductFilters } from "@/types/shared/product";
+
+export const buildProductsQuery = async (filters: ProductFilters = {}) => {
+    const query: any = {};
+
+    // =========================
+    // SEARCH
+    // =========================
+
+    if (filters.search) {
+        const normalizedSearch = normalizeSearch(filters.search);
+
+        const searchTerms = normalizedSearch.split(/\s+/).filter(Boolean);
+
+        query.searchTerms = {
+            $all: searchTerms,
+        };
+    }
+
+    // =========================
+    // CATEGORY
+    // =========================
+
+    if (filters.category) {
+        const category = await CategoryModel.findOne({
+            slug: filters.category,
+        }).lean();
+
+        if (category) {
+            const childIds = await getCategoriesDescendants(
+                category._id.toString(),
+            );
+
+            query.categories = {
+                $in: [category._id.toString(), ...childIds],
+            };
+        } else {
+            query._id = null;
+        }
+    }
+
+    // =========================
+    // PUBLIC VIEW
+    // =========================
+
+    if (!filters.adminView) {
+        query.status = "publish";
+    }
+
+    // =========================
+    // SORT
+    // =========================
+
+    const sort: Record<string, SortOrder> = {
+        availableStock: -1,
+
+        ...getMongoSort(filters.orderby),
+    };
+
+    return {
+        query,
+        sort,
+    };
+};

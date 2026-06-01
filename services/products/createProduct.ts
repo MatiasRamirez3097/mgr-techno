@@ -1,41 +1,75 @@
-import { ProductModel } from "@/models/Product";
 import { Types } from "mongoose";
+
+import { connectDB } from "@/lib/mongodb";
+
+import { ProductModel } from "@/models";
+
+import { mapProductToDTO } from "@/lib/mappers/productMapper";
+
+import { generateProductSearch } from "@/lib/search/generateProductSearch";
+
 import type { CreateProductDTO } from "@/lib/validators/productSchema";
 
 export async function createProduct(data: CreateProductDTO) {
-    // 🧠 normalizar salePrice
+    await connectDB();
+
+    // =========================
+    // NORMALIZE
+    // =========================
+
     const salePrice =
         data.salePrice && data.salePrice > 0 ? data.salePrice : null;
 
-    // 🧠 convertir categorías a ObjectId
-    const categories = data.categories?.map((id) => new Types.ObjectId(id));
+    // =========================
+    // CATEGORIES
+    // =========================
 
-    // 🚀 create
+    const categories =
+        data.categories?.map((id) => new Types.ObjectId(id)) || [];
+
+    // =========================
+    // SEARCH
+    // =========================
+
+    const searchData = generateProductSearch(data.name);
+
+    // =========================
+    // CREATE
+    // =========================
+
     const product = await ProductModel.create({
         name: data.name,
+
         slug: data.slug,
+
         type: data.type,
 
+        searchTerms: searchData.searchTerms,
+
         regularPrice: data.regularPrice,
+
         salePrice,
 
         taxRate: data.taxRate,
 
-        image: data.image,
-        images: data.images,
+        images: data.images || [],
 
         hasSerialNumber: data.hasSerialNumber,
+
         manageStock: data.manageStock,
 
         shortDescription: data.shortDescription,
+
         description: data.description,
 
         weight: data.weight,
+
         dimensions: data.dimensions,
 
         categories,
 
         featured: data.featured,
+
         status: data.status,
 
         sku: data.sku,
@@ -43,5 +77,5 @@ export async function createProduct(data: CreateProductDTO) {
         bundleItemsCount: data.bundleItemsCount,
     });
 
-    return product;
+    return mapProductToDTO(product.toObject());
 }

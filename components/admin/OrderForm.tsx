@@ -32,6 +32,7 @@ type OrderItem = {
         width: number;
         length: number;
     };
+    image: string;
 };
 
 type Payment = {
@@ -170,6 +171,7 @@ export function OrderForm({ order, mode }: Props) {
                         length: 0,
                     },
                     weight: 0,
+                    image: "",
                 },
             ],
         }));
@@ -544,6 +546,7 @@ export function OrderForm({ order, mode }: Props) {
                                                       weight: item.weight,
                                                       dimensions:
                                                           item.dimensions,
+                                                      image: item.image || "",
                                                   }
                                                 : null
                                         }

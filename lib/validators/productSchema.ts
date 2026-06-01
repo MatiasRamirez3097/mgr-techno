@@ -5,6 +5,8 @@ export const createProductSchema = z.object({
 
     slug: z.string().min(1, "El slug es obligatorio").optional(),
 
+    brand: z.string().optional(),
+
     type: z.enum(["simple", "bundle"]).default("simple"),
 
     regularPrice: z

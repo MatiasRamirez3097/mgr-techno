@@ -23,6 +23,7 @@ export type ProductDTO = {
         width: number;
     };
     brand: string;
+    featured: boolean;
 };
 
 export type GetProductsResponse = {
@@ -36,6 +37,15 @@ export type ProductFilters = {
     categoryId?: string;
     search?: string;
     page?: number;
-    orderby?: "date" | "price" | "price-desc" | "name" | "popularity";
+    perPage?: number;
+    orderby?: ProductOrderBy;
     adminView?: boolean;
 };
+
+export type ProductOrderBy =
+    | "newest"
+    | "oldest"
+    | "price-asc"
+    | "price-desc"
+    | "name-asc"
+    | "name-desc";
