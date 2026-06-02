@@ -31,7 +31,12 @@ export async function createProduct(data: CreateProductDTO) {
     // SEARCH
     // =========================
 
-    const searchData = generateProductSearch(data.name);
+    const searchData = generateProductSearch(`
+            ${data.name}
+            ${data.sku || ""}
+            ${data.mpn || ""}
+            ${data.gtin || ""}
+        `);
 
     // =========================
     // CREATE
@@ -73,6 +78,10 @@ export async function createProduct(data: CreateProductDTO) {
         status: data.status,
 
         sku: data.sku,
+
+        mpn: data.mpn,
+
+        gtin: data.gtin,
 
         bundleItemsCount: data.bundleItemsCount,
     });

@@ -16,6 +16,8 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         shortDescription: product.shortDescription || "",
         slug: product.slug,
         sku: product.sku || "",
+        mpn: product.mpn || "",
+        gtin: product.gtin || "",
         hasSerialNumber: product.hasSerialNumber,
         status:
             product.status === "publish" ||

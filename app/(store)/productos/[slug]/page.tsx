@@ -193,32 +193,72 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         .slice(0, 160);
 
     return {
+        metadataBase: new URL("https://mgrtechno.com.ar"),
+
         title: product.name,
 
         description:
             cleanDescription ||
             `Comprá ${product.name} al mejor precio en MGR Techno`,
 
+        alternates: {
+            canonical: `/productos/${product.slug}`,
+        },
+
         openGraph: {
             title: product.name,
 
-            description: cleanDescription,
+            description:
+                cleanDescription ||
+                `Comprá ${product.name} al mejor precio en MGR Techno`,
 
-            images: product.images?.[0]
-                ? [
-                      {
-                          url: product.images[0],
+            url: `https://mgrtechno.com.ar/productos/${product.slug}`,
 
-                          width: 800,
-
-                          height: 800,
-
-                          alt: product.name,
-                      },
-                  ]
-                : [],
+            siteName: "MGR Techno",
 
             type: "website",
+
+            images:
+                product.image || product.images?.[0]
+                    ? [
+                          {
+                              url: product.image || product.images[0],
+
+                              width: 800,
+
+                              height: 800,
+
+                              alt: product.name,
+                          },
+                      ]
+                    : [],
+        },
+
+        twitter: {
+            card: "summary_large_image",
+
+            title: product.name,
+
+            description:
+                cleanDescription ||
+                `Comprá ${product.name} al mejor precio en MGR Techno`,
+
+            images:
+                product.image || product.images?.[0]
+                    ? [product.image || product.images[0]]
+                    : [],
+        },
+
+        robots: {
+            index: true,
+            follow: true,
+            googleBot: {
+                index: true,
+                follow: true,
+                "max-image-preview": "large",
+                "max-snippet": -1,
+                "max-video-preview": -1,
+            },
         },
     };
 }

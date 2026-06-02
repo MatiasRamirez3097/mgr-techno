@@ -15,6 +15,8 @@ export type ProductDTO = {
     totalStock: number | undefined;
     slug: string;
     sku: string;
+    mpn: string;
+    gtin: string;
     status: "publish" | "draft" | "private";
     weight: number;
     dimensions: {
