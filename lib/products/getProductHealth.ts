@@ -22,6 +22,10 @@ export function getProductHealth(product: ProductDTO): ProductHealth {
         critical.push("Sin SKU");
     }
 
+    if (!product.gtin?.trim()) {
+        critical.push("Sin GTIN");
+    }
+
     if (!product.regularPrice || product.regularPrice <= 0) {
         critical.push("Sin precio");
     }

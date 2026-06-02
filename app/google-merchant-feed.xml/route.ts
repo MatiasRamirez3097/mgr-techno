@@ -14,7 +14,7 @@ export async function GET() {
             return `
 <item>
     <g:id>${product._id}</g:id>
-
+    <g:gtin>${product.gtin ? product.gtin : ""}</g:gtin>
     <title><![CDATA[${product.name}]]></title>
 
     <description><![CDATA[${
