@@ -4,7 +4,7 @@ export type ProductDTO = {
     image: string;
     images: string[];
     name: string;
-    taxRate: number;
+    taxRate: number | null;
     regularPrice: number;
     salePrice: number | null;
     description: string;
