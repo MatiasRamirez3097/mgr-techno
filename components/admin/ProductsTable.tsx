@@ -13,6 +13,8 @@ import { getPricing } from "@/lib/pricing";
 
 import { getProductHealth } from "@/lib/products/getProductHealth";
 
+import { useSearchParams } from "next/navigation";
+
 import type { ProductDTO } from "@/types/shared/product";
 
 interface Props {
@@ -20,6 +22,7 @@ interface Props {
 }
 
 export function ProductsTable({ products }: Props) {
+    const searchParams = useSearchParams();
     const [quickEditId, setQuickEditId] = useState<string | null>(null);
 
     return (
@@ -346,7 +349,7 @@ export function ProductsTable({ products }: Props) {
                                             </button>
 
                                             <Link
-                                                href={`/admin/products/${product.id}`}
+                                                href={`/admin/products/${product.id}?${searchParams.toString()}`}
                                                 className="
                                                     text-xs
                                                     text-brand

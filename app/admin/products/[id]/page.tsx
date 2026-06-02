@@ -4,6 +4,7 @@ import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { buildBackUrl } from "@/lib/buildBackUrl";
 import type { ProductDTO } from "@/types/shared/product";
 import type { CategoryDTO } from "@/types/shared/category";
 
@@ -11,10 +12,19 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminEditProductPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{
+        page?: string;
+        per_page?: string;
+        search?: string;
+    }>;
 }) {
     const { id } = await params;
+    const query = await searchParams;
+
+    const backUrl = buildBackUrl("/admin/products", query);
 
     await connectDB();
     const [product, categories]: [ProductDTO | null, CategoryDTO[]] =
@@ -29,7 +39,7 @@ export default async function AdminEditProductPage({
         <div>
             <div className="flex items-center gap-4 mb-6">
                 <Link
-                    href="/admin/products"
+                    href={backUrl}
                     className="text-gray-400 hover:text-white transition-colors text-sm"
                 >
                     ← Volver
