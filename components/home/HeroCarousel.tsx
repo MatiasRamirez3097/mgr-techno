@@ -14,11 +14,11 @@ interface Slide {
 
 const SLIDES: Slide[] = [
     {
-        image: "/banners/banner1.jpg",
+        image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436851/banner1_xaiuk2.jpg",
         title: "Componentes de PC",
         subtitle: "Las mejores marcas al mejor precio",
         cta: "Ver productos",
-        href: "/products?category=componentes-de-pc",
+        href: "/productos?categoria=componentes-de-pc",
     },
     {
         image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436487/Mesa_de_trabajo_3_nhiiih.jpg",
