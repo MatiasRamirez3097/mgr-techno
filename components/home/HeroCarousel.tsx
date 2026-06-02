@@ -28,7 +28,7 @@ const SLIDES: Slide[] = [
         href: "/products?category=ofertas",
     },
     {
-        image: "/banners/banner3.jpg",
+        image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780426674/Mesa_de_trabajo_2_rklctq.jpg",
         title: "Refrigeración",
         subtitle: "Mantené tu equipo al límite",
         cta: "Explorar",
