@@ -35,6 +35,8 @@ export async function updateProductById(id: string, data: any) {
     const searchData = generateProductSearch(`
             ${data.name}
             ${data.sku || ""}
+            ${data.mpn || ""}
+            ${data.gtin || ""}
         `);
 
     // =========================
@@ -85,6 +87,10 @@ export async function updateProductById(id: string, data: any) {
     product.status = data.status;
 
     product.sku = data.sku;
+
+    product.mpn = data.mpn;
+
+    product.gtin = data.gtin;
 
     product.bundleItemsCount = data.bundleItemsCount;
 

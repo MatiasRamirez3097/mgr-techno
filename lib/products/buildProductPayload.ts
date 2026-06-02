@@ -10,6 +10,8 @@ export function buildProductPayload({ form, image, images }: Params) {
     return {
         name: form.name,
         sku: form.sku,
+        mpn: form.mpn,
+        gtin: form.gtin,
         brand: form.brand,
         status: form.status,
 

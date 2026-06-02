@@ -17,7 +17,7 @@ export async function PUT(req: Request, { params }: Props) {
         const { id } = await params;
 
         const body = await req.json();
-
+        console.log("body>>>", body);
         const product = await updateProductById(id, body);
 
         return Response.json({

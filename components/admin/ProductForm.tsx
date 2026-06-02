@@ -41,6 +41,8 @@ export function ProductForm({ product, categories, mode }: Props) {
         brand: product?.brand || "",
         name: product?.name || "",
         sku: product?.sku || "",
+        mpn: product?.mpn || "",
+        gtin: product?.gtin || "",
         status: product?.status || "publish",
         description: product?.description || "",
         shortDescription: product?.shortDescription || "",
@@ -190,14 +192,36 @@ export function ProductForm({ product, categories, mode }: Props) {
                                     className={inputClass}
                                 />
                             </div>
-                            <div>
-                                <label className={labelClass}>SKU</label>
-                                <input
-                                    name="sku"
-                                    value={form.sku}
-                                    onChange={handleChange}
-                                    className={inputClass}
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className={labelClass}>SKU</label>
+                                    <input
+                                        name="sku"
+                                        value={form.sku}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>MPN</label>
+                                    <input
+                                        name="mpn"
+                                        value={form.mpn}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>GTIN</label>
+                                    <input
+                                        name="gtin"
+                                        value={form.gtin}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label className={labelClass}>

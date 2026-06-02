@@ -58,6 +58,8 @@ export const ProductSchema = new Schema(
         featured: { type: Boolean, default: false },
         status: { type: String, default: "publish" },
         sku: { type: String },
+        mpn: { type: String },
+        gtin: { type: String },
         availableStock: {
             type: Number,
             default: 0,

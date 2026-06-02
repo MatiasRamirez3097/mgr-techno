@@ -46,6 +46,8 @@ export const createProductSchema = z.object({
     status: z.enum(["publish", "draft", "private"]).default("publish"),
 
     sku: z.string().min(3).optional(),
+    mpn: z.string().min(3).optional(),
+    gtin: z.string().min(3).optional(),
 
     bundleItemsCount: z.number().int().min(0).optional(),
 });

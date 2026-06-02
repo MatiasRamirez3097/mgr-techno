@@ -5,6 +5,10 @@ export interface ProductFormState {
 
     sku: string;
 
+    mpn: string;
+
+    gtin: string;
+
     status: string;
 
     description: string;
