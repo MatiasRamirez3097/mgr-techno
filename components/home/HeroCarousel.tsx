@@ -21,7 +21,7 @@ const SLIDES: Slide[] = [
         href: "/products?category=componentes-de-pc",
     },
     {
-        image: "/banners/banner2.jpg",
+        image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780419507/Mesa_de_trabajo_3_wtfqrd.jpg",
         title: "Ofertas imperdibles",
         subtitle: "Descuentos en periféricos y más",
         cta: "Ver ofertas",
