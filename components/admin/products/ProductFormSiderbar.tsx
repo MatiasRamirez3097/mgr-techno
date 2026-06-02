@@ -194,7 +194,7 @@ export const ProductFormSidebar = ({
 
                     {mode === "edit" && (
                         <a
-                            href={`/products/${product.slug}`}
+                            href={`/productos/${product.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="

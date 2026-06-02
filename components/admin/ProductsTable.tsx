@@ -11,6 +11,8 @@ import { QuickEditProduct } from "./QuickEditProduct";
 
 import { getPricing } from "@/lib/pricing";
 
+import { getProductHealth } from "@/lib/products/getProductHealth";
+
 import type { ProductDTO } from "@/types/shared/product";
 
 interface Props {
@@ -43,7 +45,9 @@ export function ProductsTable({ products }: Props) {
                     <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
                         Estado
                     </th>
-
+                    <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
+                        Calidad
+                    </th>
                     <th className="text-left text-xs text-gray-400 font-medium px-6 py-4" />
                 </tr>
             </thead>
@@ -67,6 +71,7 @@ export function ProductsTable({ products }: Props) {
                 ) : (
                     products.map((product) => {
                         console.log("product>>>", product);
+                        const health = getProductHealth(product);
                         const pricing = getPricing({
                             regularPrice: product.regularPrice,
 
@@ -219,6 +224,98 @@ export function ProductsTable({ products }: Props) {
                                                 ? "Publicado"
                                                 : "Borrador"}
                                         </span>
+                                    </td>
+
+                                    {/* HEALTH */}
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    className={`
+                    text-xs
+                    font-semibold
+                    ${
+                        health.score >= 90
+                            ? "text-green-400"
+                            : health.score >= 70
+                              ? "text-yellow-400"
+                              : "text-red-400"
+                    }
+                `}
+                                                >
+                                                    {health.score}%
+                                                </span>
+
+                                                {health.critical.length > 0 && (
+                                                    <span
+                                                        className="
+                        text-red-400
+                        bg-red-400/10
+                        border
+                        border-red-400/20
+                        px-2
+                        py-0.5
+                        rounded-full
+                        text-xs
+                    "
+                                                    >
+                                                        {health.critical.length}{" "}
+                                                        críticos
+                                                    </span>
+                                                )}
+
+                                                {health.warnings.length > 0 && (
+                                                    <span
+                                                        className="
+                        text-yellow-400
+                        bg-yellow-400/10
+                        border
+                        border-yellow-400/20
+                        px-2
+                        py-0.5
+                        rounded-full
+                        text-xs
+                    "
+                                                    >
+                                                        {health.warnings.length}{" "}
+                                                        avisos
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {(health.critical.length > 0 ||
+                                                health.warnings.length > 0) && (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {health.critical.map(
+                                                        (item) => (
+                                                            <span
+                                                                key={item}
+                                                                className="
+                            text-[10px]
+                            text-red-400
+                        "
+                                                            >
+                                                                • {item}
+                                                            </span>
+                                                        ),
+                                                    )}
+
+                                                    {health.warnings.map(
+                                                        (item) => (
+                                                            <span
+                                                                key={item}
+                                                                className="
+                            text-[10px]
+                            text-yellow-400
+                        "
+                                                            >
+                                                                • {item}
+                                                            </span>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </td>
 
                                     {/* ACTIONS */}

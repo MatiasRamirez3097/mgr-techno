@@ -23,7 +23,7 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
             product.status === "private"
                 ? product.status
                 : "draft",
-        taxRate: product.taxRate || 10.5,
+        taxRate: product.taxRate || null,
         weight: product.weight || 0,
         dimensions: {
             height: product.dimensions?.height || 0,
