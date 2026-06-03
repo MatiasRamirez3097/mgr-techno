@@ -11,60 +11,6 @@ export const authOptions = {
                 username: { label: "Email", type: "text" },
                 password: { label: "Contraseña", type: "password" },
             },
-            /*async authorize(credentials) {
-                try {
-                    // 1. JWT token
-                    const res = await fetch(
-                        `${process.env.WOO_URL}/wp-json/jwt-auth/v1/token`,
-                        {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                username: credentials?.username,
-                                password: credentials?.password,
-                            }),
-                        },
-                    );
-
-                    const data = await res.json();
-                    if (!res.ok || !data.token) return null;
-
-                    // 2. Datos del usuario con rol (endpoint propio)
-                    const meRes = await fetch(
-                        `${process.env.WOO_URL}/wp-json/mgr/v1/me`,
-                        {
-                            headers: { Authorization: `Bearer ${data.token}` },
-                        },
-                    );
-                    const me = await meRes.json();
-
-                    // 3. Datos del customer de WooCommerce
-                    const customerRes = await fetch(
-                        `${process.env.WOO_URL}/wp-json/wc/v3/customers/${me.id}?_fields=id,billing,meta_data`,
-                        { headers: WOO_HEADERS },
-                    );
-                    const customer = await customerRes.json();
-
-                    const meta = customer?.meta_data || [];
-                    const getMeta = (key: string) =>
-                        meta.find((m: any) => m.key === key)?.value || "";
-
-                    return {
-                        id: String(me.id),
-                        name: me.name,
-                        email: me.email,
-                        token: data.token,
-                        role: me.roles?.[0] || "customer",
-                        customerId: customer?.id || null,
-                        billing: customer?.billing || null,
-                        tipoDocumento: getMeta("billing_tipo_documento"),
-                        numeroDocumento: getMeta("billing_numero_documento"),
-                    };
-                } catch (e) {
-                    console.log(">>> authorize error:", e);
-                    return null;
-                }
-            },*/
             async authorize(credentials) {
                 try {
                     const user = await getUserByEmail(
@@ -139,6 +85,10 @@ export const authOptions = {
     },
     session: {
         strategy: "jwt" as const,
+        maxAge: 60 * 60 * 24 * 3,
+    },
+    jwt: {
+        maxAge: 60 * 60 * 24 * 3,
     },
     secret: process.env.NEXTAUTH_SECRET,
 };
