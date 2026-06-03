@@ -8,6 +8,7 @@ import { extractProductImages } from "@/lib/products/extractProductImages";
 import { CreateBrandModal } from "./CreateBrandModal";
 import { slugify } from "@/lib/utils/slugify";
 import { useBrands } from "./products/hooks/useBrands";
+import { RichTextEditor } from "@/components/admin/editor/RichTextEditor";
 import type { ProductFormState } from "@/types/admin/productForm";
 import type { CategoryDTO } from "@/types/shared/category";
 
@@ -227,12 +228,14 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 <label className={labelClass}>
                                     Descripción corta
                                 </label>
-                                <textarea
-                                    name="shortDescription"
+                                <RichTextEditor
                                     value={form.shortDescription}
-                                    onChange={handleChange}
-                                    rows={3}
-                                    className={`${inputClass} resize-none`}
+                                    onChange={(html) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            shortDescription: html,
+                                        }))
+                                    }
                                 />
                                 {fieldErrors.shortDescription && (
                                     <p className="text-sm text-red-400">
@@ -244,12 +247,14 @@ export function ProductForm({ product, categories, mode }: Props) {
                                 <label className={labelClass}>
                                     Descripción completa
                                 </label>
-                                <textarea
-                                    name="description"
+                                <RichTextEditor
                                     value={form.description}
-                                    onChange={handleChange}
-                                    rows={6}
-                                    className={`${inputClass} resize-none`}
+                                    onChange={(html) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            description: html,
+                                        }))
+                                    }
                                 />
                                 {fieldErrors.description && (
                                     <p className="text-sm text-red-400">
