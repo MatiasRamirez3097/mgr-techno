@@ -102,3 +102,42 @@ export async function updateProductById(id: string, data: any) {
 
     return mapProductToDTO(product.toObject());
 }
+
+export async function updateProductQuickFields(
+    id: string,
+    data: {
+        regularPrice?: number;
+        salePrice?: number | null;
+        featured?: boolean;
+        status?: string;
+    },
+) {
+    await connectDB();
+
+    const product = await ProductModel.findById(id);
+
+    if (!product) {
+        throw new Error("Producto no encontrado");
+    }
+
+    if (data.regularPrice !== undefined) {
+        product.regularPrice = data.regularPrice;
+    }
+
+    if (data.salePrice !== undefined) {
+        product.salePrice =
+            data.salePrice && data.salePrice > 0 ? data.salePrice : null;
+    }
+
+    if (data.featured !== undefined) {
+        product.featured = data.featured;
+    }
+
+    if (data.status !== undefined) {
+        product.status = data.status;
+    }
+
+    await product.save();
+
+    return mapProductToDTO(product.toObject());
+}

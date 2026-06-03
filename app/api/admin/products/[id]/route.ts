@@ -1,6 +1,8 @@
 import { deleteProductById } from "@/services/products/deleteProductById";
-
-import { updateProductById } from "@/services/products/updateProductById";
+import {
+    updateProductById,
+    updateProductQuickFields,
+} from "@/services/products/updateProductById";
 
 interface Props {
     params: Promise<{
@@ -9,7 +11,7 @@ interface Props {
 }
 
 // =========================
-// UPDATE PRODUCT
+// UPDATE PRODUCT (FULL)
 // =========================
 
 export async function PUT(req: Request, { params }: Props) {
@@ -17,8 +19,36 @@ export async function PUT(req: Request, { params }: Props) {
         const { id } = await params;
 
         const body = await req.json();
-        console.log("body>>>", body);
+
         const product = await updateProductById(id, body);
+
+        return Response.json({
+            success: true,
+            product,
+        });
+    } catch (error: any) {
+        return Response.json(
+            {
+                error: error?.message || "Error al actualizar producto",
+            },
+            {
+                status: 400,
+            },
+        );
+    }
+}
+
+// =========================
+// UPDATE PRODUCT (PARTIAL)
+// =========================
+
+export async function PATCH(req: Request, { params }: Props) {
+    try {
+        const { id } = await params;
+
+        const body = await req.json();
+
+        const product = await updateProductQuickFields(id, body);
 
         return Response.json({
             success: true,

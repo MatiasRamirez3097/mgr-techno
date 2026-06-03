@@ -53,6 +53,10 @@ export const buildProductsQuery = async (filters: ProductFilters = {}) => {
     // PUBLIC VIEW
     // =========================
 
+    if (filters.status) {
+        query.status = filters.status;
+    }
+
     if (!filters.adminView) {
         query.status = "publish";
     }

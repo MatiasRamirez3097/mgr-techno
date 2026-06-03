@@ -22,7 +22,8 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         status:
             product.status === "publish" ||
             product.status === "draft" ||
-            product.status === "private"
+            product.status === "private" ||
+            product.status === "pending_review"
                 ? product.status
                 : "draft",
         taxRate: product.taxRate || null,

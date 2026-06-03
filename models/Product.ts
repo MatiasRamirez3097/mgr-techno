@@ -56,7 +56,11 @@ export const ProductSchema = new Schema(
             },
         ],
         featured: { type: Boolean, default: false },
-        status: { type: String, default: "publish" },
+        status: {
+            type: String,
+            enum: ["draft", "pending_review", "publish", "private"],
+            default: "draft",
+        },
         sku: { type: String },
         mpn: { type: String },
         gtin: { type: String },

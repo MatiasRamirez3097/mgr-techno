@@ -11,10 +11,12 @@ interface Props {
 
 export function QuickEditProduct({ product, onClose }: Props) {
     const router = useRouter();
+    console.log("product>>>>>>", product);
     const [form, setForm] = useState({
         regularPrice: product.regularPrice || "",
         salePrice: product.salePrice || "",
         featured: product.featured || false,
+        status: product.status,
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -27,12 +29,13 @@ export function QuickEditProduct({ product, onClose }: Props) {
         try {
             const res = await fetch(`/api/admin/products/${product.id}`, {
                 credentials: "include",
-                method: "PUT",
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     regularPrice: form.regularPrice,
                     salePrice: form.salePrice,
                     featured: form.featured,
+                    status: form.status,
                 }),
             });
 
@@ -95,6 +98,35 @@ export function QuickEditProduct({ product, onClose }: Props) {
                         className={inputClass}
                         placeholder="Vacío = sin oferta"
                     />
+                </div>
+
+                <div>
+                    <label className="text-xs text-gray-400 mb-1 block">
+                        Estado
+                    </label>
+
+                    <select
+                        value={form.status}
+                        onChange={(e) =>
+                            setForm((prev) => ({
+                                ...prev,
+                                status: e.target.value as
+                                    | "private"
+                                    | "publish"
+                                    | "draft"
+                                    | "pending_review",
+                            }))
+                        }
+                        className={inputClass}
+                    >
+                        <option value="publish">Publicado</option>
+
+                        <option value="pending_review">
+                            Pendiente revisión
+                        </option>
+
+                        <option value="draft">Borrador</option>
+                    </select>
                 </div>
 
                 <label className="flex items-center gap-2.5 cursor-pointer">

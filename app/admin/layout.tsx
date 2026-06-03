@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { getPendingReviewCount } from "@/services/products/getPendingReviewCount";
 
 export default async function AdminLayout({
     children,
@@ -15,9 +16,11 @@ export default async function AdminLayout({
     // Solo administradores
     if ((session as any).role !== "administrator") redirect("/");
 
+    const pendingReviewCount = await getPendingReviewCount();
+
     return (
         <div className="min-h-screen bg-gray-950 flex">
-            <AdminSidebar />
+            <AdminSidebar pendingReviewCount={pendingReviewCount} />
             <main className="flex-1 p-8 overflow-auto">{children}</main>
         </div>
     );

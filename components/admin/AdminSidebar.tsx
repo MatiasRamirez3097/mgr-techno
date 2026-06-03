@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
+
+type Props = {
+    pendingReviewCount: number;
+};
 
 const LINKS = [
     {
@@ -44,6 +49,12 @@ const LINKS = [
                 />
             </svg>
         ),
+        children: [
+            {
+                href: "/admin/products?status=pending_review",
+                label: "Pendientes revisión",
+            },
+        ],
     },
     {
         href: "/admin/customers",
@@ -71,8 +82,9 @@ const LINKS = [
     },
 ];
 
-export function AdminSidebar() {
+export function AdminSidebar({ pendingReviewCount }: Props) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     return (
         <aside className="w-60 bg-gray-900 border-r border-gray-800 flex flex-col min-h-screen shrink-0">
@@ -89,20 +101,57 @@ export function AdminSidebar() {
 
             {/* Links */}
             <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
-                {LINKS.map((link) => (
-                    <Link
-                        key={link.href}
-                        href={link.href}
-                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors ${
-                            pathname.startsWith(link.href)
-                                ? "bg-brand text-white font-medium"
-                                : "text-gray-400 hover:text-white hover:bg-gray-800"
-                        }`}
-                    >
-                        {link.icon}
-                        {link.label}
-                    </Link>
-                ))}
+                {LINKS.map((link) => {
+                    const isActive =
+                        pathname === link.href ||
+                        pathname.startsWith(`${link.href}/`);
+
+                    return (
+                        <div key={link.href}>
+                            <Link
+                                href={link.href}
+                                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors ${
+                                    isActive
+                                        ? "bg-brand text-white font-medium"
+                                        : "text-gray-400 hover:text-white hover:bg-gray-800"
+                                }`}
+                            >
+                                {link.icon}
+                                {link.label}
+                            </Link>
+
+                            {link.children?.map((child) => {
+                                const childActive =
+                                    child.href.includes(
+                                        "status=pending_review",
+                                    ) &&
+                                    pathname === "/admin/products" &&
+                                    searchParams.get("status") ===
+                                        "pending_review";
+
+                                return (
+                                    <Link
+                                        key={child.href}
+                                        href={child.href}
+                                        className={`ml-8 mt-1 flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
+                                            childActive
+                                                ? "bg-gray-800 text-yellow-400"
+                                                : "text-gray-500 hover:text-white"
+                                        }`}
+                                    >
+                                        <span>⚠</span>
+                                        <span>{child.label}</span>
+                                        {pendingReviewCount > 0 && (
+                                            <span className="ml-auto min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full bg-yellow-500 text-black text-[10px] font-bold">
+                                                {pendingReviewCount}
+                                            </span>
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    );
+                })}
             </nav>
 
             {/* Footer */}

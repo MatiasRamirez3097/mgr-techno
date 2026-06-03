@@ -13,11 +13,12 @@ interface Props {
         page?: string;
         per_page?: string;
         search?: string;
+        status?: "private" | "publish" | "draft" | "pending_review";
     }>;
 }
 
 export default async function AdminProductsPage({ searchParams }: Props) {
-    const { page, per_page, search } = await searchParams;
+    const { page, per_page, search, status } = await searchParams;
 
     const currentPage = Number(page) || 1;
 
@@ -31,6 +32,8 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         perPage,
 
         adminView: true,
+
+        status: status,
     });
 
     return (

@@ -105,17 +105,22 @@ export async function receivePurchase(
                 createdInventoryItems.push(inv[0]);
             }
 
+            // 📦 guardar stock anterior
+            const previousAvailableStock = product.availableStock ?? 0;
+
             // 📦 actualizar stock
-            await ProductModel.findByIdAndUpdate(
-                item.productId,
-                {
-                    $inc: {
-                        availableStock: item.quantity,
-                        totalStock: item.quantity,
-                    },
-                },
-                { session },
-            );
+            product.availableStock += item.quantity;
+            product.totalStock += item.quantity;
+
+            // 🔍 detectar reposición
+            const stockRecovered =
+                previousAvailableStock === 0 && product.availableStock > 0;
+
+            if (stockRecovered && product.status === "publish") {
+                product.status = "pending_review";
+            }
+            console.log("product:::", product);
+            await product.save({ session });
         }
 
         // ✅ Marcar compra como recibida

@@ -17,7 +17,7 @@ export type ProductDTO = {
     sku: string;
     mpn: string;
     gtin: string;
-    status: "publish" | "draft" | "private";
+    status: "publish" | "draft" | "private" | "pending_review";
     weight: number;
     dimensions: {
         height: number;
@@ -42,6 +42,7 @@ export type ProductFilters = {
     perPage?: number;
     orderby?: ProductOrderBy;
     adminView?: boolean;
+    status?: "publish" | "private" | "draft" | "pending_review";
 };
 
 export type ProductOrderBy =
