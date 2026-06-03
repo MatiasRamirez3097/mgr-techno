@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CategoryDTO } from "@/types/shared/category";
+
 interface Props {
     category: CategoryDTO;
     categories: CategoryDTO[];
