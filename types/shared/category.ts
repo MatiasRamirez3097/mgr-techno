@@ -4,6 +4,7 @@ export type CategoryDTO = {
     name: string;
     parentId: string | null;
     slug: string;
+    menuOrder: number;
 };
 
 export type GetCategoriesResponse = {

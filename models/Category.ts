@@ -14,6 +14,7 @@ export const CategorySchema = new Schema(
         },
         image: { type: String, default: null },
         count: { type: Number, default: 0 },
+        menuOrder: { type: Number, default: 999 },
         syncedAt: { type: Date, default: Date.now },
     },
     { timestamps: true },

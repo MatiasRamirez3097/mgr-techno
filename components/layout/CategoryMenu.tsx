@@ -2,22 +2,26 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { MegaMenu } from "./MegaMenu";
 import type { CategoryDTO } from "@/types/shared/category";
 // Categorías que se agrupan bajo "Ofertas"
 const OFERTAS_SLUGS = ["combos", "pc-completa"];
+const MEGA_MENU_SLUGS = ["componentesdepc"];
 
 export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
     const [openId, setOpenId] = useState<string | null>(null);
     const [ofertasOpen, setOfertasOpen] = useState(false);
 
     // Excluimos "sin-categoria" y las que van dentro de Ofertas
-    const roots = categories.filter(
-        (c) =>
-            c.parentId == null &&
-            c.slug !== "uncategorized" &&
-            c.slug !== "sin-categoria" &&
-            !OFERTAS_SLUGS.includes(c.slug),
-    );
+    const roots = categories
+        .filter(
+            (c) =>
+                c.parentId == null &&
+                c.slug !== "uncategorized" &&
+                c.slug !== "sin-categoria" &&
+                !OFERTAS_SLUGS.includes(c.slug),
+        )
+        .sort((a, b) => (a.menuOrder ?? 999) - (b.menuOrder ?? 999));
 
     const children = (parentId: string) =>
         categories.filter((c) => c.parentId === parentId);
@@ -62,6 +66,7 @@ export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
 
             {/* Resto de categorías raíz */}
             {roots.map((cat) => {
+                const isMegaMenu = MEGA_MENU_SLUGS.includes(cat.slug);
                 const subs = children(cat.id);
                 const hasChildren = subs.length > 0;
 
@@ -82,19 +87,26 @@ export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
                             )}
                         </Link>
 
-                        {hasChildren && openId === cat.id && (
-                            <div className="absolute top-full left-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-48 z-50">
-                                {subs.map((sub) => (
-                                    <Link
-                                        key={sub.id}
-                                        href={`/productos?categoria=${sub.slug}`}
-                                        className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                                    >
-                                        {sub.name}
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
+                        {hasChildren &&
+                            openId === cat.id &&
+                            (isMegaMenu ? (
+                                <MegaMenu
+                                    category={cat}
+                                    categories={categories}
+                                />
+                            ) : (
+                                <div className="absolute top-full left-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-48 z-50">
+                                    {subs.map((sub) => (
+                                        <Link
+                                            key={sub.id}
+                                            href={`/productos?categoria=${sub.slug}`}
+                                            className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700"
+                                        >
+                                            {sub.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            ))}
                     </div>
                 );
             })}

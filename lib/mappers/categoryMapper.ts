@@ -10,5 +10,6 @@ export function mapCategoryToDTO(category: CategoryDB): CategoryDTO {
         name: category.name,
         parentId: category.parentId?.toString() || null,
         slug: category.slug,
+        menuOrder: category.menuOrder,
     };
 }
