@@ -34,7 +34,7 @@ export async function searchProducts(search: string) {
                 slug
                 regularPrice
                 salePrice
-                images
+                image
                 availableStock
                 sku
                 `,
