@@ -54,7 +54,7 @@ export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
                         {ofertasSubs.map((sub) => (
                             <Link
                                 key={sub.id}
-                                href={`/productos?categoria=${sub.slug}`}
+                                href={`/productos/categoria/${sub.slug}`}
                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
                             >
                                 {sub.name}
@@ -78,7 +78,7 @@ export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
                         onMouseLeave={() => setOpenId(null)}
                     >
                         <Link
-                            href={`/productos?categoria=${cat.slug}`}
+                            href={`/productos/categoria/${cat.slug}`}
                             className="flex items-center gap-1 text-sm text-gray-300 hover:text-white px-3 py-1 rounded hover:bg-gray-700 transition-colors shrink-0 h-10"
                         >
                             {cat.name}
@@ -99,7 +99,7 @@ export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
                                     {subs.map((sub) => (
                                         <Link
                                             key={sub.id}
-                                            href={`/productos?categoria=${sub.slug}`}
+                                            href={`/productos/categoria/${sub.slug}`}
                                             className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700"
                                         >
                                             {sub.name}
