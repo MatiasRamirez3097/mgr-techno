@@ -43,8 +43,4 @@ export const BrandSchema = new Schema(
     },
 );
 
-BrandSchema.index({
-    slug: 1,
-});
-
 export const BrandModel = models.Brand || model("Brand", BrandSchema);
