@@ -6,7 +6,7 @@ import { MegaMenu } from "./MegaMenu";
 import type { CategoryDTO } from "@/types/shared/category";
 // Categorías que se agrupan bajo "Ofertas"
 const OFERTAS_SLUGS = ["combos", "pc-completa"];
-const MEGA_MENU_SLUGS = ["componentesdepc"];
+const MEGA_MENU_SLUGS = ["componentes-de-pc"];
 
 export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
     const [openId, setOpenId] = useState<string | null>(null);
