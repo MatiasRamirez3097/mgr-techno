@@ -32,7 +32,7 @@ export async function searchProducts(search: string) {
             `
                 name
                 slug
-                price
+                regularPrice
                 salePrice
                 images
                 availableStock
@@ -52,7 +52,9 @@ export async function searchProducts(search: string) {
 
         slug: product.slug,
 
-        price: product.salePrice || product.price,
+        salePrice: product.salePrice,
+
+        regularPrice: product.regularPrice,
 
         image: product.images?.[0] || null,
 
