@@ -56,7 +56,7 @@ export async function searchProducts(search: string) {
 
         regularPrice: product.regularPrice,
 
-        image: product.images?.[0] || null,
+        image: product.image || null,
 
         inStock: product.availableStock > 0,
     }));
