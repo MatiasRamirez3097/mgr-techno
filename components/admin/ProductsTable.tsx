@@ -109,9 +109,9 @@ export function ProductsTable({ products }: Props) {
                                                 shrink-0
                                             "
                                             >
-                                                {product.images?.[0] && (
+                                                {product.image && (
                                                     <Image
-                                                        src={product.images[0]}
+                                                        src={product.image}
                                                         alt={product.name}
                                                         fill
                                                         sizes="40px"

@@ -49,7 +49,12 @@ export default async function ProductPage({ params }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 {/* GALLERY */}
 
-                <ProductGallery images={product.images} name={product.name} />
+                <ProductGallery
+                    images={[product.image, ...(product.images || [])].filter(
+                        Boolean,
+                    )}
+                    name={product.name}
+                />
 
                 {/* INFO */}
 

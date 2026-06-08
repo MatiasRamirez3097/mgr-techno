@@ -17,7 +17,7 @@ type FieldError = {
 };
 
 const PAYMENT_METHODS = [
-    { id: "mercadopago", label: "MercadoPago", icon: "💳" },
+    //{ id: "mercadopago", label: "MercadoPago", icon: "💳" },
     { id: "bank_transfer", label: "Transferencia bancaria", icon: "🏦" },
     { id: "cash", label: "Pago Efectivo", icon: "📦" },
 ] as const;

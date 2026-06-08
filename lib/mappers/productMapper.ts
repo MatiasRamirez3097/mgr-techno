@@ -7,7 +7,9 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         categories: product.categories
             ? product.categories.map((id) => id.toString())
             : [],
-        image: product.image || "",
+        image:
+            product.image ||
+            "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780913722/noimage_gamsgz.png",
         images: product.images || [],
         name: product.name,
         salePrice: product.salePrice || null,
