@@ -27,7 +27,7 @@ export async function getPurchases(
     }
 
     const res = await PurchaseModel.find({ ...query })
-        //.sort(sort)
+        .sort({ createdAt: -1 })
         .lean();
     // Filtro adicional por nombre si hay búsqueda (por si $text no está disponible)
     const filtered = filters.search
