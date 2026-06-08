@@ -21,7 +21,7 @@ export function CategoryGrid({ categories }: { categories: CategoryDTO[] }) {
                 {categories.map((cat) => (
                     <Link
                         key={cat.id}
-                        href={`/productos?categoria=${cat.slug}`}
+                        href={`/productos/categoria/${cat.slug}`}
                         className="group flex flex-col items-center gap-3 bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-brand rounded-2xl p-4 transition-all"
                     >
                         {/* Imagen o ícono */}
