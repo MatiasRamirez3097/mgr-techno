@@ -10,7 +10,8 @@ interface Suggestion {
     id: string;
     name: string;
     slug: string;
-    price: number;
+    regularPrice: number;
+    salePrice: number;
     image: string | null;
     inStock: boolean;
 }
@@ -291,7 +292,15 @@ export const SearchBar = () => {
                                 </p>
 
                                 <p className="text-xs text-gray-400">
-                                    ${suggestion.price.toLocaleString("es-AR")}
+                                    $
+                                    {suggestion.salePrice &&
+                                    suggestion.salePrice > 0
+                                        ? suggestion.salePrice.toLocaleString(
+                                              "es-AR",
+                                          )
+                                        : suggestion.regularPrice.toLocaleString(
+                                              "es-AR",
+                                          )}
                                     {!suggestion.inStock && (
                                         <span className="ml-2 text-red-400">
                                             Sin stock
