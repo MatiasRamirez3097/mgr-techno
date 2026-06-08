@@ -21,7 +21,7 @@ export function MegaMenu({ category, categories }: Props) {
                     return (
                         <div key={group.id}>
                             <Link
-                                href={`/productos?categoria=${group.slug}`}
+                                href={`/productos/categoria/${group.slug}`}
                                 className="font-semibold text-white mb-3 block hover:text-brand"
                             >
                                 {group.name}
@@ -31,7 +31,7 @@ export function MegaMenu({ category, categories }: Props) {
                                 {children.map((child) => (
                                     <Link
                                         key={child.id}
-                                        href={`/productos?categoria=${child.slug}`}
+                                        href={`/productos/categoria/${child.slug}`}
                                         className="block text-sm text-gray-400 hover:text-white"
                                     >
                                         {child.name}

@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
 
-import { getProducts } from "@/services/products/getProducts";
-
-import { ProductCard } from "@/components/productCard/ProductCard";
-
-import { Pagination } from "@/components/ui/Pagination";
-
-import { SortSelector } from "@/components/products/SortSelector";
+import { ProductsView } from "@/components/products/ProductsView";
 
 import type { ProductOrderBy } from "@/types/shared/product";
 
+export const metadata: Metadata = {
+    title: "Productos | MGR Techno",
+    description: "Catálogo completo de productos",
+};
+
 interface Props {
     searchParams: Promise<{
-        categoria?: string;
         search?: string;
         page?: string;
         orderby?: ProductOrderBy;
@@ -20,75 +18,7 @@ interface Props {
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
-    const { categoria, search, page, orderby } = await searchParams;
+    const { search, page, orderby } = await searchParams;
 
-    const currentPage = Math.max(1, Number(page) || 1);
-
-    const { products, totalPages, total } = await getProducts({
-        category: categoria,
-        search,
-        page: currentPage,
-        orderby,
-    });
-
-    const title = search
-        ? `Resultados para "${search}"`
-        : categoria
-          ? categoria.replace(/-/g, " ")
-          : "Todos los productos";
-
-    const basePath = new URLSearchParams();
-
-    if (categoria) {
-        basePath.set("categoria", categoria);
-    }
-
-    if (search) {
-        basePath.set("search", search);
-    }
-
-    if (orderby) {
-        basePath.set("orderby", orderby);
-    }
-
-    return (
-        <main className="max-w-6xl mx-auto px-4 py-10">
-            <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
-                <div>
-                    <h1 className="text-2xl font-bold capitalize">{title}</h1>
-
-                    <p className="text-sm text-gray-400 mt-1">
-                        {total} producto
-                        {total !== 1 ? "s" : ""}
-                    </p>
-                </div>
-
-                <SortSelector />
-            </div>
-
-            {products.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-500">
-                    <p className="text-lg">No se encontraron productos</p>
-
-                    {search && (
-                        <p className="text-sm">Intentá con otra búsqueda</p>
-                    )}
-                </div>
-            ) : (
-                <>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {products.map((product) => (
-                            <ProductCard key={product.id} product={product} />
-                        ))}
-                    </div>
-
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        basePath={`/productos?${basePath.toString()}`}
-                    />
-                </>
-            )}
-        </main>
-    );
+    return <ProductsView search={search} page={page} orderby={orderby} />;
 }
