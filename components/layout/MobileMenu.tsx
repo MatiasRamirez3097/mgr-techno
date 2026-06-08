@@ -122,7 +122,7 @@ export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
                             <div key={cat.id}>
                                 <div className="flex items-center">
                                     <Link
-                                        href={`/productos?categoria=${cat.slug}`}
+                                        href={`/productos/categoria/${cat.slug}`}
                                         className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
                                     >
                                         {cat.name}
@@ -160,7 +160,7 @@ export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
                                         {subs.map((sub) => (
                                             <Link
                                                 key={sub.id}
-                                                href={`/productos?categoria=${sub.slug}`}
+                                                href={`/productos/categoria/${sub.slug}`}
                                                 className="flex items-center px-3 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
                                             >
                                                 {sub.name}
