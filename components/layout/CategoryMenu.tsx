@@ -40,7 +40,7 @@ export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
                 onMouseLeave={() => setOfertasOpen(false)}
             >
                 <Link
-                    href="/productos?on_sale=true"
+                    href="/productos/ofertas"
                     className="flex items-center gap-1 text-sm text-brand font-medium hover:text-white px-3 py-1 rounded hover:bg-gray-700 transition-colors shrink-0 h-10"
                 >
                     🔥 OFERTAS

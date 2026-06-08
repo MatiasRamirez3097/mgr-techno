@@ -9,14 +9,22 @@ import type { ProductOrderBy } from "@/types/shared/product";
 interface Props {
     category?: string;
     search?: string;
+    onSale?: boolean;
     page?: string;
     orderby?: ProductOrderBy;
 }
 
-export async function ProductsView({ category, search, page, orderby }: Props) {
+export async function ProductsView({
+    category,
+    onSale,
+    search,
+    page,
+    orderby,
+}: Props) {
     const currentPage = Math.max(1, Number(page) || 1);
 
     const { products, totalPages, total } = await getProducts({
+        onSale,
         category,
         search,
         page: currentPage,

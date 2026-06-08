@@ -50,6 +50,18 @@ export const buildProductsQuery = async (filters: ProductFilters = {}) => {
     }
 
     // =========================
+    // ON SALE
+    // =========================
+
+    if (filters.onSale) {
+        query.salePrice = {
+            $exists: true,
+            $ne: null,
+            $gt: 0,
+        };
+    }
+
+    // =========================
     // PUBLIC VIEW
     // =========================
 

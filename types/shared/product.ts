@@ -35,6 +35,7 @@ export type GetProductsResponse = {
 };
 
 export type ProductFilters = {
+    onSale?: boolean;
     category?: string;
     categoryId?: string;
     search?: string;
