@@ -18,21 +18,21 @@ const SLIDES: Slide[] = [
         title: "Componentes de PC",
         subtitle: "Las mejores marcas al mejor precio",
         cta: "Ver productos",
-        href: "/productos?categoria=componentes-de-pc",
+        href: "/productos/categoria/componentes-de-pc",
     },
     {
         image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436487/Mesa_de_trabajo_3_nhiiih.jpg",
         title: "Ofertas imperdibles",
         subtitle: "Descuentos en periféricos y más",
         cta: "Ver ofertas",
-        href: "/productos?categoria=ofertas",
+        href: "/productos/ofertas",
     },
     {
         image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436401/Mesa_de_trabajo_2_svrdnb.jpg",
         title: "Refrigeración",
         subtitle: "Mantené tu equipo al límite",
         cta: "Explorar",
-        href: "/productos?categoria=refrigeracion",
+        href: "/productos/categoria/refrigeracion",
     },
 ];
 
