@@ -66,6 +66,8 @@ export async function updateProductById(id: string, data: any) {
 
     product.taxRate = data.taxRate;
 
+    product.image = data.image || "";
+
     product.images = data.images || [];
 
     product.hasSerialNumber = data.hasSerialNumber;

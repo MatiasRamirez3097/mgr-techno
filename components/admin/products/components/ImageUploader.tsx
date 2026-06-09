@@ -59,7 +59,6 @@ export const ImageUploader = ({ image, images, onChange }: Props) => {
             } else {
                 nextImages = [...nextImages, ...uploaded];
             }
-
             onChange({
                 image: nextImage,
                 images: nextImages,

@@ -57,6 +57,8 @@ export async function createProduct(data: CreateProductDTO) {
 
         taxRate: data.taxRate,
 
+        image: data.image || "",
+
         images: data.images || [],
 
         hasSerialNumber: data.hasSerialNumber,

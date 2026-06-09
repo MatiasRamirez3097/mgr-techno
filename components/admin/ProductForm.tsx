@@ -32,7 +32,13 @@ export function ProductForm({ product, categories, mode }: Props) {
     const [success, setSuccess] = useState("");
 
     const [showCreateBrand, setShowCreateBrand] = useState(false);
-    const [image, setImage] = useState(product?.image || "");
+    const [image, setImage] = useState(
+        product?.image &&
+            product?.image !=
+                "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780913722/noimage_gamsgz.png"
+            ? product.image
+            : "",
+    );
     const [images, setImages] = useState<string[]>(
         extractProductImages(product),
     );
@@ -66,8 +72,6 @@ export function ProductForm({ product, categories, mode }: Props) {
         >,
     ) => {
         const { name, value, type } = e.target;
-        console.log(name);
-        console.log(value);
         setForm((prev) => ({
             ...prev,
             [name]:

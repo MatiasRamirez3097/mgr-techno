@@ -9,9 +9,9 @@ interface Params {
 export function buildProductPayload({ form, image, images }: Params) {
     return {
         name: form.name,
-        sku: form.sku,
-        mpn: form.mpn,
-        gtin: form.gtin,
+        sku: form.sku != "" ? form.sku : undefined,
+        mpn: form.mpn != "" ? form.mpn : undefined,
+        gtin: form.gtin != "" ? form.gtin : undefined,
         brand: form.brand,
         status: form.status,
 
