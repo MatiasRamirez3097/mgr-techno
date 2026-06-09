@@ -15,7 +15,7 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
                     Recibimos una solicitud para restablecer la contraseña de tu cuenta.
                     Hacé click en el botón para continuar:
                 </p>
-                <a href="${resetUrl}"
+                <a href="${process.env.DOMAIN}${resetUrl}"
                    style="display: inline-block; background: #d06823; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
                     Restablecer contraseña
                 </a>
