@@ -3,7 +3,7 @@ import { z } from "zod";
 export const paymentSchema = z.object({
     method: z.enum([
         "mercadopago",
-        "bacs",
+        "bank_transfer",
         "cod",
         "cash",
         "debit_card",
