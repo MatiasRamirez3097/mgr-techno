@@ -5,7 +5,6 @@ import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
 import { getFinalPrice, getListPriceFinal } from "@/lib/pricing";
-import { quoteShipping } from "@/lib/shipping/quoteShipping";
 
 interface Props {
     session: Session;
