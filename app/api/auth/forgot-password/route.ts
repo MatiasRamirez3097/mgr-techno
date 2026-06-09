@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
         await ResetTokenModel.create({ email, token, expiresAt });
 
-        const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${token}`;
+        const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
         await sendPasswordResetEmail(email, resetUrl);
 
         return Response.json({ ok: true });
