@@ -34,69 +34,265 @@ export async function sendOrderConfirmationEmail(order: OrderDTO) {
         to: order.customerEmail,
         subject: `Confirmamos tu pedido #${order.id.toString().slice(-6).toUpperCase()}`,
         html: `
-      <div style="font-family:sans-serif">
-        <h1>¡Gracias por tu compra!</h1>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Confirmación de pedido</title>
+</head>
 
-        <p>
+<body style="margin:0;padding:0;background:#0f172a;font-family:Arial,Helvetica,sans-serif;color:#e2e8f0;">
+  <div style="max-width:700px;margin:0 auto;padding:32px 16px;">
+
+    <!-- Card principal -->
+    <div
+      style="
+        background:#111827;
+        border:1px solid #1e293b;
+        border-radius:16px;
+        overflow:hidden;
+      "
+    >
+
+      <!-- Header -->
+      <div
+        style="
+          background:linear-gradient(135deg,#0ea5e9,#2563eb);
+          padding:32px;
+          text-align:center;
+        "
+      >
+        <h1
+          style="
+            margin:0;
+            color:white;
+            font-size:28px;
+            font-weight:700;
+          "
+        >
+          MGR Techno
+        </h1>
+
+        <p
+          style="
+            margin:8px 0 0;
+            color:rgba(255,255,255,.9);
+          "
+        >
+          Confirmación de pedido
+        </p>
+      </div>
+
+      <!-- Contenido -->
+      <div style="padding:32px;">
+
+        <h2
+          style="
+            margin-top:0;
+            color:white;
+            font-size:24px;
+          "
+        >
+          ¡Gracias por tu compra!
+        </h2>
+
+        <p style="color:#cbd5e1;line-height:1.7;">
           Recibimos correctamente tu pedido
-          <strong>#${order.id.toString().slice(-6).toUpperCase()}</strong>.
+          <strong style="color:#38bdf8;">
+            #${order.id.toString().slice(-6).toUpperCase()}
+          </strong>.
         </p>
 
-        <h2>Resumen</h2>
+        <div
+          style="
+            background:#0f172a;
+            border:1px solid #1e293b;
+            border-radius:12px;
+            padding:20px;
+            margin-top:24px;
+          "
+        >
+          <h3
+            style="
+              margin-top:0;
+              color:white;
+            "
+          >
+            Resumen del pedido
+          </h3>
 
-        <ul>
-          ${order.items
-              .map(
-                  (item) => `
-                <li>
-                  ${item.name} x${item.quantity}
-                  - $${item.total.toLocaleString("es-AR")}
-                </li>
-              `,
-              )
-              .join("")}
-        </ul>
+          <table
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              border-collapse:collapse;
+              color:#cbd5e1;
+            "
+          >
+            ${order.items
+                .map(
+                    (item) => `
+                  <tr>
+                    <td
+                      style="
+                        padding:10px 0;
+                        border-bottom:1px solid #1e293b;
+                      "
+                    >
+                      ${item.name}
+                      <div
+                        style="
+                          font-size:13px;
+                          color:#94a3b8;
+                        "
+                      >
+                        Cantidad: ${item.quantity}
+                      </div>
+                    </td>
 
-        <p>
-          <strong>Total:</strong>
-          $${order.total.toLocaleString("es-AR")}
-        </p>
+                    <td
+                      align="right"
+                      style="
+                        padding:10px 0;
+                        border-bottom:1px solid #1e293b;
+                        white-space:nowrap;
+                      "
+                    >
+                      $${item.total.toLocaleString("es-AR")}
+                    </td>
+                  </tr>
+                `,
+                )
+                .join("")}
+          </table>
+
+          <div
+            style="
+              margin-top:20px;
+              text-align:right;
+              font-size:22px;
+              font-weight:bold;
+              color:white;
+            "
+          >
+            Total:
+            <span style="color:#38bdf8;">
+              $${order.total.toLocaleString("es-AR")}
+            </span>
+          </div>
+        </div>
 
         ${
             isBankTransfer
                 ? `
-              <hr />
+          <div
+            style="
+              margin-top:24px;
+              background:rgba(14,165,233,.08);
+              border:1px solid rgba(14,165,233,.25);
+              border-radius:12px;
+              padding:20px;
+            "
+          >
+            <h3
+              style="
+                margin-top:0;
+                color:#38bdf8;
+              "
+            >
+              Datos para la transferencia
+            </h3>
 
-              <h2>Datos para la transferencia</h2>
+            <table
+              cellpadding="6"
+              cellspacing="0"
+              style="color:#cbd5e1;"
+            >
+              <tr>
+                <td><strong>Banco:</strong></td>
+                <td>${process.env.BANK_NAME}</td>
+              </tr>
 
-              <p>
-                Podés realizar la transferencia a:
-              </p>
+              <tr>
+                <td><strong>Alias:</strong></td>
+                <td>${process.env.BANK_ALIAS}</td>
+              </tr>
 
-              <ul>
-                <li><strong>Banco:</strong>${process.env.BANK_NAME}</li>
-                <li><strong>Alias:</strong>${process.env.BANK_ALIAS}</li>
-                <li><strong>CBU:</strong>${process.env.BANK_CBU}</li>
-                <li><strong>Titular:</strong>${process.env.BANK_OWNER}</li>
-                <li><strong>CUIT:</strong>${process.env.BANK_OWNER_CUIT}</li>
-              </ul>
+              <tr>
+                <td><strong>CBU:</strong></td>
+                <td>${process.env.BANK_CBU}</td>
+              </tr>
 
-              <p>
-                Una vez realizada, por favor enviá el comprobante
-                respondiendo este email o por WhatsApp.
-              </p>
-            `
+              <tr>
+                <td><strong>Titular:</strong></td>
+                <td>${process.env.BANK_OWNER}</td>
+              </tr>
+
+              <tr>
+                <td><strong>CUIT:</strong></td>
+                <td>${process.env.BANK_OWNER_CUIT}</td>
+              </tr>
+            </table>
+
+            <p
+              style="
+                margin-bottom:0;
+                color:#cbd5e1;
+                line-height:1.6;
+              "
+            >
+              Una vez realizada la transferencia,
+              enviá el comprobante respondiendo este email
+              o por WhatsApp para acreditar el pago.
+            </p>
+          </div>
+        `
                 : `
-              <hr />
-
-              <p>
-                Nos contactaremos con vos a la brevedad
-                para coordinar el pago y la entrega.
-              </p>
-            `
+          <div
+            style="
+              margin-top:24px;
+              background:#0f172a;
+              border:1px solid #1e293b;
+              border-radius:12px;
+              padding:20px;
+            "
+          >
+            <p
+              style="
+                margin:0;
+                color:#cbd5e1;
+                line-height:1.6;
+              "
+            >
+              Nos contactaremos con vos a la brevedad para
+              coordinar el pago y la entrega de tu pedido.
+            </p>
+          </div>
+        `
         }
+
       </div>
-    `,
+
+      <!-- Footer -->
+      <div
+        style="
+          border-top:1px solid #1e293b;
+          padding:24px;
+          text-align:center;
+          color:#94a3b8;
+          font-size:13px;
+        "
+      >
+        © ${new Date().getFullYear()} MGR Techno<br />
+        Tecnología para gamers y entusiastas.
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
+`,
     });
 }
 
