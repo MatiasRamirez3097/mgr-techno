@@ -1,25 +1,15 @@
-import { NextRequest } from "next/server";
-import { cotizarAndreani } from "@/lib/andreani";
+import { quoteShipping } from "@/services/shipping/quoteShipping";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
     try {
-        const { postcode, items } = await req.json();
+        const body = await req.json();
 
-        if (!postcode || postcode.length < 4) {
-            return Response.json(
-                { error: "Código postal inválido" },
-                { status: 400 },
-            );
-        }
-
-        const result = await cotizarAndreani(postcode, items);
-
-        if (result.error) {
-            return Response.json({ error: result.error }, { status: 422 });
-        }
-
-        return Response.json({ total: result.total });
-    } catch {
-        return Response.json({ error: "Error interno" }, { status: 500 });
+        const result = await quoteShipping(body);
+        return Response.json(result);
+    } catch (error) {
+        return Response.json(
+            { error: "Error al cotizar envío" },
+            { status: 500 },
+        );
     }
 }

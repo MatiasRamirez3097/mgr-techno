@@ -1,11 +1,8 @@
+import { getProductsByIds } from "@/services/products/getProductsByIds";
+import { getFinalPrice } from "../pricing";
+
 type ShippingItem = {
-    weight: number;
-    dimensions?: {
-        length: number;
-        width: number;
-        height: number;
-    };
-    price: number;
+    id: string;
     quantity: number;
 };
 
@@ -15,6 +12,8 @@ interface QuoteShippingParams {
 }
 
 export async function quoteShipping({ postcode, items }: QuoteShippingParams) {
+    const products = await getProductsByIds(items.map((item) => item.id));
+
     const res = await fetch("/api/shipping", {
         method: "POST",
         headers: {
@@ -22,7 +21,13 @@ export async function quoteShipping({ postcode, items }: QuoteShippingParams) {
         },
         body: JSON.stringify({
             postcode,
-            items,
+            items: products.map((item) => {
+                return {
+                    weight: item.weight,
+                    dimensions: item.dimensions,
+                    price: getFinalPrice(item),
+                };
+            }),
         }),
     });
 

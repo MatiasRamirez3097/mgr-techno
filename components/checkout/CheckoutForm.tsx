@@ -86,7 +86,7 @@ export function CheckoutForm({ session }: Props) {
     >("local_pickup");
     const [paymentMethod, setPaymentMethod] = useState<
         "mercadopago" | "bank_transfer" | "cash"
-    >("mercadopago");
+    >("bank_transfer");
     const [shippingCost, setShippingCost] = useState(0);
     const [quotingShipping, setQuotingShipping] = useState(false);
     const [shippingError, setShippingError] = useState("");
@@ -124,24 +124,28 @@ export function CheckoutForm({ session }: Props) {
             setShippingCost(0);
 
             try {
-                const data = await quoteShipping({
-                    postcode,
-
-                    items: items.map((i) => ({
-                        weight: (i as any).weight || 0,
-
-                        dimensions: (i as any).dimensions || {
-                            length: 0,
-                            width: 0,
-                            height: 0,
-                        },
-
-                        price: getFinalPrice(i),
-
-                        quantity: i.quantity,
-                    })),
+                const res = await fetch("/api/shipping", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        postcode,
+                        items: items.map((i) => ({
+                            id: i.id,
+                            quantity: i.quantity,
+                        })),
+                    }),
                 });
 
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(
+                        data.error || "No se pudo cotizar el envío",
+                    );
+                }
+                console.log("data>>>", res);
                 setShippingCost(data.total);
             } catch (error: any) {
                 setShippingError(error.message);
