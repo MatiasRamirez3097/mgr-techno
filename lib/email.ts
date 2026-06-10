@@ -48,7 +48,7 @@ export async function sendOrderConfirmationEmail(order: OrderDTO) {
                 <!-- Header --> 
                 <div style=" background:#030712; border-bottom:1px solid #1f2937; padding:32px; text-align:center; " > 
                     <h1 style=" margin:0; font-size:30px; font-weight:700; letter-spacing:-0.02em; " > 
-                        <span style="color:#ffffff;">MGR</span> <span style="color:#06b6d4;">TECHNO</span> 
+                        <span style="color:#ffffff;">MGR</span> <span style="color: #d06823;">TECHNO</span> 
                     </h1> 
                     <p style=" margin:12px 0 0; color:#9ca3af; font-size:14px; " > Confirmación de pedido </p> 
                 </div> 
@@ -58,8 +58,8 @@ export async function sendOrderConfirmationEmail(order: OrderDTO) {
                     <p style=" color:#d1d5db; line-height:1.7; margin-bottom:24px; " > Recibimos correctamente tu pedido. </p> 
                     <div style=" display:inline-block; background:#0f172a; border:1px solid #06b6d4; color:#06b6d4; padding:10px 16px; border-radius:999px; font-weight:600; margin-bottom:24px; " > Pedido #${order.id.toString().slice(-6).toUpperCase()} </div> 
                     <!-- Resumen --> 
-                    <div style=" background:#111827; border:1px solid var(--color-brand); border-radius:12px; overflow:hidden; " > 
-                    <div style=" padding:18px; border-bottom:1px solid var(--color-brand); font-weight:600; color:#ffffff; " > Resumen del pedido </div> 
+                    <div style=" background:#111827; border:1px solid #d06823; border-radius:12px; overflow:hidden; " > 
+                    <div style=" padding:18px; border-bottom:1px solid #d06823; font-weight:600; color:#ffffff; " > Resumen del pedido </div> 
                     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;" > ${order.items
                         .map(
                             (item) => ` 
