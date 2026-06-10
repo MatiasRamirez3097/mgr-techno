@@ -53,7 +53,7 @@ export const OrderSchema = new Schema(
             type: {
                 method: {
                     type: String,
-                    enum: ["local_pickup", "andreani"],
+                    enum: ["local_pickup", "andreani", "local_shipping"],
                     required: true,
                 },
 

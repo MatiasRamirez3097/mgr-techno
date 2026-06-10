@@ -26,14 +26,22 @@ const SHIPPING_METHODS = [
     {
         id: "local_pickup",
         label: "Retiro en local",
-        description: "Sin costo · Av. Ejemplo 1234, Rosario",
+        description: "Sin costo · Caaguazu 3971, Rosario",
     },
     {
         id: "andreani",
         label: "Envío por Andreani",
         description: "Ingresá tu código postal para cotizar",
     },
+    {
+        id: "local_shipping",
+        label: "Envio Cadeteria (Rosario)",
+        description:
+            "Se envia a traves de cadeteria, solo disponible en Rosario, el costo es dentro de los limites de Circunvalacion, consultar por costo fuera de esta zona.",
+    },
 ] as const;
+
+const LOCAL_SHIPPING_COST = 5000;
 
 const PROVINCIAS = [
     "Buenos Aires",
@@ -82,7 +90,7 @@ export function CheckoutForm({ session }: Props) {
     });
 
     const [shippingMethod, setShippingMethod] = useState<
-        "local_pickup" | "andreani"
+        "local_shipping" | "local_pickup" | "andreani"
     >("local_pickup");
     const [paymentMethod, setPaymentMethod] = useState<
         "mercadopago" | "bank_transfer" | "cash"
@@ -105,7 +113,13 @@ export function CheckoutForm({ session }: Props) {
         return acc + price * i.quantity;
     }, 0);
 
-    const total = subtotal + (shippingMethod === "andreani" ? shippingCost : 0);
+    const total =
+        subtotal +
+        (shippingMethod === "andreani"
+            ? shippingCost
+            : shippingMethod === "local_shipping"
+              ? LOCAL_SHIPPING_COST
+              : 0);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -265,9 +279,16 @@ export function CheckoutForm({ session }: Props) {
                         title:
                             shippingMethod === "local_pickup"
                                 ? "Retiro en local"
-                                : "Andreani",
+                                : shippingMethod === "local_shipping"
+                                  ? "Envio Cadeteria (Rosario)"
+                                  : "Andreani",
 
-                        cost: shippingMethod === "andreani" ? shippingCost : 0,
+                        cost:
+                            shippingMethod === "andreani"
+                                ? shippingCost
+                                : shippingMethod === "local_shipping"
+                                  ? 5000
+                                  : 0,
                     },
 
                     notes: "",
@@ -549,10 +570,12 @@ export function CheckoutForm({ session }: Props) {
                                 <span className="text-sm font-bold text-white shrink-0">
                                     {method.id === "local_pickup"
                                         ? "Gratis"
-                                        : shippingCost > 0 &&
-                                            shippingMethod === "andreani"
-                                          ? `$${shippingCost.toLocaleString("es-AR")}`
-                                          : "A cotizar"}
+                                        : method.id === "local_shipping"
+                                          ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
+                                          : shippingCost > 0 &&
+                                              shippingMethod === "andreani"
+                                            ? `$${shippingCost.toLocaleString("es-AR")}`
+                                            : "A cotizar"}
                                 </span>
                             </label>
                         ))}
@@ -675,11 +698,13 @@ export function CheckoutForm({ session }: Props) {
                             <span>
                                 {shippingMethod === "local_pickup"
                                     ? "Gratis"
-                                    : quotingShipping
-                                      ? "Cotizando..."
-                                      : shippingCost > 0
-                                        ? `$${shippingCost.toLocaleString("es-AR")}`
-                                        : "A cotizar"}
+                                    : shippingMethod === "local_shipping"
+                                      ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
+                                      : quotingShipping
+                                        ? "Cotizando..."
+                                        : shippingCost > 0
+                                          ? `$${shippingCost.toLocaleString("es-AR")}`
+                                          : "A cotizar"}
                             </span>
                         </div>
                         <div className="flex justify-between text-base font-bold text-white mt-2">

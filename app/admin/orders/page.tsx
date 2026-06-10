@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import { connectDB } from "@/lib/mongodb";
 import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
