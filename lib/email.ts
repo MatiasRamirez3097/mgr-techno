@@ -29,97 +29,16 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
 
 export async function sendOrderConfirmationEmail(order: OrderDTO) {
     const isBankTransfer = order.payments[0].method === "bank_transfer";
+    const brandColor = "#d06823";
+    const backgroundColor = "#030712";
+    const cardColor = "#111827";
+    const borderColor = "#374151";
+    const textMuted = "#9ca3af";
     await resend.emails.send({
         from: "MGR Techno <noreply@mgrtechno.com.ar>",
         to: order.customerEmail,
         subject: `Confirmamos tu pedido #${order.id.toString().slice(-6).toUpperCase()}`,
-        html: `<!DOCTYPE html> 
-        <html lang="es"> 
-            <head> 
-                <meta charset="UTF-8" /> 
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
-            </head> 
-            <body style=" margin:0; padding:0; background:#030712; font-family:Arial,Helvetica,sans-serif; color:#ffffff; " > 
-                <div style=" max-width:700px; margin:0 auto; padding:32px 16px; " > 
-                <div style=" background:#111827; border:1px solid #1f2937; border-radius:16px; overflow:hidden; " > 
-                <!-- Barra superior --> 
-                <div style=" height:4px; background:#06b6d4; " >
-                </div> 
-                <!-- Header --> 
-                <div style=" background:#030712; border-bottom:1px solid #1f2937; padding:32px; text-align:center; " > 
-                    <h1 style=" margin:0; font-size:30px; font-weight:700; letter-spacing:-0.02em; " > 
-                        <span style="color:#ffffff;">MGR</span> <span style="color: #d06823;">TECHNO</span> 
-                    </h1> 
-                    <p style=" margin:12px 0 0; color:#9ca3af; font-size:14px; " > Confirmación de pedido </p> 
-                </div> 
-                <!-- Contenido --> 
-                <div style="padding:32px;"> 
-                    <h2 style=" margin-top:0; margin-bottom:12px; font-size:24px; color:#ffffff; " > ¡Gracias por tu compra! </h2> 
-                    <p style=" color:#d1d5db; line-height:1.7; margin-bottom:24px; " > Recibimos correctamente tu pedido. </p> 
-                    <div style=" display:inline-block; background:#0f172a; border:1px solid #06b6d4; color:#06b6d4; padding:10px 16px; border-radius:999px; font-weight:600; margin-bottom:24px; " > Pedido #${order.id.toString().slice(-6).toUpperCase()} </div> 
-                    <!-- Resumen --> 
-                    <div style=" background:#111827; border:1px solid #d06823; border-radius:12px; overflow:hidden; " > 
-                    <div style=" padding:18px; border-bottom:1px solid #d06823; font-weight:600; color:#ffffff; " > Resumen del pedido </div> 
-                    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;" > ${order.items
-                        .map(
-                            (item) => ` 
-                        <tr> 
-                            <td style=" padding:14px 18px; border-bottom:1px solid #1f2937; color:#ffffff; " > ${item.name} <div style=" color:#9ca3af; font-size:13px; margin-top:4px; " > Cantidad: ${item.quantity} </div> 
-                            </td> 
-                            <td align="right" style=" padding:14px 18px; border-bottom:1px solid #1f2937; color:#ffffff; font-weight:600; white-space:nowrap; " > 
-                                $${item.total.toLocaleString("es-AR")} 
-                            </td> 
-                        </tr> `,
-                        )
-                        .join("")} 
-                    </table> 
-                        <div style=" padding:20px 18px; text-align:right; font-size:24px; font-weight:700; " > 
-                            <span style="color:#9ca3af;"> Total: </span> 
-                            <span style="color:#06b6d4;"> $${order.total.toLocaleString("es-AR")} </span> 
-                        </div> 
-                        </div> ${
-                            isBankTransfer
-                                ? ` 
-                        <div style=" margin-top:24px; background:#0f172a; border:1px solid #06b6d4; border-radius:12px; padding:20px; " > 
-                        <h3 style=" margin-top:0; margin-bottom:16px; color:#06b6d4; " > Datos para la transferencia </h3> 
-                        <table cellpadding="6" cellspacing="0" style=" color:#d1d5db; font-size:14px; " > 
-                            <tr> 
-                                <td><strong>Banco:</strong></td> 
-                                <td>${process.env.BANK_NAME}</td> 
-                            </tr> 
-                            <tr> 
-                                <td><strong>Alias:</strong></td> 
-                                <td>${process.env.BANK_ALIAS}</td> 
-                            </tr> 
-                            <tr> 
-                                <td><strong>CBU:</strong></td> 
-                                <td>${process.env.BANK_CBU}</td> 
-                            </tr> 
-                            <tr> 
-                                <td><strong>Titular:</strong></td> 
-                                <td>${process.env.BANK_OWNER}</td> 
-                            </tr> 
-                            <tr> 
-                                <td><strong>CUIT:</strong></td> 
-                                <td>${process.env.BANK_OWNER_CUIT}</td> 
-                            </tr> 
-                        </table> 
-                                <p style=" margin:18px 0 0; color:#d1d5db; line-height:1.6; " > Una vez realizada la transferencia, enviá el comprobante respondiendo este email para acreditar el pago. </p> 
-                            </div> `
-                                : ` 
-                            <div style=" margin-top:24px; background:#0f172a; border:1px solid #1f2937; border-radius:12px; padding:20px; " > 
-                                <p style=" margin:0; color:#d1d5db; line-height:1.6; " > Nos contactaremos con vos a la brevedad para coordinar el pago y la entrega de tu pedido. </p> 
-                            </div> `
-                        } 
-                        </div> 
-                        <!-- Footer --> 
-                        <div style=" border-top:1px solid #1f2937; padding:24px; text-align:center; color:#9ca3af; font-size:13px; " >
-                            © ${new Date().getFullYear()} MGR TECHNO <br /> Gracias por confiar en nosotros. 
-                        </div> 
-                    </div> 
-                </div> 
-            </body> 
-        </html> `,
+        html: ` <!DOCTYPE html> <html lang="es"> <head> <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0" /> </head> <body style="margin:0;padding:0;background:${backgroundColor};font-family:Arial,Helvetica,sans-serif;color:#ffffff;"> <table width="100%" cellpadding="0" cellspacing="0" style="background:${backgroundColor};" > <tr> <td align="center"> <div style=" max-width:700px; margin:0 auto; padding:32px 16px; " > <div style=" background:${cardColor}; border:1px solid ${borderColor}; border-radius:16px; overflow:hidden; " > <!-- Barra superior --> <div style=" height:4px; background:${brandColor}; " ></div> <!-- Header --> <div style=" background:${backgroundColor}; border-bottom:1px solid ${borderColor}; padding:32px; text-align:center; " > <h1 style=" margin:0; font-size:30px; font-weight:700; letter-spacing:-0.02em; " > <span style="color:#ffffff;">MGR</span> <span style="color:${brandColor};"> TECHNO </span> </h1> <p style=" margin:12px 0 0; color:${textMuted}; font-size:14px; " > Confirmación de pedido </p> </div> <!-- Contenido --> <div style="padding:32px;"> <h2 style=" margin-top:0; margin-bottom:12px; font-size:24px; color:#ffffff; " > ¡Gracias por tu compra! </h2> <p style=" color:#d1d5db; line-height:1.7; margin-bottom:24px; " > Recibimos correctamente tu pedido. </p> <div style=" display:inline-block; background:${backgroundColor}; border:1px solid ${brandColor}; color:${brandColor}; padding:10px 16px; border-radius:999px; font-weight:600; margin-bottom:24px; " > Pedido #${order.id.toString().slice(-6).toUpperCase()} </div> <!-- Resumen --> <div style=" background:${cardColor}; border:1px solid ${brandColor}; border-radius:12px; overflow:hidden; " > <div style=" padding:18px; border-bottom:1px solid ${brandColor}; font-weight:600; color:#ffffff; " > Resumen del pedido </div> <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;" > ${order.items.map((item) => ` <tr> <td style=" padding:14px 18px; border-bottom:1px solid ${borderColor}; color:#ffffff; " > ${item.name} <div style=" color:${textMuted}; font-size:13px; margin-top:4px; " > Cantidad: ${item.quantity} </div> </td> <td align="right" style=" padding:14px 18px; border-bottom:1px solid ${borderColor}; color:#ffffff; font-weight:600; white-space:nowrap; " > $${item.total.toLocaleString("es-AR")} </td> </tr> `).join("")} </table> <div style=" padding:20px 18px; text-align:right; font-size:24px; font-weight:700; " > <span style="color:${textMuted};"> Total: </span> <span style="color:${brandColor};"> $${order.total.toLocaleString("es-AR")} </span> </div> </div> ${isBankTransfer ? ` <div style=" margin-top:24px; background:${backgroundColor}; border:1px solid ${brandColor}; border-radius:12px; padding:20px; " > <h3 style=" margin-top:0; margin-bottom:16px; color:${brandColor}; " > Datos para la transferencia </h3> <table cellpadding="6" cellspacing="0" style=" color:#d1d5db; font-size:14px; " > <tr> <td><strong>Banco:</strong></td> <td>${process.env.BANK_NAME}</td> </tr> <tr> <td><strong>Alias:</strong></td> <td>${process.env.BANK_ALIAS}</td> </tr> <tr> <td><strong>CBU:</strong></td> <td>${process.env.BANK_CBU}</td> </tr> <tr> <td><strong>Titular:</strong></td> <td>${process.env.BANK_OWNER}</td> </tr> <tr> <td><strong>CUIT:</strong></td> <td>${process.env.BANK_OWNER_CUIT}</td> </tr> </table> <p style=" margin:18px 0 0; color:#d1d5db; line-height:1.6; " > Una vez realizada la transferencia, enviá el comprobante respondiendo este email para acreditar el pago. </p> </div> ` : ` <div style=" margin-top:24px; background:${backgroundColor}; border:1px solid ${borderColor}; border-radius:12px; padding:20px; " > <p style=" margin:0; color:#d1d5db; line-height:1.6; " > Nos contactaremos con vos a la brevedad para coordinar el pago y la entrega de tu pedido. </p> </div> `} </div> <!-- Footer --> <div style=" border-top:1px solid ${borderColor}; padding:24px; text-align:center; color:${textMuted}; font-size:13px; " > © ${new Date().getFullYear()} MGR TECHNO <br /> Gracias por confiar en nosotros. </div> </div> </div> </td> </tr> </table> </body> </html> `,
     });
 }
 
