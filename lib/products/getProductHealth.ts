@@ -34,7 +34,7 @@ export function getProductHealth(product: ProductDTO): ProductHealth {
         critical.push("Sin IVA");
     }
 
-    if (!product.images?.length) {
+    if (!product.images?.length && !product.image) {
         critical.push("Sin imagen");
     }
 

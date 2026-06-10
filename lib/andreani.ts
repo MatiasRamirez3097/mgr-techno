@@ -2,6 +2,7 @@ interface CartItem {
     weight: number;
     dimensions: { length: number; width: number; height: number };
     quantity: number;
+    price: number;
 }
 
 interface AndreaniQuoteResult {
@@ -63,7 +64,6 @@ export async function cotizarAndreani(
 
         const data = await res.json();
         const total = parseFloat(data?.tarifaConIva?.total || "0");
-
         return { total };
     } catch (e) {
         console.log(">>> error Andreani:", e);

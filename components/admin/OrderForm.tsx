@@ -6,7 +6,6 @@ import { FormModal } from "./FormModal";
 import { PurchaseDTO } from "@/types/shared/purchase";
 import { CustomerForm } from "./CustomerForm";
 import { $ZodAny } from "zod/v4/core";
-import { quoteShipping } from "@/lib/shipping/quoteShipping";
 
 interface Props {
     order?: any;
@@ -94,42 +93,6 @@ export function OrderForm({ order, mode }: Props) {
             .filter(Boolean);
     };
 
-    const quoteOrderShipping = async () => {
-        try {
-            setQuotingShipping(true);
-            console.log(">>>", form.items);
-            const data = await quoteShipping({
-                postcode: postcode,
-
-                items: form.items.map((item) => ({
-                    weight: item.weight || 0,
-
-                    dimensions: item.dimensions || {
-                        length: 0,
-                        width: 0,
-                        height: 0,
-                    },
-
-                    price: item.unitPrice,
-
-                    quantity: item.quantity,
-                })),
-            });
-
-            setForm((prev) => ({
-                ...prev,
-
-                shippingMethod: {
-                    ...prev.shippingMethod,
-                    method: "andreani",
-                    cost: data.total,
-                },
-            }));
-        } finally {
-            setQuotingShipping(false);
-        }
-    };
-
     const [form, setForm] = useState<OrderFormState>({
         customerId: order?.customerId || "",
 
@@ -154,6 +117,43 @@ export function OrderForm({ order, mode }: Props) {
 
         notes: order?.notes || "",
     });
+
+    const quoteOrderShipping = async () => {
+        try {
+            setQuotingShipping(true);
+            const res = await fetch("/api/shipping", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    postcode,
+                    items: form.items.map((i) => ({
+                        id: i.productId,
+                        quantity: i.quantity,
+                    })),
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "No se pudo cotizar el envío");
+            }
+
+            setForm((prev) => ({
+                ...prev,
+
+                shippingMethod: {
+                    ...prev.shippingMethod,
+                    method: "andreani",
+                    cost: data.total,
+                },
+            }));
+        } finally {
+            setQuotingShipping(false);
+        }
+    };
 
     const addItem = () => {
         setForm((prev) => ({

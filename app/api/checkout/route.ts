@@ -3,7 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextRequest, NextResponse } from "next/server";
 import { createOrderSchema } from "@/lib/validators/createOrderSchema";
 import { createOrder } from "@/lib/orders/createOrder";
-import { findProductsById } from "@/lib/products/getProductsById";
+
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session) {
