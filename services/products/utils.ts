@@ -9,38 +9,32 @@ export function getMongoSort(
         case "price-asc":
             return {
                 effectivePrice: 1,
-                availableStock: -1,
             };
 
         case "price-desc":
             return {
                 effectivePrice: -1,
-                availableStock: -1,
             };
 
         case "name-asc":
             return {
                 name: 1,
-                availableStock: -1,
             };
 
         case "name-desc":
             return {
                 name: -1,
-                availableStock: -1,
             };
 
         case "oldest":
             return {
                 createdAt: 1,
-                availableStock: -1,
             };
 
         case "newest":
         default:
             return {
                 createdAt: -1,
-                availableStock: -1,
             };
     }
 }
