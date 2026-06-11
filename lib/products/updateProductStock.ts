@@ -27,6 +27,9 @@ export async function updateProductStock(
                 },
             },
         ],
-        { session },
+        {
+            session,
+            updatePipeline: true,
+        },
     );
 }
