@@ -8,13 +8,13 @@ export function getMongoSort(
     switch (orderby) {
         case "price-asc":
             return {
-                price: 1,
+                effectivePrice: 1,
                 availableStock: -1,
             };
 
         case "price-desc":
             return {
-                price: -1,
+                effectivePrice: -1,
                 availableStock: -1,
             };
 
