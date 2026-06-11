@@ -18,17 +18,20 @@ interface Product {
 }
 
 interface Props {
-    availableStock: string;
+    statusAll: boolean;
     value: Product | null;
     onChange: (product: Product | null) => void;
 }
 
-export function ProductSelector({ availableStock, value, onChange }: Props) {
+export function ProductSelector({ statusAll, value, onChange }: Props) {
     const [query, setQuery] = useState(value?.name || "");
     const [results, setResults] = useState<Product[]>([]);
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    const statusAllProp = () => (statusAll ? `&statusAll=true` : "");
+
+    console.log(statusAllProp());
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -46,7 +49,7 @@ export function ProductSelector({ availableStock, value, onChange }: Props) {
 
             try {
                 const res = await fetch(
-                    `/api/products/search?q=${query}&s=${availableStock}`,
+                    `/api/products/search?q=${query}${statusAllProp()}`,
                 );
 
                 const data = await res.json();

@@ -4,7 +4,12 @@ import { ProductModel } from "@/models";
 
 import { normalizeSearch } from "@/lib/search/normalize";
 
-export async function searchProducts(search: string) {
+export async function searchProducts(
+    search: string,
+    options?: {
+        allStatus?: boolean;
+    },
+) {
     await connectDB();
 
     if (!search?.trim()) {
@@ -15,9 +20,8 @@ export async function searchProducts(search: string) {
 
     const searchTerms = normalizedSearch.split(/\s+/).filter(Boolean);
 
-    const query: any = {
-        status: "publish",
-    };
+    const query: any = {};
+    if (!options?.allStatus) query.status = "publish";
 
     // =========================
     // SEARCH

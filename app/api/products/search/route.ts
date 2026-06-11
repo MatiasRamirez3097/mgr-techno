@@ -6,7 +6,11 @@ export async function GET(request: Request) {
 
         const query = searchParams.get("q") || "";
 
-        const products = await searchProducts(query);
+        const status = searchParams.get("statusAll") || undefined;
+
+        const products = await searchProducts(query, {
+            allStatus: status ? Boolean(status) : undefined,
+        });
 
         return Response.json(products);
     } catch {
