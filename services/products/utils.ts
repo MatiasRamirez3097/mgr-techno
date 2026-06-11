@@ -38,3 +38,18 @@ export function getMongoSort(
             };
     }
 }
+
+export function buildProductDerivedFields(data: {
+    regularPrice: number;
+    salePrice?: number | null;
+    availableStock: number;
+}) {
+    return {
+        effectivePrice:
+            data.salePrice && data.salePrice > 0
+                ? data.salePrice
+                : data.regularPrice,
+
+        isAvailable: data.availableStock > 0,
+    };
+}

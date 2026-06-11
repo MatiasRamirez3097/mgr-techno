@@ -58,6 +58,8 @@ export async function createProduct(data: CreateProductDTO) {
                 ? data.salePrice
                 : data.regularPrice,
 
+        isAvailable: false,
+
         regularPrice: data.regularPrice,
 
         salePrice,

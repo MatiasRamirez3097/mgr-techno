@@ -78,8 +78,7 @@ export const buildProductsQuery = async (filters: ProductFilters = {}) => {
     // =========================
     console.log(filters.orderby);
     const sort: Record<string, SortOrder> = {
-        availableStock: -1,
-
+        isAvailable: -1,
         ...getMongoSort(filters.orderby),
     };
     console.log(sort);

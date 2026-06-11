@@ -9,6 +9,8 @@ import { mapProductToDTO } from "@/lib/mappers/productMapper";
 import { generateProductSearch } from "@/lib/search/generateProductSearch";
 import { slugify } from "@/lib/utils/slugify";
 
+import { buildProductDerivedFields } from "./utils";
+
 export async function updateProductById(id: string, data: any) {
     await connectDB();
 
@@ -46,6 +48,12 @@ export async function updateProductById(id: string, data: any) {
     const categories =
         data.categories?.map((id: any) => new Types.ObjectId(id)) || [];
 
+    const derived = buildProductDerivedFields({
+        regularPrice: data.regularPrice ?? undefined,
+        salePrice: data.salePrice ?? undefined,
+        availableStock: data.availableStock ?? undefined,
+    });
+
     // =========================
     // UPDATE
     // =========================
@@ -64,7 +72,9 @@ export async function updateProductById(id: string, data: any) {
 
     product.salePrice = salePrice;
 
-    product.effectivePrice = salePrice ? salePrice : data.regularPrice;
+    product.effectivePrice = derived.effectivePrice;
+
+    product.isAvailavle = derived.isAvailable ?? product.isAvailable;
 
     product.taxRate = data.taxRate;
 

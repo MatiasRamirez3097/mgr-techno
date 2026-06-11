@@ -6,6 +6,7 @@ import { startSession } from "mongoose";
 
 import { sendPaymentConfirmedEmail } from "@/lib/email";
 import { reverseInventoryAllocation } from "@/lib/inventory/reverseInventoryAllocation";
+import { updateProductStock } from "@/lib/products/updateProductStock";
 
 export async function PUT(
     req: NextRequest,
@@ -38,29 +39,21 @@ export async function PUT(
                     await reverseInventoryAllocation(order.id, session);
                 else {
                     for (const item of order.items) {
-                        await ProductModel.findByIdAndUpdate(
+                        await updateProductStock(
                             item.productId,
-                            {
-                                $inc: {
-                                    availableStock: item.quantity,
-                                    reservedStock: -item.quantity,
-                                },
-                            },
-                            { session },
+                            item.quantity,
+                            -item.quantity,
+                            session,
                         );
                     }
                 }
             } else if (body.status !== "cancelled" && wasCancelled) {
                 for (const item of order.items) {
-                    await ProductModel.findByIdAndUpdate(
+                    await updateProductStock(
                         item.productId,
-                        {
-                            $inc: {
-                                availableStock: -item.quantity,
-                                reservedStock: item.quantity,
-                            },
-                        },
-                        { session },
+                        -item.quantity,
+                        item.quantity,
+                        session,
                     );
                 }
             }

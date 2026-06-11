@@ -80,6 +80,11 @@ export const ProductSchema = new Schema(
             default: 0,
             index: true,
         },
+        isAvailable: {
+            type: Boolean,
+            required: true,
+            index: true,
+        },
         bundleItemsCount: {
             type: Number,
             default: 0,

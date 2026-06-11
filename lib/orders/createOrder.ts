@@ -12,6 +12,7 @@ import { mapOrderToDTO } from "../mappers/orderMapper";
 import { createOrderSchema } from "../validators/createOrderSchema";
 
 import { notifyNewOrder } from "@/lib/notifications/discord/notifyNewOrder";
+import { updateProductStock } from "../products/updateProductStock";
 
 function getPaymentStatus(total: number, paidAmount: number) {
     if (paidAmount <= 0) {
@@ -177,18 +178,11 @@ export async function createOrder(data: unknown) {
             // =====================================
 
             for (const item of orderItems) {
-                await ProductModel.updateOne(
-                    {
-                        _id: item.productId,
-                    },
-                    {
-                        $inc: {
-                            availableStock: -item.quantity,
-
-                            reservedStock: item.quantity,
-                        },
-                    },
-                    { session },
+                await updateProductStock(
+                    item.productId,
+                    -item.quantity,
+                    item.quantity,
+                    session,
                 );
             }
 
