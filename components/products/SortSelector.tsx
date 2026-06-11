@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 const OPTIONS = [
     { value: "date", label: "Más nuevos" },
     { value: "popularity", label: "Más populares" },
-    { value: "price", label: "Menor precio" },
+    { value: "price=asc", label: "Menor precio" },
     { value: "price-desc", label: "Mayor precio" },
     { value: "name", label: "Nombre A-Z" },
 ];

@@ -76,13 +76,13 @@ export const buildProductsQuery = async (filters: ProductFilters = {}) => {
     // =========================
     // SORT
     // =========================
-
+    console.log(filters.orderby);
     const sort: Record<string, SortOrder> = {
         availableStock: -1,
 
         ...getMongoSort(filters.orderby),
     };
-
+    console.log(sort);
     return {
         query,
         sort,

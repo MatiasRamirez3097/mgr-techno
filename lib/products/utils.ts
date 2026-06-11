@@ -1,6 +1,7 @@
 import { SortOrder } from "mongoose";
 
 export const getMongoSort = (orderby?: string): Record<string, SortOrder> => {
+    console.log(orderby);
     switch (orderby) {
         case "price":
             return { price: 1 };
