@@ -536,7 +536,6 @@ export function OrderForm({ order, mode }: Props) {
                             <div key={i} className="grid grid-cols-6 gap-2">
                                 <div className="col-span-3">
                                     <ProductSelector
-                                        availableStock="y"
                                         value={
                                             item.productId
                                                 ? {

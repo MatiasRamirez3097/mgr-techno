@@ -18,7 +18,7 @@ interface Product {
 }
 
 interface Props {
-    statusAll: boolean;
+    statusAll?: boolean;
     value: Product | null;
     onChange: (product: Product | null) => void;
 }
