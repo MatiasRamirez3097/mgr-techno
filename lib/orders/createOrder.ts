@@ -126,7 +126,9 @@ export async function createOrder(data: unknown) {
                 0,
             );
 
-            const total = orderItems.reduce((acc, item) => acc + item.total, 0);
+            const total =
+                orderItems.reduce((acc, item) => acc + item.total, 0) +
+                result.data.shippingMethod.cost;
 
             // =====================================
             // PAYMENTS
