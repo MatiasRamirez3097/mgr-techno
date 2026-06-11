@@ -64,6 +64,8 @@ export async function updateProductById(id: string, data: any) {
 
     product.salePrice = salePrice;
 
+    product.effectivePrice = salePrice ? salePrice : data.regularPrice;
+
     product.taxRate = data.taxRate;
 
     product.image = data.image || "";
@@ -124,11 +126,16 @@ export async function updateProductQuickFields(
 
     if (data.regularPrice !== undefined) {
         product.regularPrice = data.regularPrice;
+        product.effectivePrice = data.regularPrice;
     }
 
     if (data.salePrice !== undefined) {
-        product.salePrice =
-            data.salePrice && data.salePrice > 0 ? data.salePrice : null;
+        if (data.salePrice && data.salePrice > 0) {
+            product.salePrice = data.salePrice;
+            product.effectivePrice = data.salePrice;
+        } else {
+            product.salePrice = null;
+        }
     }
 
     if (data.featured !== undefined) {

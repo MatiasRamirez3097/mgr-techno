@@ -2,19 +2,28 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
+/*const OPTIONS = [
+        { value: "date", label: "Más nuevos" },
+        { value: "popularity", label: "Más populares" },
+        { value: "price", label: "Menor precio" },
+        { value: "price-desc", label: "Mayor precio" },
+        { value: "name", label: "Nombre A-Z" },
+    ];*/
+
 const OPTIONS = [
-    { value: "date", label: "Más nuevos" },
-    { value: "popularity", label: "Más populares" },
-    { value: "price=asc", label: "Menor precio" },
+    { value: "newest", label: "Más nuevos" },
+    { value: "oldest", label: "Más antiguos" },
+    { value: "price-asc", label: "Menor precio" },
     { value: "price-desc", label: "Mayor precio" },
-    { value: "name", label: "Nombre A-Z" },
+    { value: "name-asc", label: "Nombre A-Z" },
+    { value: "name-desc", label: "Nombre Z-A" },
 ];
 
 export function SortSelector() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const current = searchParams.get("orderby") || "date";
+    const current = searchParams.get("orderby") || "newest";
 
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const params = new URLSearchParams(searchParams.toString());

@@ -21,6 +21,7 @@ export const ProductSchema = new Schema(
             index: true,
         },
         taxRate: { type: Number },
+        effectivePrice: { type: Number, required: true, index: true },
         regularPrice: { type: Number, required: true },
         salePrice: {
             type: Number,
