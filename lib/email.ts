@@ -236,20 +236,104 @@ export async function sendOrderConfirmationEmail(order: OrderDTO) {
     ${
         isBankTransfer
             ? `
-            <div style="
-                margin-top:24px;
-                background:${EMAIL_THEME.background};
-                border:1px solid ${EMAIL_THEME.brand};
-                border-radius:12px;
-                padding:20px;
+        <div style="
+            margin-top:24px;
+            background:${EMAIL_THEME.background};
+            border:1px solid ${EMAIL_THEME.brand};
+            border-radius:12px;
+            padding:20px;
+        ">
+            <h3 style="
+                color:${EMAIL_THEME.brand};
+                margin-top:0;
+                margin-bottom:16px;
             ">
-                <h3 style="color:${EMAIL_THEME.brand};margin-top:0;">
-                    Datos para la transferencia
-                </h3>
+                💳 Datos para la transferencia
+            </h3>
 
-                ...
+            <p style="
+                color:${EMAIL_THEME.body};
+                line-height:1.7;
+                margin-top:0;
+            ">
+                Realizá la transferencia utilizando los siguientes datos y luego envianos el comprobante a través para poder procesar tu pedido.
+            </p>
+
+            <div style="
+                background:${EMAIL_THEME.card};
+                border:1px solid ${EMAIL_THEME.border};
+                border-radius:10px;
+                padding:16px;
+                margin-top:16px;
+            ">
+                <div style="margin-bottom:12px;">
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
+                        Titular
+                    </div>
+                    <div style="color:${EMAIL_THEME.body};font-weight:600;">
+                        ${process.env.BANK_OWNER}
+                    </div>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
+                        Banco
+                    </div>
+                    <div style="color:${EMAIL_THEME.body};font-weight:600;">
+                        ${process.env.BANK_NAME}
+                    </div>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
+                        Alias
+                    </div>
+                    <div style="
+                        color:${EMAIL_THEME.brand};
+                        font-weight:700;
+                        font-size:15px;
+                    ">
+                        ${process.env.BANK_ALIAS}
+                    </div>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
+                        CBU
+                    </div>
+                    <div style="
+                        color:${EMAIL_THEME.body};
+                        font-family:monospace;
+                        font-size:14px;
+                    ">
+                        ${process.env.BANK_CBU}
+                    </div>
+                </div>
+
+                <div>
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
+                        Monto a transferir
+                    </div>
+                    <div style="
+                        color:${EMAIL_THEME.brand};
+                        font-size:20px;
+                        font-weight:700;
+                    ">
+                        $${order.total.toLocaleString("es-AR")}
+                    </div>
+                </div>
             </div>
-        `
+
+            <p style="
+                color:${EMAIL_THEME.muted};
+                font-size:13px;
+                margin-top:16px;
+                margin-bottom:0;
+            ">
+                Una vez realizada la transferencia, respondé este email adjuntando el comprobante e indicando tu número de pedido.
+            </p>
+        </div>
+    `
             : `
             <div style="
                 margin-top:24px;
