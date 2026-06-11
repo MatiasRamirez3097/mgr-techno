@@ -111,7 +111,7 @@ export async function receivePurchase(
             // 📦 actualizar stock
             product.availableStock += item.quantity;
             product.totalStock += item.quantity;
-
+            product.isAvailable = product.availableStock > 0;
             // 🔍 detectar reposición
             const stockRecovered =
                 previousAvailableStock === 0 && product.availableStock > 0;
