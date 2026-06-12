@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { Analytics } from "@vercel/analytics/next";
 
 export default function StoreLayout({
     children,
@@ -8,11 +9,14 @@ export default function StoreLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-        </div>
+        <>
+            <div className="flex flex-col min-h-screen">
+                <Navbar />
+                <main className="flex-1">{children}</main>
+                <Footer />
+            </div>
+            <Analytics />
+        </>
     );
 }
 
