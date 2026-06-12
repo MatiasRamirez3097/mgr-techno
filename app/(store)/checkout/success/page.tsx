@@ -92,13 +92,26 @@ export default async function SuccessPage({ searchParams }: Props) {
 
                             <div className="space-y-3 text-sm">
                                 <div>
+                                    <p className="text-gray-400">Banco</p>
+
+                                    <p className="text-white font-medium">
+                                        {process.env.BANK_NAME}
+                                    </p>
+                                </div>
+                                <div>
                                     <p className="text-gray-400">Titular</p>
 
                                     <p className="text-white font-medium">
                                         {process.env.BANK_OWNER}
                                     </p>
                                 </div>
+                                <div>
+                                    <p className="text-gray-400">Banco</p>
 
+                                    <p className="text-white font-medium">
+                                        {process.env.BANK_OWNER_CUIT}
+                                    </p>
+                                </div>
                                 <div>
                                     <p className="text-gray-400">Alias</p>
 
@@ -119,7 +132,8 @@ export default async function SuccessPage({ searchParams }: Props) {
                             <div className="mt-4 pt-4 border-t border-brand/20">
                                 <p className="text-sm text-gray-300">
                                     Una vez realizada la transferencia, envianos
-                                    el comprobante indicando el número de pedido{" "}
+                                    el comprobante por WhatsApp indicando el
+                                    número de pedido{" "}
                                     <span className="font-semibold text-white">
                                         #{order?.slice(-6).toUpperCase()}
                                     </span>
