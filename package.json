@@ -12,6 +12,7 @@
         "@sparticuz/chromium": "^148.0.0",
         "@tiptap/react": "^3.25.0",
         "@tiptap/starter-kit": "^3.25.0",
+        "@vercel/analytics": "^2.0.1",
         "bcryptjs": "^3.0.3",
         "cloudinary": "^2.9.0",
         "dotenv": "^17.4.2",
