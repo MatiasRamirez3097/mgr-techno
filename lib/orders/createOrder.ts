@@ -192,7 +192,8 @@ export async function createOrder(data: unknown) {
             // ORDER NUMBER
             // =====================================
 
-            orderNum = order._id.toString().slice(-6).toUpperCase();
+            //orderNum = order._id.toString().slice(-6).toUpperCase();
+            orderNum = order._id.toString();
         });
 
         // =====================================
