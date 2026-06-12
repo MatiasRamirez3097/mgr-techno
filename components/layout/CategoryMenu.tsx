@@ -5,31 +5,26 @@ import { useState } from "react";
 import { MegaMenu } from "./MegaMenu";
 import type { CategoryDTO } from "@/types/shared/category";
 // Categorías que se agrupan bajo "Ofertas"
-const OFERTAS_SLUGS = ["combos", "pc-completa"];
-const MEGA_MENU_SLUGS = ["componentes-de-pc"];
+
+//CONSTANTS
+import { MEGA_MENU_SLUGS, OFERTAS_SLUGS } from "@/lib/categories/constants";
+
+//HELPERS
+import {
+    getChildren,
+    getOfertaCategories,
+    getRootCategories,
+} from "@/lib/categories/helpers";
 
 export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
     const [openId, setOpenId] = useState<string | null>(null);
     const [ofertasOpen, setOfertasOpen] = useState(false);
 
     // Excluimos "sin-categoria" y las que van dentro de Ofertas
-    const roots = categories
-        .filter(
-            (c) =>
-                c.parentId == null &&
-                c.slug !== "uncategorized" &&
-                c.slug !== "sin-categoria" &&
-                !OFERTAS_SLUGS.includes(c.slug),
-        )
-        .sort((a, b) => (a.menuOrder ?? 999) - (b.menuOrder ?? 999));
-
-    const children = (parentId: string) =>
-        categories.filter((c) => c.parentId === parentId);
+    const roots = getRootCategories(categories);
 
     // Categorías que van dentro del desplegable Ofertas
-    const ofertasSubs = categories.filter((c) =>
-        OFERTAS_SLUGS.includes(c.slug),
-    );
+    const ofertasSubs = getOfertaCategories(categories);
 
     return (
         <nav className="max-w-6xl mx-auto px-4 flex items-center gap-1 h-10">
@@ -67,7 +62,7 @@ export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
             {/* Resto de categorías raíz */}
             {roots.map((cat) => {
                 const isMegaMenu = MEGA_MENU_SLUGS.includes(cat.slug);
-                const subs = children(cat.id);
+                const subs = getChildren(categories, cat.id);
                 const hasChildren = subs.length > 0;
 
                 return (

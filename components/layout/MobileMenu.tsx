@@ -7,9 +7,19 @@ import { useSession, signOut } from "next-auth/react";
 import type { CategoryDTO } from "@/types/shared/category";
 import { SearchBar } from "./SearchBar";
 
+//CONSTANTS
+import { MEGA_MENU_SLUGS, OFERTAS_SLUGS } from "@/lib/categories/constants";
+
+//HELPERS
+import {
+    getChildren,
+    getOfertaCategories,
+    getRootCategories,
+} from "@/lib/categories/helpers";
+
 export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
     const [open, setOpen] = useState(false);
-    const [expandedCat, setExpandedCat] = useState<string | null>(null);
+    const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
     const pathname = usePathname();
     const { data: session } = useSession();
 
@@ -26,9 +36,87 @@ export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
         };
     }, [open]);
 
-    const roots = categories.filter((c) => c.parentId === null);
-    const children = (parentId: string) =>
-        categories.filter((c) => c.parentId === parentId);
+    const roots = getRootCategories(categories);
+    const ofertasSubs = getOfertaCategories(categories);
+    const toggleCategory = (id: string) => {
+        setExpandedCats((prev) => {
+            const next = new Set(prev);
+
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+
+            return next;
+        });
+    };
+
+    function CategoryNode({
+        category,
+        level = 0,
+    }: {
+        category: CategoryDTO;
+        level?: number;
+    }) {
+        const subs = getChildren(categories, category.id);
+
+        const hasChildren = subs.length > 0;
+
+        const isExpanded = expandedCats.has(category.id);
+
+        return (
+            <div>
+                <div className="flex items-center">
+                    <Link
+                        href={`/productos/categoria/${category.slug}`}
+                        className="flex-1 px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
+                        style={{
+                            paddingLeft: `${12 + level * 16}px`,
+                        }}
+                    >
+                        {category.name}
+                    </Link>
+
+                    {hasChildren && (
+                        <button
+                            onClick={() => toggleCategory(category.id)}
+                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-white"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`w-4 h-4 transition-transform ${
+                                    isExpanded ? "rotate-180" : ""
+                                }`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M19 9l-7 7-7-7"
+                                />
+                            </svg>
+                        </button>
+                    )}
+                </div>
+
+                {hasChildren && isExpanded && (
+                    <div className="border-l border-gray-800 ml-4">
+                        {subs.map((sub) => (
+                            <CategoryNode
+                                key={sub.id}
+                                category={sub}
+                                level={level + 1}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <>
@@ -113,64 +201,30 @@ export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
                         Todos los productos
                     </Link>
 
-                    {roots.map((cat) => {
-                        const subs = children(cat.id);
-                        const hasChildren = subs.length > 0;
-                        const isExpanded = expandedCat === cat.id;
+                    <div className="mb-2">
+                        <Link
+                            href="/productos/ofertas"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-brand font-medium hover:bg-gray-800"
+                        >
+                            🔥 OFERTAS
+                        </Link>
 
-                        return (
-                            <div key={cat.id}>
-                                <div className="flex items-center">
-                                    <Link
-                                        href={`/productos/categoria/${cat.slug}`}
-                                        className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
-                                    >
-                                        {cat.name}
-                                    </Link>
-                                    {hasChildren && (
-                                        <button
-                                            onClick={() =>
-                                                setExpandedCat(
-                                                    isExpanded ? null : cat.id,
-                                                )
-                                            }
-                                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-white transition-colors"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                                strokeWidth={2}
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    d="M19 9l-7 7-7-7"
-                                                />
-                                            </svg>
-                                        </button>
-                                    )}
-                                </div>
+                        <div className="ml-4 border-l border-gray-800 pl-3">
+                            {ofertasSubs.map((sub) => (
+                                <Link
+                                    key={sub.id}
+                                    href={`/productos/categoria/${sub.slug}`}
+                                    className="flex items-center px-3 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-gray-800"
+                                >
+                                    {sub.name}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
 
-                                {/* Subcategorías */}
-                                {hasChildren && isExpanded && (
-                                    <div className="ml-4 border-l border-gray-800 pl-3 mb-1">
-                                        {subs.map((sub) => (
-                                            <Link
-                                                key={sub.id}
-                                                href={`/productos/categoria/${sub.slug}`}
-                                                className="flex items-center px-3 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                                            >
-                                                {sub.name}
-                                            </Link>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                    {roots.map((cat) => (
+                        <CategoryNode key={cat.id} category={cat} />
+                    ))}
                 </nav>
 
                 {/* Footer del drawer — usuario */}
