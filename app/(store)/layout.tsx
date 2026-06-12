@@ -30,7 +30,7 @@ export const metadata: Metadata = {
         type: "website",
     },
     verification: {
-        google: "TU_CODIGO_DE_VERIFICACION",
+        google: process.env.GOOGLE_VERIFICATION,
     },
 };
 
