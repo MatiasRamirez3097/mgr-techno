@@ -9,7 +9,6 @@ export async function proxy(req: NextRequest) {
 
     const deadPaths = [
         "/cart",
-        "/checkout",
         "/my-account",
         "/wp-admin",
         "/wp-login.php",
