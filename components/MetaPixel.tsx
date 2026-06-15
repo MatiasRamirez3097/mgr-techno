@@ -35,7 +35,7 @@ export default function MetaPixel() {
                     'https://connect.facebook.net/en_US/fbevents.js');
                     
                     // REEMPLAZA ESTO CON TU ID REAL DE META PIXEL
-                    fbq('init', process.env.NEXT_PUBLIC_META_PIXEL); 
+                    fbq('init', ${process.env.NEXT_PUBLIC_META_PIXEL}); 
                 `,
             }}
         />
