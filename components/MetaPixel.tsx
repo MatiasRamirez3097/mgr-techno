@@ -2,27 +2,30 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export default function MetaPixel() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        if (!isLoaded) return;
+        // Dispara un PageView en las navegaciones subsecuentes (SPA)
+        // Usamos un pequeño setTimeout para darle tiempo a Next.js de renderizar la página nueva
+        const handleRouteChange = () => {
+            if (typeof window !== "undefined" && (window as any).fbq) {
+                setTimeout(() => {
+                    (window as any).fbq("track", "PageView");
+                }, 50);
+            }
+        };
 
-        // Cada vez que la ruta o los parámetros cambien, disparamos un nuevo PageView
-        if (typeof window !== "undefined" && (window as any).fbq) {
-            (window as any).fbq("track", "PageView");
-        }
-    }, [pathname, searchParams, isLoaded]);
+        handleRouteChange();
+    }, [pathname, searchParams]);
 
     return (
         <Script
             id="meta-pixel"
-            strategy="afterInteractive" // Espera a que la página cargue para no bloquear tu sitio
-            onLoad={() => setIsLoaded(true)}
+            strategy="afterInteractive"
             dangerouslySetInnerHTML={{
                 __html: `
                     !function(f,b,e,v,n,t,s)
@@ -34,8 +37,10 @@ export default function MetaPixel() {
                     s.parentNode.insertBefore(t,s)}(window, document,'script',
                     'https://connect.facebook.net/en_US/fbevents.js');
                     
-                    // REEMPLAZA ESTO CON TU ID REAL DE META PIXEL
-                    fbq('init', ${process.env.NEXT_PUBLIC_META_PIXEL}); 
+                    fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL}'); 
+                    
+                    // ESTA ES LA LÍNEA MÁGICA: Forzamos el primer evento directamente al nacer
+                    fbq('track', 'PageView');
                 `,
             }}
         />
