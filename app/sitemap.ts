@@ -2,7 +2,8 @@ import { MetadataRoute } from "next";
 import { getProductsBase } from "@/lib/products/getProductsBase";
 import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 
-export const dynamic = "force-dynamic";
+// Eliminamos "force-dynamic" y lo reemplazamos por revalidación diaria
+export const revalidate = 86400;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = "https://www.mgrtechno.com.ar";
