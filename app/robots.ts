@@ -14,6 +14,10 @@ export default function robots(): MetadataRoute.Robots {
                     "/*?*", // Frena en seco el rastreo de URLs con parámetros
                 ],
             },
+            {
+                userAgent: "facebookexternalhit",
+                disallow: "/",
+            },
         ],
         sitemap: "https://www.mgrtechno.com.ar/sitemap.xml",
     };
