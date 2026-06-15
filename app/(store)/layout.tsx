@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Analytics } from "@vercel/analytics/next";
+import MetaPixel from "@/components/MetaPixel";
 
 export default function StoreLayout({
     children,
@@ -15,6 +16,7 @@ export default function StoreLayout({
                 <main className="flex-1">{children}</main>
                 <Footer />
             </div>
+            <MetaPixel />
             <Analytics />
         </>
     );
