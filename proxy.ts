@@ -7,6 +7,29 @@ export async function proxy(req: NextRequest) {
 
     const pathname = req.nextUrl.pathname;
 
+    const deadPaths = [
+        "/cart",
+        "/checkout",
+        "/my-account",
+        "/wp-admin",
+        "/wp-login.php",
+        "/wp-content",
+        "/xmlrpc.php",
+    ];
+
+    if (deadPaths.some((path) => pathname.startsWith(path))) {
+        return new NextResponse(
+            "Esta página ha sido eliminada permanentemente.",
+            {
+                status: 410,
+                headers: {
+                    // Le decimos explícitamente a los bots que no indexen esto
+                    "X-Robots-Tag": "noindex, noarchive",
+                },
+            },
+        );
+    }
+
     const isProtected =
         pathname.startsWith("/api/admin") ||
         pathname.startsWith("/api/afip") ||
