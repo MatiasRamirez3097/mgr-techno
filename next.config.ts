@@ -25,6 +25,11 @@ const nextConfig: NextConfig = {
     async redirects() {
         return [
             {
+                source: "/wp-content/uploads/woo-feed/custom2/xml/hardgamers.xml",
+                destination: "/hardgamers.xml",
+                permanent: true,
+            },
+            {
                 // Traducción exacta para componentesdepc (con paginación)
                 source: "/product-category/componentesdepc/page/:page",
                 destination: "/productos/categoria/componentes-de-pc",
