@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
             {
                 userAgent: "*",
                 allow: "/",
-                disallow: ["/admin/", "/account/", "/checkout/", "/api/"],
+                disallow: ["/admin/", "/mi-cuenta/", "/checkout/", "/api/"],
             },
         ],
         sitemap: "https://www.mgrtechno.com.ar/sitemap.xml",
