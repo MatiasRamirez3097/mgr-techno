@@ -15,7 +15,12 @@ export default function robots(): MetadataRoute.Robots {
                 ],
             },
             {
-                userAgent: "facebookexternalhit",
+                userAgent: [
+                    "meta-externalagent",
+                    "Meta-ExternalFetcher",
+                    "facebookexternalhit",
+                    "Facebot",
+                ],
                 disallow: "/",
             },
         ],
