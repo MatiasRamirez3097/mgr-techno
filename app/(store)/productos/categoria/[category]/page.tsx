@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const categoryName = category.replace(/-/g, " ");
 
     return {
-        title: `${categoryName} | MGR Techno`,
+        title: `MGR Techno | ${categoryName}`,
         description: `Productos de la categoría ${categoryName}`,
     };
 }

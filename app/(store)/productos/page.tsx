@@ -5,7 +5,7 @@ import { ProductsView } from "@/components/products/ProductsView";
 import type { ProductOrderBy } from "@/types/shared/product";
 
 export const metadata: Metadata = {
-    title: "Productos | MGR Techno",
+    title: "MGR Techno | Productos",
     description: "Catálogo completo de productos",
 };
 
