@@ -6,6 +6,7 @@ import { ProductModel } from "@/models/Product";
 import { findProductsById } from "../products/getProductsById";
 
 import { createAdminOrderSchema } from "../validators/createAdminOrderSchema";
+import { updateProductStock } from "../products/updateProductStock";
 
 export async function createAdminOrder(data: unknown) {
     const result = createAdminOrderSchema.safeParse(data);
@@ -128,17 +129,11 @@ export async function createAdminOrder(data: unknown) {
         // reservar stock SOLO si no está cancelada
         if (status !== "cancelled") {
             for (const item of orderItems) {
-                await ProductModel.updateOne(
-                    {
-                        _id: item.productId,
-                    },
-                    {
-                        $inc: {
-                            availableStock: -item.quantity,
-                            reservedStock: item.quantity,
-                        },
-                    },
-                    { session },
+                await updateProductStock(
+                    item.productId,
+                    -item.quantity,
+                    item.quantity,
+                    session,
                 );
             }
         }
