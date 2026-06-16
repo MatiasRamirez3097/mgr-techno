@@ -88,6 +88,11 @@ const nextConfig: NextConfig = {
                 destination: "/productos/categoria/:slug",
                 permanent: true,
             },
+            {
+                source: "/product/:slug",
+                destination: "/productos/:slug",
+                permanent: true,
+            },
 
             // --- 4. TIENDA GENERAL VIEJA ---
             {
