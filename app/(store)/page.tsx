@@ -1,3 +1,5 @@
+export const revalidate = 43200;
+
 import { getProductsNew } from "@/lib/products/getProductsNew";
 import { getProductsOnSale } from "@/lib/products/getProductsOnSale";
 import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
