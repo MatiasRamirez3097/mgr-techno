@@ -214,7 +214,7 @@ export function CartDrawer({ open, onClose }: Props) {
                             onClick={onClose}
                             className="w-full py-3 rounded-xl text-center text-white font-medium bg-brand hover:brightness-110 transition-all"
                         >
-                            Ir al checkout
+                            Finalizar compra
                         </Link>
                         <button
                             onClick={() => useCart.getState().clearCart()}
