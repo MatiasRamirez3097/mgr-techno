@@ -6,7 +6,8 @@ import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 export const revalidate = 86400;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = "https://www.mgrtechno.com.ar";
+    // CORRECCIÓN APLICADA: Dominio desnudo (sin www)
+    const baseUrl = "https://mgrtechno.com.ar";
 
     // Páginas estáticas
     const staticPages: MetadataRoute.Sitemap = [
@@ -21,6 +22,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             lastModified: new Date(),
             changeFrequency: "daily",
             priority: 0.9,
+        },
+        // NUEVO: Agregamos las páginas informativas que creaste
+        {
+            url: `${baseUrl}/metodos-de-pago`,
+            lastModified: new Date(),
+            changeFrequency: "monthly",
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/envios`,
+            lastModified: new Date(),
+            changeFrequency: "monthly",
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/cambios-y-devoluciones`,
+            lastModified: new Date(),
+            changeFrequency: "monthly",
+            priority: 0.5,
+        },
+        {
+            url: `${baseUrl}/como-comprar`,
+            lastModified: new Date(),
+            changeFrequency: "monthly",
+            priority: 0.5,
+        },
+        {
+            url: `${baseUrl}/preguntas-frecuentes`,
+            lastModified: new Date(),
+            changeFrequency: "monthly",
+            priority: 0.5,
         },
     ];
 
