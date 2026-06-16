@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Shield, Eye, Lock, Cookie, UserCheck, FileText } from "lucide-react";
 
 // Cacheamos la página por 30 días (en segundos) ya que su contenido es estático
-export const revalidate = 2592000;
+export const revalidate = 432000;
 
 const SECTIONS = [
     {
