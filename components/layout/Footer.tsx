@@ -57,7 +57,7 @@ const LINKS = {
         { label: "Cómo comprar", href: "/como-comprar" },
         { label: "Métodos de pago", href: "/metodos-de-pago" },
         { label: "Envíos", href: "/envios" },
-        { label: "Cambios y devoluciones", href: "/devoluciones" },
+        { label: "Cambios y devoluciones", href: "/cambios-y-devoluciones" },
     ],
     "Mi cuenta": [
         { label: "Iniciar sesión", href: "/login" },
