@@ -26,7 +26,13 @@ export default function robots(): MetadataRoute.Robots {
                     "/",
                     "/api/shop-feed", // Vital para el catálogo de Instagram
                 ],
-                disallow: ["/admin/", "/mi-cuenta/", "/checkout/", "/*?*"],
+                disallow: [
+                    "/admin/",
+                    "/mi-cuenta/",
+                    "/checkout/",
+                    "/*?*",
+                    "/cart-2/",
+                ],
             },
 
             // 3. EL RESTO DEL MUNDO (Googlebot, Bing, etc.)
