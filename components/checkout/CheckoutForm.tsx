@@ -191,6 +191,7 @@ export function CheckoutForm({ session }: Props) {
 
         setLoading(true);
         setError("");
+        setFieldErrors({});
 
         try {
             const paymentMap = {
@@ -352,6 +353,7 @@ export function CheckoutForm({ session }: Props) {
                         Datos personales
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Nombre */}
                         <div>
                             <label className="text-sm text-gray-400 mb-1 block">
                                 Nombre
@@ -361,10 +363,20 @@ export function CheckoutForm({ session }: Props) {
                                 value={form.firstName}
                                 onChange={handleChange}
                                 required
-                                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["billing.firstName"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                }`}
                             />
+                            {fieldErrors["billing.firstName"] && (
+                                <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                    {fieldErrors["billing.firstName"]}
+                                </p>
+                            )}
                         </div>
 
+                        {/* Apellido */}
                         <div>
                             <label className="text-sm text-gray-400 mb-1 block">
                                 Apellido
@@ -374,10 +386,20 @@ export function CheckoutForm({ session }: Props) {
                                 value={form.lastName}
                                 onChange={handleChange}
                                 required
-                                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["billing.lastName"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                }`}
                             />
+                            {fieldErrors["billing.lastName"] && (
+                                <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                    {fieldErrors["billing.lastName"]}
+                                </p>
+                            )}
                         </div>
 
+                        {/* Tipo de documento */}
                         <div>
                             <label className="text-sm text-gray-400 mb-1 block">
                                 Tipo de documento
@@ -386,14 +408,28 @@ export function CheckoutForm({ session }: Props) {
                                 name="documentType"
                                 value={form.documentType}
                                 onChange={handleSelectChange}
-                                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["billing.document.documentType"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                }`}
                             >
                                 <option value="DNI">DNI</option>
                                 <option value="CUIL">CUIL</option>
                                 <option value="CUIT">CUIT</option>
                             </select>
+                            {fieldErrors["billing.document.documentType"] && (
+                                <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                    {
+                                        fieldErrors[
+                                            "billing.document.documentType"
+                                        ]
+                                    }
+                                </p>
+                            )}
                         </div>
 
+                        {/* Número de documento */}
                         <div>
                             <label className="text-sm text-gray-400 mb-1 block">
                                 Número de documento
@@ -403,10 +439,20 @@ export function CheckoutForm({ session }: Props) {
                                 value={form.documentNumber}
                                 onChange={handleChange}
                                 required
-                                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["billing.document.number"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                }`}
                             />
+                            {fieldErrors["billing.document.number"] && (
+                                <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                    {fieldErrors["billing.document.number"]}
+                                </p>
+                            )}
                         </div>
 
+                        {/* Dirección */}
                         <div className="sm:col-span-2">
                             <label className="text-sm text-gray-400 mb-1 block">
                                 Dirección
@@ -416,10 +462,20 @@ export function CheckoutForm({ session }: Props) {
                                 value={form.address}
                                 onChange={handleChange}
                                 required
-                                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["billing.address"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                }`}
                             />
+                            {fieldErrors["billing.address"] && (
+                                <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                    {fieldErrors["billing.address"]}
+                                </p>
+                            )}
                         </div>
 
+                        {/* Ciudad */}
                         <div>
                             <label className="text-sm text-gray-400 mb-1 block">
                                 Ciudad
@@ -429,10 +485,20 @@ export function CheckoutForm({ session }: Props) {
                                 value={form.city}
                                 onChange={handleChange}
                                 required
-                                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["billing.city"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                }`}
                             />
+                            {fieldErrors["billing.city"] && (
+                                <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                    {fieldErrors["billing.city"]}
+                                </p>
+                            )}
                         </div>
 
+                        {/* Provincia */}
                         <div>
                             <label className="text-sm text-gray-400 mb-1 block">
                                 Provincia
@@ -442,7 +508,11 @@ export function CheckoutForm({ session }: Props) {
                                 value={form.state}
                                 onChange={handleSelectChange}
                                 required
-                                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["billing.state"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                }`}
                             >
                                 <option value="">
                                     Seleccioná una provincia
@@ -453,8 +523,14 @@ export function CheckoutForm({ session }: Props) {
                                     </option>
                                 ))}
                             </select>
+                            {fieldErrors["billing.state"] && (
+                                <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                    {fieldErrors["billing.state"]}
+                                </p>
+                            )}
                         </div>
 
+                        {/* Código postal */}
                         <div>
                             <label className="text-sm text-gray-400 mb-1 block">
                                 Código postal
@@ -464,10 +540,20 @@ export function CheckoutForm({ session }: Props) {
                                 value={form.postcode}
                                 onChange={handleChange}
                                 required
-                                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["billing.postcode"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                }`}
                             />
+                            {fieldErrors["billing.postcode"] && (
+                                <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                    {fieldErrors["billing.postcode"]}
+                                </p>
+                            )}
                         </div>
 
+                        {/* Teléfono */}
                         <div>
                             <label className="text-sm text-gray-400 mb-1 block">
                                 Teléfono
@@ -477,8 +563,17 @@ export function CheckoutForm({ session }: Props) {
                                 value={form.phone}
                                 onChange={handleChange}
                                 required
-                                className="w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["billing.phone"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                }`}
                             />
+                            {fieldErrors["billing.phone"] && (
+                                <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                    {fieldErrors["billing.phone"]}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </section>
