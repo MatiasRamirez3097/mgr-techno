@@ -561,10 +561,23 @@ export function CheckoutForm({ session }: Props) {
                                                     )}
                                                 {!form.postcode &&
                                                     !quotingShipping && (
-                                                        <p className="text-xs text-gray-500">
-                                                            Ingresá tu código
-                                                            postal para cotizar
-                                                        </p>
+                                                        <div className="flex items-start gap-1.5 mt-1.5">
+                                                            <span className="text-amber-400/80 text-xs mt-0.5">
+                                                                ℹ️
+                                                            </span>
+                                                            <p className="text-xs text-amber-400/90 leading-snug">
+                                                                Completá tu{" "}
+                                                                <strong>
+                                                                    Código
+                                                                    postal
+                                                                </strong>{" "}
+                                                                en el formulario
+                                                                de arriba para
+                                                                calcular el
+                                                                costo exacto al
+                                                                instante.
+                                                            </p>
+                                                        </div>
                                                     )}
                                             </div>
                                         )}
@@ -578,7 +591,7 @@ export function CheckoutForm({ session }: Props) {
                                           : shippingCost > 0 &&
                                               shippingMethod === "andreani"
                                             ? `$${shippingCost.toLocaleString("es-AR")}`
-                                            : "A cotizar"}
+                                            : "Falta tu CP"}
                                 </span>
                             </label>
                         ))}
@@ -707,7 +720,7 @@ export function CheckoutForm({ session }: Props) {
                                         ? "Cotizando..."
                                         : shippingCost > 0
                                           ? `$${shippingCost.toLocaleString("es-AR")}`
-                                          : "A cotizar"}
+                                          : "Ingresa tu CP"}
                             </span>
                         </div>
                         <div className="flex justify-between text-base font-bold text-white mt-2">
