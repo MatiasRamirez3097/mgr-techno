@@ -37,7 +37,7 @@ export async function GET() {
         ${product.availableStock > 0 ? "in_stock" : "out_of_stock"}
     </g:availability>
 
-    <g:price>${price} ARS</g:price>
+    <g:price>${product.regularPrice} ARS</g:price>
 
     ${
         product.salePrice
