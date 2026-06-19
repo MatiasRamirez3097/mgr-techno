@@ -574,3 +574,113 @@ export async function sendOrderCompletedEmail(order: OrderDTO) {
         }),
     });
 }
+
+// En tu archivo lib/email.ts, agregá esto al final:
+
+export async function sendFiscalInvoiceEmail(order: OrderDTO, voucher: any) {
+    const isCreditNote = voucher.type === "credit_note";
+    const title = isCreditNote
+        ? "Nota de Crédito generada"
+        : "Tu Factura de Compra";
+    const voucherLabel = isCreditNote
+        ? "Nota de Crédito"
+        : `Factura ${voucher.fiscalData?.fiscalType ?? ""}`;
+
+    // 1. Armamos un nombre de archivo prolijo para el adjunto
+    const formattedNumber = String(voucher.voucherNumber).padStart(8, "0");
+    const pdfFilename = `${isCreditNote ? "NC" : "Factura"}_${voucher.pointOfSale}-${formattedNumber}.pdf`;
+
+    await resend.emails.send({
+        from: "MGR Techno <noreply@mgrtechno.com.ar>",
+        to: order.customerEmail,
+        subject: `${title} - Pedido #${order.id.toString().slice(-6).toUpperCase()}`,
+
+        // ==========================================
+        // 2. MAGIA DE RESEND: ADJUNTAMOS EL PDF
+        // ==========================================
+        attachments: voucher.pdfUrl
+            ? [
+                  {
+                      filename: pdfFilename,
+                      path: voucher.pdfUrl, // Resend descarga la URL y la adjunta como archivo físico
+                  },
+              ]
+            : [],
+
+        html: emailLayout({
+            title: title,
+            subtitle: "Comprobante Fiscal Electrónico",
+            content: `
+    <p style="color:${EMAIL_THEME.body};line-height:1.7;">
+        Hola ${order.billing.firstName},
+        ya emitimos tu comprobante fiscal correspondiente al pedido realizado en nuestra tienda.
+        <strong>Encontrarás el documento PDF adjunto a este correo.</strong>
+    </p>
+
+    <div style="
+        display:inline-block;
+        background:${EMAIL_THEME.background};
+        border:1px solid ${EMAIL_THEME.brand};
+        color:${EMAIL_THEME.brand};
+        padding:10px 16px;
+        border-radius:999px;
+        font-weight:600;
+        margin:16px 0 24px;
+    ">
+        Pedido #${order.id.toString().slice(-6).toUpperCase()}
+    </div>
+
+    <div style="
+        margin-top:10px;
+        background:${EMAIL_THEME.card};
+        border:1px solid ${EMAIL_THEME.border};
+        border-radius:12px;
+        padding:24px;
+    ">
+        <h3 style="color:#ffffff;margin-top:0;margin-bottom:16px;font-size:16px;border-bottom:1px solid ${EMAIL_THEME.border};padding-bottom:12px;">
+            📄 Detalles del Comprobante
+        </h3>
+        
+        <div style="color:${EMAIL_THEME.body};line-height:1.8;font-size:14px;">
+            <strong>Tipo:</strong> ${voucherLabel}<br>
+            <strong>Número:</strong> ${voucher.pointOfSale}-${formattedNumber}<br>
+            <strong>CAE:</strong> ${voucher.cae}<br>
+            <strong>Vencimiento CAE:</strong> ${voucher.caeExpiration}
+        </div>
+
+        ${
+            voucher.pdfUrl
+                ? `
+        <div style="margin-top:24px;text-align:center;">
+            <a href="${voucher.pdfUrl}" 
+               style="
+                   display:inline-block;
+                   background:${EMAIL_THEME.brand};
+                   color:#ffffff;
+                   text-decoration:none;
+                   padding:12px 24px;
+                   border-radius:8px;
+                   font-weight:600;
+                   font-size:14px;
+               "
+               target="_blank"
+            >
+                Descargar Factura (Backup)
+            </a>
+        </div>
+        `
+                : `
+        <p style="color:${EMAIL_THEME.muted};font-size:13px;margin-top:20px;text-align:center;">
+            * El comprobante adjunto estará disponible pronto.
+        </p>
+        `
+        }
+    </div>
+
+    <p style="color:${EMAIL_THEME.muted};font-size:13px;margin-top:24px;">
+        Este documento cumple con las normativas vigentes de AFIP. Conservalo ante cualquier eventualidad o reclamo de garantía.
+    </p>
+`,
+        }),
+    });
+}
