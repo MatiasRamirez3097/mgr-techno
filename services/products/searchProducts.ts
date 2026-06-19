@@ -28,17 +28,18 @@ export async function searchProducts(
     const pipeline: any[] = [];
 
     // =========================
-    // 1. ATLAS SEARCH (Debe ser SIEMPRE la etapa 1)
+    // 1. ATLAS SEARCH
     // =========================
     pipeline.push({
         $search: {
-            index: "search_products", // IMPORTANTE: Debe coincidir con el nombre en el panel de Atlas
+            index: "buscador_productos",
             autocomplete: {
                 query: normalizedSearch,
-                path: "name", // Buscamos directamente sobre el nombre original del producto
+                // ¡MAGIA ACÁ! Le pasamos todos los campos como un array
+                path: ["name", "sku", "mpn", "gtin"],
                 fuzzy: {
-                    maxEdits: 1, // Permite 1 error de tipeo (ej: "gavinete" -> "gabinete")
-                    prefixLength: 1, // Obliga a que al menos la primera letra coincida
+                    maxEdits: 1,
+                    prefixLength: 1,
                 },
             },
         },
