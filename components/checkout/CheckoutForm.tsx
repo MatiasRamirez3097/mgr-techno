@@ -108,7 +108,7 @@ export function CheckoutForm({ session }: Props) {
     const subtotal = items.reduce((acc, i) => {
         const price = usesListPrice
             ? getListPriceFinal(getFinalPrice(i))
-            : i.regularPrice;
+            : getFinalPrice(i);
         return acc + price * i.quantity;
     }, 0);
 
