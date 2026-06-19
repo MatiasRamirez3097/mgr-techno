@@ -49,8 +49,6 @@ export async function createProduct(data: CreateProductDTO) {
 
         type: data.type,
 
-        searchTerms: searchData.searchTerms,
-
         effectivePrice:
             data.salePrice &&
             data.salePrice > 0 &&

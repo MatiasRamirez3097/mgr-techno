@@ -66,8 +66,6 @@ export async function updateProductById(id: string, data: any) {
 
     product.type = data.type;
 
-    product.searchTerms = searchData.searchTerms;
-
     product.regularPrice = data.regularPrice;
 
     product.salePrice = salePrice;

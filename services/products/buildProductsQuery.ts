@@ -19,12 +19,6 @@ export const buildProductsQuery = async (filters: ProductFilters = {}) => {
 
     if (filters.search) {
         const normalizedSearch = normalizeSearch(filters.search);
-
-        const searchTerms = normalizedSearch.split(/\s+/).filter(Boolean);
-
-        query.searchTerms = {
-            $all: searchTerms,
-        };
     }
 
     // =========================
