@@ -14,6 +14,8 @@ export type OrderDTO = {
     status:
         | "pending"
         | "processing"
+        | "ready_for_pickup"
+        | "shipped"
         | "on_hold"
         | "completed"
         | "cancelled"
