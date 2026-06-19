@@ -32,7 +32,7 @@ export async function searchProducts(
     // =========================
     pipeline.push({
         $search: {
-            index: "buscador_productos",
+            index: "search_products",
             autocomplete: {
                 query: normalizedSearch,
                 // ¡MAGIA ACÁ! Le pasamos todos los campos como un array
