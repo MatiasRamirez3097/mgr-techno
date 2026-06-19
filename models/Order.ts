@@ -19,6 +19,8 @@ export const OrderSchema = new Schema(
             enum: [
                 "pending",
                 "processing",
+                "shipped",
+                "ready_for_pickup",
                 "on_hold",
                 "completed",
                 "cancelled",
