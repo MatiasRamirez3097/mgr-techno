@@ -80,7 +80,7 @@ export async function createOrder(data: unknown) {
                     throw new Error(`Sin stock para ${product.name}`);
                 }
 
-                const unitPrice = product.regularPrice * priceMultiplicator;
+                const unitPrice = product.effectivePrice * priceMultiplicator;
 
                 const quantity = item.quantity;
 
