@@ -33,14 +33,42 @@ export async function searchProducts(
     pipeline.push({
         $search: {
             index: "search_products",
-            autocomplete: {
-                query: normalizedSearch,
-                // ¡MAGIA ACÁ! Le pasamos todos los campos como un array
-                path: ["name", "sku", "mpn", "gtin"],
-                fuzzy: {
-                    maxEdits: 1,
-                    prefixLength: 1,
-                },
+            compound: {
+                should: [
+                    {
+                        // 1. Buscamos en el nombre (Acepta errores de tipeo)
+                        autocomplete: {
+                            query: normalizedSearch,
+                            path: "name",
+                            fuzzy: {
+                                maxEdits: 1,
+                                prefixLength: 1,
+                            },
+                        },
+                    },
+                    {
+                        // 2. Buscamos en el SKU (Exacto, sin fuzzy)
+                        autocomplete: {
+                            query: normalizedSearch,
+                            path: "sku",
+                        },
+                    },
+                    {
+                        // 3. Buscamos en el MPN (Exacto, sin fuzzy)
+                        autocomplete: {
+                            query: normalizedSearch,
+                            path: "mpn",
+                        },
+                    },
+                    {
+                        // 4. Buscamos en el GTIN (Exacto, sin fuzzy)
+                        autocomplete: {
+                            query: normalizedSearch,
+                            path: "gtin",
+                        },
+                    },
+                ],
+                minimumShouldMatch: 1, // Con que coincida EN UNO de los 4 campos, devuelve el producto
             },
         },
     });
