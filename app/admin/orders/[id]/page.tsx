@@ -26,33 +26,32 @@ const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> =
             label: "Pendiente",
             color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
         },
-
         paid: {
             label: "Pagado",
             color: "text-green-400 bg-green-400/10 border-green-400/20",
         },
-
         failed: {
             label: "Fallido",
             color: "text-red-400 bg-red-400/10 border-red-400/20",
         },
-
         refunded: {
             label: "Reembolsado",
             color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
         },
-
         partial: {
             label: "Pago parcial",
             color: "text-blue-400 bg-blue-400/10 border-blue-400/20",
         },
     };
 
+// ACTUALIZADO: Agregamos cadetería
 const SHIPPING_METHOD_LABELS: Record<string, string> = {
     local_pickup: "Retiro en local",
     andreani: "Andreani",
+    local_shipping: "Envío Cadetería (Rosario)",
 };
 
+// ACTUALIZADO: Agregamos los estados de logística
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
         label: "Pendiente",
@@ -61,6 +60,14 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     processing: {
         label: "En proceso",
         color: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+    },
+    shipped: {
+        label: "Enviado",
+        color: "text-purple-400 bg-purple-400/10 border-purple-400/20",
+    },
+    ready_for_pickup: {
+        label: "Listo para retirar",
+        color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
     },
     on_hold: {
         label: "En espera",
@@ -103,6 +110,7 @@ export default async function AdminOrderDetailPage({
 
     const payments = order.payments || [];
     const paymentStatus = getOrderPaymentStatus(order.payments || []);
+    const paymentMethodType = payments[0]?.method || "bank_transfer"; // Sacamos el método de pago
 
     const paymentStatusMeta = PAYMENT_STATUS_LABELS[paymentStatus];
     const paidAmount = payments
@@ -114,20 +122,17 @@ export default async function AdminOrderDetailPage({
         paymentStatus === "paid"
             ? await getAllocationSuggestions(order.id)
             : [];
+
     function getVoucherLabel(voucher: any) {
         switch (voucher.type) {
             case "non_fiscal_receipt":
                 return "Comprobante no fiscal";
-
             case "fiscal_invoice":
                 return `Factura ${voucher.fiscalData?.fiscalType ?? ""}`;
-
             case "credit_note":
                 return "Nota de crédito";
-
             case "debit_note":
                 return "Nota de débito";
-
             default:
                 return "Documento";
         }
@@ -181,14 +186,13 @@ export default async function AdminOrderDetailPage({
                                     ${order.subtotal.toLocaleString("es-AR")}
                                 </span>
                             </div>
-                            {order.shippingMethod.cost > 0 && (
+                            {order.shippingMethod?.cost > 0 && (
                                 <div className="flex justify-between text-sm text-gray-400">
                                     <span>
                                         Envío (
-                                        {order.shippingMethod?.method ===
-                                        "andreani"
-                                            ? "Andreani"
-                                            : "Retiro en local"}
+                                        {SHIPPING_METHOD_LABELS[
+                                            order.shippingMethod?.method
+                                        ] || order.shippingMethod?.method}
                                         )
                                     </span>
                                     <span>
@@ -256,10 +260,28 @@ export default async function AdminOrderDetailPage({
                 {/* Panel derecho */}
                 <div className="flex flex-col gap-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800 md:col-span-2">
                             <h2 className="text-base font-bold text-white mb-4">
                                 Cambiar estado de la orden
                             </h2>
+
+                            {/* NUEVO: Advertencia de bloqueo si no está pagado */}
+                            {paymentStatus !== "paid" &&
+                                paymentMethodType !== "cash" && (
+                                    <div className="mb-4 bg-amber-400/10 border border-amber-400/20 p-3 rounded-xl flex items-start gap-2">
+                                        <span className="text-amber-400 text-sm mt-0.5">
+                                            ⚠️
+                                        </span>
+                                        <p className="text-xs text-amber-400/90 leading-relaxed">
+                                            El pago aún no está confirmado. El
+                                            sistema <strong>bloqueará</strong>{" "}
+                                            el avance a estados de envío
+                                            (Enviado, Listo para retirar, etc.)
+                                            hasta que se registre el pago.
+                                        </p>
+                                    </div>
+                                )}
+
                             <StatusSelector
                                 name="status"
                                 keyToChange="status"
@@ -439,11 +461,9 @@ export default async function AdminOrderDetailPage({
                             </p>
 
                             <p className="text-sm text-white">
-                                {
-                                    SHIPPING_METHOD_LABELS[
-                                        order.shippingMethod?.method
-                                    ]
-                                }
+                                {SHIPPING_METHOD_LABELS[
+                                    order.shippingMethod?.method
+                                ] || order.shippingMethod?.method}
                             </p>
 
                             {order.shippingMethod?.cost > 0 && (
