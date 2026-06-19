@@ -1,10 +1,16 @@
 import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models/Order";
-import { ProductModel } from "@/models/Product";
 import { NextRequest } from "next/server";
 import { startSession } from "mongoose";
 
-import { sendPaymentConfirmedEmail } from "@/lib/email";
+// 1. IMPORTAMOS TODAS LAS FUNCIONES DE EMAIL
+import {
+    sendPaymentConfirmedEmail,
+    sendOrderShippedEmail,
+    sendReadyForPickupEmail,
+    sendOrderCompletedEmail,
+} from "@/lib/email";
+
 import { reverseInventoryAllocation } from "@/lib/inventory/reverseInventoryAllocation";
 import { updateProductStock } from "@/lib/products/updateProductStock";
 
@@ -30,7 +36,6 @@ export async function PUT(
             );
         }
 
-        // Guardamos los estados ANTERIORES para comparar y disparar emails
         const wasCancelled = order.status === "cancelled";
         const wasPaid = order.paymentStatus === "paid";
         const oldStatus = order.status;
@@ -39,26 +44,22 @@ export async function PUT(
         let emailToSend: "shipped" | "ready" | "completed" | null = null;
 
         // ==========================================
-        // 1. EVALUAR NUEVOS ESTADOS OBJETIVO
+        // EVALUAR NUEVOS ESTADOS OBJETIVO
         // ==========================================
         const targetPaymentStatus = body.paymentStatus || order.paymentStatus;
         const targetStatus = body.status || order.status;
 
-        // ==========================================
-        // 2. REGLA DE NEGOCIO: Bloqueo por falta de pago
-        // ==========================================
+        // REGLA DE NEGOCIO: Bloqueo por falta de pago
         const advancedStates = [
             "processing",
             "shipped",
             "ready_for_pickup",
             "completed",
         ];
-
-        // Si quieren avanzar la orden, NO está pagada, y NO es un pago en efectivo (cash)
         if (
             advancedStates.includes(targetStatus) &&
             targetPaymentStatus !== "paid" &&
-            order.paymentMethod.method !== "cash" // Ajustá esto según cómo guardes el método exacto
+            order.paymentMethod?.method !== "cash"
         ) {
             await session.abortTransaction();
             return Response.json(
@@ -70,7 +71,7 @@ export async function PUT(
         }
 
         // ==========================================
-        // 3. ACTUALIZAR PAGO
+        // ACTUALIZAR PAGO
         // ==========================================
         if (body.paymentStatus && body.paymentStatus !== order.paymentStatus) {
             order.paymentStatus = body.paymentStatus;
@@ -78,7 +79,6 @@ export async function PUT(
             if (body.paymentStatus === "paid" && !wasPaid) {
                 justBecamePaid = true;
 
-                // Automatización: Pendiente -> Procesando
                 if (order.status === "pending" && targetStatus === "pending") {
                     order.status = "processing";
                 }
@@ -86,15 +86,13 @@ export async function PUT(
         }
 
         // ==========================================
-        // 4. ACTUALIZAR ESTADO GENERAL (STOCK Y EVENTOS)
+        // ACTUALIZAR ESTADO GENERAL (STOCK Y EVENTOS)
         // ==========================================
-        // Volvemos a leer targetStatus por si la automatización de arriba lo cambió a 'processing'
         const finalStatus = body.status || order.status;
 
         if (finalStatus !== oldStatus) {
             const willBeCancelled = finalStatus === "cancelled";
 
-            // Control de Inventario (Cancelar vs Revivir)
             if (!wasCancelled && willBeCancelled) {
                 if (order.inventoryAllocatedAt) {
                     await reverseInventoryAllocation(order.id, session);
@@ -119,7 +117,7 @@ export async function PUT(
                 }
             }
 
-            // Detección de eventos para notificar al cliente después de la transacción
+            // Marcamos qué correo hay que enviar al finalizar
             if (finalStatus === "shipped") emailToSend = "shipped";
             if (finalStatus === "ready_for_pickup") emailToSend = "ready";
             if (finalStatus === "completed") emailToSend = "completed";
@@ -127,30 +125,31 @@ export async function PUT(
             order.status = finalStatus;
         }
 
-        // Guardamos la orden con la sesión atada
         await order.save({ session });
         await session.commitTransaction();
 
         // ==========================================
-        // 5. POST-TRANSACCIÓN (NOTIFICACIONES)
+        // POST-TRANSACCIÓN: ENVÍO DE EMAILS
         // ==========================================
-        // Los correos no deben bloquear la transacción de la DB
+        // Lo ponemos en un try/catch independiente. Si el mail falla (ej. Resend está caído),
+        // no le tiramos un error 500 al administrador porque la BD ya se actualizó bien.
+        try {
+            if (justBecamePaid) {
+                await sendPaymentConfirmedEmail(order);
+            }
 
-        if (justBecamePaid) {
-            sendPaymentConfirmedEmail(order).catch((err) =>
-                console.error("Email de pago falló:", err),
+            if (emailToSend === "shipped") {
+                await sendOrderShippedEmail(order);
+            } else if (emailToSend === "ready") {
+                await sendReadyForPickupEmail(order);
+            } else if (emailToSend === "completed") {
+                await sendOrderCompletedEmail(order);
+            }
+        } catch (emailError) {
+            console.error(
+                "Error silencioso enviando notificaciones por email:",
+                emailError,
             );
-        }
-
-        if (emailToSend === "shipped") {
-            // ej: sendOrderShippedEmail(order, body.trackingNumber).catch(console.error);
-            console.log("Acá mandarías el mail de ENVIADO");
-        } else if (emailToSend === "ready") {
-            // ej: sendReadyForPickupEmail(order).catch(console.error);
-            console.log("Acá mandarías el mail de LISTO PARA RETIRAR");
-        } else if (emailToSend === "completed") {
-            // ej: sendOrderCompletedEmail(order).catch(console.error);
-            console.log("Acá mandarías el mail de GRACIAS POR TU COMPRA");
         }
 
         return Response.json({ ok: true });
