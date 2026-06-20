@@ -22,7 +22,7 @@ export async function POST(req: Request) {
                 },
             },
         };
-        console.log("dataWithEmail>>>", dataWithEmail);
+
         const order = await createAdminOrder(dataWithEmail);
 
         return NextResponse.json({
