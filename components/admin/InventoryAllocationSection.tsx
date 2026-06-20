@@ -23,6 +23,7 @@ type AllocationSuggestion = {
 type ExistingAllocation = {
     inventoryItemId: string;
     quantity: number;
+    serialNumber?: string; // Añadido para poder leer el serial desde la orden
 };
 
 type OrderItem = {
@@ -297,27 +298,42 @@ export function InventoryAllocationSection({
                                 <div className="space-y-2">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {orderItem?.allocations?.map(
-                                            (allocation) => (
-                                                <div
-                                                    key={
-                                                        allocation.inventoryItemId
-                                                    }
-                                                    className="flex items-center gap-3 p-3 rounded-xl border border-green-500/20 bg-green-500/10"
-                                                >
-                                                    <div className="flex flex-col">
-                                                        <span className="text-sm text-white font-mono">
-                                                            {itemSuggestion.isSerialized
-                                                                ? allocation.inventoryItemId
-                                                                : `Lote ${allocation.inventoryItemId.slice(-6)}`}
-                                                        </span>
-                                                        <span className="text-xs text-green-300">
-                                                            {itemSuggestion.isSerialized
-                                                                ? "Serial asignado"
-                                                                : `Cantidad: ${allocation.quantity}`}
-                                                        </span>
+                                            (allocation) => {
+                                                // Buscamos el serial en las sugerencias como respaldo
+                                                const matchedSuggestion =
+                                                    itemSuggestion.suggestions.find(
+                                                        (s) =>
+                                                            s.inventoryItemId ===
+                                                            allocation.inventoryItemId,
+                                                    );
+                                                // Preferimos el serial que viene en la orden, luego el de sugerencias, y por último el ID
+                                                const serialToShow =
+                                                    allocation.serialNumber ||
+                                                    matchedSuggestion?.serialNumber ||
+                                                    allocation.inventoryItemId;
+
+                                                return (
+                                                    <div
+                                                        key={
+                                                            allocation.inventoryItemId
+                                                        }
+                                                        className="flex items-center gap-3 p-3 rounded-xl border border-green-500/20 bg-green-500/10"
+                                                    >
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm text-white font-mono">
+                                                                {itemSuggestion.isSerialized
+                                                                    ? serialToShow
+                                                                    : `Lote ${allocation.inventoryItemId.slice(-6)}`}
+                                                            </span>
+                                                            <span className="text-xs text-green-300">
+                                                                {itemSuggestion.isSerialized
+                                                                    ? "Serial asignado"
+                                                                    : `Cantidad: ${allocation.quantity}`}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ),
+                                                );
+                                            },
                                         )}
                                     </div>
                                 </div>
