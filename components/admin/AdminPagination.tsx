@@ -1,17 +1,17 @@
 "use client";
 
+// NOTA: Para que funcione en tu proyecto real de Next.js, restaura estas importaciones:
 import Link from "next/link";
-
 import { usePathname, useSearchParams } from "next/navigation";
 
 interface Props {
     currentPage: number;
     totalPages: number;
-    total: number;
-    perPage: number;
+    totalItems: number; // Antes 'total'
+    limit: number; // Antes 'perPage'
 }
 
-const PER_PAGE_OPTIONS = [10, 15, 20] as const;
+const LIMIT_OPTIONS = [10, 15, 20] as const; // Antes 'PER_PAGE_OPTIONS'
 
 // =========================
 // HELPERS
@@ -19,12 +19,10 @@ const PER_PAGE_OPTIONS = [10, 15, 20] as const;
 
 const buildPages = (currentPage: number, totalPages: number) => {
     const pages: (number | "...")[] = [];
-
     const delta = 2;
 
     for (let i = 1; i <= totalPages; i++) {
         const isEdge = i === 1 || i === totalPages;
-
         const isNearCurrent =
             i >= currentPage - delta && i <= currentPage + delta;
 
@@ -45,30 +43,33 @@ const buildPages = (currentPage: number, totalPages: number) => {
 export function AdminPagination({
     currentPage,
     totalPages,
-    total,
-    perPage,
+    totalItems,
+    limit,
 }: Props) {
     const pathname = usePathname();
-
     const searchParams = useSearchParams();
 
     // =========================
     // URL BUILDER
     // =========================
 
-    const buildUrl = (nextPage: number, nextPerPage?: number) => {
+    const buildUrl = (nextPage: number, nextLimit?: number) => {
         const params = new URLSearchParams(searchParams.toString());
 
         params.set("page", String(nextPage));
 
-        if (nextPerPage) {
-            params.set("per_page", String(nextPerPage));
+        if (nextLimit) {
+            // Cambiamos "per_page" a "limit" para mantener coherencia con el backend
+            params.set("limit", String(nextLimit));
         }
 
         return `${pathname}?${params.toString()}`;
     };
 
     const pages = buildPages(currentPage, totalPages);
+
+    // Si no hay ítems, no mostramos la paginación
+    if (totalItems === 0) return null;
 
     return (
         <div
@@ -84,7 +85,7 @@ export function AdminPagination({
         "
         >
             {/* ========================= */}
-            {/* TOTAL + PER PAGE */}
+            {/* TOTAL + LIMIT OPTIONS */}
             {/* ========================= */}
 
             <div
@@ -101,8 +102,7 @@ export function AdminPagination({
                     text-gray-400
                 "
                 >
-                    {total} resultado
-                    {total !== 1 ? "s" : ""}
+                    {totalItems} resultado{totalItems !== 1 ? "s" : ""}
                 </p>
 
                 <div
@@ -112,10 +112,10 @@ export function AdminPagination({
                     gap-1
                 "
                 >
-                    {PER_PAGE_OPTIONS.map((option) => (
+                    {LIMIT_OPTIONS.map((option) => (
                         <Link
                             key={option}
-                            href={buildUrl(1, option)}
+                            href={buildUrl(1, option)} // Al cambiar el límite, volvemos a la pág 1
                             className={`
                                     px-2.5
                                     py-1
@@ -123,8 +123,8 @@ export function AdminPagination({
                                     text-xs
                                     transition-colors
                                     ${
-                                        perPage === option
-                                            ? "bg-brand text-white font-medium"
+                                        limit === option
+                                            ? "bg-brand text-white font-medium" // Asumo que "bg-brand" está en tu tailwind config
                                             : "text-gray-400 hover:text-white hover:bg-gray-800"
                                     }
                                 `}
@@ -136,7 +136,7 @@ export function AdminPagination({
             </div>
 
             {/* ========================= */}
-            {/* PAGINATION */}
+            {/* PAGINATION CONTROLS */}
             {/* ========================= */}
 
             {totalPages > 1 && (
@@ -202,7 +202,7 @@ export function AdminPagination({
                         return (
                             <Link
                                 key={page}
-                                href={buildUrl(page)}
+                                href={buildUrl(page as number)}
                                 className={`
                                         w-8
                                         h-8

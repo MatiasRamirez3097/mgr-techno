@@ -37,13 +37,14 @@ export type GetProductsResponse = {
 
 export type ProductFilters = {
     onSale?: boolean;
-    category?: string;
     categoryId?: string;
+    category?: string;
     search?: string;
     page?: number;
     perPage?: number;
-    orderby?: ProductOrderBy;
+    orderby?: string;
     adminView?: boolean;
+    limit?: number;
     status?: "publish" | "private" | "draft" | "pending_review";
 };
 
