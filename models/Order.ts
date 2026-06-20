@@ -13,7 +13,7 @@ export const OrderSchema = new Schema(
             index: true,
             required: true,
         },
-        customerEmail: { type: String, required: true },
+        customerEmail: { type: String, required: false },
         status: {
             type: String,
             enum: [
