@@ -1,7 +1,7 @@
 export type OrderDTO = {
     id: string;
     customerId: string | null;
-    customerEmail: string | null;
+    customerEmail: string;
     items: {
         productId: string;
         name: string;
