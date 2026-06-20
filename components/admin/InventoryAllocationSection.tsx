@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
 import { useRouter } from "next/navigation";
 
 type Suggestion = {
@@ -14,11 +15,8 @@ type AllocationSuggestion = {
     productId: string;
     productName: string;
     quantity: number;
-
     isSerialized: boolean;
-
     hasInsufficientInventory: boolean;
-
     suggestions: Suggestion[];
 };
 
@@ -31,17 +29,13 @@ type OrderItem = {
     productId: string;
     name: string;
     quantity: number;
-
     allocations?: ExistingAllocation[];
 };
 
 type Props = {
     orderId: string;
-
     inventoryAllocatedAt?: string | null;
-
     items: OrderItem[];
-
     allocationSuggestions: AllocationSuggestion[];
 };
 
@@ -52,41 +46,51 @@ export function InventoryAllocationSection({
     allocationSuggestions,
 }: Props) {
     const router = useRouter();
-
     const isAllocated = !!inventoryAllocatedAt;
 
     const [loading, setLoading] = useState(false);
-
     const [error, setError] = useState<string | null>(null);
-
     const [success, setSuccess] = useState(false);
 
     // ============================================
-    // INITIAL STATE
+    // INITIAL STATE (PRE-SELECCIÓN FIFO)
     // ============================================
-
     const initialAllocations = useMemo(() => {
-        return allocationSuggestions.map((item) => ({
-            productId: item.productId,
-
-            allocations: item.suggestions.map((s) => ({
-                inventoryItemId: s.inventoryItemId,
-
-                quantity: s.quantity,
-            })),
-        }));
+        return allocationSuggestions.map((item) => {
+            if (item.isSerialized) {
+                // Para serializados: pre-seleccionamos solo los primeros X sugeridos (FIFO)
+                // aunque el backend nos haya devuelto todos los disponibles.
+                const fifoSelection = item.suggestions.slice(0, item.quantity);
+                return {
+                    productId: item.productId,
+                    allocations: fifoSelection.map((s) => ({
+                        inventoryItemId: s.inventoryItemId,
+                        quantity: s.quantity,
+                    })),
+                };
+            } else {
+                // Para lotes: asignamos exactamente lo sugerido
+                return {
+                    productId: item.productId,
+                    allocations: item.suggestions.map((s) => ({
+                        inventoryItemId: s.inventoryItemId,
+                        quantity: s.quantity,
+                    })),
+                };
+            }
+        });
     }, [allocationSuggestions]);
 
     const [selectedAllocations, setSelectedAllocations] =
         useState(initialAllocations);
 
     // ============================================
-    // SERIALIZED TOGGLE
+    // SERIALIZED TOGGLE CON LÍMITE
     // ============================================
-
     function toggleSerializedAllocation(
         productId: string,
         inventoryItemId: string,
+        maxQuantity: number,
     ) {
         setSelectedAllocations((prev) =>
             prev.map((item) => {
@@ -96,19 +100,27 @@ export function InventoryAllocationSection({
                     (a) => a.inventoryItemId === inventoryItemId,
                 );
 
+                // Si ya está tildado, lo destildamos
                 if (exists) {
                     return {
                         ...item,
-
                         allocations: item.allocations.filter(
                             (a) => a.inventoryItemId !== inventoryItemId,
                         ),
                     };
                 }
 
+                // Si lo queremos tildar, verificamos no pasarnos del límite de la orden
+                if (item.allocations.length >= maxQuantity) {
+                    alert(
+                        `Solo puedes asignar ${maxQuantity} seriales para este producto.`,
+                    );
+                    return item;
+                }
+
+                // Lo agregamos
                 return {
                     ...item,
-
                     allocations: [
                         ...item.allocations,
                         {
@@ -124,7 +136,6 @@ export function InventoryAllocationSection({
     // ============================================
     // NON SERIALIZED QUANTITY
     // ============================================
-
     function updateNonSerializedQuantity(
         productId: string,
         inventoryItemId: string,
@@ -141,26 +152,18 @@ export function InventoryAllocationSection({
                 if (!exists) {
                     return {
                         ...item,
-
                         allocations: [
                             ...item.allocations,
-                            {
-                                inventoryItemId,
-                                quantity,
-                            },
+                            { inventoryItemId, quantity },
                         ],
                     };
                 }
 
                 return {
                     ...item,
-
                     allocations: item.allocations.map((a) =>
                         a.inventoryItemId === inventoryItemId
-                            ? {
-                                  ...a,
-                                  quantity,
-                              }
+                            ? { ...a, quantity }
                             : a,
                     ),
                 };
@@ -171,25 +174,33 @@ export function InventoryAllocationSection({
     // ============================================
     // SUBMIT
     // ============================================
-
     async function handleAllocate() {
         try {
             setLoading(true);
-
             setError(null);
-
             setSuccess(false);
+
+            // Validar que se hayan seleccionado la cantidad correcta de seriales
+            const missingAllocations = allocationSuggestions.some((sug) => {
+                const sel = selectedAllocations.find(
+                    (a) => a.productId === sug.productId,
+                );
+                if (sug.isSerialized) {
+                    return !sel || sel.allocations.length !== sug.quantity;
+                }
+                return false;
+            });
+
+            if (missingAllocations) {
+                throw new Error(
+                    "Por favor, asegúrate de seleccionar la cantidad exacta de números de serie requeridos.",
+                );
+            }
 
             const res = await fetch(`/api/admin/orders/${orderId}/allocate`, {
                 method: "POST",
-
-                headers: {
-                    "Content-Type": "application/json",
-                },
-
-                body: JSON.stringify({
-                    items: selectedAllocations,
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ items: selectedAllocations }),
             });
 
             const data = await res.json();
@@ -199,7 +210,6 @@ export function InventoryAllocationSection({
             }
 
             setSuccess(true);
-
             router.refresh();
         } catch (err: any) {
             setError(err.message || "Error asignando inventario");
@@ -223,18 +233,9 @@ export function InventoryAllocationSection({
                             ? `Asignado el ${new Date(
                                   inventoryAllocatedAt!,
                               ).toLocaleString("es-AR")}`
-                            : "Asigná seriales o lotes a los productos de la orden."}
+                            : "Revisa las sugerencias FIFO o selecciona seriales alternativos."}
                     </p>
                 </div>
-
-                {!isAllocated && (
-                    <button
-                        type="button"
-                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-medium text-white transition-colors"
-                    >
-                        Auto asignar FIFO
-                    </button>
-                )}
             </div>
 
             <div className="flex flex-col gap-6">
@@ -249,10 +250,15 @@ export function InventoryAllocationSection({
                             itemSuggestion.productId.toString(),
                     );
 
+                    const selectedCount =
+                        currentSelection?.allocations.length || 0;
+                    const isSelectionComplete =
+                        selectedCount === itemSuggestion.quantity;
+
                     return (
                         <div
                             key={itemSuggestion.productId}
-                            className="border border-gray-800 rounded-2xl p-4"
+                            className="border border-gray-800 rounded-2xl p-4 bg-gray-800/20"
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div>
@@ -260,9 +266,21 @@ export function InventoryAllocationSection({
                                         {itemSuggestion.productName}
                                     </h3>
 
-                                    <p className="text-xs text-gray-400 mt-1">
-                                        Cantidad: {itemSuggestion.quantity}
-                                    </p>
+                                    <div className="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                                        <span>
+                                            Requeridos:{" "}
+                                            {itemSuggestion.quantity}
+                                        </span>
+                                        {itemSuggestion.isSerialized &&
+                                            !isAllocated && (
+                                                <span
+                                                    className={`font-medium ${isSelectionComplete ? "text-green-400" : "text-amber-400"}`}
+                                                >
+                                                    (Seleccionados:{" "}
+                                                    {selectedCount})
+                                                </span>
+                                            )}
+                                    </div>
                                 </div>
 
                                 <span className="text-xs px-2 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
@@ -275,13 +293,8 @@ export function InventoryAllocationSection({
                             {/* ===================================== */}
                             {/* YA ASIGNADO */}
                             {/* ===================================== */}
-
                             {isAllocated ? (
                                 <div className="space-y-2">
-                                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                                        Inventario asignado
-                                    </p>
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {orderItem?.allocations?.map(
                                             (allocation) => (
@@ -292,12 +305,11 @@ export function InventoryAllocationSection({
                                                     className="flex items-center gap-3 p-3 rounded-xl border border-green-500/20 bg-green-500/10"
                                                 >
                                                     <div className="flex flex-col">
-                                                        <span className="text-sm text-white">
-                                                            {
-                                                                allocation.inventoryItemId
-                                                            }
+                                                        <span className="text-sm text-white font-mono">
+                                                            {itemSuggestion.isSerialized
+                                                                ? allocation.inventoryItemId
+                                                                : `Lote ${allocation.inventoryItemId.slice(-6)}`}
                                                         </span>
-
                                                         <span className="text-xs text-green-300">
                                                             {itemSuggestion.isSerialized
                                                                 ? "Serial asignado"
@@ -312,15 +324,19 @@ export function InventoryAllocationSection({
                             ) : (
                                 <>
                                     {/* ===================================== */}
-                                    {/* SUGERENCIAS */}
+                                    {/* SUGERENCIAS Y ALTERNATIVAS */}
                                     {/* ===================================== */}
-
                                     <div className="space-y-2">
                                         <p className="text-xs uppercase tracking-wide text-gray-500">
-                                            Sugerencias FIFO
+                                            {itemSuggestion.isSerialized
+                                                ? "Seriales disponibles"
+                                                : "Sugerencias FIFO"}
                                         </p>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {/* Añadimos scroll para los seriales si son muchos */}
+                                        <div
+                                            className={`grid grid-cols-1 md:grid-cols-2 gap-2 ${itemSuggestion.isSerialized ? "max-h-60 overflow-y-auto pr-2 custom-scrollbar" : ""}`}
+                                        >
                                             {itemSuggestion.suggestions.map(
                                                 (suggestion) => {
                                                     const checked =
@@ -335,7 +351,9 @@ export function InventoryAllocationSection({
                                                             key={
                                                                 suggestion.inventoryItemId
                                                             }
-                                                            className="flex items-center gap-3 p-3 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors"
+                                                            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer
+                                                            ${checked ? "border-brand/50 bg-brand/10" : "border-gray-800 hover:border-gray-700"}
+                                                        `}
                                                         >
                                                             {itemSuggestion.isSerialized ? (
                                                                 <input
@@ -347,9 +365,10 @@ export function InventoryAllocationSection({
                                                                         toggleSerializedAllocation(
                                                                             itemSuggestion.productId,
                                                                             suggestion.inventoryItemId,
+                                                                            itemSuggestion.quantity,
                                                                         )
                                                                     }
-                                                                    className="rounded border-gray-700 bg-gray-800 text-blue-500 focus:ring-blue-500"
+                                                                    className="rounded border-gray-700 bg-gray-800 text-brand focus:ring-brand w-4 h-4 cursor-pointer"
                                                                 />
                                                             ) : (
                                                                 <input
@@ -382,22 +401,19 @@ export function InventoryAllocationSection({
                                                                             ),
                                                                         )
                                                                     }
-                                                                    className="w-20 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm"
+                                                                    className="w-20 px-2 py-1 rounded-lg bg-gray-900 border border-gray-700 text-white text-sm focus:border-brand focus:outline-none"
                                                                 />
                                                             )}
 
                                                             <div className="flex flex-col">
-                                                                <span className="text-sm text-white">
+                                                                <span className="text-sm text-white font-mono">
                                                                     {suggestion.serialNumber ||
-                                                                        `Lote ${suggestion.inventoryItemId.slice(
-                                                                            -6,
-                                                                        )}`}
+                                                                        `Lote ${suggestion.inventoryItemId.slice(-6)}`}
                                                                 </span>
-
                                                                 <span className="text-xs text-gray-500">
                                                                     {itemSuggestion.isSerialized
-                                                                        ? "Serial sugerido FIFO"
-                                                                        : `Disponible: ${suggestion.availableQuantity}`}
+                                                                        ? "Disponible"
+                                                                        : `Stock del lote: ${suggestion.availableQuantity}`}
                                                                 </span>
                                                             </div>
                                                         </label>
@@ -411,7 +427,8 @@ export function InventoryAllocationSection({
                                         <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3">
                                             <p className="text-sm text-red-300">
                                                 Stock físico insuficiente para
-                                                este producto.
+                                                este producto. No se pueden
+                                                asignar todos los ítems.
                                             </p>
                                         </div>
                                     )}
@@ -443,7 +460,7 @@ export function InventoryAllocationSection({
                             type="button"
                             onClick={handleAllocate}
                             disabled={loading}
-                            className="px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-50 text-sm font-semibold text-white transition-colors"
+                            className="px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-50 text-sm font-semibold text-white transition-colors shadow-lg shadow-green-600/20"
                         >
                             {loading ? "Asignando..." : "Confirmar asignación"}
                         </button>

@@ -1,5 +1,3 @@
-// lib/inventory/getAllocationSuggestions.ts
-
 import { OrderModel, ProductModel, InventoryItemModel } from "@/models";
 
 export async function getAllocationSuggestions(orderId: string) {
@@ -22,21 +20,19 @@ export async function getAllocationSuggestions(orderId: string) {
             // ============================================
 
             if (product.hasSerialNumber) {
+                // TRAEMOS TODOS LOS SERIALES DISPONIBLES (quitamos el .limit)
                 const inventoryItems = await InventoryItemModel.find({
                     productId: item.productId,
                     status: "available",
                 })
-                    .sort({ createdAt: 1 })
-                    .limit(item.quantity)
+                    .sort({ createdAt: 1 }) // Sigue siendo FIFO
                     .lean();
 
                 return {
                     productId: item.productId.toString(),
                     productName: item.name,
                     quantity: item.quantity,
-
                     isSerialized: true,
-
                     hasInsufficientInventory:
                         inventoryItems.length < item.quantity,
 
@@ -50,7 +46,7 @@ export async function getAllocationSuggestions(orderId: string) {
             }
 
             // ============================================
-            // PRODUCTOS NO SERIALIZADOS
+            // PRODUCTOS NO SERIALIZADOS (Lotes) - Se mantiene igual
             // ============================================
 
             const lots = await InventoryItemModel.find({
@@ -61,7 +57,6 @@ export async function getAllocationSuggestions(orderId: string) {
                 .lean();
 
             let remaining = item.quantity;
-
             const suggestions = [];
 
             for (const lot of lots) {
@@ -87,11 +82,8 @@ export async function getAllocationSuggestions(orderId: string) {
                 productId: item.productId.toString(),
                 productName: item.name,
                 quantity: item.quantity,
-
                 isSerialized: false,
-
                 hasInsufficientInventory: remaining > 0,
-
                 suggestions,
             };
         }),
