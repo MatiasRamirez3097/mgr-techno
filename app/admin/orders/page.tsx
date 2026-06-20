@@ -169,8 +169,8 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                     <AdminPagination
                         currentPage={currentPage}
                         totalPages={totalPages}
-                        total={total}
-                        perPage={perPage}
+                        totalItems={total}
+                        limit={perPage}
                     />
                 </div>
             </div>
