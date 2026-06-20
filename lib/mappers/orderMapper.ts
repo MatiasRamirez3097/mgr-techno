@@ -9,7 +9,7 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
 
         customerId: order.customerId ? order.customerId.toString() : null,
 
-        customerEmail: order.customerEmail,
+        customerEmail: order.customerEmail ?? null,
 
         status: order.status,
 
