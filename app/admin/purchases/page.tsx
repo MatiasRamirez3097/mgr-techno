@@ -164,8 +164,8 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
                     <AdminPagination
                         currentPage={currentPage}
                         totalPages={totalPages}
-                        total={total}
-                        perPage={perPage}
+                        totalItems={total}
+                        limit={perPage}
                     />
                 </div>
             </div>

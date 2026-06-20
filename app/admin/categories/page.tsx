@@ -6,7 +6,7 @@ import { SyncButton } from "@/components/admin/SyncButton";
 import { CategoryModel } from "@/models/Category";
 import Image from "next/image";
 
-async function getAdminProducts(
+async function getAdminCategories(
     page: number,
     perPage: number,
     search?: string,
@@ -49,12 +49,12 @@ interface Props {
     }>;
 }
 
-export default async function AdminProductsPage({ searchParams }: Props) {
+export default async function AdminCategoriesPage({ searchParams }: Props) {
     const { page, per_page, search } = await searchParams;
     const currentPage = parseInt(page || "1");
     const perPage = parseInt(per_page || "20");
 
-    const { categories, total, totalPages } = await getAdminProducts(
+    const { categories, total, totalPages } = await getAdminCategories(
         currentPage,
         perPage,
         search,
@@ -176,8 +176,8 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     <AdminPagination
                         currentPage={currentPage}
                         totalPages={totalPages}
-                        total={total}
-                        perPage={perPage}
+                        totalItems={total}
+                        limit={12}
                     />
                 </div>
             </div>

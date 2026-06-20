@@ -6,10 +6,12 @@ import { AdminSearch } from "@/components/admin/AdminSearch";
 
 import { ProductsTable } from "@/components/admin/ProductsTable";
 
-import { getProducts } from "@/services/products/getProducts";
+import { getCatalogProducts } from "@/services/products/getCatalogProducts";
 
 interface Props {
     searchParams: Promise<{
+        category?: string;
+        categoryId: string;
         page?: string;
         per_page?: string;
         search?: string;
@@ -18,23 +20,27 @@ interface Props {
 }
 
 export default async function AdminProductsPage({ searchParams }: Props) {
-    const { page, per_page, search, status } = await searchParams;
+    // 1. Extraemos los parámetros de la URL
+    const params = await searchParams;
+    const page = Number(params.page) || 1;
 
-    const currentPage = Number(page) || 1;
-
-    const perPage = Number(per_page) || 20;
-
-    const { products, total, totalPages } = await getProducts({
-        search,
-
-        page: currentPage,
-
-        perPage,
-
+    // 2. Armamos el objeto de filtros
+    const filters = {
+        search: params.search as string,
+        category: params.category as string,
+        categoryId: params.categoryId as string,
+        status: params.status,
+        // ¡CRUCIAL!: Le decimos al servicio que somos el admin
+        // para que también nos traiga los productos en "draft" o "hidden"
         adminView: true,
-
-        status: status,
-    });
+        orderby: "date_desc", // Orden por defecto en el admin (los más nuevos primero)
+    };
+    // 3. LA MAGIA: Una sola llamada trae los productos y la paginación lista
+    const { products, pagination } = await getCatalogProducts(
+        filters,
+        page,
+        10,
+    ); //
 
     return (
         <div>
@@ -123,12 +129,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     border-gray-800
                 "
                 >
-                    <AdminPagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        total={total}
-                        perPage={perPage}
-                    />
+                    <AdminPagination {...pagination} />
                 </div>
             </div>
         </div>

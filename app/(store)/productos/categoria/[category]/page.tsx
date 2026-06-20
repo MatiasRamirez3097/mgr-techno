@@ -31,7 +31,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     const { category } = await params;
 
     const { search, page, orderby } = await searchParams;
-
+    console.log(category);
     return (
         <ProductsView
             category={category}
