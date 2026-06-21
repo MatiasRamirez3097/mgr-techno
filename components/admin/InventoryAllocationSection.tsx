@@ -21,9 +21,9 @@ type AllocationSuggestion = {
 };
 
 type ExistingAllocation = {
-    inventoryItemId: string;
+    inventoryItemId: string | any; // Acepta string o el objeto populado de MongoDB
     quantity: number;
-    serialNumber?: string; // Añadido para poder leer el serial desde la orden
+    serialNumber?: string;
 };
 
 type OrderItem = {
@@ -59,8 +59,6 @@ export function InventoryAllocationSection({
     const initialAllocations = useMemo(() => {
         return allocationSuggestions.map((item) => {
             if (item.isSerialized) {
-                // Para serializados: pre-seleccionamos solo los primeros X sugeridos (FIFO)
-                // aunque el backend nos haya devuelto todos los disponibles.
                 const fifoSelection = item.suggestions.slice(0, item.quantity);
                 return {
                     productId: item.productId,
@@ -70,7 +68,6 @@ export function InventoryAllocationSection({
                     })),
                 };
             } else {
-                // Para lotes: asignamos exactamente lo sugerido
                 return {
                     productId: item.productId,
                     allocations: item.suggestions.map((s) => ({
@@ -101,7 +98,6 @@ export function InventoryAllocationSection({
                     (a) => a.inventoryItemId === inventoryItemId,
                 );
 
-                // Si ya está tildado, lo destildamos
                 if (exists) {
                     return {
                         ...item,
@@ -111,7 +107,6 @@ export function InventoryAllocationSection({
                     };
                 }
 
-                // Si lo queremos tildar, verificamos no pasarnos del límite de la orden
                 if (item.allocations.length >= maxQuantity) {
                     alert(
                         `Solo puedes asignar ${maxQuantity} seriales para este producto.`,
@@ -119,7 +114,6 @@ export function InventoryAllocationSection({
                     return item;
                 }
 
-                // Lo agregamos
                 return {
                     ...item,
                     allocations: [
@@ -181,7 +175,6 @@ export function InventoryAllocationSection({
             setError(null);
             setSuccess(false);
 
-            // Validar que se hayan seleccionado la cantidad correcta de seriales
             const missingAllocations = allocationSuggestions.some((sug) => {
                 const sel = selectedAllocations.find(
                     (a) => a.productId === sug.productId,
@@ -298,32 +291,49 @@ export function InventoryAllocationSection({
                                 <div className="space-y-2">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {orderItem?.allocations?.map(
-                                            (allocation) => {
-                                                // Buscamos el serial en las sugerencias como respaldo
+                                            (allocation, idx) => {
+                                                // NUEVO: Normalizamos el ID por si viene como String o como Objeto Populado
+                                                const invId =
+                                                    typeof allocation.inventoryItemId ===
+                                                    "object"
+                                                        ? allocation
+                                                              .inventoryItemId
+                                                              ._id
+                                                        : allocation.inventoryItemId;
+
+                                                const populatedSerial =
+                                                    typeof allocation.inventoryItemId ===
+                                                    "object"
+                                                        ? allocation
+                                                              .inventoryItemId
+                                                              .serialNumber
+                                                        : undefined;
+
+                                                // Si por algún milagro sigue en sugerencias, lo sacamos de ahí
                                                 const matchedSuggestion =
                                                     itemSuggestion.suggestions.find(
                                                         (s) =>
                                                             s.inventoryItemId ===
-                                                            allocation.inventoryItemId,
+                                                            invId,
                                                     );
-                                                // Preferimos el serial que viene en la orden, luego el de sugerencias, y por último el ID
+
+                                                // Prioridades: 1. Serial guardado plano, 2. Serial populado de MongoDB, 3. Sugerencia, 4. ID crudo
                                                 const serialToShow =
                                                     allocation.serialNumber ||
+                                                    populatedSerial ||
                                                     matchedSuggestion?.serialNumber ||
-                                                    allocation.inventoryItemId;
+                                                    `Ref: ${String(invId).slice(-6)}`;
 
                                                 return (
                                                     <div
-                                                        key={
-                                                            allocation.inventoryItemId
-                                                        }
+                                                        key={invId || idx}
                                                         className="flex items-center gap-3 p-3 rounded-xl border border-green-500/20 bg-green-500/10"
                                                     >
                                                         <div className="flex flex-col">
                                                             <span className="text-sm text-white font-mono">
                                                                 {itemSuggestion.isSerialized
                                                                     ? serialToShow
-                                                                    : `Lote ${allocation.inventoryItemId.slice(-6)}`}
+                                                                    : `Lote ${String(invId).slice(-6)}`}
                                                             </span>
                                                             <span className="text-xs text-green-300">
                                                                 {itemSuggestion.isSerialized
@@ -349,7 +359,6 @@ export function InventoryAllocationSection({
                                                 : "Sugerencias FIFO"}
                                         </p>
 
-                                        {/* Añadimos scroll para los seriales si son muchos */}
                                         <div
                                             className={`grid grid-cols-1 md:grid-cols-2 gap-2 ${itemSuggestion.isSerialized ? "max-h-60 overflow-y-auto pr-2 custom-scrollbar" : ""}`}
                                         >

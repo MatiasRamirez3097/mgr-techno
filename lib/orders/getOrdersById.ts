@@ -9,7 +9,12 @@ import { mapOrderToDTO } from "../mappers/orderMapper";
 export async function getOrdersById(id: string): Promise<OrderDTO | null> {
     await connectDB();
 
-    const order = await OrderModel.findById(id).lean();
+    const order = await OrderModel.findById(id)
+        .populate({
+            path: "items.allocations.inventoryItemId",
+            select: "serialNumber",
+        })
+        .lean();
 
     if (!order) {
         return null;
