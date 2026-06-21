@@ -1,18 +1,12 @@
-// /lib/mappers/orderMapper.ts
 import type { OrderDTO } from "@/types/shared/order";
-
 import type { OrderDB, OrderItemDB } from "@/types/backend/order";
 
 export function mapOrderToDTO(order: OrderDB): OrderDTO {
     return {
         id: order._id.toString(),
-
         customerId: order.customerId ? order.customerId.toString() : null,
-
         customerEmail: order.customerEmail ?? "",
-
         status: order.status,
-
         billing: {
             firstName: order.billing?.firstName || "",
             lastName: order.billing?.lastName || "",
@@ -27,7 +21,6 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
                 number: order.billing?.document?.number || "",
             },
         },
-
         shipping: {
             firstName: order.shipping?.firstName || "",
             lastName: order.shipping?.lastName || "",
@@ -37,16 +30,34 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
             postcode: order.shipping?.postcode || "",
             country: order.shipping?.country || "AR",
         },
-
         items:
-            order.items.map((item) => ({
+            order.items.map((item: any) => ({
                 productId: item.productId.toString(),
                 name: item.name,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 total: item.total,
-            })) || [],
+                // NUEVO: Agregamos las asignaciones si existen
+                allocations:
+                    item.allocations?.map((alloc: any) => {
+                        // Verificamos si inventoryItemId está populado como un objeto
+                        const isPopulated =
+                            alloc.inventoryItemId &&
+                            typeof alloc.inventoryItemId === "object";
 
+                        return {
+                            // Si está populado, extraemos el _id, si no usamos el valor directo
+                            inventoryItemId: isPopulated
+                                ? alloc.inventoryItemId._id.toString()
+                                : alloc.inventoryItemId.toString(),
+                            quantity: alloc.quantity,
+                            // Extraemos el serialNumber si está en el objeto populado
+                            serialNumber: isPopulated
+                                ? alloc.inventoryItemId.serialNumber
+                                : undefined,
+                        };
+                    }) || [],
+            })) || [],
         payments:
             order.payments.map((p) => ({
                 id: p._id.toString(),
@@ -57,15 +68,12 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
             })) || [],
         paymentStatus: order.paymentStatus || "",
         shippingMethod: order.shippingMethod,
-
         subtotal: order.subtotal,
         total: order.total,
-
         datePaid: order.datePaid ? order.datePaid.toISOString() : null,
-
         notes: order.notes || "",
         vouchers:
-            order.vouchers?.map((p) => ({
+            order.vouchers?.map((p: any) => ({
                 id: p._id.toString(),
                 type: p.type,
                 number: p.number,
