@@ -4,6 +4,7 @@ import { ProductCard } from "@/components/productCard/ProductCard";
 import { SortSelector } from "@/components/products/SortSelector";
 import { AdminPagination } from "../admin/AdminPagination";
 import type { ProductOrderBy } from "@/types/shared/product";
+import { FilterButton } from "../layout/FilterButton";
 
 interface Props {
     categoryId?: string;
@@ -31,7 +32,7 @@ export async function ProductsView({
     const currentLimit = Number(limit) || 12;
 
     // CORRECCIÓN VITAL: Separamos los argumentos en (1) filtros, (2) página, (3) límite
-    const { products, pagination } = await getCatalogProducts(
+    const { availableBrands, products, pagination } = await getCatalogProducts(
         {
             onSale,
             category,
@@ -61,6 +62,7 @@ export async function ProductsView({
                 </div>
 
                 <SortSelector />
+                <FilterButton brands={availableBrands} />
             </div>
 
             {products.length === 0 ? (

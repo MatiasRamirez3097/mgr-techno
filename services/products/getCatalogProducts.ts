@@ -6,13 +6,13 @@ import { mapProductToDTO } from "@/lib/mappers/productMapper";
 import { Types } from "mongoose";
 import type { ProductFilters } from "@/types/shared/product";
 
+// NOTA: Asegurate de agregar `brand?: string` a tu interfaz ProductFilters en tu archivo de tipos
 export async function getCatalogProducts(
-    filters: ProductFilters = {},
+    filters: ProductFilters & { brand?: string } = {},
     page: number = 1,
     limit: number = 12,
 ) {
     await connectDB();
-    console.log("filters category", filters.category);
     const pipeline: any[] = [];
     const skip = (page - 1) * limit;
 
@@ -61,65 +61,61 @@ export async function getCatalogProducts(
     }
 
     // ==========================================
-    // 2. ETAPA DE FILTRADO
+    // 2. ETAPA DE FILTRADO BASE (Sin incluir marca)
     // ==========================================
-    const matchStage: any = {};
+    const baseMatchStage: any = {};
 
     if (filters.status) {
-        matchStage.status = filters.status;
+        baseMatchStage.status = filters.status;
     } else if (!filters.adminView) {
-        matchStage.status = "publish";
+        baseMatchStage.status = "publish";
     }
 
     if (filters.onSale) {
-        matchStage.salePrice = { $exists: true, $ne: null, $gt: 0 };
+        baseMatchStage.salePrice = { $exists: true, $ne: null, $gt: 0 };
     }
 
     if (filters.category) {
         const category = await CategoryModel.findOne({
             slug: filters.category,
         }).lean();
-        console.log(category);
+
         if (category) {
             const childIds = await getCategoriesDescendants(
                 category._id.toString(),
                 true,
             );
-            matchStage.categories = {
+            baseMatchStage.categories = {
                 $in: [category._id, ...childIds],
             };
         } else {
-            matchStage._id = null;
+            baseMatchStage._id = null;
         }
     }
-    console.log(matchStage.categories);
 
-    if (Object.keys(matchStage).length > 0) {
-        pipeline.push({ $match: matchStage });
+    if (Object.keys(baseMatchStage).length > 0) {
+        pipeline.push({ $match: baseMatchStage });
     }
 
     // ==========================================
-    // 3. ETAPA DE ORDENAMIENTO ($sort) OPTIMIZADA
+    // 3. ETAPA DE ORDENAMIENTO ($sort)
     // ==========================================
-
     let sortStage: any = {};
 
     if (
         filters.search &&
         (!filters.orderby || filters.orderby === "relevance")
     ) {
-        // En Atlas Search es "searchScore", no "textScore"
         sortStage = { score: { $meta: "searchScore" } };
     } else {
-        // Usamos tu campo indexado isAvailable directamente para máxima velocidad
         sortStage = { isAvailable: -1 };
 
         switch (filters.orderby) {
             case "price_asc":
-                sortStage.effectivePrice = 1;
+                sortStage.regularPrice = 1;
                 break;
             case "price_desc":
-                sortStage.effectivePrice = -1;
+                sortStage.regularPrice = -1;
                 break;
             case "date_desc":
             case "newest":
@@ -140,36 +136,80 @@ export async function getCatalogProducts(
     pipeline.push({ $sort: sortStage });
 
     // ==========================================
-    // 4. ETAPA DE PAGINACIÓN ($facet)
+    // 4. PREPARACIÓN DEL FILTRO DE MARCA
     // ==========================================
+    const brandMatchStage: any = {};
+    if (filters.brand) {
+        // Soporta múltiples marcas ("id1,id2,id3")
+        const brandIds = filters.brand
+            .split(",")
+            .filter(Boolean)
+            .map((id: string) => new Types.ObjectId(id));
+
+        if (brandIds.length > 0) {
+            brandMatchStage.brand = { $in: brandIds };
+        }
+    }
+
+    // ==========================================
+    // 5. ETAPA DE PAGINACIÓN Y FACETAS DINÁMICAS ($facet)
+    // ==========================================
+    const metadataFacet: any[] = [];
+    const dataFacet: any[] = [];
+
+    // IMPORTANTE: El filtro de marca solo se aplica a los datos finales y al conteo,
+    // pero NO se aplica a la extracción de marcas disponibles.
+    if (Object.keys(brandMatchStage).length > 0) {
+        metadataFacet.push({ $match: brandMatchStage });
+        dataFacet.push({ $match: brandMatchStage });
+    }
+
+    metadataFacet.push({ $count: "total" });
+
+    dataFacet.push({ $skip: skip });
+    dataFacet.push({ $limit: limit });
+    dataFacet.push({
+        $project: {
+            _id: 1,
+            name: 1,
+            slug: 1,
+            regularPrice: 1,
+            salePrice: 1,
+            image: 1,
+            availableStock: 1,
+            status: 1,
+            categories: 1,
+            taxRate: 1,
+            effectivePrice: 1,
+            images: 1,
+            sku: 1,
+            gtin: 1,
+            brand: 1,
+            description: 1,
+            shortDescription: 1,
+            weight: 1,
+        },
+    });
+
     pipeline.push({
         $facet: {
-            metadata: [{ $count: "total" }],
-            data: [
-                { $skip: skip },
-                { $limit: limit },
+            metadata: metadataFacet,
+            data: dataFacet,
+            // Magia: Obtenemos todas las marcas de los productos de esta búsqueda
+            brands: [
+                { $group: { _id: "$brand" } }, // Agrupamos por ID de marca
+                { $match: { _id: { $ne: null } } }, // Descartamos productos sin marca
                 {
-                    $project: {
-                        _id: 1,
-                        name: 1,
-                        slug: 1,
-                        regularPrice: 1,
-                        salePrice: 1,
-                        image: 1,
-                        availableStock: 1,
-                        status: 1,
-                        categories: 1,
-                        taxRate: 1,
-                        effectivePrice: 1,
-                        images: 1,
-                        sku: 1,
-                        gtin: 1,
-                        brand: 1,
-                        description: 1,
-                        shortDescription: 1,
-                        weight: 1,
+                    $lookup: {
+                        from: "brands", // Colección de marcas
+                        localField: "_id",
+                        foreignField: "_id",
+                        as: "brandInfo",
                     },
                 },
+                { $unwind: "$brandInfo" },
+                { $project: { _id: 1, name: "$brandInfo.name" } },
+                { $sort: { name: 1 } }, // Ordenamos alfabéticamente
             ],
         },
     });
@@ -183,9 +223,16 @@ export async function getCatalogProducts(
         const formattedProducts = result.data.map((product: any) =>
             mapProductToDTO(product),
         );
-        console.log(formattedProducts);
+
+        // Formateamos las marcas encontradas para el Drawer
+        const availableBrands = result.brands.map((b: any) => ({
+            _id: b._id.toString(),
+            name: b.name,
+        }));
+
         return {
             products: formattedProducts,
+            availableBrands, // <- Devolvemos la nueva lista
             pagination: {
                 totalItems,
                 totalPages,
@@ -197,6 +244,7 @@ export async function getCatalogProducts(
         console.error("Error en getCatalogProducts (Pipeline):", error);
         return {
             products: [],
+            availableBrands: [],
             pagination: { totalItems: 0, totalPages: 0, currentPage: 1, limit },
         };
     }
