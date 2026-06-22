@@ -11,7 +11,7 @@ interface Props {
     limit: number; // Antes 'perPage'
 }
 
-const LIMIT_OPTIONS = [10, 15, 20] as const; // Antes 'PER_PAGE_OPTIONS'
+const LIMIT_OPTIONS = [12, 20, 32] as const; // Antes 'PER_PAGE_OPTIONS'
 
 // =========================
 // HELPERS

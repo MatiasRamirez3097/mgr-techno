@@ -10,6 +10,7 @@ interface Props {
     }>;
 
     searchParams: Promise<{
+        limit?: string;
         search?: string;
         page?: string;
         orderby?: ProductOrderBy;
@@ -30,10 +31,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CategoryPage({ params, searchParams }: Props) {
     const { category } = await params;
 
-    const { search, page, orderby } = await searchParams;
+    const { limit, search, page, orderby } = await searchParams;
     console.log(category);
     return (
         <ProductsView
+            limit={limit}
             category={category}
             search={search}
             page={page}
