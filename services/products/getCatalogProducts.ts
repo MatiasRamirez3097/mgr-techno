@@ -110,10 +110,10 @@ export async function getCatalogProducts(
 
         switch (filters.orderby) {
             case "price_asc":
-                sortStage.regularPrice = 1;
+                sortStage.effectivePrice = 1;
                 break;
             case "price_desc":
-                sortStage.regularPrice = -1;
+                sortStage.effectivePrice = -1;
                 break;
             case "date_desc":
             case "newest":
