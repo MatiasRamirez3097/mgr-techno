@@ -7,6 +7,7 @@ import type { ProductOrderBy } from "@/types/shared/product";
 import { FilterButton } from "../layout/FilterButton";
 
 interface Props {
+    brand?: string;
     categoryId?: string;
     category?: string;
     search?: string;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export async function ProductsView({
+    brand,
     category,
     categoryId,
     onSale,
@@ -39,6 +41,7 @@ export async function ProductsView({
             categoryId,
             search,
             orderby,
+            brand,
         },
         currentPage,
         currentLimit,

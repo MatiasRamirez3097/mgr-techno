@@ -14,6 +14,8 @@ interface Props {
         search?: string;
         page?: string;
         orderby?: ProductOrderBy;
+        marca?: string;
+        brand?: string;
     }>;
 }
 
@@ -31,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CategoryPage({ params, searchParams }: Props) {
     const { category } = await params;
 
-    const { limit, search, page, orderby } = await searchParams;
+    const { limit, search, page, orderby, brand } = await searchParams;
     console.log(category);
     return (
         <ProductsView
@@ -40,6 +42,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
             search={search}
             page={page}
             orderby={orderby}
+            brand={brand}
         />
     );
 }
