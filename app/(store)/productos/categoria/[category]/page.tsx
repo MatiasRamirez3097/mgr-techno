@@ -14,7 +14,6 @@ interface Props {
         search?: string;
         page?: string;
         orderby?: ProductOrderBy;
-        marca?: string;
         brand?: string;
     }>;
 }
