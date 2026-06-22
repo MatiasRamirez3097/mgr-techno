@@ -108,8 +108,12 @@ export async function searchProducts(
             regularPrice: 1,
             salePrice: 1,
             image: 1,
+            images: 1,
             availableStock: 1,
             sku: 1,
+            taxRate: 1,
+            gtin: 1,
+            mpn: 1,
         },
     });
 
