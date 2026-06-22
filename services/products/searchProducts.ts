@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models";
 
 import { normalizeSearch } from "@/lib/search/normalize";
+import { mapProductToDTO } from "@/lib/mappers/productMapper";
 
 export async function searchProducts(
     search: string,
@@ -107,8 +108,12 @@ export async function searchProducts(
             regularPrice: 1,
             salePrice: 1,
             image: 1,
+            images: 1,
             availableStock: 1,
             sku: 1,
+            taxRate: 1,
+            gtin: 1,
+            mpn: 1,
         },
     });
 
@@ -116,13 +121,5 @@ export async function searchProducts(
     const products = await ProductModel.aggregate(pipeline);
 
     // Retornamos mapeando los datos tal cual los espera tu frontend
-    return products.map((product) => ({
-        id: product._id.toString(),
-        name: product.name,
-        slug: product.slug,
-        salePrice: product.salePrice,
-        regularPrice: product.regularPrice,
-        image: product.image || null,
-        inStock: product.availableStock > 0,
-    }));
+    return products.map(mapProductToDTO);
 }
