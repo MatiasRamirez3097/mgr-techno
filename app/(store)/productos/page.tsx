@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 
 interface Props {
     searchParams: Promise<{
+        limit?: string;
         search?: string;
         page?: string;
         orderby?: ProductOrderBy;
@@ -20,7 +21,14 @@ interface Props {
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
-    const { search, page, orderby } = await searchParams;
+    const { limit, search, page, orderby } = await searchParams;
 
-    return <ProductsView search={search} page={page} orderby={orderby} />;
+    return (
+        <ProductsView
+            search={search}
+            page={page}
+            orderby={orderby}
+            limit={limit}
+        />
+    );
 }

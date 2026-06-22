@@ -1,7 +1,6 @@
 import { getCatalogProducts } from "@/services/products/getCatalogProducts";
 
 import { ProductCard } from "@/components/productCard/ProductCard";
-import { Pagination } from "@/components/ui/Pagination";
 import { SortSelector } from "@/components/products/SortSelector";
 import { AdminPagination } from "../admin/AdminPagination";
 import type { ProductOrderBy } from "@/types/shared/product";
@@ -12,6 +11,7 @@ interface Props {
     search?: string;
     onSale?: boolean;
     page?: string;
+    limit?: string; // NUEVO: Extraemos el limit de la URL
     orderby?: ProductOrderBy;
 }
 
@@ -21,21 +21,27 @@ export async function ProductsView({
     onSale,
     search,
     page,
+    limit, // NUEVO
     orderby,
 }: Props) {
     const currentPage = Math.max(1, Number(page) || 1);
 
-    const LIMIT = 12;
+    // NUEVO: Leemos el limit de la URL (para que los botones 10, 15, 20 funcionen).
+    // Usamos 10 por defecto para que coincida con el primer botón de tu AdminPagination.
+    const currentLimit = Number(limit) || 12;
 
-    const { products, pagination } = await getCatalogProducts({
-        onSale,
-        category,
-        categoryId,
-        search,
-        page: currentPage,
-        orderby,
-        limit: LIMIT,
-    });
+    // CORRECCIÓN VITAL: Separamos los argumentos en (1) filtros, (2) página, (3) límite
+    const { products, pagination } = await getCatalogProducts(
+        {
+            onSale,
+            category,
+            categoryId,
+            search,
+            orderby,
+        },
+        currentPage,
+        currentLimit,
+    );
 
     const title = search
         ? `Resultados para "${search}"`
