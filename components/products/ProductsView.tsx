@@ -63,9 +63,10 @@ export async function ProductsView({
                         {pagination.totalItems !== 1 ? "s" : ""}
                     </p>
                 </div>
-
-                <SortSelector />
-                <FilterButton brands={availableBrands} />
+                <div>
+                    <SortSelector />
+                    <FilterButton brands={availableBrands} />
+                </div>
             </div>
 
             {products.length === 0 ? (
