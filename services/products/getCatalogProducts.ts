@@ -17,7 +17,7 @@ export async function getCatalogProducts(
     const skip = (page - 1) * limit;
 
     // ==========================================
-    // 1. ETAPA DE BÚSQUEDA (Debe ser la primera si existe)
+    // 1. ETAPA DE BÚSQUEDA
     // ==========================================
     if (filters.search) {
         const normalizedSearch = normalizeSearch(filters.search).trim();
@@ -61,23 +61,20 @@ export async function getCatalogProducts(
     }
 
     // ==========================================
-    // 2. ETAPA DE FILTRADO (El equivalente al .find() normal)
+    // 2. ETAPA DE FILTRADO
     // ==========================================
     const matchStage: any = {};
 
-    // Filtro por Estado (Público vs Admin)
     if (filters.status) {
         matchStage.status = filters.status;
     } else if (!filters.adminView) {
         matchStage.status = "publish";
     }
 
-    // Filtro por Ofertas
     if (filters.onSale) {
         matchStage.salePrice = { $exists: true, $ne: null, $gt: 0 };
     }
 
-    // Filtro por Categorías
     if (filters.category) {
         const category = await CategoryModel.findOne({
             slug: filters.category,
@@ -92,38 +89,50 @@ export async function getCatalogProducts(
                 $in: [category._id, ...childIds],
             };
         } else {
-            // Si buscan una categoría que no existe, forzamos que no traiga nada
             matchStage._id = null;
         }
     }
     console.log(matchStage.categories);
-    // Solo agregamos el $match si hay alguna condición (para no romper la tubería)
+
     if (Object.keys(matchStage).length > 0) {
         pipeline.push({ $match: matchStage });
     }
 
     // ==========================================
-    // 3. ETAPA DE ORDENAMIENTO ($sort)
+    // 3. ETAPA DE ORDENAMIENTO ($sort) OPTIMIZADA
     // ==========================================
-    // Mantenemos la lógica de poner siempre lo que tiene stock arriba
-    let sortStage: any = { availableStock: -1 };
 
-    if (filters.orderby) {
+    let sortStage: any = {};
+
+    if (
+        filters.search &&
+        (!filters.orderby || filters.orderby === "relevance")
+    ) {
+        // En Atlas Search es "searchScore", no "textScore"
+        sortStage = { score: { $meta: "searchScore" } };
+    } else {
+        // Usamos tu campo indexado isAvailable directamente para máxima velocidad
+        sortStage = { isAvailable: -1 };
+
         switch (filters.orderby) {
             case "price_asc":
-                sortStage.regularPrice = 1;
+                sortStage.effectivePrice = 1;
                 break;
             case "price_desc":
-                sortStage.regularPrice = -1;
+                sortStage.effectivePrice = -1;
                 break;
             case "date_desc":
+            case "newest":
                 sortStage.createdAt = -1;
                 break;
-            // Si la búsqueda viene de Atlas Search, Atlas ya calculó el "Score" de relevancia.
-            // "relevance" ordena por ese score automáticamente.
-            case "relevance":
-                if (filters.search)
-                    sortStage = { score: { $meta: "textScore" } };
+            case "name_asc":
+                sortStage.name = 1;
+                break;
+            case "name_desc":
+                sortStage.name = -1;
+                break;
+            default:
+                sortStage.createdAt = -1;
                 break;
         }
     }
@@ -131,22 +140,14 @@ export async function getCatalogProducts(
     pipeline.push({ $sort: sortStage });
 
     // ==========================================
-    // 4. ETAPA DE PAGINACIÓN MAGISTRAL ($facet)
+    // 4. ETAPA DE PAGINACIÓN ($facet)
     // ==========================================
-    // El facet divide la tubería en dos caminos paralelos:
-    // Camino 1: Recorta los productos para esta página (skip y limit)
-    // Camino 2: Cuenta cuántos productos pasaron los filtros en total
     pipeline.push({
         $facet: {
-            // El array de productos paginados
-            metadata: [
-                // Equivalente a countDocuments()
-                { $count: "total" },
-            ],
+            metadata: [{ $count: "total" }],
             data: [
                 { $skip: skip },
                 { $limit: limit },
-                // Elegimos qué datos mandar al frontend para ahorrar memoria
                 {
                     $project: {
                         _id: 1,
@@ -170,8 +171,6 @@ export async function getCatalogProducts(
         const totalItems = result.metadata[0]?.total || 0;
         const totalPages = Math.ceil(totalItems / limit);
 
-        // ¡ACÁ USAMOS TU MAPPER!
-        // Pasamos cada producto crudo por la función que limpia los Buffers y asigna valores por defecto
         const formattedProducts = result.data.map((product: any) =>
             mapProductToDTO(product),
         );
