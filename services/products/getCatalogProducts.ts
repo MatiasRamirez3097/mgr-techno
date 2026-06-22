@@ -1,18 +1,16 @@
 import { connectDB } from "@/lib/mongodb";
-import { ProductModel, CategoryModel } from "@/models";
+import { ProductModel, CategoryModel, BrandModel } from "@/models"; // <-- Asegurate de importar BrandModel
 import { normalizeSearch } from "@/lib/search/normalize";
 import { getCategoriesDescendants } from "@/services/categories/getCategoriesDescendants";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
-import { Types } from "mongoose";
 import type { ProductFilters } from "@/types/shared/product";
 
 export async function getCatalogProducts(
-    filters: ProductFilters = {},
+    filters: ProductFilters & { brand?: string } = {},
     page: number = 1,
     limit: number = 12,
 ) {
     await connectDB();
-    console.log("filters category", filters.category);
     const pipeline: any[] = [];
     const skip = (page - 1) * limit;
 
@@ -61,57 +59,53 @@ export async function getCatalogProducts(
     }
 
     // ==========================================
-    // 2. ETAPA DE FILTRADO
+    // 2. ETAPA DE FILTRADO BASE
     // ==========================================
-    const matchStage: any = {};
+    const baseMatchStage: any = {};
 
     if (filters.status) {
-        matchStage.status = filters.status;
+        baseMatchStage.status = filters.status;
     } else if (!filters.adminView) {
-        matchStage.status = "publish";
+        baseMatchStage.status = "publish";
     }
 
     if (filters.onSale) {
-        matchStage.salePrice = { $exists: true, $ne: null, $gt: 0 };
+        baseMatchStage.salePrice = { $exists: true, $ne: null, $gt: 0 };
     }
 
     if (filters.category) {
         const category = await CategoryModel.findOne({
             slug: filters.category,
         }).lean();
-        console.log(category);
+
         if (category) {
             const childIds = await getCategoriesDescendants(
                 category._id.toString(),
                 true,
             );
-            matchStage.categories = {
+            baseMatchStage.categories = {
                 $in: [category._id, ...childIds],
             };
         } else {
-            matchStage._id = null;
+            baseMatchStage._id = null;
         }
     }
-    console.log(matchStage.categories);
 
-    if (Object.keys(matchStage).length > 0) {
-        pipeline.push({ $match: matchStage });
+    if (Object.keys(baseMatchStage).length > 0) {
+        pipeline.push({ $match: baseMatchStage });
     }
 
     // ==========================================
-    // 3. ETAPA DE ORDENAMIENTO ($sort) OPTIMIZADA
+    // 3. ETAPA DE ORDENAMIENTO ($sort)
     // ==========================================
-
     let sortStage: any = {};
 
     if (
         filters.search &&
         (!filters.orderby || filters.orderby === "relevance")
     ) {
-        // En Atlas Search es "searchScore", no "textScore"
         sortStage = { score: { $meta: "searchScore" } };
     } else {
-        // Usamos tu campo indexado isAvailable directamente para máxima velocidad
         sortStage = { isAvailable: -1 };
 
         switch (filters.orderby) {
@@ -140,36 +134,93 @@ export async function getCatalogProducts(
     pipeline.push({ $sort: sortStage });
 
     // ==========================================
-    // 4. ETAPA DE PAGINACIÓN ($facet)
+    // 4. PREPARACIÓN DEL FILTRO DE MARCA (POR SLUG)
     // ==========================================
+    const brandMatchStage: any = {};
+    if (filters.brand) {
+        // Obtenemos los slugs separados por coma ("corsair,logitech")
+        const brandSlugs = filters.brand.split(",").filter(Boolean);
+
+        if (brandSlugs.length > 0) {
+            // Buscamos las marcas reales en la BD para obtener sus _ids
+            const brands = await BrandModel.find(
+                { slug: { $in: brandSlugs } },
+                "_id",
+            ).lean();
+            const brandIds = brands.map((b: any) => b._id);
+
+            if (brandIds.length > 0) {
+                brandMatchStage.brand = { $in: brandIds };
+            } else {
+                // Si pasaron slugs inválidos en la URL, forzamos que no encuentre productos
+                brandMatchStage._id = null;
+            }
+        }
+    }
+
+    // ==========================================
+    // 5. ETAPA DE PAGINACIÓN Y FACETAS DINÁMICAS ($facet)
+    // ==========================================
+    const metadataFacet: any[] = [];
+    const dataFacet: any[] = [];
+
+    if (Object.keys(brandMatchStage).length > 0) {
+        metadataFacet.push({ $match: brandMatchStage });
+        dataFacet.push({ $match: brandMatchStage });
+    }
+
+    metadataFacet.push({ $count: "total" });
+
+    dataFacet.push({ $skip: skip });
+    dataFacet.push({ $limit: limit });
+    dataFacet.push({
+        $project: {
+            _id: 1,
+            name: 1,
+            slug: 1,
+            regularPrice: 1,
+            salePrice: 1,
+            image: 1,
+            availableStock: 1,
+            status: 1,
+            categories: 1,
+            taxRate: 1,
+            effectivePrice: 1,
+            images: 1,
+            sku: 1,
+            gtin: 1,
+            brand: 1,
+            description: 1,
+            shortDescription: 1,
+            weight: 1,
+        },
+    });
+
     pipeline.push({
         $facet: {
-            metadata: [{ $count: "total" }],
-            data: [
-                { $skip: skip },
-                { $limit: limit },
+            metadata: metadataFacet,
+            data: dataFacet,
+            brands: [
+                { $group: { _id: "$brand" } },
+                { $match: { _id: { $ne: null } } },
+                {
+                    $lookup: {
+                        from: "brands", // Nombre de la colección en MongoDB
+                        localField: "_id",
+                        foreignField: "_id",
+                        as: "brandInfo",
+                    },
+                },
+                { $unwind: "$brandInfo" },
+                // NUEVO: Agregamos el "slug" a la salida del facet
                 {
                     $project: {
                         _id: 1,
-                        name: 1,
-                        slug: 1,
-                        regularPrice: 1,
-                        salePrice: 1,
-                        image: 1,
-                        availableStock: 1,
-                        status: 1,
-                        categories: 1,
-                        taxRate: 1,
-                        effectivePrice: 1,
-                        images: 1,
-                        sku: 1,
-                        gtin: 1,
-                        brand: 1,
-                        description: 1,
-                        shortDescription: 1,
-                        weight: 1,
+                        name: "$brandInfo.name",
+                        slug: "$brandInfo.slug",
                     },
                 },
+                { $sort: { name: 1 } },
             ],
         },
     });
@@ -183,9 +234,17 @@ export async function getCatalogProducts(
         const formattedProducts = result.data.map((product: any) =>
             mapProductToDTO(product),
         );
-        console.log(formattedProducts);
+
+        // NUEVO: Formateamos incluyendo el slug para el FilterDrawer
+        const availableBrands = result.brands.map((b: any) => ({
+            _id: b._id.toString(),
+            name: b.name,
+            slug: b.slug,
+        }));
+
         return {
             products: formattedProducts,
+            availableBrands,
             pagination: {
                 totalItems,
                 totalPages,
@@ -197,6 +256,7 @@ export async function getCatalogProducts(
         console.error("Error en getCatalogProducts (Pipeline):", error);
         return {
             products: [],
+            availableBrands: [],
             pagination: { totalItems: 0, totalPages: 0, currentPage: 1, limit },
         };
     }
