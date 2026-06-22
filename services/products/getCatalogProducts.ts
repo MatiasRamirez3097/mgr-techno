@@ -1,12 +1,10 @@
 import { connectDB } from "@/lib/mongodb";
-import { ProductModel, CategoryModel } from "@/models";
+import { ProductModel, CategoryModel, BrandModel } from "@/models"; // <-- Asegurate de importar BrandModel
 import { normalizeSearch } from "@/lib/search/normalize";
 import { getCategoriesDescendants } from "@/services/categories/getCategoriesDescendants";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
-import { Types } from "mongoose";
 import type { ProductFilters } from "@/types/shared/product";
 
-// NOTA: Asegurate de agregar `brand?: string` a tu interfaz ProductFilters en tu archivo de tipos
 export async function getCatalogProducts(
     filters: ProductFilters & { brand?: string } = {},
     page: number = 1,
@@ -61,7 +59,7 @@ export async function getCatalogProducts(
     }
 
     // ==========================================
-    // 2. ETAPA DE FILTRADO BASE (Sin incluir marca)
+    // 2. ETAPA DE FILTRADO BASE
     // ==========================================
     const baseMatchStage: any = {};
 
@@ -136,18 +134,27 @@ export async function getCatalogProducts(
     pipeline.push({ $sort: sortStage });
 
     // ==========================================
-    // 4. PREPARACIÓN DEL FILTRO DE MARCA
+    // 4. PREPARACIÓN DEL FILTRO DE MARCA (POR SLUG)
     // ==========================================
     const brandMatchStage: any = {};
     if (filters.brand) {
-        // Soporta múltiples marcas ("id1,id2,id3")
-        const brandIds = filters.brand
-            .split(",")
-            .filter(Boolean)
-            .map((id: string) => new Types.ObjectId(id));
+        // Obtenemos los slugs separados por coma ("corsair,logitech")
+        const brandSlugs = filters.brand.split(",").filter(Boolean);
 
-        if (brandIds.length > 0) {
-            brandMatchStage.brand = { $in: brandIds };
+        if (brandSlugs.length > 0) {
+            // Buscamos las marcas reales en la BD para obtener sus _ids
+            const brands = await BrandModel.find(
+                { slug: { $in: brandSlugs } },
+                "_id",
+            ).lean();
+            const brandIds = brands.map((b: any) => b._id);
+
+            if (brandIds.length > 0) {
+                brandMatchStage.brand = { $in: brandIds };
+            } else {
+                // Si pasaron slugs inválidos en la URL, forzamos que no encuentre productos
+                brandMatchStage._id = null;
+            }
         }
     }
 
@@ -157,8 +164,6 @@ export async function getCatalogProducts(
     const metadataFacet: any[] = [];
     const dataFacet: any[] = [];
 
-    // IMPORTANTE: El filtro de marca solo se aplica a los datos finales y al conteo,
-    // pero NO se aplica a la extracción de marcas disponibles.
     if (Object.keys(brandMatchStage).length > 0) {
         metadataFacet.push({ $match: brandMatchStage });
         dataFacet.push({ $match: brandMatchStage });
@@ -195,21 +200,27 @@ export async function getCatalogProducts(
         $facet: {
             metadata: metadataFacet,
             data: dataFacet,
-            // Magia: Obtenemos todas las marcas de los productos de esta búsqueda
             brands: [
-                { $group: { _id: "$brand" } }, // Agrupamos por ID de marca
-                { $match: { _id: { $ne: null } } }, // Descartamos productos sin marca
+                { $group: { _id: "$brand" } },
+                { $match: { _id: { $ne: null } } },
                 {
                     $lookup: {
-                        from: "brands", // Colección de marcas
+                        from: "brands", // Nombre de la colección en MongoDB
                         localField: "_id",
                         foreignField: "_id",
                         as: "brandInfo",
                     },
                 },
                 { $unwind: "$brandInfo" },
-                { $project: { _id: 1, name: "$brandInfo.name" } },
-                { $sort: { name: 1 } }, // Ordenamos alfabéticamente
+                // NUEVO: Agregamos el "slug" a la salida del facet
+                {
+                    $project: {
+                        _id: 1,
+                        name: "$brandInfo.name",
+                        slug: "$brandInfo.slug",
+                    },
+                },
+                { $sort: { name: 1 } },
             ],
         },
     });
@@ -224,15 +235,16 @@ export async function getCatalogProducts(
             mapProductToDTO(product),
         );
 
-        // Formateamos las marcas encontradas para el Drawer
+        // NUEVO: Formateamos incluyendo el slug para el FilterDrawer
         const availableBrands = result.brands.map((b: any) => ({
             _id: b._id.toString(),
             name: b.name,
+            slug: b.slug,
         }));
 
         return {
             products: formattedProducts,
-            availableBrands, // <- Devolvemos la nueva lista
+            availableBrands,
             pagination: {
                 totalItems,
                 totalPages,

@@ -6,6 +6,7 @@ import { FilterDrawer } from "./FilterDrawer";
 interface Brand {
     _id: string;
     name: string;
+    slug: string;
 }
 
 export function FilterButton({ brands }: { brands: Brand[] }) {

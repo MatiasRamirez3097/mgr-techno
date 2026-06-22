@@ -6,6 +6,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 interface Brand {
     _id: string;
     name: string;
+    slug: string;
 }
 
 interface Props {
@@ -19,7 +20,7 @@ export function FilterDrawer({ open, onClose, brands }: Props) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    // Estado local para los checkboxes marcados
+    // Estado local para los checkboxes marcados (ahora guardará slugs)
     const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
     // Sincronizar el estado con la URL cuando se abre o cambia la URL
@@ -40,11 +41,12 @@ export function FilterDrawer({ open, onClose, brands }: Props) {
         };
     }, [open]);
 
-    const handleToggleBrand = (brandId: string) => {
+    // Cambiamos el parámetro para recibir el slug en lugar del ID
+    const handleToggleBrand = (brandSlug: string) => {
         setSelectedBrands((prev) =>
-            prev.includes(brandId)
-                ? prev.filter((id) => id !== brandId)
-                : [...prev, brandId],
+            prev.includes(brandSlug)
+                ? prev.filter((slug) => slug !== brandSlug)
+                : [...prev, brandSlug],
         );
     };
 
@@ -121,16 +123,18 @@ export function FilterDrawer({ open, onClose, brands }: Props) {
                         <div className="flex flex-col gap-3">
                             {brands.map((brand) => (
                                 <label
-                                    key={brand._id}
+                                    key={brand.slug} // Usamos el slug como key
                                     className="flex items-center gap-3 cursor-pointer group"
                                 >
                                     <input
                                         type="checkbox"
+                                        // Evaluamos si el slug está en el array
                                         checked={selectedBrands.includes(
-                                            brand._id,
+                                            brand.slug,
                                         )}
+                                        // Pasamos el slug al handler
                                         onChange={() =>
-                                            handleToggleBrand(brand._id)
+                                            handleToggleBrand(brand.slug)
                                         }
                                         className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-brand focus:ring-brand focus:ring-offset-gray-900 cursor-pointer"
                                     />
