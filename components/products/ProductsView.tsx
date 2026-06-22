@@ -63,7 +63,7 @@ export async function ProductsView({
                         {pagination.totalItems !== 1 ? "s" : ""}
                     </p>
                 </div>
-                <div>
+                <div className="flex items-center gap-2">
                     <SortSelector />
                     <FilterButton brands={availableBrands} />
                 </div>
