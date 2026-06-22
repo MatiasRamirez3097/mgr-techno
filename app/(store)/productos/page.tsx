@@ -17,12 +17,12 @@ interface Props {
         search?: string;
         page?: string;
         orderby?: ProductOrderBy;
-        marca?: string;
+        brand?: string;
     }>;
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
-    const { limit, search, page, orderby } = await searchParams;
+    const { limit, search, page, orderby, brand } = await searchParams;
 
     return (
         <ProductsView
@@ -30,6 +30,7 @@ export default async function ProductsPage({ searchParams }: Props) {
             page={page}
             orderby={orderby}
             limit={limit}
+            brand={brand}
         />
     );
 }
