@@ -1,7 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
-import { OrderModel } from "@/models/Order";
 import { sendFiscalInvoiceEmail } from "@/lib/email";
-import { mapOrderToDTO } from "@/lib/mappers/orderMapper";
+import { getOrdersById } from "@/lib/orders/getOrdersById";
 
 export async function POST(req: Request, context: any) {
     try {
@@ -10,8 +9,8 @@ export async function POST(req: Request, context: any) {
         // Extraemos el ID de la orden y el ID del voucher desde la URL
         const { id: orderId, voucherId } = await context.params;
 
-        const order = await OrderModel.findById(orderId).lean();
-
+        const order = await getOrdersById(orderId);
+        console.log("logForEmail", order);
         if (!order) {
             return Response.json(
                 { error: "Orden no encontrada" },
@@ -22,7 +21,7 @@ export async function POST(req: Request, context: any) {
         // Buscamos el comprobante específico dentro de la orden
         // (Soportamos tanto _id de Mongo como string id mapeado)
         const voucher = order.vouchers?.find(
-            (v: any) => v._id?.toString() === voucherId || v.id === voucherId,
+            (v: any) => v.id === voucherId || v.id === voucherId,
         );
 
         if (!voucher) {
@@ -31,11 +30,11 @@ export async function POST(req: Request, context: any) {
                 { status: 404 },
             );
         }
-
+        console.log("vouchers", voucher);
         // Reutilizamos tu función de envío de correos
         // Nota: Si usas una función distinta para comprobantes no fiscales,
         // puedes agregar un if(voucher.type === 'non_fiscal_receipt') aquí.
-        await sendFiscalInvoiceEmail(mapOrderToDTO(order), voucher);
+        await sendFiscalInvoiceEmail(order, voucher);
 
         return Response.json({ success: true });
     } catch (error: any) {

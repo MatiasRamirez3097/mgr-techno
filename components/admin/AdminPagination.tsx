@@ -66,6 +66,16 @@ export function AdminPagination({
         return `${pathname}?${params.toString()}`;
     };
 
+    // =========================
+    // SMOOTH SCROLL HANDLER
+    // =========================
+    const handleSmoothScroll = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+        });
+    };
+
     const pages = buildPages(currentPage, totalPages);
 
     // Si no hay ítems, no mostramos la paginación
@@ -116,6 +126,8 @@ export function AdminPagination({
                         <Link
                             key={option}
                             href={buildUrl(1, option)} // Al cambiar el límite, volvemos a la pág 1
+                            scroll={false} // Desactiva salto brusco
+                            onClick={handleSmoothScroll} // Ejecuta scroll suave
                             className={`
                                     px-2.5
                                     py-1
@@ -124,7 +136,7 @@ export function AdminPagination({
                                     transition-colors
                                     ${
                                         limit === option
-                                            ? "bg-brand text-white font-medium" // Asumo que "bg-brand" está en tu tailwind config
+                                            ? "bg-brand text-white font-medium"
                                             : "text-gray-400 hover:text-white hover:bg-gray-800"
                                     }
                                 `}
@@ -153,6 +165,8 @@ export function AdminPagination({
                     {currentPage > 1 ? (
                         <Link
                             href={buildUrl(currentPage - 1)}
+                            scroll={false} // Desactiva salto brusco
+                            onClick={handleSmoothScroll} // Ejecuta scroll suave
                             className="
                                 px-3
                                 py-1.5
@@ -203,6 +217,8 @@ export function AdminPagination({
                             <Link
                                 key={page}
                                 href={buildUrl(page as number)}
+                                scroll={false} // Desactiva salto brusco
+                                onClick={handleSmoothScroll} // Ejecuta scroll suave
                                 className={`
                                         w-8
                                         h-8
@@ -229,6 +245,8 @@ export function AdminPagination({
                     {currentPage < totalPages ? (
                         <Link
                             href={buildUrl(currentPage + 1)}
+                            scroll={false} // Desactiva salto brusco
+                            onClick={handleSmoothScroll} // Ejecuta scroll suave
                             className="
                                 px-3
                                 py-1.5
