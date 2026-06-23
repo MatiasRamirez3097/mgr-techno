@@ -34,7 +34,11 @@ export async function POST(
         |------------------------------------------------------------------
         */
 
-        const order = await OrderModel.findById(id);
+        const order = await OrderModel.findById(id).populate({
+            path: "items.allocations.inventoryItemId",
+            model: "InventoryItem", // Asegurate que el nombre del modelo sea correcto
+            select: "serialNumber", // Solo traemos el serial para no sobrecargar
+        });
 
         if (!order) {
             return Response.json(

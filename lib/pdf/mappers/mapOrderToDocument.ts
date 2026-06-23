@@ -1,3 +1,5 @@
+import { SaleItemSchema } from "@/models/SaleItem";
+
 export function mapOrderToDocument({
     order,
     voucher,
@@ -13,7 +15,7 @@ export function mapOrderToDocument({
     const customerName = [order.billing?.firstName, order.billing?.lastName]
         .filter(Boolean)
         .join(" ");
-
+    console.log(order.items);
     return {
         /*
         |------------------------------------------------------------------
@@ -105,15 +107,27 @@ export function mapOrderToDocument({
         |------------------------------------------------------------------
         */
 
-        items: order.items.map((item: any) => ({
-            name: item.title || item.name,
+        items: order.items.map((item: any) => {
+            // Buscamos los seriales asignados a este ítem en la orden
+            const serials = item.allocations
+                ?.filter((alloc: any) => alloc.inventoryItemId?.serialNumber) // Solo los que tienen serial
+                .map((alloc: any) => alloc.inventoryItemId.serialNumber);
 
-            quantity: item.quantity,
+            // Armamos el nombre base
+            let displayName = item.title || item.name;
 
-            price: item.unitPrice,
-
-            total: item.subtotal,
-        })),
+            // Si hay seriales, los concatenamos
+            if (serials && serials.length > 0) {
+                displayName += ` (S/N: ${serials.join(", ")})`;
+            }
+            console.log(item.allocations);
+            return {
+                name: displayName,
+                quantity: item.quantity,
+                price: item.unitPrice,
+                total: item.subtotal,
+            };
+        }),
 
         /*
         |------------------------------------------------------------------

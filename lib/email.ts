@@ -575,9 +575,7 @@ export async function sendOrderCompletedEmail(order: OrderDTO) {
     });
 }
 
-// En tu archivo lib/email.ts, agregá esto al final:
-
-export async function sendFiscalInvoiceEmail(order: OrderDTO, voucher: any) {
+export async function sendFiscalInvoiceEmail(order: any, voucher: any) {
     const isCreditNote = voucher.type === "credit_note";
     const title = isCreditNote
         ? "Nota de Crédito generada"
@@ -586,35 +584,37 @@ export async function sendFiscalInvoiceEmail(order: OrderDTO, voucher: any) {
         ? "Nota de Crédito"
         : `Factura ${voucher.fiscalData?.fiscalType ?? ""}`;
 
-    // 1. Armamos un nombre de archivo prolijo para el adjunto
-    const formattedNumber = String(voucher.voucherNumber).padStart(8, "0");
-    const pdfFilename = `${isCreditNote ? "NC" : "Factura"}_${voucher.pointOfSale}-${formattedNumber}.pdf`;
+    // Compatibilidad: el esquema tiene 'number' pero a veces AFIP devuelve 'voucherNumber'
+    const vNumber = voucher.number || voucher.voucherNumber;
+    const formattedNumber = String(vNumber).padStart(8, "0");
 
-    await resend.emails.send({
-        from: "MGR Techno <noreply@mgrtechno.com.ar>",
-        to: order.customerEmail,
-        subject: `${title} - Pedido #${order.id.toString().slice(-6).toUpperCase()}`,
+    // ==========================================
+    // CAMBIO CLAVE: RUTA PROPIA EN LUGAR DE CLOUDINARY
+    // ==========================================
+    // En lugar de enviar la URL de Cloudinary, armamos una ruta hacia tu propia API.
+    // Asegurate de configurar NEXT_PUBLIC_APP_URL en tu archivo .env (ej: https://mgrtechno.com.ar)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const voucherId = voucher._id?.toString() || voucher.id;
 
-        // ==========================================
-        // 2. MAGIA DE RESEND: ADJUNTAMOS EL PDF
-        // ==========================================
-        attachments: voucher.pdfUrl
-            ? [
-                  {
-                      filename: pdfFilename,
-                      path: voucher.pdfUrl, // Resend descarga la URL y la adjunta como archivo físico
-                  },
-              ]
-            : [],
+    // Apuntamos a un endpoint público que crearemos en tu app
+    const downloadLink = `${baseUrl}/api/public/vouchers/${voucherId}/download`;
 
-        html: emailLayout({
-            title: title,
-            subtitle: "Comprobante Fiscal Electrónico",
-            content: `
+    try {
+        const { data, error } = await resend.emails.send({
+            from: "MGR Techno <noreply@mgrtechno.com.ar>", // Cambiá por onboarding@resend.dev si aún no verificaste tu dominio
+            to: order.customerEmail,
+            subject: `${title} - Pedido #${order.id.toString().slice(-6).toUpperCase()}`,
+
+            // ELIMINAMOS POR COMPLETO EL CAMPO 'attachments' PARA LA VERSIÓN GRATUITA
+
+            html: emailLayout({
+                title: title,
+                subtitle: "Comprobante Fiscal Electrónico",
+                content: `
     <p style="color:${EMAIL_THEME.body};line-height:1.7;">
         Hola ${order.billing.firstName},
         ya emitimos tu comprobante fiscal correspondiente al pedido realizado en nuestra tienda.
-        <strong>Encontrarás el documento PDF adjunto a este correo.</strong>
+        <strong>Podés acceder a tu documento haciendo clic en el botón de abajo.</strong>
     </p>
 
     <div style="
@@ -649,29 +649,29 @@ export async function sendFiscalInvoiceEmail(order: OrderDTO, voucher: any) {
         </div>
 
         ${
-            voucher.pdfUrl
+            downloadLink
                 ? `
-        <div style="margin-top:24px;text-align:center;">
-            <a href="${voucher.pdfUrl}" 
+        <div style="margin-top:32px;text-align:center;">
+            <a href="${downloadLink}" 
                style="
                    display:inline-block;
                    background:${EMAIL_THEME.brand};
                    color:#ffffff;
                    text-decoration:none;
-                   padding:12px 24px;
+                   padding:14px 28px;
                    border-radius:8px;
                    font-weight:600;
-                   font-size:14px;
+                   font-size:16px;
                "
                target="_blank"
             >
-                Descargar Factura (Backup)
+                🔗 Ver y Descargar Factura
             </a>
         </div>
         `
                 : `
         <p style="color:${EMAIL_THEME.muted};font-size:13px;margin-top:20px;text-align:center;">
-            * El comprobante adjunto estará disponible pronto.
+            * El comprobante estará disponible para descargar pronto.
         </p>
         `
         }
@@ -681,6 +681,18 @@ export async function sendFiscalInvoiceEmail(order: OrderDTO, voucher: any) {
         Este documento cumple con las normativas vigentes de AFIP. Conservalo ante cualquier eventualidad o reclamo de garantía.
     </p>
 `,
-        }),
-    });
+            }),
+        });
+
+        if (error) {
+            console.error("Resend devolvió un error:", error);
+            throw error;
+        }
+
+        console.log("Email enviado exitosamente, ID:", data?.id);
+        return data;
+    } catch (err) {
+        console.error("Fallo general enviando email de factura:", err);
+        throw err;
+    }
 }
