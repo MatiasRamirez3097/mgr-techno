@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models/Order";
 import { sendFiscalInvoiceEmail } from "@/lib/email";
+import { mapOrderToDTO } from "@/lib/mappers/orderMapper";
 
 export async function POST(req: Request, context: any) {
     try {
@@ -34,7 +35,7 @@ export async function POST(req: Request, context: any) {
         // Reutilizamos tu función de envío de correos
         // Nota: Si usas una función distinta para comprobantes no fiscales,
         // puedes agregar un if(voucher.type === 'non_fiscal_receipt') aquí.
-        await sendFiscalInvoiceEmail(order, voucher);
+        await sendFiscalInvoiceEmail(mapOrderToDTO(order), voucher);
 
         return Response.json({ success: true });
     } catch (error: any) {

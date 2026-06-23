@@ -598,7 +598,7 @@ export async function sendFiscalInvoiceEmail(order: OrderDTO, voucher: any) {
         // ==========================================
         // 2. MAGIA DE RESEND: ADJUNTAMOS EL PDF
         // ==========================================
-        /*attachments: voucher.pdfUrl
+        attachments: voucher.pdfUrl
             ? [
                   {
                       filename: pdfFilename,
@@ -606,7 +606,6 @@ export async function sendFiscalInvoiceEmail(order: OrderDTO, voucher: any) {
                   },
               ]
             : [],
-        */
         html: emailLayout({
             title: title,
             subtitle: "Comprobante Fiscal Electrónico",
