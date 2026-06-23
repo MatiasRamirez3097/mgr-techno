@@ -3,14 +3,24 @@
 import Link from "next/link";
 
 import { RegenerateVoucherPdfButton } from "./documents/RegenerateVoucherPdfButton";
+import { SendVoucherEmailButton } from "./SendVoucherEmailButton";
 
 interface Props {
     orderId: string;
-
     voucher: any;
 }
 
 export function VoucherCard({ orderId, voucher }: Props) {
+    // Incorporamos la lógica de traducción de estado que charlamos antes
+    const isIssued = voucher.status === "issued";
+    const statusLabel = isIssued
+        ? "Autorizada"
+        : voucher.status === "cancelled"
+          ? "Anulada"
+          : voucher.status === "replaced"
+            ? "Reemplazada"
+            : "Borrador";
+
     return (
         <div
             className="
@@ -42,31 +52,24 @@ export function VoucherCard({ orderId, voucher }: Props) {
                         rounded-lg
                         border
                         ${
-                            voucher.status === "issued"
-                                ? `
-                                bg-green-500/10
-                                text-green-300
-                                border-green-500/20
-                                `
-                                : `
-                                bg-yellow-500/10
-                                text-yellow-300
-                                border-yellow-500/20
-                                `
+                            isIssued
+                                ? `bg-green-500/10 text-green-300 border-green-500/20`
+                                : `bg-yellow-500/10 text-yellow-300 border-yellow-500/20`
                         }
                     `}
                 >
-                    {voucher.status}
+                    {statusLabel}
                 </div>
             </div>
 
-            <div className="flex gap-2 mt-4">
+            {/* Agregamos flex-wrap por si los 3 botones no entran en pantallas pequeñas */}
+            <div className="flex flex-wrap gap-2 mt-4">
                 <Link
                     href={`/api/admin/vouchers/${voucher.id}/download`}
                     target="_blank"
                     className="
                         flex-1
-                        text-center
+                        flex items-center justify-center
                         px-4 py-2
                         rounded-xl
                         bg-blue-500/10
@@ -79,6 +82,11 @@ export function VoucherCard({ orderId, voucher }: Props) {
                 >
                     Ver PDF
                 </Link>
+
+                <SendVoucherEmailButton
+                    orderId={orderId}
+                    voucherId={voucher.id}
+                />
 
                 <RegenerateVoucherPdfButton
                     orderId={orderId}
