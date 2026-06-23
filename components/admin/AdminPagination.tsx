@@ -1,7 +1,7 @@
 "use client";
 
 // NOTA: Para que funcione en tu proyecto real de Next.js, restaura estas importaciones:
-import { useTransition } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 
@@ -51,8 +51,13 @@ export function AdminPagination({
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    // Hook mágico para detectar cuándo Next.js está cargando la nueva página
-    const [isPending, startTransition] = useTransition();
+    // Estado manual para controlar la navegación
+    const [isNavigating, setIsNavigating] = useState(false);
+
+    // Cuando searchParams cambia (la nueva página cargó), apagamos el loading
+    useEffect(() => {
+        setIsNavigating(false);
+    }, [searchParams]);
 
     // =========================
     // URL BUILDER
@@ -77,18 +82,19 @@ export function AdminPagination({
         e: React.MouseEvent<HTMLAnchorElement>,
         url: string,
     ) => {
-        e.preventDefault(); // Evitamos la navegación brusca por defecto
+        e.preventDefault();
 
-        // 1. Hacemos el scroll suave
+        // 1. Activamos el estado de carga (muestra el spinner)
+        setIsNavigating(true);
+
+        // 2. Hacemos el scroll suave
         window.scrollTo({
             top: 0,
             behavior: "smooth",
         });
 
-        // 2. Iniciamos la transición a la nueva URL (esto activa isPending = true)
-        startTransition(() => {
-            router.push(url, { scroll: false });
-        });
+        // 3. Navegamos a la nueva URL
+        router.push(url, { scroll: false });
     };
 
     const pages = buildPages(currentPage, totalPages);
@@ -108,7 +114,7 @@ export function AdminPagination({
             px-2
             transition-opacity
             duration-300
-            ${isPending ? "opacity-60 pointer-events-none" : "opacity-100"}
+            ${isNavigating ? "opacity-60 pointer-events-none" : "opacity-100"}
         `}
         >
             {/* ========================= */}
@@ -129,7 +135,7 @@ export function AdminPagination({
                     text-gray-400
                     flex
                     items-center
-                    gap-2
+                    gap-3
                 "
                 >
                     <span>
@@ -137,31 +143,31 @@ export function AdminPagination({
                     </span>
 
                     {/* SPINNER DE CARGA */}
-                    {isPending && (
-                        <span className="flex items-center gap-1.5 text-brand text-xs font-medium animate-pulse">
-                            <svg
-                                className="animate-spin h-3 w-3"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                            >
-                                <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                ></circle>
-                                <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                            </svg>
-                            Cargando...
-                        </span>
-                    )}
+                    <div
+                        className={`flex items-center gap-1.5 text-brand text-xs font-medium transition-opacity duration-300 ${isNavigating ? "opacity-100" : "opacity-0"}`}
+                    >
+                        <svg
+                            className="animate-spin h-3.5 w-3.5"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                            ></circle>
+                            <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                        </svg>
+                        <span>Cargando...</span>
+                    </div>
                 </div>
 
                 <div
