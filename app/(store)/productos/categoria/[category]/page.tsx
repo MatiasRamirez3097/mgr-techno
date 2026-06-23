@@ -4,6 +4,9 @@ import { ProductsView } from "@/components/products/ProductsView";
 
 import type { ProductOrderBy } from "@/types/shared/product";
 
+import { Suspense } from "react";
+import { ProductsLoading } from "@/components/products/ProductsLoading";
+
 interface Props {
     params: Promise<{
         category: string;
@@ -32,16 +35,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CategoryPage({ params, searchParams }: Props) {
     const { category } = await params;
 
-    const { limit, search, page, orderby, brand } = await searchParams;
-    console.log(category);
+    const resolvedSearchParams = await searchParams;
+
+    const { limit, search, page, orderby, brand } = resolvedSearchParams;
+
+    const suspenseKey = JSON.stringify(resolvedSearchParams);
+
     return (
-        <ProductsView
-            limit={limit}
-            category={category}
-            search={search}
-            page={page}
-            orderby={orderby}
-            brand={brand}
-        />
+        <Suspense key={suspenseKey} fallback={<ProductsLoading />}>
+            <ProductsView
+                limit={limit}
+                category={category}
+                search={search}
+                page={page}
+                orderby={orderby}
+                brand={brand}
+            />
+        </Suspense>
     );
 }
