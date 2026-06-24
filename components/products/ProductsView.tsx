@@ -5,6 +5,7 @@ import { SortSelector } from "@/components/products/SortSelector";
 import { AdminPagination } from "../admin/AdminPagination";
 import type { ProductOrderBy } from "@/types/shared/product";
 import { FilterButton } from "../layout/FilterButton";
+import { cookies } from "next/headers";
 
 interface Props {
     brand?: string;
@@ -28,10 +29,12 @@ export async function ProductsView({
     orderby,
 }: Props) {
     const currentPage = Math.max(1, Number(page) || 1);
-
-    // NUEVO: Leemos el limit de la URL (para que los botones 10, 15, 20 funcionen).
-    // Usamos 10 por defecto para que coincida con el primer botón de tu AdminPagination.
     const currentLimit = Number(limit) || 12;
+
+    // Leemos la cookie para saber si el usuario quiere ocultar los productos sin stock
+    const cookieStore = await cookies();
+    const hideOutOfStockCookie = cookieStore.get("hideOutOfStock");
+    const inStockOnly = hideOutOfStockCookie?.value === "true";
 
     // CORRECCIÓN VITAL: Separamos los argumentos en (1) filtros, (2) página, (3) límite
     const { availableBrands, products, pagination } = await getCatalogProducts(
@@ -42,6 +45,7 @@ export async function ProductsView({
             search,
             orderby,
             brand,
+            inStockOnly,
         },
         currentPage,
         currentLimit,
@@ -65,7 +69,10 @@ export async function ProductsView({
                 </div>
                 <div className="flex items-center gap-2">
                     <SortSelector />
-                    <FilterButton brands={availableBrands} />
+                    <FilterButton
+                        brands={availableBrands}
+                        initialHideOutOfStock={inStockOnly}
+                    />
                 </div>
             </div>
 
@@ -79,8 +86,12 @@ export async function ProductsView({
             ) : (
                 <>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {products.map((product: any) => (
-                            <ProductCard key={product.id} product={product} />
+                        {products.map((product: any, index: number) => (
+                            <ProductCard
+                                key={product.id}
+                                product={product}
+                                priority={index < 4}
+                            />
                         ))}
                     </div>
 

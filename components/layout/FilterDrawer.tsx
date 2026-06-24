@@ -13,17 +13,24 @@ interface Props {
     open: boolean;
     onClose: () => void;
     brands: Brand[];
+    initialHideOutOfStock: boolean;
 }
 
-export function FilterDrawer({ open, onClose, brands }: Props) {
+export function FilterDrawer({
+    open,
+    onClose,
+    brands,
+    initialHideOutOfStock,
+}: Props) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    // Estado local para los checkboxes marcados (ahora guardará slugs)
     const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
-    // Sincronizar el estado con la URL cuando se abre o cambia la URL
+    // Estado para nuestro nuevo switch de stock
+    const [hideOutOfStock, setHideOutOfStock] = useState(initialHideOutOfStock);
+
     useEffect(() => {
         const brandParam = searchParams.get("brand");
         if (brandParam) {
@@ -31,9 +38,11 @@ export function FilterDrawer({ open, onClose, brands }: Props) {
         } else {
             setSelectedBrands([]);
         }
-    }, [searchParams]);
 
-    // Bloquear scroll cuando está abierto
+        // Sincronizamos el estado local con la cookie inicial cuando se abre el cajón
+        setHideOutOfStock(initialHideOutOfStock);
+    }, [searchParams, initialHideOutOfStock, open]);
+
     useEffect(() => {
         document.body.style.overflow = open ? "hidden" : "";
         return () => {
@@ -41,7 +50,6 @@ export function FilterDrawer({ open, onClose, brands }: Props) {
         };
     }, [open]);
 
-    // Cambiamos el parámetro para recibir el slug en lugar del ID
     const handleToggleBrand = (brandSlug: string) => {
         setSelectedBrands((prev) =>
             prev.includes(brandSlug)
@@ -51,6 +59,9 @@ export function FilterDrawer({ open, onClose, brands }: Props) {
     };
 
     const handleApply = () => {
+        // 1. Guardamos la preferencia en una Cookie (dura 1 año)
+        document.cookie = `hideOutOfStock=${hideOutOfStock}; path=/; max-age=31536000`;
+
         const params = new URLSearchParams(searchParams.toString());
 
         if (selectedBrands.length > 0) {
@@ -59,18 +70,29 @@ export function FilterDrawer({ open, onClose, brands }: Props) {
             params.delete("brand");
         }
 
-        params.delete("page"); // Resetear a la página 1 al filtrar
+        params.delete("page");
 
         router.push(`${pathname}?${params.toString()}`);
+
+        // 2. Refrescamos para obligar al servidor a leer la nueva Cookie y traernos los productos
+        router.refresh();
+
         onClose();
     };
 
     const handleClear = () => {
         setSelectedBrands([]);
+        setHideOutOfStock(false);
+
+        // Limpiamos la cookie también
+        document.cookie = `hideOutOfStock=false; path=/; max-age=31536000`;
+
         const params = new URLSearchParams(searchParams.toString());
         params.delete("brand");
         params.delete("page");
+
         router.push(`${pathname}?${params.toString()}`);
+        router.refresh();
         onClose();
     };
 
@@ -115,36 +137,61 @@ export function FilterDrawer({ open, onClose, brands }: Props) {
                 </div>
 
                 {/* Contenido (Lista de Filtros) */}
-                <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-6">
+                <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-8">
+                    {/* NUEVO: Switch de Stock */}
                     <div>
                         <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider text-gray-400">
-                            Marcas
+                            Disponibilidad
                         </h3>
-                        <div className="flex flex-col gap-3">
-                            {brands.map((brand) => (
-                                <label
-                                    key={brand.slug} // Usamos el slug como key
-                                    className="flex items-center gap-3 cursor-pointer group"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        // Evaluamos si el slug está en el array
-                                        checked={selectedBrands.includes(
-                                            brand.slug,
-                                        )}
-                                        // Pasamos el slug al handler
-                                        onChange={() =>
-                                            handleToggleBrand(brand.slug)
-                                        }
-                                        className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-brand focus:ring-brand focus:ring-offset-gray-900 cursor-pointer"
-                                    />
-                                    <span className="text-gray-300 group-hover:text-white transition-colors text-sm">
-                                        {brand.name}
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
+                        <label className="flex items-center justify-between cursor-pointer group bg-gray-800/50 p-3 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors">
+                            <span className="text-gray-300 font-medium group-hover:text-white transition-colors text-sm">
+                                Solo productos con stock
+                            </span>
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={hideOutOfStock}
+                                    onChange={() =>
+                                        setHideOutOfStock(!hideOutOfStock)
+                                    }
+                                />
+                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand"></div>
+                            </div>
+                        </label>
                     </div>
+
+                    {/* Marcas */}
+                    {brands && brands.length > 0 && (
+                        <div className="border-t border-gray-800 pt-6">
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider text-gray-400">
+                                Marcas
+                            </h3>
+                            {/* MODIFICACIÓN: Agregamos max-h-[300px], overflow-y-auto y pr-2 */}
+                            <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                {brands.map((brand) => (
+                                    <label
+                                        key={brand.slug}
+                                        className="flex items-center gap-3 cursor-pointer group"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedBrands.includes(
+                                                brand.slug,
+                                            )}
+                                            onChange={() =>
+                                                handleToggleBrand(brand.slug)
+                                            }
+                                            className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-brand focus:ring-brand focus:ring-offset-gray-900 cursor-pointer flex-shrink-0"
+                                        />
+                                        <span className="text-gray-300 group-hover:text-white transition-colors text-sm truncate">
+                                            {brand.name}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer (Botones) */}

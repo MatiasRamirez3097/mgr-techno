@@ -72,7 +72,6 @@ export async function generateVoucher(params: Params) {
                 voucher,
                 fiscalType: params.fiscalType || "B",
             });
-            console.log("asd>>>>", voucher.fiscalData);
         }
 
         /*

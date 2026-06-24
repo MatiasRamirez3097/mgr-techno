@@ -7,12 +7,10 @@ import type { ProductFilters } from "@/types/shared/product";
 import { unstable_cache } from "next/cache";
 
 export async function getCatalogProducts(
-    filters: ProductFilters & { brand?: string } = {},
+    filters: ProductFilters & { brand?: string; inStockOnly?: boolean } = {},
     page: number = 1,
     limit: number = 12,
 ) {
-    // Generamos un string de caché único basado en los parámetros actuales.
-    // Si cambia un filtro, la página o el límite, la clave será distinta y buscará datos frescos.
     const cacheKey = [
         "catalog_products",
         JSON.stringify(filters),
@@ -87,6 +85,11 @@ export async function getCatalogProducts(
 
             if (filters.onSale) {
                 baseMatchStage.salePrice = { $exists: true, $ne: null, $gt: 0 };
+            }
+
+            // NUEVO: Ocultar productos sin stock si la opción está activa usando isAvailable
+            if (filters.inStockOnly) {
+                baseMatchStage.isAvailable = true;
             }
 
             if (filters.category) {
