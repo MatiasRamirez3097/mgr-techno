@@ -41,5 +41,6 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         totalStock: product.totalStock,
         brand: product.brand ? product.brand.toString() : "",
         featured: product.featured,
+        isAvailable: Boolean(product.isAvailable),
     };
 }

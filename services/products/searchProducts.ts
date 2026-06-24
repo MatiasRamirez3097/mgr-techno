@@ -114,6 +114,7 @@ export async function searchProducts(
             taxRate: 1,
             gtin: 1,
             mpn: 1,
+            isAvailable: 1,
         },
     });
 
@@ -121,5 +122,6 @@ export async function searchProducts(
     const products = await ProductModel.aggregate(pipeline);
 
     // Retornamos mapeando los datos tal cual los espera tu frontend
+    console.log(products);
     return products.map(mapProductToDTO);
 }

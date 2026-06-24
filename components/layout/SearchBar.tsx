@@ -13,7 +13,7 @@ interface Suggestion {
     regularPrice: number;
     salePrice: number;
     image: string | null;
-    inStock: boolean;
+    isAvailable: boolean;
 }
 
 export const SearchBar = () => {
@@ -301,9 +301,13 @@ export const SearchBar = () => {
                                         : suggestion.regularPrice.toLocaleString(
                                               "es-AR",
                                           )}
-                                    {!suggestion.inStock && (
+                                    {!suggestion.isAvailable ? (
                                         <span className="ml-2 text-red-400">
                                             Sin stock
+                                        </span>
+                                    ) : (
+                                        <span className="ml-2 text-green-400">
+                                            En stock
                                         </span>
                                     )}
                                 </p>

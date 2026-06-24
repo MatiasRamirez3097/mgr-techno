@@ -27,6 +27,7 @@ export type ProductDTO = {
     };
     brand: string;
     featured: boolean;
+    isAvailable: boolean;
 };
 
 export type GetProductsResponse = {
