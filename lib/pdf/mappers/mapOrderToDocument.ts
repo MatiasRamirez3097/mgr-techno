@@ -16,7 +16,7 @@ export function mapOrderToDocument({
         return items.reduce((acc, item) => {
             // Asumimos que item.taxRate es un decimal, ej: 0.21 para el 21%
             // Si viene como entero (21), usa: (item.taxRate / 100)
-            const rate = item.taxRate || 0;
+            const rate = item.taxRate / 100 || 0;
 
             // Calculamos el IVA del subtotal de este ítem
             // Si el precio del item ya incluye IVA: (Total / (1 + tasa)) * tasa
@@ -157,7 +157,7 @@ export function mapOrderToDocument({
 
             shipping: order.shippingMethod?.cost || 0,
 
-            iva: calculateTotalIva(order.items),
+            iva: Number(calculateTotalIva(order.items).toFixed(2)),
 
             total: order.total || 0,
         },
