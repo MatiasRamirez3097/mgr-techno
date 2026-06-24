@@ -377,11 +377,12 @@ export async function orderDocumentTemplate(data: any) {
                 <div class="header-left">
 
                     <div class="business-name">
-                        ${data.business.name}
+                        ${data.business.fantasyName}
                     </div>
 
                     <div class="business-info">
-
+                        ${data.business.name || ""}
+                        <br />
                         ${data.business.address || ""}
                         <br />
 

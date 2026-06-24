@@ -24,7 +24,9 @@ export function mapOrderToDocument({
         */
 
         business: {
-            name: "MGR Techno",
+            fantasyName: "MGR Techno",
+
+            name: "RAMIREZ MATIAS GABRIEL",
 
             address: "Rosario, Santa Fe",
 
