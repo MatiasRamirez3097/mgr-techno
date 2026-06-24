@@ -10,7 +10,6 @@ import { getAllocationSuggestions } from "@/lib/inventory/getAllocationSuggestio
 import { InventoryAllocationSection } from "@/components/admin/InventoryAllocationSection";
 import { getOrderPaymentStatus } from "@/lib/orders/getOrderPaymentStatus";
 import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
-import { GenerateInvoiceButton } from "@/components/admin/documents/GenerateInvoiceButton";
 import { GenerateVoucherButton } from "@/components/admin/documents/GenerateVoucherButton";
 import { VoucherCard } from "@/components/admin/VoucherCard";
 

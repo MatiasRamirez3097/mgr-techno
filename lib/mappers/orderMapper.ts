@@ -80,6 +80,7 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
                 generatedAt: p.generatedAt.toISOString(),
                 url: p.url || "",
                 publicId: p.publicId || "",
+                fiscalData: p.fiscalData ? p.fiscalData : {},
             })) || [],
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),

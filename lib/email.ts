@@ -584,37 +584,38 @@ export async function sendFiscalInvoiceEmail(order: any, voucher: any) {
         ? "Nota de Crédito"
         : `Factura ${voucher.fiscalData?.fiscalType ?? ""}`;
 
-    // Compatibilidad: el esquema tiene 'number' pero a veces AFIP devuelve 'voucherNumber'
-    const vNumber = voucher.number || voucher.voucherNumber;
-    const formattedNumber = String(vNumber).padStart(8, "0");
+    // Lógica para el nombre del archivo (para mostrarlo en el texto del email)
+    const formattedNumber = String(
+        voucher.voucherNumber || voucher.number,
+    ).padStart(8, "0");
+    const pos = voucher.fiscalData?.fiscalPointOfSale || "0000";
+    const fileName =
+        voucher.type === "fiscal_invoice"
+            ? `Factura_${pos}-${formattedNumber}.pdf`
+            : `Comprobante_${voucher.number}.pdf`;
 
-    // ==========================================
-    // CAMBIO CLAVE: RUTA PROPIA EN LUGAR DE CLOUDINARY
-    // ==========================================
-    // En lugar de enviar la URL de Cloudinary, armamos una ruta hacia tu propia API.
-    // Asegurate de configurar NEXT_PUBLIC_APP_URL en tu archivo .env (ej: https://mgrtechno.com.ar)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const voucherId = voucher._id?.toString() || voucher.id;
 
-    // Apuntamos a un endpoint público que crearemos en tu app
+    // ==========================================
+    // SOLUCIÓN DEFINITIVA: LINK LIMPIO SIN PARÁMETROS
+    // ==========================================
+    // Al no tener query params (?fileName=...), Gmail no tiene nada que romper.
+    // El endpoint de descarga calculará el nombre por su cuenta.
     const downloadLink = `${baseUrl}/api/public/vouchers/${voucherId}/download`;
 
     try {
         const { data, error } = await resend.emails.send({
-            from: "MGR Techno <noreply@mgrtechno.com.ar>", // Cambiá por onboarding@resend.dev si aún no verificaste tu dominio
+            from: "MGR Techno <noreply@mgrtechno.com.ar>",
             to: order.customerEmail,
             subject: `${title} - Pedido #${order.id.toString().slice(-6).toUpperCase()}`,
-
-            // ELIMINAMOS POR COMPLETO EL CAMPO 'attachments' PARA LA VERSIÓN GRATUITA
-
             html: emailLayout({
                 title: title,
                 subtitle: "Comprobante Fiscal Electrónico",
                 content: `
     <p style="color:${EMAIL_THEME.body};line-height:1.7;">
-        Hola ${order.billing.firstName},
-        ya emitimos tu comprobante fiscal correspondiente al pedido realizado en nuestra tienda.
-        <strong>Podés acceder a tu documento haciendo clic en el botón de abajo.</strong>
+        Hola ${order.billing.firstName}, adjuntamos tu comprobante fiscal. 
+        <strong>Podés descargar el archivo "${fileName}" haciendo clic abajo.</strong>
     </p>
 
     <div style="
@@ -643,9 +644,8 @@ export async function sendFiscalInvoiceEmail(order: any, voucher: any) {
         
         <div style="color:${EMAIL_THEME.body};line-height:1.8;font-size:14px;">
             <strong>Tipo:</strong> ${voucherLabel}<br>
-            <strong>Número:</strong> ${voucher.pointOfSale}-${formattedNumber}<br>
-            <strong>CAE:</strong> ${voucher.cae}<br>
-            <strong>Vencimiento CAE:</strong> ${voucher.caeExpiration}
+            <strong>Número:</strong> ${voucher.fiscalData?.fiscalPointOfSale || pos}-${formattedNumber}<br>
+            <strong>CAE:</strong> ${voucher.fiscalData?.cae || "-"}<br>
         </div>
 
         ${

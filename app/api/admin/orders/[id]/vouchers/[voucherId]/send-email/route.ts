@@ -10,7 +10,6 @@ export async function POST(req: Request, context: any) {
         const { id: orderId, voucherId } = await context.params;
 
         const order = await getOrdersById(orderId);
-        console.log("logForEmail", order);
         if (!order) {
             return Response.json(
                 { error: "Orden no encontrada" },
@@ -30,7 +29,6 @@ export async function POST(req: Request, context: any) {
                 { status: 404 },
             );
         }
-        console.log("vouchers", voucher);
         // Reutilizamos tu función de envío de correos
         // Nota: Si usas una función distinta para comprobantes no fiscales,
         // puedes agregar un if(voucher.type === 'non_fiscal_receipt') aquí.
