@@ -644,7 +644,7 @@ export async function sendFiscalInvoiceEmail(order: any, voucher: any) {
         
         <div style="color:${EMAIL_THEME.body};line-height:1.8;font-size:14px;">
             <strong>Tipo:</strong> ${voucherLabel}<br>
-            <strong>Número:</strong> ${voucher.fiscalData?.fiscalPointOfSale || pos}-${formattedNumber}<br>
+            <strong>Número:</strong> ${voucher.fiscalData?.fiscalType}-${formattedNumber}<br>
             <strong>CAE:</strong> ${voucher.fiscalData?.cae || "-"}<br>
         </div>
 
