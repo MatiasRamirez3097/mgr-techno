@@ -12,6 +12,21 @@ export function mapOrderToDocument({
 
     const fiscalData = voucher.fiscalData || {};
 
+    const calculateTotalIva = (items: any[]) => {
+        return items.reduce((acc, item) => {
+            // Asumimos que item.taxRate es un decimal, ej: 0.21 para el 21%
+            // Si viene como entero (21), usa: (item.taxRate / 100)
+            const rate = item.taxRate || 0;
+
+            // Calculamos el IVA del subtotal de este ítem
+            // Si el precio del item ya incluye IVA: (Total / (1 + tasa)) * tasa
+            // Si el precio es neto: Total * tasa
+            const itemIva = (item.subtotal / (1 + rate)) * rate;
+
+            return acc + itemIva;
+        }, 0);
+    };
+
     const customerName = [order.billing?.firstName, order.billing?.lastName]
         .filter(Boolean)
         .join(" ");
@@ -142,7 +157,7 @@ export function mapOrderToDocument({
 
             shipping: order.shippingMethod?.cost || 0,
 
-            iva: calculateIncludedIva(order.total),
+            iva: calculateTotalIva(order.items),
 
             total: order.total || 0,
         },
@@ -172,10 +187,4 @@ function getAfipVoucherCode(fiscalType?: string) {
         default:
             return "999";
     }
-}
-
-function calculateIncludedIva(total: number) {
-    const iva = total - total / 1.21;
-
-    return Number(iva.toFixed(2));
 }
