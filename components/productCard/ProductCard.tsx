@@ -7,7 +7,13 @@ import { useCart } from "@/store/cart";
 import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
 import { getPricing } from "@/lib/pricing";
 
-export function ProductCard({ product }: { product: ProductDTO }) {
+export function ProductCard({
+    product,
+    priority = false,
+}: {
+    product: ProductDTO;
+    priority?: boolean;
+}) {
     const addToCart = useCart((state) => state.addToCart);
     const { open } = useCartDrawer();
     const items = useCart((state) => state.items);
@@ -33,6 +39,7 @@ export function ProductCard({ product }: { product: ProductDTO }) {
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        priority={priority}
                     />
                     {product.salePrice && (
                         <span className="absolute top-2 left-2 bg-brand text-white text-xs font-medium px-2 py-1 rounded-full">
