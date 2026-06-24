@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { RegenerateVoucherPdfButton } from "./documents/RegenerateVoucherPdfButton";
 import { SendVoucherEmailButton } from "./SendVoucherEmailButton";
+import { DownloadPdfButton } from "./orders/DownloadPdfButton";
 
 interface Props {
     orderId: string;
@@ -20,6 +21,16 @@ export function VoucherCard({ orderId, voucher }: Props) {
           : voucher.status === "replaced"
             ? "Reemplazada"
             : "Borrador";
+
+    // Armamos un nombre de archivo prolijo dependiendo del tipo de comprobante
+    const fileName =
+        voucher.type === "fiscal_invoice"
+            ? `Factura_${voucher.fiscalData?.fiscalType}-${String(voucher.voucherNumber || voucher.number).padStart(8, "0")}.pdf`
+            : `Comprobante_${voucher.number}.pdf`;
+
+    // Priorizamos la URL directa si existe, sino usamos el endpoint de descarga
+    const downloadUrl =
+        voucher.pdfUrl || `/api/admin/vouchers/${voucher.id}/download`;
 
     return (
         <div
@@ -41,7 +52,9 @@ export function VoucherCard({ orderId, voucher }: Props) {
                     </div>
 
                     <div className="text-xs text-gray-500 mt-1">
-                        {new Date(voucher.generatedAt).toLocaleString("es-AR")}
+                        {new Date(
+                            voucher.generatedAt || Date.now(),
+                        ).toLocaleString("es-AR")}
                     </div>
                 </div>
 
@@ -64,24 +77,21 @@ export function VoucherCard({ orderId, voucher }: Props) {
 
             {/* Agregamos flex-wrap por si los 3 botones no entran en pantallas pequeñas */}
             <div className="flex flex-wrap gap-2 mt-4">
-                <Link
-                    href={`/api/admin/vouchers/${voucher.id}/download`}
-                    target="_blank"
+                {/* Envolvemos nuestro DownloadPdfButton para que herede el estilo de la tarjeta original */}
+                <div
                     className="
                         flex-1
                         flex items-center justify-center
-                        px-4 py-2
                         rounded-xl
                         bg-blue-500/10
                         border border-blue-500/20
-                        text-blue-300
                         hover:bg-blue-500/20
                         transition-colors
-                        text-sm
+                        [&>button]:mt-0 [&>button]:text-blue-300 [&>button]:py-2 [&>button]:px-4
                     "
                 >
-                    Ver PDF
-                </Link>
+                    <DownloadPdfButton url={downloadUrl} fileName={fileName} />
+                </div>
 
                 <SendVoucherEmailButton
                     orderId={orderId}
