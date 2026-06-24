@@ -121,7 +121,10 @@ export async function getCatalogProducts(
                 filters.search &&
                 (!filters.orderby || filters.orderby === "relevance")
             ) {
-                sortStage = { score: { $meta: "searchScore" } };
+                sortStage = {
+                    isAvailable: -1,
+                    score: { $meta: "searchScore" },
+                };
             } else {
                 sortStage = { isAvailable: -1 };
 
