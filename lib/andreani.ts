@@ -14,10 +14,9 @@ function calcularVolumen(items: CartItem[]): number {
     // Volumen en cm³ → convertimos a dm³ (litros) que es lo que pide Andreani
     return items.reduce((acc, item) => {
         const volItem =
-            (item.dimensions.length *
-                item.dimensions.width *
-                item.dimensions.height) /
-            1000; // cm³ a dm³
+            item.dimensions.length *
+            item.dimensions.width *
+            item.dimensions.height; // cm³ a dm³
         return acc + volItem * item.quantity;
     }, 0);
 }
