@@ -60,7 +60,7 @@ export type OrderDTO = {
 
     paymentStatus: "pending" | "partial" | "paid" | "failed" | "refunded";
     shippingMethod: {
-        method: "local_pickup" | "andreani" | "local_shipping";
+        method: "local_pickup" | "andreani" | "local_shipping" | "viacargo";
         cost: number;
     };
     subtotal: number;
