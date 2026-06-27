@@ -29,11 +29,25 @@ export async function getLiveViaCargoQuote(params: ViaCargoLiveParams) {
             params.dimensions?.length +
                 params.dimensions?.height +
                 params.dimensions?.width >=
-                69600
+                69600 &&
+            params.dimensions?.length +
+                params.dimensions?.height +
+                params.dimensions?.width <
+                91000
         ) {
             adjustedDimensions.length = 60;
             adjustedDimensions.width = 29;
             adjustedDimensions.height = 40;
+        } else if (
+            params.dimensions &&
+            params.dimensions?.length +
+                params.dimensions?.height +
+                params.dimensions?.width >
+                91000
+        ) {
+            adjustedDimensions.length = params.dimensions.length;
+            adjustedDimensions.width = params.dimensions.width;
+            adjustedDimensions.height = params.dimensions.height;
         }
         const payload = {
             IdClienteRemitente: "99999999", // ID de cotización pública
