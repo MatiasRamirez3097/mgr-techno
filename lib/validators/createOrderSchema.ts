@@ -62,7 +62,12 @@ export const createOrderSchema = z.object({
     source: z.enum(["ecommerce", "admin"]),
     payments: z.array(paymentSchema).min(1),
     shippingMethod: z.object({
-        method: z.enum(["local_pickup", "andreani", "local_shipping"]),
+        method: z.enum([
+            "local_pickup",
+            "andreani",
+            "local_shipping",
+            "viacargo",
+        ]),
         title: z.string(),
         cost: z.number().min(0),
     }),

@@ -19,6 +19,22 @@ export async function getLiveViaCargoQuote(params: ViaCargoLiveParams) {
         // ==========================================
 
         // Construimos el body usando el esquema oficial
+        const adjustedDimensions = {
+            length: 20,
+            width: 20,
+            height: 20,
+        };
+        if (
+            params.dimensions &&
+            params.dimensions?.length +
+                params.dimensions?.height +
+                params.dimensions?.width >=
+                69600
+        ) {
+            adjustedDimensions.length = 60;
+            adjustedDimensions.width = 29;
+            adjustedDimensions.height = 40;
+        }
         const payload = {
             IdClienteRemitente: "99999999", // ID de cotización pública
             IdCentroRemitente: "99",
@@ -27,9 +43,9 @@ export async function getLiveViaCargoQuote(params: ViaCargoLiveParams) {
             ImporteValorDeclarado: Math.round(params.cartTotal).toString(),
             NumeroBultos: "1",
             Kilos: Math.max(1, Math.ceil(params.actualWeight)).toString(), // Redondeamos para arriba
-            Largo: (params.dimensions?.length || 20).toString(),
-            Alto: (params.dimensions?.height || 20).toString(),
-            Ancho: (params.dimensions?.width || 20).toString(),
+            Largo: adjustedDimensions.length.toString(),
+            Alto: adjustedDimensions.height.toString(),
+            Ancho: adjustedDimensions.width.toString(),
             TipoPortes: "P", // Porte Pagado
         };
 
