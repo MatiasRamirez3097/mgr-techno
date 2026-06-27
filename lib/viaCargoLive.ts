@@ -40,10 +40,14 @@ export async function getLiveViaCargoQuote(params: ViaCargoLiveParams) {
             adjustedDimensions.height = 40;
         } else if (
             params.dimensions &&
-            params.dimensions?.length +
+            (params.dimensions?.length +
                 params.dimensions?.height +
                 params.dimensions?.width >
-                91000
+                91000 ||
+                params.dimensions?.length +
+                    params.dimensions?.height +
+                    params.dimensions?.width <
+                    69600)
         ) {
             adjustedDimensions.length = params.dimensions.length;
             adjustedDimensions.width = params.dimensions.width;
