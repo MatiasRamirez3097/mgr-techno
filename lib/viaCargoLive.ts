@@ -127,7 +127,12 @@ export async function getLiveViaCargoQuote(params: ViaCargoLiveParams) {
         return {
             success: true,
             source: "API_LIVE",
-            cost: livePrice < 16000 ? 15999 : livePrice,
+            cost:
+                livePrice < 16000
+                    ? livePrice + 1000 > 15999
+                        ? 15999
+                        : livePrice + 1000
+                    : livePrice,
             estimatedDays: liveDays,
         };
     } catch (error) {
