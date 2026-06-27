@@ -28,15 +28,20 @@ const SHIPPING_METHODS = [
         description: "Sin costo · Caaguazu 3971, Rosario",
     },
     {
-        id: "andreani",
-        label: "Envío por Andreani",
-        description: "Ingresá tu código postal para cotizar",
-    },
-    {
         id: "local_shipping",
         label: "Envio Cadeteria (Rosario)",
         description:
             "Se envia a traves de cadeteria, solo disponible en Rosario, el costo es dentro de los limites de Circunvalacion, consultar por costo fuera de esta zona.",
+    },
+    {
+        id: "viacargo",
+        label: "Via Cargo - Retiro en sucursal",
+        description: "Ingresa tu código postal para cotizar",
+    },
+    {
+        id: "andreani",
+        label: "Envío por Andreani",
+        description: "Ingresá tu código postal para cotizar",
     },
 ] as const;
 
@@ -89,7 +94,7 @@ export function CheckoutForm({ session }: Props) {
     });
 
     const [shippingMethod, setShippingMethod] = useState<
-        "local_shipping" | "local_pickup" | "andreani"
+        "local_shipping" | "local_pickup" | "andreani" | "viacargo"
     >("local_pickup");
     const [paymentMethod, setPaymentMethod] = useState<
         "mercadopago" | "bank_transfer" | "cash"
@@ -114,7 +119,7 @@ export function CheckoutForm({ session }: Props) {
 
     const total =
         subtotal +
-        (shippingMethod === "andreani"
+        (shippingMethod === "andreani" || shippingMethod === "viacargo"
             ? shippingCost
             : shippingMethod === "local_shipping"
               ? LOCAL_SHIPPING_COST
@@ -129,7 +134,7 @@ export function CheckoutForm({ session }: Props) {
     };
 
     const cotizarEnvio = useCallback(
-        async (postcode: string) => {
+        async (postcode: string, shippingMethod: string) => {
             if (postcode.length < 4) return;
 
             setQuotingShipping(true);
@@ -144,6 +149,7 @@ export function CheckoutForm({ session }: Props) {
                     },
                     body: JSON.stringify({
                         postcode,
+                        shippingMethod,
                         items: items.map((i) => ({
                             id: i.id,
                             quantity: i.quantity,
@@ -172,7 +178,9 @@ export function CheckoutForm({ session }: Props) {
     // Cotizar automáticamente cuando cambia CP o método de envío
     useEffect(() => {
         if (shippingMethod === "andreani" && form.postcode.length >= 4) {
-            cotizarEnvio(form.postcode);
+            cotizarEnvio(form.postcode, "andreani");
+        } else if (shippingMethod === "viacargo" && form.postcode.length >= 4) {
+            cotizarEnvio(form.postcode, "viacargo");
         } else {
             setShippingCost(0);
             setShippingError("");
@@ -184,7 +192,10 @@ export function CheckoutForm({ session }: Props) {
         if (items.length === 0) return;
 
         // Validar que si eligió Andreani tenga cotización
-        if (shippingMethod === "andreani" && shippingCost === 0) {
+        if (
+            (shippingMethod === "andreani" || shippingMethod === "viacargo") &&
+            shippingCost === 0
+        ) {
             setError("Por favor esperá la cotización del envío");
             return;
         }
@@ -288,7 +299,8 @@ export function CheckoutForm({ session }: Props) {
                                   : "Andreani",
 
                         cost:
-                            shippingMethod === "andreani"
+                            shippingMethod === "andreani" ||
+                            shippingMethod === "viacargo"
                                 ? shippingCost
                                 : shippingMethod === "local_shipping"
                                   ? 5000
@@ -613,7 +625,69 @@ export function CheckoutForm({ session }: Props) {
 
                                     {/* Cotización Andreani */}
                                     {method.id === "andreani" &&
-                                        shippingMethod === "andreani" && (
+                                    shippingMethod === "andreani" ? (
+                                        <div className="mt-2">
+                                            {quotingShipping && (
+                                                <p className="text-xs text-gray-400 flex items-center gap-1">
+                                                    <svg
+                                                        className="w-3 h-3 animate-spin"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                    >
+                                                        <circle
+                                                            className="opacity-25"
+                                                            cx="12"
+                                                            cy="12"
+                                                            r="10"
+                                                            stroke="currentColor"
+                                                            strokeWidth="4"
+                                                        />
+                                                        <path
+                                                            className="opacity-75"
+                                                            fill="currentColor"
+                                                            d="M4 12a8 8 0 018-8v8z"
+                                                        />
+                                                    </svg>
+                                                    Cotizando...
+                                                </p>
+                                            )}
+                                            {shippingError &&
+                                                !quotingShipping && (
+                                                    <p className="text-xs text-red-400">
+                                                        {shippingError}
+                                                    </p>
+                                                )}
+                                            {shippingCost > 0 &&
+                                                !quotingShipping && (
+                                                    <p className="text-xs text-green-400 font-medium">
+                                                        Costo de envío: $
+                                                        {shippingCost.toLocaleString(
+                                                            "es-AR",
+                                                        )}
+                                                    </p>
+                                                )}
+                                            {!form.postcode &&
+                                                !quotingShipping && (
+                                                    <div className="flex items-start gap-1.5 mt-1.5">
+                                                        <span className="text-amber-400/80 text-xs mt-0.5">
+                                                            ℹ️
+                                                        </span>
+                                                        <p className="text-xs text-amber-400/90 leading-snug">
+                                                            Completá tu{" "}
+                                                            <strong>
+                                                                Código postal
+                                                            </strong>{" "}
+                                                            en el formulario de
+                                                            arriba para calcular
+                                                            el costo exacto al
+                                                            instante.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                        </div>
+                                    ) : (
+                                        method.id === "viacargo" &&
+                                        shippingMethod === "viacargo" && (
                                             <div className="mt-2">
                                                 {quotingShipping && (
                                                     <p className="text-xs text-gray-400 flex items-center gap-1">
@@ -675,7 +749,8 @@ export function CheckoutForm({ session }: Props) {
                                                         </div>
                                                     )}
                                             </div>
-                                        )}
+                                        )
+                                    )}
                                 </div>
 
                                 <span className="text-sm font-bold text-white shrink-0">
@@ -684,9 +759,14 @@ export function CheckoutForm({ session }: Props) {
                                         : method.id === "local_shipping"
                                           ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
                                           : shippingCost > 0 &&
-                                              shippingMethod === "andreani"
+                                              shippingMethod === "andreani" &&
+                                              method.id === "andreani"
                                             ? `$${shippingCost.toLocaleString("es-AR")}`
-                                            : "Falta tu CP"}
+                                            : shippingCost > 0 &&
+                                                shippingMethod === "viacargo" &&
+                                                method.id === "viacargo"
+                                              ? `$${shippingCost.toLocaleString("es-AR")}`
+                                              : "Click para cotizar"}
                                 </span>
                             </label>
                         ))}
