@@ -133,9 +133,9 @@ export function buildInvoiceRequest({
 
                         CbteDesde: voucherNumber,
                         CbteHasta: voucherNumber,
-                        //CbteFch: Number(cbteFch),
-                        //DEBBUGING
-                        CbteFch: 20260630,
+                        CbteFch: Number(cbteFch),
+                        //ENABLE FOR DEBBUGING
+                        //CbteFch: 20260630,
                         ImpTotal: impTotal,
                         ImpTotConc: 0,
                         ImpNeto: impNeto,
