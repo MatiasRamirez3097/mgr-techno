@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
         const ivaCode = cleanString(body.ivaCondition) as IvaConditionCode;
 
         const customerData = {
-            email: body.email ? cleanString(body.email) : undefined,
+            email:
+                body.email && body.email != ""
+                    ? cleanString(body.email)
+                    : undefined,
             firstName: cleanString(body.firstName),
             lastName: cleanString(body.lastName),
             phone: cleanString(body.phone),
