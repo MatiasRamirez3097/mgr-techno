@@ -5,6 +5,7 @@ import { mapCustomerToDTO } from "@/lib/mappers/customerMapper";
 import { getCustomersBase } from "@/lib/customers/getCustomersBase";
 import { IVA_CONDITIONS } from "@/lib/afip/constants";
 import { IvaConditionCode } from "@/lib/afip/constants";
+import { email } from "zod";
 // 🧼 helpers
 function normalizeCUIT(cuit?: string) {
     if (!cuit) return undefined;
@@ -33,11 +34,7 @@ export async function POST(req: NextRequest) {
 
         const ivaCode = cleanString(body.ivaCondition) as IvaConditionCode;
 
-        const customerData = {
-            email:
-                body.email && body.email != ""
-                    ? cleanString(body.email)
-                    : undefined,
+        const prepareData = {
             firstName: cleanString(body.firstName),
             lastName: cleanString(body.lastName),
             phone: cleanString(body.phone),
@@ -60,6 +57,14 @@ export async function POST(req: NextRequest) {
                 number: body.documentNumber,
             },
         };
+
+        const customerData =
+            body.email && body.email != null && body.email != ""
+                ? {
+                      ...prepareData,
+                      email: email,
+                  }
+                : prepareData;
 
         // 🛑 2. Validaciones básicas
         if (!customerData.lastName) {

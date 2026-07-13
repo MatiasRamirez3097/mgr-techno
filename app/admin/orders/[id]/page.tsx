@@ -323,6 +323,12 @@ export default async function AdminOrderDetailPage({
                                 <GenerateVoucherButton
                                     orderId={order.id}
                                     type="fiscal_invoice"
+                                    fiscalType={
+                                        order.billing?.document
+                                            ?.documentType === "CUIT"
+                                            ? "A"
+                                            : "B"
+                                    }
                                 />
                             </div>
                         </div>
