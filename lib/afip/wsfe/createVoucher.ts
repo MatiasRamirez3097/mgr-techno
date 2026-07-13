@@ -29,7 +29,7 @@ export async function createVoucher({ token, sign, cuit, feCAEReq }: Params) {
         MonCotiz,
     } = feCAEReq.FeCAEReq.FeDetReq.FECAEDetRequest[0];
 
-    const { CbteTipo } = feCAEReq.feCAEReq.FeCabReq;
+    const { CbteTipo } = feCAEReq.FeCAEReq.FeCabReq;
 
     const ivaXml =
         feCAEReq.FeCAEReq.FeDetReq.FECAEDetRequest[0].Iva.AlicIva.map(
