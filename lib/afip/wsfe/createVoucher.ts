@@ -29,6 +29,8 @@ export async function createVoucher({ token, sign, cuit, feCAEReq }: Params) {
         MonCotiz,
     } = feCAEReq.FeCAEReq.FeDetReq.FECAEDetRequest[0];
 
+    const { CbteTipo } = feCAEReq.FeCabReq;
+
     const ivaXml =
         feCAEReq.FeCAEReq.FeDetReq.FECAEDetRequest[0].Iva.AlicIva.map(
             (iva: any) => `
@@ -55,7 +57,7 @@ export async function createVoucher({ token, sign, cuit, feCAEReq }: Params) {
             <FeCabReq>
                <CantReg>1</CantReg>
                <PtoVta>5</PtoVta>
-               <CbteTipo>6</CbteTipo>
+               <CbteTipo>${CbteTipo}</CbteTipo>
             </FeCabReq>
             <FeDetReq>
                <FECAEDetRequest>
