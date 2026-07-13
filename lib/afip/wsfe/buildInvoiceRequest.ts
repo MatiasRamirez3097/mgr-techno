@@ -127,7 +127,10 @@ export function buildInvoiceRequest({
                             order.billing?.document?.documentType?.toLowerCase() ===
                             "dni"
                                 ? 96
-                                : 99, // 96 DNI, 99 Consumidor Final / Sin Especificar
+                                : order.billing?.document?.documentType?.toLowerCase() ===
+                                    "cuit"
+                                  ? 80
+                                  : 99, // 96 DNI, 99 Consumidor Final / Sin Especificar
 
                         DocNro: Number(order.billing?.document?.number || 0),
 
