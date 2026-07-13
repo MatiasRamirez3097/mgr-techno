@@ -113,9 +113,12 @@ export function mapOrderToDocument({
 
             document: order.billing?.document?.number || "",
 
-            taxCondition: order.billing?.taxCondition || {
-                label: "Consumidor Final",
-            },
+            taxCondition:
+                order.billing?.document?.documentType?.toLowerCase() === "cuit"
+                    ? { label: "Responsable Inscripto" }
+                    : {
+                          label: "Consumidor Final",
+                      },
         },
 
         /*
