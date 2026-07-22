@@ -12,6 +12,7 @@ import { ProductGallery } from "@/components/products/ProductGallery";
 import { getPricing } from "@/lib/pricing";
 
 import { getProductBySlug as getProductBySlugService } from "@/services/products/getProductBySlug";
+import MetaProductView from "@/components/MetaProductView";
 
 interface Props {
     params: Promise<{
@@ -48,6 +49,10 @@ export default async function ProductPage({ params }: Props) {
 
     return (
         <main className="max-w-5xl mx-auto px-4 py-10">
+            <MetaProductView
+                productId={product.id}
+                price={product.effectivePrice}
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 {/* GALLERY */}
 
