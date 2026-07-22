@@ -33,9 +33,7 @@ export async function GET() {
 
     <g:condition>new</g:condition>
 
-    <g:availability>
-        ${product.isAvailable ? "in_stock" : "out_of_stock"}
-    </g:availability>
+    <g:availability>${product.isAvailable ? "in_stock" : "out_of_stock"}</g:availability>
     <g:quantity_to_sell_on_facebook>${product.availableStock}</g:quantity_to_sell_on_facebook>
     <g:price>${price} ARS</g:price>
 
