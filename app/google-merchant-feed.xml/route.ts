@@ -1,6 +1,8 @@
+import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models";
 
 export async function GET() {
+    await connectDB();
     const products = await ProductModel.find({
         status: {
             $in: ["publish", "pending_review"],
