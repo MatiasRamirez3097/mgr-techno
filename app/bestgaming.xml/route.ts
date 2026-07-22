@@ -1,6 +1,4 @@
-// app/google-merchant-feed.xml/route.ts
-
-import { ProductModel } from "@/models/Product";
+import { ProductModel } from "@/models";
 
 export async function GET() {
     const products = await ProductModel.find({
