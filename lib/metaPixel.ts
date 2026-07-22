@@ -32,7 +32,7 @@ export const trackAddToCart = (product: any, quantity: number = 1) => {
     if (typeof window !== "undefined" && window.fbq) {
         const price = product.salePrice || product.regularPrice;
         window.fbq("track", "AddToCart", {
-            content_ids: [product._id || product.id],
+            content_ids: product.id,
             content_type: "product",
             content_name: product.name,
             value: price * quantity,
