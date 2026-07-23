@@ -13,8 +13,6 @@ export async function GET() {
 
     const items = products
         .map((product) => {
-            const price = product.salePrice ?? product.regularPrice;
-
             return `
 <item>
     <g:id>${product._id}</g:id>

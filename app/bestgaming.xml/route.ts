@@ -1,8 +1,10 @@
+export const revalidate = 3600;
+
 import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models";
 
 export async function GET() {
-    await connectDB;
+    await connectDB();
     const products = await ProductModel.find({
         status: {
             $in: ["publish", "pending_review"],
@@ -11,8 +13,6 @@ export async function GET() {
 
     const items = products
         .map((product) => {
-            const price = product.salePrice ?? product.regularPrice;
-
             return `
 <item>
     <g:id>${product._id}</g:id>
