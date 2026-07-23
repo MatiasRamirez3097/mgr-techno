@@ -1,3 +1,5 @@
+export const revalidate = 3600;
+
 import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models";
 
