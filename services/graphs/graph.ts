@@ -1,6 +1,8 @@
 import { OrderModel } from "@/models/Order"; // Ajustá la ruta a tu modelo
-
+import { connectDB } from "@/lib/mongodb";
 export async function getMonthlySalesStats() {
+    await connectDB();
+
     const stats = await OrderModel.aggregate([
         // 1. Filtramos SOLO las completadas
         {
