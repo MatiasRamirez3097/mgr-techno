@@ -52,11 +52,27 @@ export default function SalesCharts({ data }: { data: any[] }) {
                                 formatter={(value: any) =>
                                     formatCurrency(Number(value))
                                 }
+                                // 1. Estilos de la cajita flotante
+                                contentStyle={{
+                                    backgroundColor: "#1f2937", // Fondo gris oscuro (Tailwind gray-800)
+                                    borderColor: "#374151", // Borde un poco más claro
+                                    borderRadius: "8px", // Bordes redondeados
+                                    color: "#f3f4f6", // Texto blanco/gris claro
+                                }}
+                                // 2. Color del texto del valor (para que haga juego con la barra)
+                                itemStyle={{
+                                    color: "#10b981",
+                                    fontWeight: "bold",
+                                }}
+                                // 3. El fondo que se ilumina DETRÁS de la barra al pasar el mouse
+                                cursor={{ fill: "#374151", opacity: 0.4 }}
                             />
                             <Bar
                                 dataKey="ingresos"
                                 fill="#10b981"
                                 radius={[4, 4, 0, 0]}
+                                // 4. ESTO SACA EL BORDE BLANCO: Controla la barra exacta que estás tocando
+                                activeBar={{ stroke: "none", fill: "#059669" }}
                             />
                         </BarChart>
                     </ResponsiveContainer>
@@ -82,7 +98,24 @@ export default function SalesCharts({ data }: { data: any[] }) {
                                 axisLine={false}
                             />
                             <YAxis axisLine={false} tickLine={false} />
-                            <Tooltip />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: "#1f2937",
+                                    borderColor: "#374151",
+                                    borderRadius: "8px",
+                                    color: "#f3f4f6",
+                                }}
+                                itemStyle={{
+                                    color: "#3b82f6",
+                                    fontWeight: "bold",
+                                }}
+                                // En las líneas, el cursor es una línea vertical. La oscurecemos.
+                                cursor={{
+                                    stroke: "#4b5563",
+                                    strokeWidth: 1,
+                                    strokeDasharray: "3 3",
+                                }}
+                            />
                             <Line
                                 type="monotone"
                                 dataKey="ventas"
