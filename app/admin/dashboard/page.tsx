@@ -53,7 +53,7 @@ export default async function DashboardPage() {
                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
                         Este Mes
                     </p>
-                    <p className="text-3xl font-bold text-gray-800 mt-1">
+                    <p className="text-3xl font-bold text-gray-200 mt-1">
                         ${currentMonthTotal.toLocaleString("es-AR")}
                     </p>
                 </div>
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
                         Este Año
                     </p>
-                    <p className="text-3xl font-bold text-gray-800 mt-1">
+                    <p className="text-3xl font-bold text-gray-200 mt-1">
                         ${currentYearTotal.toLocaleString("es-AR")}
                     </p>
                 </div>
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
                         Histórico (Total)
                     </p>
-                    <p className="text-3xl font-bold text-gray-800 mt-1">
+                    <p className="text-3xl font-bold text-gray-200 mt-1">
                         ${totalRevenue.toLocaleString("es-AR")}
                     </p>
                 </div>
@@ -83,7 +83,7 @@ export default async function DashboardPage() {
                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
                         Ventas Concretadas
                     </p>
-                    <p className="text-3xl font-bold text-gray-800 mt-1">
+                    <p className="text-3xl font-bold text-gray-200 mt-1">
                         {totalOrders}
                     </p>
                 </div>
