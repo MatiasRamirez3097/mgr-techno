@@ -1,7 +1,7 @@
 // lib/inventory/allocateInventoryToOrder.ts
 
 import mongoose from "mongoose";
-
+import { connectDB } from "@/lib/mongodb";
 import { OrderModel, ProductModel, InventoryItemModel } from "@/models";
 
 type AllocationInput = {
@@ -17,6 +17,8 @@ export async function allocateInventoryToOrder(
     orderId: string,
     items: AllocationInput[],
 ) {
+    await connectDB();
+
     const session = await mongoose.startSession();
 
     try {
