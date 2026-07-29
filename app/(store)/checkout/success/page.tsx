@@ -1,4 +1,5 @@
 import { getOrdersById } from "@/lib/orders/getOrdersById";
+import MetaPurchaseTracker from "@/components/MetaPurchaseTracker";
 import Link from "next/link";
 
 interface Props {
@@ -12,8 +13,20 @@ export default async function SuccessPage({ searchParams }: Props) {
 
     const isBankTransfer = data?.payments?.[0]?.method === "bank_transfer";
 
+    if (!data)
+        return (
+            <div>
+                Ocurrio un problema al generar tu orden, contactate por WhatsApp
+            </div>
+        );
+
     return (
         <main className="min-h-screen flex items-center justify-center px-4 py-10">
+            <MetaPurchaseTracker
+                orderId={data.id}
+                items={data.items}
+                total={data.total}
+            />
             <div className="w-full max-w-2xl">
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
                     {/* Estado */}
