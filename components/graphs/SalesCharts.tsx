@@ -69,10 +69,10 @@ export default function SalesCharts({ data }: { data: any[] }) {
                             />
                             <Bar
                                 dataKey="ingresos"
-                                fill="#10b981"
+                                fill="#d06823"
                                 radius={[4, 4, 0, 0]}
                                 // 4. ESTO SACA EL BORDE BLANCO: Controla la barra exacta que estás tocando
-                                activeBar={{ stroke: "none", fill: "#059669" }}
+                                activeBar={{ stroke: "none", fill: "#eb701d" }}
                             />
                         </BarChart>
                     </ResponsiveContainer>
@@ -119,7 +119,7 @@ export default function SalesCharts({ data }: { data: any[] }) {
                             <Line
                                 type="monotone"
                                 dataKey="ventas"
-                                stroke="#3b82f6"
+                                stroke="#d06823"
                                 strokeWidth={3}
                                 dot={{ r: 4 }}
                             />
