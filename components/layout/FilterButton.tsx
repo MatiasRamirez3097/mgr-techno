@@ -28,8 +28,8 @@ export function FilterButton({ brands, initialHideOutOfStock = false }: Props) {
         : 0;
 
     // 2. Si el switch de stock está activo, suma 1
-    const activeStockFilterCount = initialHideOutOfStock ? 1 : 0;
-
+    //const activeStockFilterCount = initialHideOutOfStock ? 1 : 0;
+    const activeStockFilterCount = 0;
     // 3. Total
     const totalActiveFilters = activeBrandsCount + activeStockFilterCount;
 
