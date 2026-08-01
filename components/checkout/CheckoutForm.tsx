@@ -681,7 +681,7 @@ export function CheckoutForm({ session }: Props) {
                                               ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
                                               : mCost !== undefined
                                                 ? `$${mCost.toLocaleString("es-AR")}`
-                                                : "A cotizar"}
+                                                : ""}
                                     </span>
                                 </label>
                             );
