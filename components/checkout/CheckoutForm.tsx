@@ -16,7 +16,6 @@ type FieldError = {
 };
 
 const PAYMENT_METHODS = [
-    //{ id: "mercadopago", label: "MercadoPago", icon: "💳" },
     { id: "bank_transfer", label: "Transferencia bancaria", icon: "🏦" },
     { id: "cash", label: "Pago Efectivo", icon: "📦" },
 ] as const;
@@ -99,17 +98,23 @@ export function CheckoutForm({ session }: Props) {
     const [paymentMethod, setPaymentMethod] = useState<
         "mercadopago" | "bank_transfer" | "cash"
     >("bank_transfer");
-    const [shippingCost, setShippingCost] = useState(0);
+
+    // Reemplazamos shippingCost escalar por objetos para manejar múltiples cotizaciones
+    const [shippingCosts, setShippingCosts] = useState<Record<string, number>>(
+        {},
+    );
+    const [shippingErrors, setShippingErrors] = useState<
+        Record<string, string>
+    >({});
     const [quotingShipping, setQuotingShipping] = useState(false);
-    const [shippingError, setShippingError] = useState("");
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | FieldError[] | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [success, setSuccess] = useState("");
-    // Determinamos si el método de pago usa precio de lista
+
     const usesListPrice = paymentMethod === "mercadopago";
 
-    // Subtotal dinámico según método de pago
     const subtotal = items.reduce((acc, i) => {
         const price = usesListPrice
             ? getListPriceFinal(getFinalPrice(i))
@@ -117,16 +122,25 @@ export function CheckoutForm({ session }: Props) {
         return acc + price * i.quantity;
     }, 0);
 
-    const total =
-        subtotal +
-        (shippingMethod === "andreani" || shippingMethod === "viacargo"
-            ? shippingCost
+    // Calculamos el costo actual basándonos en el método seleccionado y los costos cacheados
+    const currentShippingCost =
+        shippingMethod === "local_pickup"
+            ? 0
             : shippingMethod === "local_shipping"
               ? LOCAL_SHIPPING_COST
-              : 0);
+              : shippingCosts[shippingMethod] || 0;
+
+    const total = subtotal + currentShippingCost;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+        let { name, value } = e.target;
+
+        // Forzamos a que el código postal sea solo numérico y máximo 4 dígitos
+        if (name === "postcode") {
+            value = value.replace(/\D/g, "").slice(0, 4);
+        }
+
+        setForm((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -134,40 +148,52 @@ export function CheckoutForm({ session }: Props) {
     };
 
     const cotizarEnvio = useCallback(
-        async (postcode: string, shippingMethod: string) => {
+        async (postcode: string) => {
             if (postcode.length < 4) return;
 
             setQuotingShipping(true);
-            setShippingError("");
-            setShippingCost(0);
+            setShippingErrors({});
+
+            const methodsToQuote = ["andreani", "viacargo"];
+            const newCosts: Record<string, number> = {};
+            const newErrors: Record<string, string> = {};
 
             try {
-                const res = await fetch("/api/shipping", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        postcode,
-                        shippingMethod,
-                        items: items.map((i) => ({
-                            id: i.id,
-                            quantity: i.quantity,
-                        })),
+                // Cotizamos todos los métodos en paralelo
+                await Promise.all(
+                    methodsToQuote.map(async (method) => {
+                        try {
+                            const res = await fetch("/api/shipping", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    postcode,
+                                    shippingMethod: method,
+                                    items: items.map((i) => ({
+                                        id: i.id,
+                                        quantity: i.quantity,
+                                    })),
+                                }),
+                            });
+
+                            const data = await res.json();
+
+                            if (!res.ok) {
+                                throw new Error(
+                                    data.error ||
+                                        `No se pudo cotizar ${method}`,
+                                );
+                            }
+
+                            newCosts[method] = data.total;
+                        } catch (error: any) {
+                            newErrors[method] = error.message;
+                        }
                     }),
-                });
+                );
 
-                const data = await res.json();
-
-                if (!res.ok) {
-                    throw new Error(
-                        data.error || "No se pudo cotizar el envío",
-                    );
-                }
-                console.log("data>>>", res);
-                setShippingCost(data.total);
-            } catch (error: any) {
-                setShippingError(error.message);
+                setShippingCosts(newCosts);
+                setShippingErrors(newErrors);
             } finally {
                 setQuotingShipping(false);
             }
@@ -175,28 +201,28 @@ export function CheckoutForm({ session }: Props) {
         [items],
     );
 
-    // Cotizar automáticamente cuando cambia CP o método de envío
+    // Cotizar automáticamente SOLAMENTE cuando el CP alcanza los 4 dígitos
     useEffect(() => {
-        if (shippingMethod === "andreani" && form.postcode.length >= 4) {
-            cotizarEnvio(form.postcode, "andreani");
-        } else if (shippingMethod === "viacargo" && form.postcode.length >= 4) {
-            cotizarEnvio(form.postcode, "viacargo");
+        if (form.postcode.length === 4) {
+            cotizarEnvio(form.postcode);
         } else {
-            setShippingCost(0);
-            setShippingError("");
+            // Limpiamos los costos si el usuario borra o cambia el código postal
+            setShippingCosts({});
+            setShippingErrors({});
         }
-    }, [shippingMethod, form.postcode, cotizarEnvio]);
+    }, [form.postcode, cotizarEnvio]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (items.length === 0) return;
 
-        // Validar que si eligió Andreani tenga cotización
         if (
             (shippingMethod === "andreani" || shippingMethod === "viacargo") &&
-            shippingCost === 0
+            !shippingCosts[shippingMethod]
         ) {
-            setError("Por favor esperá la cotización del envío");
+            setError(
+                "Por favor esperá la cotización del envío o verifica tu código postal.",
+            );
             return;
         }
 
@@ -206,89 +232,59 @@ export function CheckoutForm({ session }: Props) {
 
         try {
             const paymentMap = {
-                mercadopago: {
-                    method: "mercadopago",
-                    title: "MercadoPago",
-                },
-
+                mercadopago: { method: "mercadopago", title: "MercadoPago" },
                 bank_transfer: {
                     method: "bank_transfer",
                     title: "Transferencia bancaria",
                 },
-
-                cash: {
-                    method: "cash",
-                    title: "Pago contra entrega",
-                },
+                cash: { method: "cash", title: "Pago contra entrega" },
             };
 
             const selectedPayment = paymentMap[paymentMethod];
 
             const res = await fetch("/api/checkout", {
                 method: "POST",
-
-                headers: {
-                    "Content-Type": "application/json",
-                },
-
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     source: "ecommerce",
-
                     customerId: (session as any).customerId,
-
                     customerEmail: session.user?.email,
-
                     billing: {
                         firstName: form.firstName,
                         lastName: form.lastName,
-
                         address: form.address,
-
                         city: form.city,
                         state: form.state,
                         postcode: form.postcode,
-
                         phone: form.phone,
-
                         country: "AR",
-
                         document: {
                             documentType: form.documentType,
                             number: form.documentNumber,
                         },
                     },
-
                     shipping: {
                         firstName: form.firstName,
                         lastName: form.lastName,
-
                         address: form.address,
-
                         city: form.city,
                         state: form.state,
                         postcode: form.postcode,
-
                         phone: form.phone,
-
                         country: "AR",
                     },
-
                     items: items.map((i) => ({
                         productId: i.id,
                         quantity: i.quantity,
                     })),
-
                     payments: [
                         {
                             method: selectedPayment.method,
                             title: selectedPayment.title,
-
                             status: "pending",
-
                             amount: total,
                         },
                     ],
-
                     shippingMethod: {
                         method: shippingMethod,
                         title:
@@ -296,20 +292,13 @@ export function CheckoutForm({ session }: Props) {
                                 ? "Retiro en local"
                                 : shippingMethod === "local_shipping"
                                   ? "Envio Cadeteria (Rosario)"
-                                  : "Andreani",
-
-                        cost:
-                            shippingMethod === "andreani" ||
-                            shippingMethod === "viacargo"
-                                ? shippingCost
-                                : shippingMethod === "local_shipping"
-                                  ? 5000
-                                  : 0,
+                                  : shippingMethod === "viacargo"
+                                    ? "Via Cargo"
+                                    : "Andreani",
+                        cost: currentShippingCost,
                     },
-
                     notes: "",
                 }),
-
                 credentials: "include",
             });
 
@@ -325,17 +314,13 @@ export function CheckoutForm({ session }: Props) {
                             e.message,
                         ]),
                     );
-
                     setFieldErrors(errors);
                 }
-
                 throw new Error(data.error);
             }
 
             setSuccess("Compra exitosa!");
-
             clearCart();
-
             router.push(`/checkout/success?order=${data.order}`);
         } catch (e) {
             console.log(e);
@@ -357,9 +342,8 @@ export function CheckoutForm({ session }: Props) {
             onSubmit={handleSubmit}
             className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
-            {/* Columna izquierda */}
             <div className="lg:col-span-2 flex flex-col gap-6">
-                {/* Datos personales */}
+                {/* ---------- DATOS PERSONALES ---------- */}
                 <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                     <h2 className="text-lg font-bold text-white mb-4">
                         Datos personales
@@ -430,15 +414,6 @@ export function CheckoutForm({ session }: Props) {
                                 <option value="CUIL">CUIL</option>
                                 <option value="CUIT">CUIT</option>
                             </select>
-                            {fieldErrors["billing.document.documentType"] && (
-                                <p className="text-xs text-red-400 mt-1.5 font-medium">
-                                    {
-                                        fieldErrors[
-                                            "billing.document.documentType"
-                                        ]
-                                    }
-                                </p>
-                            )}
                         </div>
 
                         {/* Número de documento */}
@@ -552,6 +527,7 @@ export function CheckoutForm({ session }: Props) {
                                 value={form.postcode}
                                 onChange={handleChange}
                                 required
+                                placeholder="Ej: 2000"
                                 className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
                                     fieldErrors["billing.postcode"]
                                         ? "border-red-500 focus:border-red-500"
@@ -590,105 +566,49 @@ export function CheckoutForm({ session }: Props) {
                     </div>
                 </section>
 
-                {/* Método de envío */}
+                {/* ---------- MÉTODO DE ENVÍO ---------- */}
                 <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                     <h2 className="text-lg font-bold text-white mb-4">
                         Método de envío
                     </h2>
                     <div className="flex flex-col gap-3">
-                        {SHIPPING_METHODS.map((method) => (
-                            <label
-                                key={method.id}
-                                className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
-                                    shippingMethod === method.id
-                                        ? "border-brand bg-brand/10"
-                                        : "border-gray-700 hover:border-gray-600"
-                                }`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="shippingMethod"
-                                    value={method.id}
-                                    checked={shippingMethod === method.id}
-                                    onChange={() =>
-                                        setShippingMethod(method.id as any)
-                                    }
-                                    className="mt-1 accent-brand"
-                                />
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-white">
-                                        {method.label}
-                                    </p>
-                                    <p className="text-xs text-gray-400 mt-0.5">
-                                        {method.description}
-                                    </p>
+                        {SHIPPING_METHODS.map((method) => {
+                            const isQuotable =
+                                method.id === "andreani" ||
+                                method.id === "viacargo";
+                            const mCost = shippingCosts[method.id];
+                            const mError = shippingErrors[method.id];
 
-                                    {/* Cotización Andreani */}
-                                    {method.id === "andreani" &&
-                                    shippingMethod === "andreani" ? (
-                                        <div className="mt-2">
-                                            {quotingShipping && (
-                                                <p className="text-xs text-gray-400 flex items-center gap-1">
-                                                    <svg
-                                                        className="w-3 h-3 animate-spin"
-                                                        viewBox="0 0 24 24"
-                                                        fill="none"
-                                                    >
-                                                        <circle
-                                                            className="opacity-25"
-                                                            cx="12"
-                                                            cy="12"
-                                                            r="10"
-                                                            stroke="currentColor"
-                                                            strokeWidth="4"
-                                                        />
-                                                        <path
-                                                            className="opacity-75"
-                                                            fill="currentColor"
-                                                            d="M4 12a8 8 0 018-8v8z"
-                                                        />
-                                                    </svg>
-                                                    Cotizando...
-                                                </p>
-                                            )}
-                                            {shippingError &&
-                                                !quotingShipping && (
-                                                    <p className="text-xs text-red-400">
-                                                        {shippingError}
-                                                    </p>
-                                                )}
-                                            {shippingCost > 0 &&
-                                                !quotingShipping && (
-                                                    <p className="text-xs text-green-400 font-medium">
-                                                        Costo de envío: $
-                                                        {shippingCost.toLocaleString(
-                                                            "es-AR",
-                                                        )}
-                                                    </p>
-                                                )}
-                                            {!form.postcode &&
-                                                !quotingShipping && (
-                                                    <div className="flex items-start gap-1.5 mt-1.5">
-                                                        <span className="text-amber-400/80 text-xs mt-0.5">
-                                                            ℹ️
-                                                        </span>
-                                                        <p className="text-xs text-amber-400/90 leading-snug">
-                                                            Completá tu{" "}
-                                                            <strong>
-                                                                Código postal
-                                                            </strong>{" "}
-                                                            en el formulario de
-                                                            arriba para calcular
-                                                            el costo exacto al
-                                                            instante.
-                                                        </p>
-                                                    </div>
-                                                )}
-                                        </div>
-                                    ) : (
-                                        method.id === "viacargo" &&
-                                        shippingMethod === "viacargo" && (
-                                            <div className="mt-2">
+                            return (
+                                <label
+                                    key={method.id}
+                                    className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                                        shippingMethod === method.id
+                                            ? "border-brand bg-brand/10"
+                                            : "border-gray-700 hover:border-gray-600"
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="shippingMethod"
+                                        value={method.id}
+                                        checked={shippingMethod === method.id}
+                                        onChange={() =>
+                                            setShippingMethod(method.id as any)
+                                        }
+                                        className="mt-1 accent-brand"
+                                    />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-white">
+                                            {method.label}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                            {method.description}
+                                        </p>
+
+                                        {/* Estado de cotización para métodos que lo requieren */}
+                                        {isQuotable && (
+                                            <div className="mt-2 min-h-[20px]">
                                                 {quotingShipping && (
                                                     <p className="text-xs text-gray-400 flex items-center gap-1">
                                                         <svg
@@ -713,67 +633,63 @@ export function CheckoutForm({ session }: Props) {
                                                         Cotizando...
                                                     </p>
                                                 )}
-                                                {shippingError &&
-                                                    !quotingShipping && (
-                                                        <p className="text-xs text-red-400">
-                                                            {shippingError}
-                                                        </p>
-                                                    )}
-                                                {shippingCost > 0 &&
+
+                                                {mError && !quotingShipping && (
+                                                    <p className="text-xs text-red-400">
+                                                        {mError}
+                                                    </p>
+                                                )}
+
+                                                {mCost !== undefined &&
                                                     !quotingShipping && (
                                                         <p className="text-xs text-green-400 font-medium">
                                                             Costo de envío: $
-                                                            {shippingCost.toLocaleString(
+                                                            {mCost.toLocaleString(
                                                                 "es-AR",
                                                             )}
                                                         </p>
                                                     )}
-                                                {!form.postcode &&
+
+                                                {form.postcode.length < 4 &&
                                                     !quotingShipping && (
                                                         <div className="flex items-start gap-1.5 mt-1.5">
                                                             <span className="text-amber-400/80 text-xs mt-0.5">
                                                                 ℹ️
                                                             </span>
                                                             <p className="text-xs text-amber-400/90 leading-snug">
-                                                                Completá tu{" "}
+                                                                Ingresá tu{" "}
                                                                 <strong>
                                                                     Código
-                                                                    postal
+                                                                    postal (4
+                                                                    dígitos)
                                                                 </strong>{" "}
-                                                                en el formulario
-                                                                de arriba para
+                                                                arriba para
                                                                 calcular el
-                                                                costo exacto al
-                                                                instante.
+                                                                costo.
                                                             </p>
                                                         </div>
                                                     )}
                                             </div>
-                                        )
-                                    )}
-                                </div>
+                                        )}
+                                    </div>
 
-                                <span className="text-sm font-bold text-white shrink-0">
-                                    {method.id === "local_pickup"
-                                        ? "Gratis"
-                                        : method.id === "local_shipping"
-                                          ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
-                                          : shippingCost > 0 &&
-                                              shippingMethod === "andreani" &&
-                                              method.id === "andreani"
-                                            ? `$${shippingCost.toLocaleString("es-AR")}`
-                                            : shippingCost > 0 &&
-                                                shippingMethod === "viacargo" &&
-                                                method.id === "viacargo"
-                                              ? `$${shippingCost.toLocaleString("es-AR")}`
-                                              : "Click para cotizar"}
-                                </span>
-                            </label>
-                        ))}
+                                    {/* Precio a la derecha del radio button */}
+                                    <span className="text-sm font-bold text-white shrink-0">
+                                        {method.id === "local_pickup"
+                                            ? "Gratis"
+                                            : method.id === "local_shipping"
+                                              ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
+                                              : mCost !== undefined
+                                                ? `$${mCost.toLocaleString("es-AR")}`
+                                                : "A cotizar"}
+                                    </span>
+                                </label>
+                            );
+                        })}
                     </div>
                 </section>
 
-                {/* Método de pago */}
+                {/* ---------- MÉTODO DE PAGO ---------- */}
                 <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                     <h2 className="text-lg font-bold text-white mb-4">
                         Método de pago
@@ -808,28 +724,24 @@ export function CheckoutForm({ session }: Props) {
                 </section>
             </div>
 
-            {/* Columna derecha — resumen */}
+            {/* ---------- COLUMNA DERECHA: RESUMEN ---------- */}
             <div className="flex flex-col gap-4">
                 <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800 sticky top-24">
                     <h2 className="text-lg font-bold text-white mb-4">
                         Resumen
                     </h2>
 
-                    {/* Items */}
                     <div className="flex flex-col gap-4 mb-4">
                         {items.map((item) => {
                             const finalPrice = getFinalPrice(item);
-
                             const price = usesListPrice
                                 ? getListPriceFinal(finalPrice)
                                 : finalPrice;
-
                             return (
                                 <div
                                     key={item.id}
                                     className="flex gap-4 items-start"
                                 >
-                                    {/* 🖼 Imagen */}
                                     <div className="w-14 h-14 bg-gray-800 rounded-md overflow-hidden shrink-0 border border-gray-700">
                                         <img
                                             src={item.image}
@@ -837,14 +749,10 @@ export function CheckoutForm({ session }: Props) {
                                             className="w-full h-full object-contain"
                                         />
                                     </div>
-
-                                    {/* 🧠 Info */}
                                     <div className="flex flex-col min-w-0">
                                         <p className="text-sm text-gray-200 line-clamp-2">
                                             {item.name}
                                         </p>
-
-                                        {/* 💰 precio */}
                                         <div className="flex items-center gap-2 mt-1">
                                             {item.salePrice && (
                                                 <span className="text-xs text-gray-500 line-through">
@@ -854,7 +762,6 @@ export function CheckoutForm({ session }: Props) {
                                                     )}
                                                 </span>
                                             )}
-
                                             <span className="text-sm text-white font-medium">
                                                 ${price.toLocaleString("es-AR")}
                                             </span>
@@ -865,9 +772,7 @@ export function CheckoutForm({ session }: Props) {
                         })}
                     </div>
 
-                    {/* Totales */}
                     <div className="border-t border-gray-700 pt-4 flex flex-col gap-2">
-                        {/* Aviso de recargo */}
                         {usesListPrice && (
                             <div className="flex items-start gap-2 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2 mb-1">
                                 <span className="text-amber-400 text-xs mt-0.5">
@@ -879,7 +784,6 @@ export function CheckoutForm({ session }: Props) {
                                 </p>
                             </div>
                         )}
-
                         <div className="flex justify-between text-sm text-gray-400">
                             <span>Subtotal</span>
                             <span>${subtotal.toLocaleString("es-AR")}</span>
@@ -893,8 +797,8 @@ export function CheckoutForm({ session }: Props) {
                                       ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
                                       : quotingShipping
                                         ? "Cotizando..."
-                                        : shippingCost > 0
-                                          ? `$${shippingCost.toLocaleString("es-AR")}`
+                                        : currentShippingCost > 0
+                                          ? `$${currentShippingCost.toLocaleString("es-AR")}`
                                           : "Ingresa tu CP"}
                             </span>
                         </div>
@@ -907,15 +811,19 @@ export function CheckoutForm({ session }: Props) {
                     {error &&
                         (Array.isArray(error) ? (
                             error.map((e, i) => (
-                                <p key={i} className="text-sm text-red-400">
+                                <p
+                                    key={i}
+                                    className="text-sm text-red-400 mt-2"
+                                >
                                     {e.message}
                                 </p>
                             ))
                         ) : (
-                            <p className="text-sm text-red-400">{error}</p>
+                            <p className="text-sm text-red-400 mt-2">{error}</p>
                         ))}
+
                     {success && (
-                        <p className="text-sm text-green-400">{success}</p>
+                        <p className="text-sm text-green-400 mt-2">{success}</p>
                     )}
 
                     <button
