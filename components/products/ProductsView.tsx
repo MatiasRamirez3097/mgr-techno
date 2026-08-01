@@ -34,8 +34,8 @@ export async function ProductsView({
     // Leemos la cookie para saber si el usuario quiere ocultar los productos sin stock
     const cookieStore = await cookies();
     const hideOutOfStockCookie = cookieStore.get("hideOutOfStock");
-    const inStockOnly = hideOutOfStockCookie?.value === "true";
-
+    //const inStockOnly = hideOutOfStockCookie?.value === "true";
+    const inStockOnly = true;
     // CORRECCIÓN VITAL: Separamos los argumentos en (1) filtros, (2) página, (3) límite
     const { availableBrands, products, pagination } = await getCatalogProducts(
         {

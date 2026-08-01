@@ -82,7 +82,7 @@ export function FilterDrawer({
 
     const handleClear = () => {
         setSelectedBrands([]);
-        setHideOutOfStock(false);
+        //setHideOutOfStock(false);
 
         // Limpiamos la cookie también
         document.cookie = `hideOutOfStock=false; path=/; max-age=31536000`;
@@ -139,6 +139,7 @@ export function FilterDrawer({
                 {/* Contenido (Lista de Filtros) */}
                 <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-8">
                     {/* NUEVO: Switch de Stock */}
+                    {/* DISABLING STOCK switch
                     <div>
                         <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider text-gray-400">
                             Disponibilidad
@@ -160,7 +161,7 @@ export function FilterDrawer({
                             </div>
                         </label>
                     </div>
-
+                    */}
                     {/* Marcas */}
                     {brands && brands.length > 0 && (
                         <div className="border-t border-gray-800 pt-6">
