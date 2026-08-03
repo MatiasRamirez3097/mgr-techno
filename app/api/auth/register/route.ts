@@ -7,6 +7,8 @@ import { CustomerModel } from "@/models/Customer";
 import { hashPassword } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+    await connectDB();
+
     const session = await mongoose.startSession();
 
     try {
@@ -27,8 +29,6 @@ export async function POST(req: NextRequest) {
                 { status: 400 },
             );
         }
-
-        await connectDB();
 
         const existing = await UserModel.findOne({ email });
 
