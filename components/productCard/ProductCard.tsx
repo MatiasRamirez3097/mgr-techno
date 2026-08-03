@@ -49,7 +49,7 @@ export function ProductCard({
                 </div>
 
                 <div className="p-3">
-                    <p className="text-sm font-medium text-gray-100 line-clamp-2 min-h-10">
+                    <p className="text-sm font-medium text-gray-100 line-clamp-3 min-h-10">
                         {product.name}
                     </p>
                     <div className="mt-1 flex items-center gap-2">
