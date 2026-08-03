@@ -16,6 +16,7 @@ export async function POST(req: Request, context: any) {
             type: body.type,
             fiscalType: body.fiscalType,
             relatedVoucherId: body.relatedVoucherId,
+            date: body.date,
         });
 
         // ==========================================

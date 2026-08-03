@@ -18,12 +18,15 @@ interface Props {
     voucher: any;
 
     fiscalType: "A" | "B";
+
+    date: string;
 }
 
 export async function generateFiscalVoucher({
     order,
     voucher,
     fiscalType,
+    date,
 }: Props) {
     try {
         /*
@@ -87,6 +90,8 @@ export async function generateFiscalVoucher({
             pointOfSale: POINT_OF_SALE,
 
             voucherType: afipVoucherType,
+
+            date: date,
         });
 
         /*
@@ -162,7 +167,7 @@ export async function generateFiscalVoucher({
 
             cae: detail.CAE,
 
-            date: new Date().toISOString().split("T")[0],
+            date: date.split("T")[0],
         });
 
         /*

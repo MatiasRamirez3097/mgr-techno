@@ -6,6 +6,7 @@ interface Params {
     voucherNumber: number;
     pointOfSale: number;
     voucherType: number;
+    date: string;
 }
 
 export function buildInvoiceRequest({
@@ -13,6 +14,7 @@ export function buildInvoiceRequest({
     voucherNumber,
     pointOfSale,
     voucherType,
+    date,
 }: Params) {
     // 1. Mapeamos los ítems físicos de la orden
     const items = order.items.map((item: any) => {
@@ -102,8 +104,8 @@ export function buildInvoiceRequest({
     | DATE
     |--------------------------------------------------------------------------
     */
-    const today = new Date();
-    const cbteFch = today.toISOString().slice(0, 10).replaceAll("-", "");
+    //const today = new Date();
+    const cbteFch = date.slice(0, 10).replaceAll("-", "");
 
     /*
     |--------------------------------------------------------------------------

@@ -22,11 +22,13 @@ interface Params {
     fiscalType?: "A" | "B";
 
     relatedVoucherId?: string;
+
+    date: string;
 }
 
 export async function generateVoucher(params: Params) {
     const order = await OrderModel.findById(params.orderId);
-
+    const date = params.date;
     if (!order) {
         throw new Error("Order not found");
     }
@@ -71,6 +73,7 @@ export async function generateVoucher(params: Params) {
                 order,
                 voucher,
                 fiscalType: params.fiscalType || "B",
+                date: date,
             });
         }
 
