@@ -43,7 +43,7 @@ export async function generateVoucher(params: Params) {
 
         number: await generateVoucherNumber(params.type),
 
-        generatedAt: new Date(),
+        generatedAt: new Date(date),
 
         status: "draft",
 
