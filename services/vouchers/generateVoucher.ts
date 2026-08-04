@@ -114,7 +114,7 @@ export async function generateVoucher(params: Params) {
 
         voucher.status = "issued";
 
-        voucher.generatedAt = new Date();
+        voucher.generatedAt = new Date(date);
 
         await order.save();
 

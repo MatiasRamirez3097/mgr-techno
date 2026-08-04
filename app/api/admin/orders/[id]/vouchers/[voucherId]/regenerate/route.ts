@@ -140,7 +140,7 @@ export async function POST(
 
         voucher.publicId = upload.public_id;
 
-        voucher.pdfGeneratedAt = new Date();
+        voucher.pdfGeneratedAt = new Date(voucher?.generatedAt);
 
         await order.save();
 
