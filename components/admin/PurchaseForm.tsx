@@ -119,18 +119,32 @@ export function PurchaseForm({ purchase, mode }: Props) {
         }));
     };
 
-    const subtotal = form.items.reduce(
-        (acc, item) => acc + Number(item.quantity) * getUnitCostARS(item),
-        0,
-    );
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat("es-AR", {
+            style: "currency",
+            currency: form.currency === "USD" ? "USD" : "ARS",
+        }).format(value);
+    };
 
-    const tax = form.items.reduce((acc, item) => {
-        const lineSubtotal = Number(item.quantity) * getUnitCostARS(item);
+    const subtotal =
+        Math.round(
+            form.items.reduce(
+                (acc, item) =>
+                    acc + Number(item.quantity) * getUnitCostARS(item),
+                0,
+            ) * 100,
+        ) / 100;
 
-        return acc + lineSubtotal * (Number(item.taxRate) / 100);
-    }, 0);
+    const tax =
+        Math.round(
+            form.items.reduce((acc, item) => {
+                const lineSubtotal =
+                    Number(item.quantity) * getUnitCostARS(item);
+                return acc + lineSubtotal * (Number(item.taxRate) / 100);
+            }, 0) * 100,
+        ) / 100;
 
-    const total = subtotal + tax;
+    const total = Math.round((subtotal + tax) * 100) / 100;
 
     const handleChange = (
         e: React.ChangeEvent<
@@ -471,10 +485,23 @@ export function PurchaseForm({ purchase, mode }: Props) {
                         <h2 className="text-base font-bold text-white mb-4">
                             Precios
                         </h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            Subtotal: ${subtotal}
-                            IVA: ${tax}
-                            Total: ${total}
+                        <div className="grid grid-cols-2 gap-4 text-gray-300">
+                            <div>Subtotal:</div>
+                            <div className="text-right">
+                                {formatCurrency(subtotal)}
+                            </div>
+
+                            <div>IVA:</div>
+                            <div className="text-right">
+                                {formatCurrency(tax)}
+                            </div>
+
+                            <div className="font-bold text-white text-lg border-t border-gray-700 pt-2 mt-2">
+                                Total:
+                            </div>
+                            <div className="font-bold text-brand text-lg text-right border-t border-gray-700 pt-2 mt-2">
+                                {formatCurrency(total)}
+                            </div>
                         </div>
                     </section>
                 </div>
