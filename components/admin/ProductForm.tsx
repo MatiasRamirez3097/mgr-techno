@@ -133,7 +133,8 @@ export function ProductForm({ product, categories, mode }: Props) {
             setSuccess(
                 mode === "edit" ? "Producto actualizado" : "Producto creado",
             );
-            if (mode === "create") router.push(`/admin/products/${data._id}`);
+            if (mode === "create")
+                router.push(`/admin/products/${data.product?._id}`);
             else router.refresh();
         } catch (e: unknown) {
             console.log(e);
