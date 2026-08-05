@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         const dataWithEmail = {
             ...body,
             customerEmail: emailToUse,
-            customerId: finalCustomerId,
+            customerId: finalCustomerId.toString(),
         };
 
         // 🔥 VALIDACIÓN
