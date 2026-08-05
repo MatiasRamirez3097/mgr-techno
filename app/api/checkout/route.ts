@@ -5,9 +5,11 @@ import { createOrderSchema } from "@/lib/validators/createOrderSchema";
 import { createOrder } from "@/lib/orders/createOrder";
 import { UserModel } from "@/models";
 import bcrypt from "bcryptjs";
+import { connectDB } from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
     try {
+        await connectDB();
         const session = await getServerSession(authOptions);
         const body = await req.json();
 
