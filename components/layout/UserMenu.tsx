@@ -102,7 +102,7 @@ export function UserMenu() {
                     {/* Opciones */}
                     <div className="p-2 flex flex-col gap-1">
                         <Link
-                            href="/perfil/pedidos"
+                            href="/mi-cuenta/ordenes"
                             onClick={() => setIsDropdownOpen(false)}
                             className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
                         >
@@ -123,7 +123,7 @@ export function UserMenu() {
                         </Link>
 
                         <Link
-                            href="/perfil/datos"
+                            href="/mi-cuenta/perfil"
                             onClick={() => setIsDropdownOpen(false)}
                             className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
                         >
