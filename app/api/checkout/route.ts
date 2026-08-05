@@ -3,8 +3,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextRequest, NextResponse } from "next/server";
 import { createOrderSchema } from "@/lib/validators/createOrderSchema";
 import { createOrder } from "@/lib/orders/createOrder";
-import { UserModel } from "@/models";
 import bcrypt from "bcryptjs";
+// Importá tus modelos
+import { CustomerModel, UserModel } from "@/models";
 import { connectDB } from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
@@ -13,9 +14,6 @@ export async function POST(req: NextRequest) {
         const session = await getServerSession(authOptions);
         const body = await req.json();
 
-        // 1. DETERMINAR EL EMAIL
-        // Por seguridad, si hay sesión activa, mandamos el email de la sesión.
-        // Si no hay sesión, tomamos el email que completó el invitado en el formulario.
         const emailToUse = session?.user?.email || body.customerEmail;
 
         if (!emailToUse) {
@@ -28,46 +26,55 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 2. BUSCAR O CREAR USUARIO (Lógica de vinculación)
         let finalCustomerId = session?.customerId || null;
 
-        // Si el usuario no tiene sesión activa, interactuamos con la base de datos
+        // LÓGICA PARA INVITADOS O USUARIOS SIN SESIÓN
         if (!session) {
-            let existingUser = await UserModel.findOne({ email: emailToUse });
+            // 1. Buscar o Crear el CUSTOMER (Perfil de facturación)
+            let customer = await CustomerModel.findOne({ email: emailToUse });
 
-            if (existingUser) {
-                // El usuario existe, vinculamos la orden a su cuenta
-                finalCustomerId = existingUser._id;
-            } else {
-                // 1. Generamos una contraseña aleatoria segura
-                const randomPassword =
-                    Math.random().toString(36).slice(-10) + "A1!";
-                // 2. La hasheamos
-                const hashedPassword = await bcrypt.hash(randomPassword, 10);
-                // 2. La hasheamos
-                // B. El usuario no existe, creamos una cuenta "fantasma" o de invitado
-                const newUser = await UserModel.create({
+            if (!customer) {
+                // Creamos el Customer mapeando los datos del checkout (billing)
+                customer = await CustomerModel.create({
                     email: emailToUse,
-                    firstName: body.billing?.firstName || "",
-                    lastName: body.billing?.lastName || "",
+                    firstName: body.billing.firstName,
+                    lastName: body.billing.lastName,
+                    phone: body.billing.phone,
+                    billing: body.billing,
+                    document: body.billing.document,
+                });
+            }
+
+            // Guardamos el ID del Customer para mandárselo a Zod y a la Orden
+            finalCustomerId = customer._id.toString();
+
+            // 2. Buscar o Crear el USER (Cuenta de autenticación)
+            let user = await UserModel.findOne({ email: emailToUse });
+
+            if (!user) {
+                // Generamos una contraseña segura al azar
+                const randomPassword =
+                    Math.random().toString(36).slice(-10) + "A1$!";
+                const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+                // Creamos la cuenta de usuario vinculándola al Customer creado arriba
+                await UserModel.create({
+                    email: emailToUse,
                     password: hashedPassword,
+                    customerId: customer._id, // ¡Acá resolvemos el error que tenías!
                     role: "customer",
                 });
 
-                finalCustomerId = newUser._id;
-
-                // 💡 ACÁ PODRÍAS DISPARAR EL ENVÍO DEL EMAIL:
-                // sendWelcomeEmail({ email: emailToUse, isMagicLink: true, ... })
+                // OPCIONAL: Acá podrías disparar un email avisándole al usuario
+                // que le creaste una cuenta y mandarle su `randomPassword`.
             }
-            // Nota: Mientras implementás la DB, podés dejar finalCustomerId como undefined
-            // si tu base de datos de órdenes permite órdenes sin customerId ligado.
         }
 
-        // 3. PREPARAR PAYLOAD FINAL
+        // PREPARAR PAYLOAD FINAL PARA ZOD
         const dataWithEmail = {
             ...body,
             customerEmail: emailToUse,
-            customerId: finalCustomerId.toString(),
+            customerId: finalCustomerId,
         };
 
         // 🔥 VALIDACIÓN
