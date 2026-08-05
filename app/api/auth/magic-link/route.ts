@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { UserModel } from "@/models/User";
 import { sendMagicLinkEmail } from "@/lib/email";
+import { connectDB } from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
     try {
+        await connectDB();
         const { email } = await req.json();
 
         // 1. Verificamos que el usuario exista
