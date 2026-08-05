@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
+import { signIn } from "next-auth/react";
 import { getFinalPrice, getListPriceFinal } from "@/lib/pricing";
 
 interface Props {
-    session: Session;
+    session: Session | null; // <-- Ahora puede ser null
 }
 
 type FieldError = {
@@ -78,9 +79,11 @@ export function CheckoutForm({ session }: Props) {
     const items = useCart((state) => state.items);
     const clearCart = useCart((state) => state.clearCart);
 
-    const billing = (session as any).billing;
+    // Protegemos la lectura de billing por si no hay sesión
+    const billing = session ? (session as any).billing : null;
 
     const [form, setForm] = useState({
+        email: session?.user?.email || "", // <-- Agregamos el email al estado
         firstName: billing?.firstName || "",
         lastName: billing?.lastName || "",
         address: billing?.address || "",
@@ -247,8 +250,10 @@ export function CheckoutForm({ session }: Props) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     source: "ecommerce",
-                    customerId: (session as any).customerId,
-                    customerEmail: session.user?.email,
+                    customerId: session
+                        ? (session as any).customerId
+                        : undefined,
+                    customerEmail: form.email,
                     billing: {
                         firstName: form.firstName,
                         lastName: form.lastName,
@@ -343,12 +348,53 @@ export function CheckoutForm({ session }: Props) {
             className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
             <div className="lg:col-span-2 flex flex-col gap-6">
+                {/* ---------- AVISO DE LOGIN PARA INVITADOS ---------- */}
+                {!session && (
+                    <div className="bg-gray-800 p-5 rounded-2xl border border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 className="text-white font-medium">
+                                ¿Ya tenés una cuenta?
+                            </h3>
+                            <p className="text-sm text-gray-400 mt-1">
+                                Iniciá sesión para cargar tus datos más rápido y
+                                hacer seguimiento de tu pedido.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => signIn()}
+                            className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors border border-gray-600 shrink-0"
+                        >
+                            Iniciar sesión
+                        </button>
+                    </div>
+                )}
                 {/* ---------- DATOS PERSONALES ---------- */}
                 <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                     <h2 className="text-lg font-bold text-white mb-4">
                         Datos personales
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Email (Ocupa toda la fila) */}
+                        <div className="sm:col-span-2">
+                            <label className="text-sm text-gray-400 mb-1 block">
+                                Correo electrónico
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={form.email}
+                                onChange={handleChange}
+                                readOnly={!!session} // Si ya tiene sesión, no puede cambiar el mail desde acá
+                                required
+                                placeholder="tu@email.com"
+                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                    fieldErrors["email"]
+                                        ? "border-red-500 focus:border-red-500"
+                                        : "border-gray-700 focus:border-brand"
+                                } ${session ? "opacity-60 cursor-not-allowed" : ""}`}
+                            />
+                        </div>
                         {/* Nombre */}
                         <div>
                             <label className="text-sm text-gray-400 mb-1 block">
