@@ -696,3 +696,65 @@ export async function sendFiscalInvoiceEmail(order: any, voucher: any) {
         throw err;
     }
 }
+
+export async function sendMagicLinkEmail({
+    to,
+    url,
+}: {
+    to: string;
+    url: string;
+}) {
+    // 1. Armamos el contenido HTML específico para el login
+    const emailContent = `
+        <p style="color: ${EMAIL_THEME.muted}; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+            Hacé clic en el botón de abajo para ingresar de forma segura a tu cuenta. No vas a necesitar contraseña.
+        </p>
+        
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="${url}" style="
+                background-color: ${EMAIL_THEME.brand};
+                color: #ffffff;
+                padding: 16px 32px;
+                text-decoration: none;
+                border-radius: 12px;
+                font-weight: bold;
+                font-size: 16px;
+                display: inline-block;
+            ">
+                Iniciar sesión ahora
+            </a>
+        </div>
+
+        <p style="color: ${EMAIL_THEME.muted}; font-size: 14px; line-height: 1.5; margin-bottom: 8px;">
+            Este enlace es único y <strong>caducará en 15 minutos</strong>.
+        </p>
+
+        <p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin-top: 32px; padding-top: 24px; border-top: 1px solid ${EMAIL_THEME.border};">
+            Si el botón no funciona, copiá y pegá este enlace en tu navegador:<br/>
+            <a href="${url}" style="color: ${EMAIL_THEME.brand}; word-break: break-all;">${url}</a>
+        </p>
+
+        <p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin-top: 16px;">
+            Si no solicitaste este correo, podés ignorarlo de forma segura. Alguien más podría haber ingresado tu correo por error.
+        </p>
+    `;
+
+    // 2. Lo pasamos por tu layout
+    const finalHtml = emailLayout({
+        title: "Tu enlace de acceso",
+        subtitle: "Solicitaste iniciar sesión en MGR TECHNO",
+        content: emailContent,
+    });
+
+    // 3. Acá usás tu proveedor de correos (Resend, Nodemailer, SendGrid, etc.)
+    // Ejemplo genérico asumiendo que usás Nodemailer o Resend:
+
+    await resend.emails.send({
+        from: "MGR TECHNO <no-reply@mgrtechno.com>",
+        to: to,
+        subject: "Iniciá sesión en MGR TECHNO",
+        html: finalHtml,
+    });
+
+    return finalHtml; // Opcional, por si necesitás retornar algo
+}

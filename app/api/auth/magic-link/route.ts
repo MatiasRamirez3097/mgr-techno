@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { UserModel } from "@/models/User";
-// import { sendMagicLinkEmail } from "@/lib/email"; <-- Tu función para enviar correos
+import { sendMagicLinkEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
     try {
@@ -30,13 +30,11 @@ export async function POST(req: NextRequest) {
         const magicUrl = `${baseUrl}/auth/verify?token=${token}`;
 
         // 4. Enviamos el correo
-        /* 
+
         await sendMagicLinkEmail({
             to: email,
-            subject: "Iniciá sesión en nuestra tienda",
-            url: magicUrl
+            url: magicUrl,
         });
-        */
 
         console.log("Link mágico generado (Borrar en prod):", magicUrl);
 
