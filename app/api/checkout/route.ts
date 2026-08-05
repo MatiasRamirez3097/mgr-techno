@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createOrderSchema } from "@/lib/validators/createOrderSchema";
 import { createOrder } from "@/lib/orders/createOrder";
 import { UserModel } from "@/models";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
     try {
