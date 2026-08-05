@@ -65,7 +65,11 @@ export const authOptions = {
                     // CASO B: INICIO DE SESIÓN TRADICIONAL
                     // ==========================================
                     if (credentials?.username && credentials?.password) {
-                        const user = await getUserByEmail(credentials.username);
+                        const normalizedEmail = credentials.username
+                            .toLowerCase()
+                            .trim();
+
+                        const user = await getUserByEmail(normalizedEmail);
                         if (!user) return null;
 
                         const valid = await verifyPassword(

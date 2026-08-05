@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
         const session = await getServerSession(authOptions);
         const body = await req.json();
 
-        const emailToUse = session?.user?.email || body.customerEmail;
+        const rawEmail = session?.user?.email || body.customerEmail;
+        const emailToUse = rawEmail ? rawEmail.toLowerCase().trim() : null;
 
         if (!emailToUse) {
             return NextResponse.json(

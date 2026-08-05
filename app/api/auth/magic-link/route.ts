@@ -9,8 +9,11 @@ export async function POST(req: NextRequest) {
         await connectDB();
         const { email } = await req.json();
 
-        // 1. Verificamos que el usuario exista
-        const user = await UserModel.findOne({ email });
+        // Normalizamos el email recibido
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Buscamos con el email normalizado
+        const user = await UserModel.findOne({ email: normalizedEmail });
 
         if (!user) {
             // Por seguridad, siempre devolvemos "ok" aunque no exista,

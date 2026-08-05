@@ -14,6 +14,8 @@ export const UserSchema = new Schema(
             required: true,
             unique: true,
             index: true,
+            lowercase: true,
+            trim: true,
         },
 
         password: {
