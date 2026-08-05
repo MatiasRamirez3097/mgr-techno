@@ -750,11 +750,9 @@ export async function sendMagicLinkEmail({
     // Ejemplo genérico asumiendo que usás Nodemailer o Resend:
 
     await resend.emails.send({
-        from: "MGR TECHNO <no-reply@mgrtechno.com>",
+        from: "MGR TECHNO <no-reply@mgrtechno.com.ar>",
         to: to,
         subject: "Iniciá sesión en MGR TECHNO",
         html: finalHtml,
     });
-
-    return finalHtml; // Opcional, por si necesitás retornar algo
 }
