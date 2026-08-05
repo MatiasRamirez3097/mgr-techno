@@ -15,10 +15,9 @@ export default async function VerifyMagicLinkPage({ searchParams }: Props) {
         redirect("/");
     }
 
-    const token =
-        typeof searchParams.token === "string" ? searchParams.token : null;
+    const { token } = await searchParams;
 
-    if (!token) {
+    if (!token || token === "") {
         return (
             <ErrorState message="No se proporcionó ningún token de acceso." />
         );
