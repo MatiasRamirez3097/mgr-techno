@@ -36,13 +36,18 @@ export async function POST(req: NextRequest) {
                 // El usuario existe, vinculamos la orden a su cuenta
                 finalCustomerId = existingUser._id;
             } else {
+                // 1. Generamos una contraseña aleatoria segura
+                const randomPassword =
+                    Math.random().toString(36).slice(-10) + "A1!";
+                // 2. La hasheamos
+                const hashedPassword = await bcrypt.hash(randomPassword, 10);
+                // 2. La hasheamos
                 // B. El usuario no existe, creamos una cuenta "fantasma" o de invitado
                 const newUser = await UserModel.create({
                     email: emailToUse,
                     firstName: body.billing?.firstName || "",
                     lastName: body.billing?.lastName || "",
-                    // Si querés usar contraseñas aleatorias:
-                    // password: await hashPassword(generateRandomString(12)),
+                    password: hashedPassword,
                     role: "customer",
                 });
 

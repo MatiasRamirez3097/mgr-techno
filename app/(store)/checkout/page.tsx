@@ -7,7 +7,9 @@ export default async function CheckoutPage() {
 
     return (
         <main className="max-w-5xl mx-auto px-4 py-10">
-            <h1 className="text-2xl font-bold text-white mb-8">Checkout</h1>
+            <h1 className="text-2xl font-bold text-white mb-8">
+                Finalizar Compra
+            </h1>
             <CheckoutForm session={session} />
         </main>
     );
