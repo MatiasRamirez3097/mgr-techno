@@ -5,7 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { ClientSignInTrigger } from "@/components/auth/ClientsSignInTrigger";
 
 interface Props {
-    searchParams: { [key: string]: string | string[] | undefined };
+    searchParams: { [key: string]: string | undefined };
 }
 
 export default async function VerifyMagicLinkPage({ searchParams }: Props) {
