@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
 import { signIn } from "next-auth/react";
 import { getFinalPrice, getListPriceFinal } from "@/lib/pricing";
+import { LoginModal } from "../LoginModal";
 
 interface Props {
     session: Session | null; // <-- Ahora puede ser null
@@ -76,6 +77,7 @@ const PROVINCIAS = [
 
 export function CheckoutForm({ session }: Props) {
     const router = useRouter();
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const items = useCart((state) => state.items);
     const clearCart = useCart((state) => state.clearCart);
 
@@ -343,544 +345,568 @@ export function CheckoutForm({ session }: Props) {
     }
 
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-8"
-        >
-            <div className="lg:col-span-2 flex flex-col gap-6">
-                {/* ---------- AVISO DE LOGIN PARA INVITADOS ---------- */}
-                {!session && (
-                    <div className="bg-gray-800 p-5 rounded-2xl border border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h3 className="text-white font-medium">
-                                ¿Ya tenés una cuenta?
-                            </h3>
-                            <p className="text-sm text-gray-400 mt-1">
-                                Iniciá sesión para cargar tus datos más rápido y
-                                hacer seguimiento de tu pedido.
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => signIn()}
-                            className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors border border-gray-600 shrink-0"
-                        >
-                            Iniciar sesión
-                        </button>
-                    </div>
-                )}
-                {/* ---------- DATOS PERSONALES ---------- */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-lg font-bold text-white mb-4">
-                        Datos personales
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Email (Ocupa toda la fila) */}
-                        <div className="sm:col-span-2">
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Correo electrónico
-                            </label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={form.email}
-                                onChange={handleChange}
-                                readOnly={!!session} // Si ya tiene sesión, no puede cambiar el mail desde acá
-                                required
-                                placeholder="tu@email.com"
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["email"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                } ${session ? "opacity-60 cursor-not-allowed" : ""}`}
-                            />
-                        </div>
-                        {/* Nombre */}
-                        <div>
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Nombre
-                            </label>
-                            <input
-                                name="firstName"
-                                value={form.firstName}
-                                onChange={handleChange}
-                                required
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["billing.firstName"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                }`}
-                            />
-                            {fieldErrors["billing.firstName"] && (
-                                <p className="text-xs text-red-400 mt-1.5 font-medium">
-                                    {fieldErrors["billing.firstName"]}
+        <>
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onClose={() => setIsLoginModalOpen(false)}
+            />
+            <form
+                onSubmit={handleSubmit}
+                className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+            >
+                <div className="lg:col-span-2 flex flex-col gap-6">
+                    {/* ---------- AVISO DE LOGIN PARA INVITADOS ---------- */}
+                    {!session && (
+                        <div className="bg-gray-800 p-5 rounded-2xl border border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h3 className="text-white font-medium">
+                                    ¿Ya tenés una cuenta?
+                                </h3>
+                                <p className="text-sm text-gray-400 mt-1">
+                                    Iniciá sesión para cargar tus datos más
+                                    rápido y hacer seguimiento de tu pedido.
                                 </p>
-                            )}
-                        </div>
-
-                        {/* Apellido */}
-                        <div>
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Apellido
-                            </label>
-                            <input
-                                name="lastName"
-                                value={form.lastName}
-                                onChange={handleChange}
-                                required
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["billing.lastName"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                }`}
-                            />
-                            {fieldErrors["billing.lastName"] && (
-                                <p className="text-xs text-red-400 mt-1.5 font-medium">
-                                    {fieldErrors["billing.lastName"]}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Tipo de documento */}
-                        <div>
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Tipo de documento
-                            </label>
-                            <select
-                                name="documentType"
-                                value={form.documentType}
-                                onChange={handleSelectChange}
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["billing.document.documentType"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                }`}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsLoginModalOpen(true)} // <-- Abrimos el modal
+                                className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors border border-gray-600 shrink-0"
                             >
-                                <option value="DNI">DNI</option>
-                                <option value="CUIL">CUIL</option>
-                                <option value="CUIT">CUIT</option>
-                            </select>
+                                Iniciar sesión
+                            </button>
                         </div>
+                    )}
+                    {/* ---------- DATOS PERSONALES ---------- */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-lg font-bold text-white mb-4">
+                            Datos personales
+                        </h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Email (Ocupa toda la fila) */}
+                            <div className="sm:col-span-2">
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Correo electrónico
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    readOnly={!!session} // Si ya tiene sesión, no puede cambiar el mail desde acá
+                                    required
+                                    placeholder="tu@email.com"
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors["email"]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    } ${session ? "opacity-60 cursor-not-allowed" : ""}`}
+                                />
+                            </div>
+                            {/* Nombre */}
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Nombre
+                                </label>
+                                <input
+                                    name="firstName"
+                                    value={form.firstName}
+                                    onChange={handleChange}
+                                    required
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors["billing.firstName"]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    }`}
+                                />
+                                {fieldErrors["billing.firstName"] && (
+                                    <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                        {fieldErrors["billing.firstName"]}
+                                    </p>
+                                )}
+                            </div>
 
-                        {/* Número de documento */}
-                        <div>
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Número de documento
-                            </label>
-                            <input
-                                name="documentNumber"
-                                value={form.documentNumber}
-                                onChange={handleChange}
-                                required
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["billing.document.number"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                }`}
-                            />
-                            {fieldErrors["billing.document.number"] && (
-                                <p className="text-xs text-red-400 mt-1.5 font-medium">
-                                    {fieldErrors["billing.document.number"]}
-                                </p>
-                            )}
-                        </div>
+                            {/* Apellido */}
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Apellido
+                                </label>
+                                <input
+                                    name="lastName"
+                                    value={form.lastName}
+                                    onChange={handleChange}
+                                    required
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors["billing.lastName"]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    }`}
+                                />
+                                {fieldErrors["billing.lastName"] && (
+                                    <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                        {fieldErrors["billing.lastName"]}
+                                    </p>
+                                )}
+                            </div>
 
-                        {/* Dirección */}
-                        <div className="sm:col-span-2">
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Dirección
-                            </label>
-                            <input
-                                name="address"
-                                value={form.address}
-                                onChange={handleChange}
-                                required
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["billing.address"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                }`}
-                            />
-                            {fieldErrors["billing.address"] && (
-                                <p className="text-xs text-red-400 mt-1.5 font-medium">
-                                    {fieldErrors["billing.address"]}
-                                </p>
-                            )}
-                        </div>
+                            {/* Tipo de documento */}
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Tipo de documento
+                                </label>
+                                <select
+                                    name="documentType"
+                                    value={form.documentType}
+                                    onChange={handleSelectChange}
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors[
+                                            "billing.document.documentType"
+                                        ]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    }`}
+                                >
+                                    <option value="DNI">DNI</option>
+                                    <option value="CUIL">CUIL</option>
+                                    <option value="CUIT">CUIT</option>
+                                </select>
+                            </div>
 
-                        {/* Ciudad */}
-                        <div>
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Ciudad
-                            </label>
-                            <input
-                                name="city"
-                                value={form.city}
-                                onChange={handleChange}
-                                required
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["billing.city"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                }`}
-                            />
-                            {fieldErrors["billing.city"] && (
-                                <p className="text-xs text-red-400 mt-1.5 font-medium">
-                                    {fieldErrors["billing.city"]}
-                                </p>
-                            )}
-                        </div>
+                            {/* Número de documento */}
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Número de documento
+                                </label>
+                                <input
+                                    name="documentNumber"
+                                    value={form.documentNumber}
+                                    onChange={handleChange}
+                                    required
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors["billing.document.number"]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    }`}
+                                />
+                                {fieldErrors["billing.document.number"] && (
+                                    <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                        {fieldErrors["billing.document.number"]}
+                                    </p>
+                                )}
+                            </div>
 
-                        {/* Provincia */}
-                        <div>
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Provincia
-                            </label>
-                            <select
-                                name="state"
-                                value={form.state}
-                                onChange={handleSelectChange}
-                                required
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["billing.state"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                }`}
-                            >
-                                <option value="">
-                                    Seleccioná una provincia
-                                </option>
-                                {PROVINCIAS.map((p) => (
-                                    <option key={p} value={p}>
-                                        {p}
+                            {/* Dirección */}
+                            <div className="sm:col-span-2">
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Dirección
+                                </label>
+                                <input
+                                    name="address"
+                                    value={form.address}
+                                    onChange={handleChange}
+                                    required
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors["billing.address"]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    }`}
+                                />
+                                {fieldErrors["billing.address"] && (
+                                    <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                        {fieldErrors["billing.address"]}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Ciudad */}
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Ciudad
+                                </label>
+                                <input
+                                    name="city"
+                                    value={form.city}
+                                    onChange={handleChange}
+                                    required
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors["billing.city"]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    }`}
+                                />
+                                {fieldErrors["billing.city"] && (
+                                    <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                        {fieldErrors["billing.city"]}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Provincia */}
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Provincia
+                                </label>
+                                <select
+                                    name="state"
+                                    value={form.state}
+                                    onChange={handleSelectChange}
+                                    required
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors["billing.state"]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    }`}
+                                >
+                                    <option value="">
+                                        Seleccioná una provincia
                                     </option>
-                                ))}
-                            </select>
-                            {fieldErrors["billing.state"] && (
-                                <p className="text-xs text-red-400 mt-1.5 font-medium">
-                                    {fieldErrors["billing.state"]}
-                                </p>
-                            )}
+                                    {PROVINCIAS.map((p) => (
+                                        <option key={p} value={p}>
+                                            {p}
+                                        </option>
+                                    ))}
+                                </select>
+                                {fieldErrors["billing.state"] && (
+                                    <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                        {fieldErrors["billing.state"]}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Código postal */}
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Código postal
+                                </label>
+                                <input
+                                    name="postcode"
+                                    value={form.postcode}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Ej: 2000"
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors["billing.postcode"]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    }`}
+                                />
+                                {fieldErrors["billing.postcode"] && (
+                                    <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                        {fieldErrors["billing.postcode"]}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Teléfono */}
+                            <div>
+                                <label className="text-sm text-gray-400 mb-1 block">
+                                    Teléfono
+                                </label>
+                                <input
+                                    name="phone"
+                                    value={form.phone}
+                                    onChange={handleChange}
+                                    required
+                                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
+                                        fieldErrors["billing.phone"]
+                                            ? "border-red-500 focus:border-red-500"
+                                            : "border-gray-700 focus:border-brand"
+                                    }`}
+                                />
+                                {fieldErrors["billing.phone"] && (
+                                    <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                        {fieldErrors["billing.phone"]}
+                                    </p>
+                                )}
+                            </div>
                         </div>
+                    </section>
 
-                        {/* Código postal */}
-                        <div>
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Código postal
-                            </label>
-                            <input
-                                name="postcode"
-                                value={form.postcode}
-                                onChange={handleChange}
-                                required
-                                placeholder="Ej: 2000"
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["billing.postcode"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                }`}
-                            />
-                            {fieldErrors["billing.postcode"] && (
-                                <p className="text-xs text-red-400 mt-1.5 font-medium">
-                                    {fieldErrors["billing.postcode"]}
-                                </p>
-                            )}
+                    {/* ---------- MÉTODO DE ENVÍO ---------- */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-lg font-bold text-white mb-4">
+                            Método de envío
+                        </h2>
+                        <div className="flex flex-col gap-3">
+                            {SHIPPING_METHODS.map((method) => {
+                                const isQuotable =
+                                    method.id === "andreani" ||
+                                    method.id === "viacargo";
+                                const mCost = shippingCosts[method.id];
+                                const mError = shippingErrors[method.id];
+
+                                return (
+                                    <label
+                                        key={method.id}
+                                        className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                                            shippingMethod === method.id
+                                                ? "border-brand bg-brand/10"
+                                                : "border-gray-700 hover:border-gray-600"
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="shippingMethod"
+                                            value={method.id}
+                                            checked={
+                                                shippingMethod === method.id
+                                            }
+                                            onChange={() =>
+                                                setShippingMethod(
+                                                    method.id as any,
+                                                )
+                                            }
+                                            className="mt-1 accent-brand"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-white">
+                                                {method.label}
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                {method.description}
+                                            </p>
+
+                                            {/* Estado de cotización para métodos que lo requieren */}
+                                            {isQuotable && (
+                                                <div className="mt-2 min-h-[20px]">
+                                                    {quotingShipping && (
+                                                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                                                            <svg
+                                                                className="w-3 h-3 animate-spin"
+                                                                viewBox="0 0 24 24"
+                                                                fill="none"
+                                                            >
+                                                                <circle
+                                                                    className="opacity-25"
+                                                                    cx="12"
+                                                                    cy="12"
+                                                                    r="10"
+                                                                    stroke="currentColor"
+                                                                    strokeWidth="4"
+                                                                />
+                                                                <path
+                                                                    className="opacity-75"
+                                                                    fill="currentColor"
+                                                                    d="M4 12a8 8 0 018-8v8z"
+                                                                />
+                                                            </svg>
+                                                            Cotizando...
+                                                        </p>
+                                                    )}
+
+                                                    {mError &&
+                                                        !quotingShipping && (
+                                                            <p className="text-xs text-red-400">
+                                                                {mError}
+                                                            </p>
+                                                        )}
+
+                                                    {mCost !== undefined &&
+                                                        !quotingShipping && (
+                                                            <p className="text-xs text-green-400 font-medium">
+                                                                Costo de envío:
+                                                                $
+                                                                {mCost.toLocaleString(
+                                                                    "es-AR",
+                                                                )}
+                                                            </p>
+                                                        )}
+
+                                                    {form.postcode.length < 4 &&
+                                                        !quotingShipping && (
+                                                            <div className="flex items-start gap-1.5 mt-1.5">
+                                                                <span className="text-amber-400/80 text-xs mt-0.5">
+                                                                    ℹ️
+                                                                </span>
+                                                                <p className="text-xs text-amber-400/90 leading-snug">
+                                                                    Ingresá tu{" "}
+                                                                    <strong>
+                                                                        Código
+                                                                        postal
+                                                                        (4
+                                                                        dígitos)
+                                                                    </strong>{" "}
+                                                                    arriba para
+                                                                    calcular el
+                                                                    costo.
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Precio a la derecha del radio button */}
+                                        <span className="text-sm font-bold text-white shrink-0">
+                                            {method.id === "local_pickup"
+                                                ? "Gratis"
+                                                : method.id === "local_shipping"
+                                                  ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
+                                                  : mCost !== undefined
+                                                    ? `$${mCost.toLocaleString("es-AR")}`
+                                                    : ""}
+                                        </span>
+                                    </label>
+                                );
+                            })}
                         </div>
+                    </section>
 
-                        {/* Teléfono */}
-                        <div>
-                            <label className="text-sm text-gray-400 mb-1 block">
-                                Teléfono
-                            </label>
-                            <input
-                                name="phone"
-                                value={form.phone}
-                                onChange={handleChange}
-                                required
-                                className={`w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border outline-none transition-colors ${
-                                    fieldErrors["billing.phone"]
-                                        ? "border-red-500 focus:border-red-500"
-                                        : "border-gray-700 focus:border-brand"
-                                }`}
-                            />
-                            {fieldErrors["billing.phone"] && (
-                                <p className="text-xs text-red-400 mt-1.5 font-medium">
-                                    {fieldErrors["billing.phone"]}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
-                {/* ---------- MÉTODO DE ENVÍO ---------- */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-lg font-bold text-white mb-4">
-                        Método de envío
-                    </h2>
-                    <div className="flex flex-col gap-3">
-                        {SHIPPING_METHODS.map((method) => {
-                            const isQuotable =
-                                method.id === "andreani" ||
-                                method.id === "viacargo";
-                            const mCost = shippingCosts[method.id];
-                            const mError = shippingErrors[method.id];
-
-                            return (
+                    {/* ---------- MÉTODO DE PAGO ---------- */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-lg font-bold text-white mb-4">
+                            Método de pago
+                        </h2>
+                        <div className="flex flex-col gap-3">
+                            {PAYMENT_METHODS.map((method) => (
                                 <label
                                     key={method.id}
-                                    className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
-                                        shippingMethod === method.id
+                                    className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                                        paymentMethod === method.id
                                             ? "border-brand bg-brand/10"
                                             : "border-gray-700 hover:border-gray-600"
                                     }`}
                                 >
                                     <input
                                         type="radio"
-                                        name="shippingMethod"
+                                        name="paymentMethod"
                                         value={method.id}
-                                        checked={shippingMethod === method.id}
+                                        checked={paymentMethod === method.id}
                                         onChange={() =>
-                                            setShippingMethod(method.id as any)
+                                            setPaymentMethod(method.id as any)
                                         }
-                                        className="mt-1 accent-brand"
+                                        className="accent-brand"
                                     />
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium text-white">
-                                            {method.label}
-                                        </p>
-                                        <p className="text-xs text-gray-400 mt-0.5">
-                                            {method.description}
-                                        </p>
-
-                                        {/* Estado de cotización para métodos que lo requieren */}
-                                        {isQuotable && (
-                                            <div className="mt-2 min-h-[20px]">
-                                                {quotingShipping && (
-                                                    <p className="text-xs text-gray-400 flex items-center gap-1">
-                                                        <svg
-                                                            className="w-3 h-3 animate-spin"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                        >
-                                                            <circle
-                                                                className="opacity-25"
-                                                                cx="12"
-                                                                cy="12"
-                                                                r="10"
-                                                                stroke="currentColor"
-                                                                strokeWidth="4"
-                                                            />
-                                                            <path
-                                                                className="opacity-75"
-                                                                fill="currentColor"
-                                                                d="M4 12a8 8 0 018-8v8z"
-                                                            />
-                                                        </svg>
-                                                        Cotizando...
-                                                    </p>
-                                                )}
-
-                                                {mError && !quotingShipping && (
-                                                    <p className="text-xs text-red-400">
-                                                        {mError}
-                                                    </p>
-                                                )}
-
-                                                {mCost !== undefined &&
-                                                    !quotingShipping && (
-                                                        <p className="text-xs text-green-400 font-medium">
-                                                            Costo de envío: $
-                                                            {mCost.toLocaleString(
-                                                                "es-AR",
-                                                            )}
-                                                        </p>
-                                                    )}
-
-                                                {form.postcode.length < 4 &&
-                                                    !quotingShipping && (
-                                                        <div className="flex items-start gap-1.5 mt-1.5">
-                                                            <span className="text-amber-400/80 text-xs mt-0.5">
-                                                                ℹ️
-                                                            </span>
-                                                            <p className="text-xs text-amber-400/90 leading-snug">
-                                                                Ingresá tu{" "}
-                                                                <strong>
-                                                                    Código
-                                                                    postal (4
-                                                                    dígitos)
-                                                                </strong>{" "}
-                                                                arriba para
-                                                                calcular el
-                                                                costo.
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Precio a la derecha del radio button */}
-                                    <span className="text-sm font-bold text-white shrink-0">
-                                        {method.id === "local_pickup"
-                                            ? "Gratis"
-                                            : method.id === "local_shipping"
-                                              ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
-                                              : mCost !== undefined
-                                                ? `$${mCost.toLocaleString("es-AR")}`
-                                                : ""}
+                                    <span className="text-lg">
+                                        {method.icon}
+                                    </span>
+                                    <span className="text-sm font-medium text-white">
+                                        {method.label}
                                     </span>
                                 </label>
-                            );
-                        })}
-                    </div>
-                </section>
+                            ))}
+                        </div>
+                    </section>
+                </div>
 
-                {/* ---------- MÉTODO DE PAGO ---------- */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-lg font-bold text-white mb-4">
-                        Método de pago
-                    </h2>
-                    <div className="flex flex-col gap-3">
-                        {PAYMENT_METHODS.map((method) => (
-                            <label
-                                key={method.id}
-                                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
-                                    paymentMethod === method.id
-                                        ? "border-brand bg-brand/10"
-                                        : "border-gray-700 hover:border-gray-600"
-                                }`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="paymentMethod"
-                                    value={method.id}
-                                    checked={paymentMethod === method.id}
-                                    onChange={() =>
-                                        setPaymentMethod(method.id as any)
-                                    }
-                                    className="accent-brand"
-                                />
-                                <span className="text-lg">{method.icon}</span>
-                                <span className="text-sm font-medium text-white">
-                                    {method.label}
-                                </span>
-                            </label>
-                        ))}
-                    </div>
-                </section>
-            </div>
+                {/* ---------- COLUMNA DERECHA: RESUMEN ---------- */}
+                <div className="flex flex-col gap-4">
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800 sticky top-24">
+                        <h2 className="text-lg font-bold text-white mb-4">
+                            Resumen
+                        </h2>
 
-            {/* ---------- COLUMNA DERECHA: RESUMEN ---------- */}
-            <div className="flex flex-col gap-4">
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800 sticky top-24">
-                    <h2 className="text-lg font-bold text-white mb-4">
-                        Resumen
-                    </h2>
-
-                    <div className="flex flex-col gap-4 mb-4">
-                        {items.map((item) => {
-                            const finalPrice = getFinalPrice(item);
-                            const price = usesListPrice
-                                ? getListPriceFinal(finalPrice)
-                                : finalPrice;
-                            return (
-                                <div
-                                    key={item.id}
-                                    className="flex gap-4 items-start"
-                                >
-                                    <div className="w-14 h-14 bg-gray-800 rounded-md overflow-hidden shrink-0 border border-gray-700">
-                                        <img
-                                            src={item.image}
-                                            alt={item.name}
-                                            className="w-full h-full object-contain"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col min-w-0">
-                                        <p className="text-sm text-gray-200 line-clamp-2">
-                                            {item.name}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            {item.salePrice && (
-                                                <span className="text-xs text-gray-500 line-through">
+                        <div className="flex flex-col gap-4 mb-4">
+                            {items.map((item) => {
+                                const finalPrice = getFinalPrice(item);
+                                const price = usesListPrice
+                                    ? getListPriceFinal(finalPrice)
+                                    : finalPrice;
+                                return (
+                                    <div
+                                        key={item.id}
+                                        className="flex gap-4 items-start"
+                                    >
+                                        <div className="w-14 h-14 bg-gray-800 rounded-md overflow-hidden shrink-0 border border-gray-700">
+                                            <img
+                                                src={item.image}
+                                                alt={item.name}
+                                                className="w-full h-full object-contain"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <p className="text-sm text-gray-200 line-clamp-2">
+                                                {item.name}
+                                            </p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                {item.salePrice && (
+                                                    <span className="text-xs text-gray-500 line-through">
+                                                        $
+                                                        {item.regularPrice.toLocaleString(
+                                                            "es-AR",
+                                                        )}
+                                                    </span>
+                                                )}
+                                                <span className="text-sm text-white font-medium">
                                                     $
-                                                    {item.regularPrice.toLocaleString(
+                                                    {price.toLocaleString(
                                                         "es-AR",
                                                     )}
                                                 </span>
-                                            )}
-                                            <span className="text-sm text-white font-medium">
-                                                ${price.toLocaleString("es-AR")}
-                                            </span>
+                                            </div>
                                         </div>
                                     </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="border-t border-gray-700 pt-4 flex flex-col gap-2">
+                            {usesListPrice && (
+                                <div className="flex items-start gap-2 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2 mb-1">
+                                    <span className="text-amber-400 text-xs mt-0.5">
+                                        ⚠
+                                    </span>
+                                    <p className="text-xs text-amber-400">
+                                        Se aplica precio de lista (+10%) para
+                                        este método de pago
+                                    </p>
                                 </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="border-t border-gray-700 pt-4 flex flex-col gap-2">
-                        {usesListPrice && (
-                            <div className="flex items-start gap-2 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2 mb-1">
-                                <span className="text-amber-400 text-xs mt-0.5">
-                                    ⚠
-                                </span>
-                                <p className="text-xs text-amber-400">
-                                    Se aplica precio de lista (+10%) para este
-                                    método de pago
-                                </p>
+                            )}
+                            <div className="flex justify-between text-sm text-gray-400">
+                                <span>Subtotal</span>
+                                <span>${subtotal.toLocaleString("es-AR")}</span>
                             </div>
-                        )}
-                        <div className="flex justify-between text-sm text-gray-400">
-                            <span>Subtotal</span>
-                            <span>${subtotal.toLocaleString("es-AR")}</span>
+                            <div className="flex justify-between text-sm text-gray-400">
+                                <span>Envío</span>
+                                <span>
+                                    {shippingMethod === "local_pickup"
+                                        ? "Gratis"
+                                        : shippingMethod === "local_shipping"
+                                          ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
+                                          : quotingShipping
+                                            ? "Cotizando..."
+                                            : currentShippingCost > 0
+                                              ? `$${currentShippingCost.toLocaleString("es-AR")}`
+                                              : "Ingresa tu CP"}
+                                </span>
+                            </div>
+                            <div className="flex justify-between text-base font-bold text-white mt-2">
+                                <span>Total</span>
+                                <span>${total.toLocaleString("es-AR")}</span>
+                            </div>
                         </div>
-                        <div className="flex justify-between text-sm text-gray-400">
-                            <span>Envío</span>
-                            <span>
-                                {shippingMethod === "local_pickup"
-                                    ? "Gratis"
-                                    : shippingMethod === "local_shipping"
-                                      ? `$${LOCAL_SHIPPING_COST.toLocaleString("es-AR")}`
-                                      : quotingShipping
-                                        ? "Cotizando..."
-                                        : currentShippingCost > 0
-                                          ? `$${currentShippingCost.toLocaleString("es-AR")}`
-                                          : "Ingresa tu CP"}
-                            </span>
-                        </div>
-                        <div className="flex justify-between text-base font-bold text-white mt-2">
-                            <span>Total</span>
-                            <span>${total.toLocaleString("es-AR")}</span>
-                        </div>
-                    </div>
 
-                    {error &&
-                        (Array.isArray(error) ? (
-                            error.map((e, i) => (
-                                <p
-                                    key={i}
-                                    className="text-sm text-red-400 mt-2"
-                                >
-                                    {e.message}
+                        {error &&
+                            (Array.isArray(error) ? (
+                                error.map((e, i) => (
+                                    <p
+                                        key={i}
+                                        className="text-sm text-red-400 mt-2"
+                                    >
+                                        {e.message}
+                                    </p>
+                                ))
+                            ) : (
+                                <p className="text-sm text-red-400 mt-2">
+                                    {error}
                                 </p>
-                            ))
-                        ) : (
-                            <p className="text-sm text-red-400 mt-2">{error}</p>
-                        ))}
+                            ))}
 
-                    {success && (
-                        <p className="text-sm text-green-400 mt-2">{success}</p>
-                    )}
+                        {success && (
+                            <p className="text-sm text-green-400 mt-2">
+                                {success}
+                            </p>
+                        )}
 
-                    <button
-                        type="submit"
-                        disabled={loading || quotingShipping}
-                        className="w-full mt-6 py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
-                    >
-                        {loading ? "Procesando..." : "Confirmar pedido"}
-                    </button>
-                </section>
-            </div>
-        </form>
+                        <button
+                            type="submit"
+                            disabled={loading || quotingShipping}
+                            className="w-full mt-6 py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
+                        >
+                            {loading ? "Procesando..." : "Confirmar pedido"}
+                        </button>
+                    </section>
+                </div>
+            </form>
+        </>
     );
 }
