@@ -37,17 +37,30 @@ export async function getDistributorProducts(
             return [];
         }
 
-        const dataElit: any[] = await elitResponse.json();
+        const rawData = await elitResponse.json();
 
-        const elitProducts: NormalizedProduct[] = dataElit.map((prod) => ({
-            id: prod.id,
-            distributor: "Elit",
-            sku: prod.codigo_producto,
-            name: prod.nombre,
-            price: Number(prod.precio) || 0,
-            stock: Number(prod.stock) || 0,
-            image: prod.imagen || null,
-        }));
+        // Ensure the API returned a 200 code and the 'resultado' array exists
+        if (rawData.codigo !== 200 || !Array.isArray(rawData.resultado)) {
+            console.error("Elit API returned an unexpected format:", rawData);
+            return [];
+        }
+
+        const productsArray = rawData.resultado;
+
+        // Map the correct fields from the Elit JSON response
+        const elitProducts: NormalizedProduct[] = productsArray.map(
+            (prod: any) => ({
+                id: prod.id,
+                distributor: "Elit",
+                // Fallback to ID if standard SKU is missing
+                sku: prod.codigo_producto || prod.id.toString(),
+                // Prepend brand to name for better readability if available
+                name: prod.marca ? `${prod.marca} ${prod.nombre}` : prod.nombre,
+                price: Number(prod.pvp_ars) || 0,
+                stock: Number(prod.stock_total) || 0,
+                image: prod.imagen || null,
+            }),
+        );
 
         return elitProducts;
     } catch (error) {
