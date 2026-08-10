@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { PurchaseModel } from "@/models/Purchase";
 import { ProductModel } from "@/models/Product";
 import { InventoryItemModel } from "@/models/InventoryItem";
+import { connectDB } from "../mongodb";
 
 export async function receivePurchase(
     purchaseId: string,
@@ -13,6 +14,7 @@ export async function receivePurchase(
         }[];
     },
 ) {
+    await connectDB();
     const session = await mongoose.startSession();
 
     try {
