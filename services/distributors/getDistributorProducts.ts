@@ -88,7 +88,7 @@ async function fetchElit(searchQuery: string): Promise<NormalizedProduct[]> {
 let cachedNbToken: string | null = null;
 let nbTokenExpiration: number = 0;
 
-async function getNewBytesToken(): Promise<string> {
+async function getNewBytesToken(): Promise<string | null> {
     // Return cached token if it exists and hasn't expired (e.g., valid for 55 minutes)
     if (cachedNbToken && Date.now() < nbTokenExpiration) {
         return cachedNbToken;
