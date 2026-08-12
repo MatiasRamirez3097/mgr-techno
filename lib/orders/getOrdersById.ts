@@ -2,7 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 
 import { OrderDTO } from "@/types/shared/order";
 
-import { OrderModel } from "@/models/Order";
+import { InventoryItemModel, OrderModel } from "@/models";
 
 import { mapOrderToDTO } from "../mappers/orderMapper";
 
