@@ -125,7 +125,7 @@ async function fetchElit(
             name: prod.marca ? `${prod.marca} ${prod.nombre}` : prod.nombre,
             price: Number(prod.pvp_ars) || 0,
             stock: Number(prod.stock_total) || 0,
-            image: prod.imagen || null,
+            image: prod.imagenes?.[0] || null,
         }));
 }
 
