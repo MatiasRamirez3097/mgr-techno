@@ -8,32 +8,61 @@ interface NormalizedProduct {
     image: string | null;
 }
 
+type CategoryConfig = {
+    elit: { paramType: "categoria" | "sub_categoria"; value: string };
+    newbytes: string | string[]; // <--- Ahora puede ser un array
+};
+
+const CATEGORY_MAP: Record<string, CategoryConfig> = {
+    MEMORIAS: {
+        elit: { paramType: "categoria", value: "Memorias" },
+        newbytes: "Memorias",
+    },
+    PROCESADORES: {
+        elit: { paramType: "sub_categoria", value: "Procesadores" },
+        newbytes: "PROCESADORES",
+    },
+    MOTHERBOARDS: {
+        elit: { paramType: "sub_categoria", value: "Motherboards" },
+        // Pasamos un array con todas las subdivisiones de NewBytes
+        newbytes: ["MOTHER-ASUS", "MOTHER-ASROCK", "MOTHER-GIGABYTE"],
+    },
+    CONECTIVIDAD: {
+        elit: { paramType: "categoria", value: "CONECTIVIDAD" },
+        newbytes: "CONECTIVIDAD",
+    },
+    "CASA-INTELIGENTE": {
+        elit: { paramType: "categoria", value: "SMART HOME" }, // Example: if Elit calls it differently
+        newbytes: "CASA-INTELIGENTE",
+    },
+    // Add all your categories from CategorySelect.tsx here...
+};
+
 export async function getDistributorProducts(
     searchQuery: string,
+    category: string = "",
 ): Promise<NormalizedProduct[]> {
-    if (!searchQuery) return [];
+    //if (!searchQuery && !category) return []; // Optional: return empty if neither is provided
 
-    // Launch both requests in parallel to reduce loading times
     const [elitResult, newBytesResult] = await Promise.allSettled([
-        fetchElit(searchQuery),
-        fetchNewBytes(searchQuery),
+        fetchElit(searchQuery, category),
+        fetchNewBytes(searchQuery, category),
     ]);
 
     const products: NormalizedProduct[] = [];
 
-    // If Elit was successful, add its products to the main array
-    if (elitResult.status === "fulfilled") {
-        products.push(...elitResult.value);
-    } else {
-        console.error("Failed to fetch from Elit:", elitResult.reason);
-    }
+    if (elitResult.status === "fulfilled") products.push(...elitResult.value);
+    else console.error("Failed to fetch from Elit:", elitResult.reason);
 
-    // If NewBytes was successful, add its products to the main array
-    if (newBytesResult.status === "fulfilled") {
+    if (newBytesResult.status === "fulfilled")
         products.push(...newBytesResult.value);
-    } else {
-        console.error("Failed to fetch from NewBytes:", newBytesResult.reason);
-    }
+    else console.error("Failed to fetch from NewBytes:", newBytesResult.reason);
+
+    // ==========================================
+    // ORDENAMIENTO GLOBAL
+    // ==========================================
+    // Ordenamos todo el array combinado por precio (de menor a mayor)
+    products.sort((a, b) => a.price - b.price);
 
     return products;
 }
@@ -41,9 +70,29 @@ export async function getDistributorProducts(
 // ==========================================
 // ELIT FETCH LOGIC
 // ==========================================
-async function fetchElit(searchQuery: string): Promise<NormalizedProduct[]> {
+async function fetchElit(
+    searchQuery: string,
+    category: string,
+): Promise<NormalizedProduct[]> {
     const elitUrl = new URL("https://clientes.elit.com.ar/v1/api/productos");
-    elitUrl.searchParams.append("nombre", searchQuery);
+    if (searchQuery) elitUrl.searchParams.append("nombre", searchQuery);
+
+    // 2. Append category to Elit's query parameters
+    if (category) {
+        const mappedCategory = CATEGORY_MAP[category];
+
+        if (mappedCategory) {
+            // Append as 'categoria' or 'sub_categoria' based on the dictionary
+            elitUrl.searchParams.append(
+                mappedCategory.elit.paramType,
+                mappedCategory.elit.value,
+            );
+        } else {
+            // Fallback in case a category is not in the dictionary yet
+            elitUrl.searchParams.append("categoria", category);
+        }
+    }
+
     elitUrl.searchParams.append("limit", "50");
 
     const response = await fetch(elitUrl.toString(), {
@@ -135,56 +184,117 @@ async function getNewBytesToken(): Promise<string | null> {
 
 async function fetchNewBytes(
     searchQuery: string,
+    category: string,
 ): Promise<NormalizedProduct[]> {
-    // 1. Get the token
     const token = await getNewBytesToken();
 
-    // 2. Perform the product search
-    const nbUrl = new URL("https://api.nb.com.ar/v1/");
-    nbUrl.searchParams.append("title", searchQuery);
-    nbUrl.searchParams.append("available_stock", "1");
-    const response = await fetch(nbUrl.toString(), {
-        method: "GET",
-        headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-        },
-        cache: "no-store",
-    });
+    // 1. Determinar qué categorías de NB buscar
+    let nbCategoriesToFetch: string[] = [];
 
-    if (!response.ok) {
-        throw new Error(`NewBytes HTTP error: ${response.status}`);
+    if (category) {
+        const mappedCategory = CATEGORY_MAP[category];
+        if (mappedCategory) {
+            // Si es un array (ej: Motherboards), lo usamos. Si es string, lo convertimos a array de 1 elemento.
+            nbCategoriesToFetch = Array.isArray(mappedCategory.newbytes)
+                ? mappedCategory.newbytes
+                : [mappedCategory.newbytes];
+        } else {
+            nbCategoriesToFetch = [category];
+        }
+    } else {
+        // Si no hay categoría seleccionada, hacemos una sola búsqueda global
+        nbCategoriesToFetch = [""];
     }
 
-    const rawData = await response.json();
+    // 2. Crear un array de promesas (peticiones) para ejecutar en paralelo
+    const fetchPromises = nbCategoriesToFetch.map(async (nbCategoryValue) => {
+        let baseUrl = "https://api.nb.com.ar/v1/";
+        const nbUrl = new URL(baseUrl);
 
-    if (!Array.isArray(rawData)) {
-        throw new Error("NewBytes did not return an array");
-    }
-
-    return rawData.map((prod: any) => {
-        // Safe extraction of stock
-        const stockValue = Number(prod.amountStock) || 0;
-
-        // Safe extraction and conversion of price (USD -> ARS)
-        let priceInArs = 0;
-
-        // Check if price exists and is an object (it can be null for out-of-stock items)
-        if (prod.price && typeof prod.price === "object") {
-            const finalPriceUsd = Number(prod.price.finalPrice) || 0;
-            const exchangeRate = Number(prod.cotizacion) || 1; // Default to 1 to avoid multiplying by 0
-
-            priceInArs = finalPriceUsd * exchangeRate;
+        if (nbCategoryValue) {
+            nbUrl.searchParams.append("category", nbCategoryValue);
         }
 
-        return {
-            id: prod.id,
-            distributor: "NewBytes",
-            sku: prod.sku || prod.id.toString(),
-            name: prod.title,
-            price: priceInArs,
-            stock: stockValue,
-            image: prod.mainImage || null,
-        };
+        if (searchQuery) {
+            nbUrl.searchParams.append("title", searchQuery);
+        }
+
+        nbUrl.searchParams.append("available_stock", "1");
+        nbUrl.searchParams.append("order", "price_asc");
+
+        const response = await fetch(nbUrl.toString(), {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            cache: "no-store",
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `NewBytes HTTP error: ${response.status} for category ${nbCategoryValue}`,
+            );
+        }
+
+        const rawData = await response.json();
+
+        if (!Array.isArray(rawData)) {
+            return []; // Retornamos vacío si falla la estructura
+        }
+
+        let productsArray = rawData;
+
+        // Safety Fallback local
+        if (nbCategoryValue && searchQuery) {
+            productsArray = productsArray.filter(
+                (prod: any) =>
+                    prod.title &&
+                    prod.title
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()),
+            );
+        }
+
+        return productsArray.map((prod: any) => {
+            const stockValue = Number(prod.amountStock) || 0;
+            let priceInArs = 0;
+
+            if (prod.price && typeof prod.price === "object") {
+                const finalPriceUsd = Number(prod.price.finalPrice) || 0;
+                const exchangeRate = Number(prod.cotizacion) || 1;
+                priceInArs = finalPriceUsd * exchangeRate;
+            }
+
+            return {
+                id: prod.id,
+                distributor: "NewBytes",
+                sku: prod.sku || prod.id.toString(),
+                name: prod.title,
+                price: priceInArs,
+                stock: stockValue,
+                image: prod.mainImage || null,
+            };
+        });
     });
+
+    // 3. Ejecutar TODAS las peticiones al mismo tiempo y esperar a que terminen
+    const results = await Promise.allSettled(fetchPromises);
+
+    // 4. Combinar todos los resultados en un solo array
+    const combinedProducts: NormalizedProduct[] = [];
+
+    for (const result of results) {
+        if (result.status === "fulfilled") {
+            // .push(...array) agrega todos los elementos al array principal
+            combinedProducts.push(...result.value);
+        } else {
+            console.error(
+                "Error fetching a NewBytes subcategory:",
+                result.reason,
+            );
+        }
+    }
+
+    return combinedProducts;
 }
