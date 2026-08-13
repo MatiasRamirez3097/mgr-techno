@@ -51,10 +51,10 @@ export async function getDistributorProducts(
 ): Promise<NormalizedProduct[]> {
     //if (!searchQuery && !category) return []; // Optional: return empty if neither is provided
 
-    const [elitResult, newBytesResult, invidResult] = await Promise.allSettled([
+    const [elitResult, newBytesResult] = await Promise.allSettled([
         fetchElit(searchQuery, category),
         fetchNewBytes(searchQuery, category),
-        fetchInvid(searchQuery, category),
+        //fetchInvid(searchQuery, category),
     ]);
 
     const products: NormalizedProduct[] = [];
@@ -66,8 +66,8 @@ export async function getDistributorProducts(
         products.push(...newBytesResult.value);
     else console.error("Failed to fetch from NewBytes:", newBytesResult.reason);
 
-    if (invidResult.status === "fulfilled") products.push(...invidResult.value);
-    else console.error("Failed to fetch from INVID:", invidResult.reason);
+    //if (invidResult.status === "fulfilled") products.push(...invidResult.value);
+    //else console.error("Failed to fetch from INVID:", invidResult.reason);
 
     // ==========================================
     // ORDENAMIENTO GLOBAL
