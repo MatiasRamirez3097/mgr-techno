@@ -406,9 +406,9 @@ async function fetchInvid(
     const mappedCatalog: NormalizedProduct[] = jsonResponse.data.map(
         (prod: any) => {
             // INVID oculta el stock exacto por defecto, ponemos 1 como fallback si status dice Disponible
-            const stockValue =
-                Number(prod.STOCK) ||
-                (prod.STOCK_STATUS === "Disponible" ? 1 : 0);
+            //const stockValue =
+            //    Number(prod.STOCK) ||
+            //    (prod.STOCK_STATUS === "Disponible" ? 1 : 0);
             const priceValue = Number(prod.PRICE) || 0;
 
             return {
@@ -417,7 +417,7 @@ async function fetchInvid(
                 sku: prod.PART_NUMBER || prod.ID,
                 name: prod.TITLE,
                 price: priceValue, // Suponemos que ya viene en ARS por el ejemplo del JSON
-                stock: stockValue,
+                stock: 1,
                 image: prod.IMAGE_URL || null,
                 link: null, // No proveen link directo en la respuesta estándar
             };
