@@ -8,6 +8,7 @@ interface NormalizedProduct {
     price: number;
     stock: number;
     image: string | null;
+    link: string | null;
 }
 
 interface Props {
@@ -20,18 +21,12 @@ export const DistributorsTable = ({ products, search }: Props) => {
 
     return (
         <div className="w-full flex flex-col">
-            {/* ========================= */}
             {/* VIEW TOGGLE CONTROLS */}
-            {/* ========================= */}
             <div className="flex justify-end p-4 border-b border-gray-800 bg-gray-800/20">
                 <div className="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg p-1">
                     <button
                         onClick={() => setViewMode("table")}
-                        className={`p-2 rounded-md transition-all ${
-                            viewMode === "table"
-                                ? "bg-gray-700 text-white shadow"
-                                : "text-gray-500 hover:text-gray-300"
-                        }`}
+                        className={`p-2 rounded-md transition-all ${viewMode === "table" ? "bg-gray-700 text-white shadow" : "text-gray-500 hover:text-gray-300"}`}
                         title="View as Table"
                     >
                         <svg
@@ -50,11 +45,7 @@ export const DistributorsTable = ({ products, search }: Props) => {
                     </button>
                     <button
                         onClick={() => setViewMode("grid")}
-                        className={`p-2 rounded-md transition-all ${
-                            viewMode === "grid"
-                                ? "bg-gray-700 text-white shadow"
-                                : "text-gray-500 hover:text-gray-300"
-                        }`}
+                        className={`p-2 rounded-md transition-all ${viewMode === "grid" ? "bg-gray-700 text-white shadow" : "text-gray-500 hover:text-gray-300"}`}
                         title="View as Catalog"
                     >
                         <svg
@@ -105,6 +96,9 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-400">
                                             Price
                                         </th>
+                                        <th className="px-6 py-4 text-sm font-semibold text-gray-400 text-center">
+                                            Link
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-800">
@@ -130,7 +124,6 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                             </td>
                                             <td className="px-6 py-4 font-medium text-gray-200">
                                                 <div className="flex items-center gap-4">
-                                                    {/* Fondo oscuro para la tabla: bg-gray-900 en lugar de bg-white */}
                                                     <div className="w-12 h-12 shrink-0 bg-gray-900 rounded-lg border border-gray-700 flex items-center justify-center overflow-hidden">
                                                         {prod.image ? (
                                                             <img
@@ -188,6 +181,35 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                                     },
                                                 )}
                                             </td>
+                                            <td className="px-6 py-4 text-center">
+                                                {prod.link ? (
+                                                    <a
+                                                        href={prod.link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"
+                                                        title="View on distributor site"
+                                                    >
+                                                        <svg
+                                                            className="w-5 h-5"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                                            />
+                                                        </svg>
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-gray-600">
+                                                        -
+                                                    </span>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -205,7 +227,6 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                     key={`${prod.distributor}-${prod.id}`}
                                     className="bg-gray-800/40 border border-gray-800 rounded-2xl overflow-hidden hover:border-gray-600 transition-all flex flex-col"
                                 >
-                                    {/* Fondo oscuro para el grid: bg-gray-900 en lugar de bg-white */}
                                     <div className="w-full h-48 bg-gray-900 flex items-center justify-center p-4 relative border-b border-gray-800">
                                         <div className="absolute top-3 left-3">
                                             <span
@@ -218,7 +239,6 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                                 {prod.distributor}
                                             </span>
                                         </div>
-
                                         {prod.image ? (
                                             <img
                                                 src={prod.image}
@@ -247,7 +267,6 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                         <span className="text-xs text-gray-500 font-mono">
                                             SKU: {prod.sku}
                                         </span>
-
                                         <h3
                                             className="text-sm font-medium text-gray-200 line-clamp-2 h-10"
                                             title={prod.name}
@@ -255,24 +274,50 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                             {prod.name}
                                         </h3>
 
-                                        <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-700/50">
-                                            <span
-                                                className={`text-xs font-medium ${prod.stock > 0 ? "text-emerald-400" : "text-red-400"}`}
-                                            >
-                                                {prod.stock > 0
-                                                    ? `${prod.stock} un.`
-                                                    : "Out of stock"}
-                                            </span>
-                                            <span className="text-lg font-bold text-white">
-                                                $
-                                                {prod.price.toLocaleString(
-                                                    "en-US",
-                                                    {
-                                                        minimumFractionDigits: 2,
-                                                        maximumFractionDigits: 2,
-                                                    },
-                                                )}
-                                            </span>
+                                        <div className="mt-auto flex flex-col gap-3 pt-3 border-t border-gray-700/50">
+                                            <div className="flex items-center justify-between">
+                                                <span
+                                                    className={`text-xs font-medium ${prod.stock > 0 ? "text-emerald-400" : "text-red-400"}`}
+                                                >
+                                                    {prod.stock > 0
+                                                        ? `${prod.stock} un.`
+                                                        : "Out of stock"}
+                                                </span>
+                                                <span className="text-lg font-bold text-white">
+                                                    $
+                                                    {prod.price.toLocaleString(
+                                                        "en-US",
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        },
+                                                    )}
+                                                </span>
+                                            </div>
+
+                                            {prod.link && (
+                                                <a
+                                                    href={prod.link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg flex items-center justify-center gap-2 text-sm transition-colors"
+                                                >
+                                                    Store Link
+                                                    <svg
+                                                        className="w-4 h-4"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                                        />
+                                                    </svg>
+                                                </a>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

@@ -6,6 +6,7 @@ interface NormalizedProduct {
     price: number;
     stock: number;
     image: string | null;
+    link: string | null;
 }
 
 type CategoryConfig = {
@@ -126,6 +127,7 @@ async function fetchElit(
             price: Number(prod.pvp_ars) || 0,
             stock: Number(prod.stock_total) || 0,
             image: prod.imagenes?.[0] || null,
+            link: prod.link || null,
         }));
 }
 
@@ -266,6 +268,13 @@ async function fetchNewBytes(
                 priceInArs = finalPriceUsd * exchangeRate;
             }
 
+            // Lógica para armar la URL de NewBytes
+            // Convertimos a minúscula y reemplazamos cualquier caracter que NO sea letra o número por un guión "-"
+            const slug = prod.title
+                ? prod.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+                : "";
+            const nbLink = `https://www.nb.com.ar/${slug}_-_${prod.id}`;
+
             return {
                 id: prod.id,
                 distributor: "NewBytes",
@@ -274,6 +283,7 @@ async function fetchNewBytes(
                 price: priceInArs,
                 stock: stockValue,
                 image: prod.mainImage || null,
+                link: nbLink,
             };
         });
     });
