@@ -24,7 +24,7 @@ const CATEGORY_MAP: Record<string, CategoryConfig> = {
     PROCESADORES: {
         elit: { paramType: "sub_categoria", value: "Procesadores" },
         newbytes: "PROCESADORES",
-        invid: "Procesadores",
+        invid: "Procesador",
     },
     MOTHERBOARDS: {
         elit: { paramType: "sub_categoria", value: "Motherboards" },
