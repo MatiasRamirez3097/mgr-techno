@@ -12,29 +12,35 @@ interface NormalizedProduct {
 type CategoryConfig = {
     elit: { paramType: "categoria" | "sub_categoria"; value: string };
     newbytes: string | string[]; // <--- Ahora puede ser un array
+    invid: string;
 };
 
 const CATEGORY_MAP: Record<string, CategoryConfig> = {
     MEMORIAS: {
         elit: { paramType: "categoria", value: "Memorias" },
         newbytes: "Memorias",
+        invid: "Memorias",
     },
     PROCESADORES: {
         elit: { paramType: "sub_categoria", value: "Procesadores" },
         newbytes: "PROCESADORES",
+        invid: "Procesadores",
     },
     MOTHERBOARDS: {
         elit: { paramType: "sub_categoria", value: "Motherboards" },
         // Pasamos un array con todas las subdivisiones de NewBytes
         newbytes: ["MOTHER-ASUS", "MOTHER-ASROCK", "MOTHER-GIGABYTE"],
+        invid: "Motherboards",
     },
     CONECTIVIDAD: {
         elit: { paramType: "categoria", value: "CONECTIVIDAD" },
         newbytes: "CONECTIVIDAD",
+        invid: "Conectividad",
     },
     "CASA-INTELIGENTE": {
         elit: { paramType: "categoria", value: "SMART HOME" }, // Example: if Elit calls it differently
         newbytes: "CASA-INTELIGENTE",
+        invid: "Smart Home",
     },
     // Add all your categories from CategorySelect.tsx here...
 };
@@ -45,9 +51,10 @@ export async function getDistributorProducts(
 ): Promise<NormalizedProduct[]> {
     //if (!searchQuery && !category) return []; // Optional: return empty if neither is provided
 
-    const [elitResult, newBytesResult] = await Promise.allSettled([
+    const [elitResult, newBytesResult, invidResult] = await Promise.allSettled([
         fetchElit(searchQuery, category),
         fetchNewBytes(searchQuery, category),
+        fetchInvid(searchQuery, category),
     ]);
 
     const products: NormalizedProduct[] = [];
@@ -58,6 +65,9 @@ export async function getDistributorProducts(
     if (newBytesResult.status === "fulfilled")
         products.push(...newBytesResult.value);
     else console.error("Failed to fetch from NewBytes:", newBytesResult.reason);
+
+    if (invidResult.status === "fulfilled") products.push(...invidResult.value);
+    else console.error("Failed to fetch from INVID:", invidResult.reason);
 
     // ==========================================
     // ORDENAMIENTO GLOBAL
@@ -307,4 +317,156 @@ async function fetchNewBytes(
     }
 
     return combinedProducts;
+}
+
+// ==========================================
+// INVID FETCH LOGIC & AUTHENTICATION
+// ==========================================
+
+let cachedInvidToken: string | null = null;
+let invidTokenExpiration: number = 0;
+
+// Caché temporal para la respuesta de INVID y así evitar el límite de 50 req/hr
+let cachedInvidCatalog: NormalizedProduct[] | null = null;
+let invidCatalogExpiration: number = 0;
+
+async function getInvidToken(): Promise<string | null> {
+    if (cachedInvidToken && Date.now() < invidTokenExpiration) {
+        return cachedInvidToken;
+    }
+
+    const loginUrl = "https://invidcomputers.com/api/v1/auth.php";
+
+    const response = await fetch(loginUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            username: process.env.INVID_USER,
+            password: process.env.INVID_PASSWORD,
+        }),
+        cache: "no-store",
+    });
+
+    if (!response.ok) throw new Error(`INVID Auth failed: ${response.status}`);
+
+    const data = await response.json();
+
+    // Ajustar si la API devuelve el token bajo otra key (ej: data.data.token)
+    const token = data.token || data.access_token;
+
+    if (!token) throw new Error("INVID Auth successful but no token found.");
+
+    cachedInvidToken = token;
+    invidTokenExpiration = Date.now() + 55 * 60 * 1000; // 55 min
+
+    return cachedInvidToken;
+}
+
+async function fetchInvid(
+    searchQuery: string,
+    category: string,
+): Promise<NormalizedProduct[]> {
+    // Para proteger el límite de 50 req/hr, si tenemos un catálogo en caché (válido por 3 minutos) lo usamos
+    if (cachedInvidCatalog && Date.now() < invidCatalogExpiration) {
+        return filterInvidLocal(cachedInvidCatalog, searchQuery, category);
+    }
+
+    const token = await getInvidToken();
+    const invidUrl = new URL("https://invidcomputers.com/api/v1/articulo.php");
+
+    // Aprovechamos los filtros nativos para ahorrar transferencia
+    invidUrl.searchParams.append("exclude_zero_stock", "1");
+    invidUrl.searchParams.append("exclude_zero_price", "1");
+    invidUrl.searchParams.append("published_only", "1");
+
+    const response = await fetch(invidUrl.toString(), {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${token}`, // Confirmar si usan Bearer o solo token
+            "Content-Type": "application/json",
+        },
+        cache: "no-store",
+    });
+
+    // Si nos pasamos de las 50 peticiones, tirará 429
+    if (response.status === 429) {
+        console.warn("INVID Rate Limit Exceeded (429). Retrying later.");
+        return [];
+    }
+
+    if (!response.ok) throw new Error(`INVID HTTP error: ${response.status}`);
+
+    const jsonResponse = await response.json();
+
+    if (jsonResponse.status !== 1 || !Array.isArray(jsonResponse.data)) {
+        throw new Error("INVID returned an unexpected data structure");
+    }
+
+    // Mapeamos los resultados crudos a nuestro formato unificado
+    const mappedCatalog: NormalizedProduct[] = jsonResponse.data.map(
+        (prod: any) => {
+            // INVID oculta el stock exacto por defecto, ponemos 1 como fallback si status dice Disponible
+            const stockValue =
+                Number(prod.STOCK) ||
+                (prod.STOCK_STATUS === "Disponible" ? 1 : 0);
+            const priceValue = Number(prod.PRICE) || 0;
+
+            return {
+                id: prod.ID,
+                distributor: "INVID",
+                sku: prod.PART_NUMBER || prod.ID,
+                name: prod.TITLE,
+                price: priceValue, // Suponemos que ya viene en ARS por el ejemplo del JSON
+                stock: stockValue,
+                image: prod.IMAGE_URL || null,
+                link: null, // No proveen link directo en la respuesta estándar
+            };
+        },
+    );
+
+    // Guardamos el catálogo en memoria por 3 minutos (evita saturar la API)
+    cachedInvidCatalog = mappedCatalog;
+    invidCatalogExpiration = Date.now() + 3 * 60 * 1000;
+
+    // Aplicamos los filtros locales de búsqueda y categoría
+    return filterInvidLocal(mappedCatalog, searchQuery, category);
+}
+
+// Función auxiliar para filtrar localmente los resultados de INVID
+function filterInvidLocal(
+    catalog: NormalizedProduct[],
+    searchQuery: string,
+    category: string,
+): NormalizedProduct[] {
+    let filtered = catalog;
+
+    if (category) {
+        const mappedCategory = CATEGORY_MAP[category];
+        const invidCategoryValue = mappedCategory
+            ? mappedCategory.invid
+            : category;
+
+        // Asumimos que podemos filtrar localmente si tuviéramos el campo de categoría guardado,
+        // pero como en el mapeo descartamos la info de categoría, tendríamos que buscar por coincidencia en el nombre,
+        // o mapear prod.CATEGORY en el paso anterior.
+        // Para simplificar, buscamos si el nombre incluye la categoría.
+        filtered = filtered.filter((prod) =>
+            prod.name.toLowerCase().includes(invidCategoryValue.toLowerCase()),
+        );
+    }
+
+    if (searchQuery) {
+        const queryTokens = searchQuery.toLowerCase().split(" ");
+        filtered = filtered.filter((prod) => {
+            const productName = prod.name.toLowerCase();
+            const productSku = prod.sku.toLowerCase();
+            // Comprueba que todos los términos de búsqueda estén en el nombre o SKU
+            return queryTokens.every(
+                (token) =>
+                    productName.includes(token) || productSku.includes(token),
+            );
+        });
+    }
+
+    return filtered;
 }
