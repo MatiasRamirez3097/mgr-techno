@@ -42,6 +42,11 @@ const CATEGORY_MAP: Record<string, CategoryConfig> = {
         newbytes: "CASA-INTELIGENTE",
         invid: "Smart Home",
     },
+    VIDEO: {
+        elit: { paramType: "sub_categoria", value: "Placas de Video" },
+        newbytes: "PLACA-DE-VIDEO",
+        invid: "Placas de video",
+    },
     // Add all your categories from CategorySelect.tsx here...
 };
 
