@@ -42,6 +42,11 @@ const CATEGORY_MAP: Record<string, CategoryConfig> = {
         newbytes: "CASA-INTELIGENTE",
         invid: "Smart Home",
     },
+    "SSD-INTERNOS": {
+        elit: { paramType: "sub_categoria", value: "Discos Internos SSD" },
+        newbytes: "DISCOS-SSD",
+        invid: "Discos Ssd",
+    },
     // Add all your categories from CategorySelect.tsx here...
 };
 
