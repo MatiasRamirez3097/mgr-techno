@@ -9,6 +9,7 @@ interface NormalizedProduct {
     stock: number;
     image: string | null;
     link: string | null;
+    originalCategory?: string;
 }
 
 interface Props {
