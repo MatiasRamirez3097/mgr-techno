@@ -59,31 +59,57 @@ const CATEGORY_MAP: Record<string, CategoryConfig> = {
 export async function getDistributorProducts(
     searchQuery: string,
     category: string = "",
+    enabledDistributors: string[] = ["elit", "newbytes", "invid"],
 ): Promise<NormalizedProduct[]> {
-    //if (!searchQuery && !category) return []; // Optional: return empty if neither is provided
+    if (!searchQuery && !category) return []; // Optional: return empty if neither is provided
 
-    const [elitResult, newBytesResult, invidResult] = await Promise.allSettled([
-        fetchElit(searchQuery, category),
-        fetchNewBytes(searchQuery, category),
-        fetchInvid(searchQuery, category),
-    ]);
-
-    const products: NormalizedProduct[] = [];
-
-    if (elitResult.status === "fulfilled") products.push(...elitResult.value);
-    else console.error("Failed to fetch from Elit:", elitResult.reason);
-
-    if (newBytesResult.status === "fulfilled")
-        products.push(...newBytesResult.value);
-    else console.error("Failed to fetch from NewBytes:", newBytesResult.reason);
-
-    if (invidResult.status === "fulfilled") products.push(...invidResult.value);
-    else console.error("Failed to fetch from INVID:", invidResult.reason);
+    const fetchPromises: Promise<NormalizedProduct[]>[] = [];
 
     // ==========================================
-    // ORDENAMIENTO GLOBAL
+    // 1. CONDICIONAL: Solo consultamos si están habilitados
     // ==========================================
-    // Ordenamos todo el array combinado por precio (de menor a mayor)
+    if (enabledDistributors.includes("elit")) {
+        // Le agregamos el .catch para que si uno falla, devuelva un array vacío
+        // y no rompa todo el Promise.all
+        fetchPromises.push(
+            fetchElit(searchQuery, category).catch((e) => {
+                console.error("Failed to fetch from Elit:", e);
+                return [];
+            }),
+        );
+    }
+
+    if (enabledDistributors.includes("newbytes")) {
+        fetchPromises.push(
+            fetchNewBytes(searchQuery, category).catch((e) => {
+                console.error("Failed to fetch from NewBytes:", e);
+                return [];
+            }),
+        );
+    }
+
+    if (enabledDistributors.includes("invid")) {
+        fetchPromises.push(
+            fetchInvid(searchQuery, category).catch((e) => {
+                console.error("Failed to fetch from INVID:", e);
+                return [];
+            }),
+        );
+    }
+
+    // ==========================================
+    // 2. EJECUTAR LLAMADAS EN PARALELO
+    // ==========================================
+    // Promise.all ejecutará al mismo tiempo solo las promesas que agregamos arriba
+    const resultsArrays = await Promise.all(fetchPromises);
+
+    // resultsArrays es un array de arrays (ej: [ [prodElit1, prodElit2], [prodNB1] ])
+    // .flat() los une a todos en un solo nivel
+    const products = resultsArrays.flat();
+
+    // ==========================================
+    // 3. ORDENAMIENTO GLOBAL
+    // ==========================================
     products.sort((a, b) => a.price - b.price);
 
     return products;

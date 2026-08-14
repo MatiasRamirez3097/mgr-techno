@@ -1,5 +1,6 @@
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { CategorySelect } from "@/components/admin/distributors/CategorySelect";
+import { DistributorSelect } from "@/components/admin/distributors/DistributorSelect";
 import { DistributorsTable } from "@/components/admin/distributors/DistributorsTable";
 import { getDistributorProducts } from "@/services/distributors/getDistributorProducts";
 
@@ -7,6 +8,7 @@ interface Props {
     searchParams: Promise<{
         search?: string;
         category?: string;
+        distributors?: string;
         page?: string;
     }>;
 }
@@ -17,8 +19,16 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
     // 1. Extract category from URL
     const category = params.category || "";
 
-    // 2. Pass both search and category to our service
-    const products = await getDistributorProducts(search, category);
+    const enabledDistributors = params.distributors
+        ? params.distributors.split(",")
+        : ["elit", "newbytes", "invid"];
+
+    // Pasamos el array de distribuidores habilitados
+    const products = await getDistributorProducts(
+        search,
+        category,
+        enabledDistributors,
+    );
 
     return (
         <div>
@@ -29,6 +39,7 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
                 </h1>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+                    <DistributorSelect />
                     {/* Filter by Category */}
                     <CategorySelect />
 
