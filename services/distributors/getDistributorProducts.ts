@@ -13,7 +13,7 @@ interface NormalizedProduct {
 type CategoryConfig = {
     elit: { paramType: "categoria" | "sub_categoria"; value: string };
     newbytes: string | string[]; // <--- Ahora puede ser un array
-    invid: string;
+    invid: string | string[];
 };
 
 const CATEGORY_MAP: Record<string, CategoryConfig> = {
@@ -51,7 +51,7 @@ const CATEGORY_MAP: Record<string, CategoryConfig> = {
     VIDEO: {
         elit: { paramType: "sub_categoria", value: "Placas de Video" },
         newbytes: "PLACA-DE-VIDEO",
-        invid: "Placas de Video",
+        invid: ["120", "172"],
     },
     // Add all your categories from CategorySelect.tsx here...
 };
@@ -62,10 +62,10 @@ export async function getDistributorProducts(
 ): Promise<NormalizedProduct[]> {
     //if (!searchQuery && !category) return []; // Optional: return empty if neither is provided
 
-    const [elitResult, newBytesResult] = await Promise.allSettled([
+    const [elitResult, newBytesResult, invidResult] = await Promise.allSettled([
         fetchElit(searchQuery, category),
         fetchNewBytes(searchQuery, category),
-        //fetchInvid(searchQuery, category),
+        fetchInvid(searchQuery, category),
     ]);
 
     const products: NormalizedProduct[] = [];
@@ -77,8 +77,8 @@ export async function getDistributorProducts(
         products.push(...newBytesResult.value);
     else console.error("Failed to fetch from NewBytes:", newBytesResult.reason);
 
-    //if (invidResult.status === "fulfilled") products.push(...invidResult.value);
-    //else console.error("Failed to fetch from INVID:", invidResult.reason);
+    if (invidResult.status === "fulfilled") products.push(...invidResult.value);
+    else console.error("Failed to fetch from INVID:", invidResult.reason);
 
     // ==========================================
     // ORDENAMIENTO GLOBAL
@@ -452,7 +452,7 @@ async function fetchInvid(
                         stock: stockValue,
                         image: prod.IMAGE_URL || null,
                         link: null,
-                        originalCategory: prod.CATEGORY,
+                        originalCategory: prod.CATEGORY_ID,
                     };
                 },
             );
@@ -495,6 +495,7 @@ function filterInvidLocal(
 ): NormalizedProduct[] {
     let filtered = catalog;
 
+    // 1. Filtrar por Categoría
     if (category) {
         const mappedCategory = CATEGORY_MAP[category];
         const invidCategoryValue = mappedCategory
@@ -502,13 +503,24 @@ function filterInvidLocal(
             : category;
 
         if (invidCategoryValue) {
+            // Normalizamos: lo convertimos siempre en un array para manejarlo más fácil
+            const targetCategories = Array.isArray(invidCategoryValue)
+                ? invidCategoryValue
+                : [invidCategoryValue];
+
             filtered = filtered.filter((prod) => {
-                // Verificamos que originalCategory exista y coincida
-                return (
-                    prod.originalCategory &&
-                    prod.originalCategory
-                        .toLowerCase()
-                        .includes(invidCategoryValue.toLowerCase())
+                if (!prod.originalCategory) return false;
+
+                // Lo pasamos a string por si acaso el ID viene como número
+                const prodCategoryStr = prod.originalCategory
+                    .toString()
+                    .toLowerCase();
+
+                // .some() devuelve true si AL MENOS UNA de las categorías del array coincide
+                return targetCategories.some((targetCat) =>
+                    prodCategoryStr.includes(
+                        targetCat.toString().toLowerCase(),
+                    ),
                 );
             });
         }
