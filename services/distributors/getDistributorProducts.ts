@@ -43,6 +43,11 @@ const CATEGORY_MAP: Record<string, CategoryConfig> = {
         newbytes: "CASA-INTELIGENTE",
         invid: "Smart Home",
     },
+    "SSD-INTERNOS": {
+        elit: { paramType: "sub_categoria", value: "Discos Internos SSD" },
+        newbytes: "DISCOS-SSD",
+        invid: "Discos Ssd",
+    },
     VIDEO: {
         elit: { paramType: "sub_categoria", value: "Placas de Video" },
         newbytes: "PLACA-DE-VIDEO",

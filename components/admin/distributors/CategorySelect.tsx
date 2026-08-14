@@ -6,7 +6,7 @@ const CATEGORIES = [
     { value: "", label: "Todas las categorías" },
     { value: "ACCESORIOS", label: "Accesorios" },
     { value: "CONECTIVIDAD", label: "Conectividad" },
-    { value: "ALMACENAMIENTO", label: "Almacenamiento" },
+    { value: "SSD-INTERNOS", label: "SSD Internos" },
     { value: "GABINETES", label: "Gabinetes" },
     { value: "MEMORIAS", label: "Memorias" },
     { value: "MOTHERBOARDS", label: "Motherboards" },
