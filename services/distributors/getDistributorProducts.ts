@@ -7,6 +7,7 @@ interface NormalizedProduct {
     stock: number;
     image: string | null;
     link: string | null;
+    originalCategory?: string;
 }
 
 type CategoryConfig = {
@@ -46,6 +47,11 @@ const CATEGORY_MAP: Record<string, CategoryConfig> = {
         elit: { paramType: "sub_categoria", value: "Discos Internos SSD" },
         newbytes: "DISCOS-SSD",
         invid: "Discos Ssd",
+    },
+    VIDEO: {
+        elit: { paramType: "sub_categoria", value: "Placas de Video" },
+        newbytes: "PLACA-DE-VIDEO",
+        invid: "Placas de video",
     },
     // Add all your categories from CategorySelect.tsx here...
 };
@@ -425,6 +431,7 @@ async function fetchInvid(
                 stock: 1,
                 image: prod.IMAGE_URL || null,
                 link: null, // No proveen link directo en la respuesta estándar
+                originalCategory: prod.CATEGORY,
             };
         },
     );
@@ -451,21 +458,26 @@ function filterInvidLocal(
             ? mappedCategory.invid
             : category;
 
-        // Asumimos que podemos filtrar localmente si tuviéramos el campo de categoría guardado,
-        // pero como en el mapeo descartamos la info de categoría, tendríamos que buscar por coincidencia en el nombre,
-        // o mapear prod.CATEGORY en el paso anterior.
-        // Para simplificar, buscamos si el nombre incluye la categoría.
-        filtered = filtered.filter((prod) =>
-            prod.name.toLowerCase().includes(invidCategoryValue.toLowerCase()),
-        );
+        if (invidCategoryValue) {
+            filtered = filtered.filter((prod) => {
+                // Verificamos que originalCategory exista y coincida
+                return (
+                    prod.originalCategory &&
+                    prod.originalCategory
+                        .toLowerCase()
+                        .includes(invidCategoryValue.toLowerCase())
+                );
+            });
+        }
     }
 
+    // 2. Filtrar por Búsqueda (Nombre o SKU)
     if (searchQuery) {
         const queryTokens = searchQuery.toLowerCase().split(" ");
         filtered = filtered.filter((prod) => {
             const productName = prod.name.toLowerCase();
             const productSku = prod.sku.toLowerCase();
-            // Comprueba que todos los términos de búsqueda estén en el nombre o SKU
+
             return queryTokens.every(
                 (token) =>
                     productName.includes(token) || productSku.includes(token),
