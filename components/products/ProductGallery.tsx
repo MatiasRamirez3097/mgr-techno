@@ -1,5 +1,6 @@
 "use client";
 
+import { getOptimizedImageUrl } from "@/lib/utils/imageUtils";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -19,7 +20,7 @@ export function ProductGallery({
             {/* Imagen principal */}
             <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-800">
                 <Image
-                    src={images[selected]}
+                    src={getOptimizedImageUrl(images[selected])}
                     alt={name}
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
@@ -41,7 +42,7 @@ export function ProductGallery({
                             }`}
                         >
                             <Image
-                                src={src}
+                                src={getOptimizedImageUrl(src, 300)}
                                 alt={`${name} ${i + 1}`}
                                 fill
                                 sizes="64px"
