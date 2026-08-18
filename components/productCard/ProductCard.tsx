@@ -6,6 +6,7 @@ import { ProductDTO } from "@/types/shared/product";
 import { useCart } from "@/store/cart";
 import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
 import { getPricing } from "@/lib/pricing";
+import { getOptimizedImageUrl } from "@/lib/utils/imageUtils";
 
 export function ProductCard({
     product,
@@ -46,7 +47,7 @@ export function ProductCard({
             >
                 <div className="relative aspect-square bg-gray-800 shrink-0">
                     <Image
-                        src={product.image}
+                        src={getOptimizedImageUrl(product.image)}
                         alt={product.name}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
