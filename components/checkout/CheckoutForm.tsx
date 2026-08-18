@@ -175,7 +175,7 @@ export function CheckoutForm({ session }: Props) {
                                     postcode,
                                     shippingMethod: method,
                                     items: items.map((i) => ({
-                                        id: i.id,
+                                        id: i.id.split("|")[0], // <-- Nos quedamos solo con el ID del producto
                                         quantity: i.quantity,
                                     })),
                                 }),
@@ -280,10 +280,16 @@ export function CheckoutForm({ session }: Props) {
                         phone: form.phone,
                         country: "AR",
                     },
-                    items: items.map((i) => ({
-                        productId: i.id,
-                        quantity: i.quantity,
-                    })),
+                    items: items.map((i) => {
+                        // Separamos el ID del producto y el ID del inventario (si existe)
+                        const [realProductId, inventoryId] = i.id.split("|");
+
+                        return {
+                            productId: realProductId,
+                            inventoryId: inventoryId || undefined, // Mandamos el ID específico de la unidad de outlet
+                            quantity: i.quantity,
+                        };
+                    }),
                     payments: [
                         {
                             method: selectedPayment.method,

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useState } from "react";
-
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import Image from "next/image";
@@ -24,6 +24,36 @@ interface Props {
 export function ProductsTable({ products }: Props) {
     const searchParams = useSearchParams();
     const [quickEditId, setQuickEditId] = useState<string | null>(null);
+    const router = useRouter();
+    const handleCreateOutlet = async (baseProductId: string) => {
+        if (
+            !confirm(
+                "¿Crear versión Outlet de este producto? Se generará un borrador copiando los datos base.",
+            )
+        )
+            return;
+
+        try {
+            // Llamada a tu endpoint que hace el duplicado en Mongoose
+            const res = await fetch(
+                `/api/admin/products/${baseProductId}/duplicate-to-outlet`,
+                {
+                    method: "POST",
+                },
+            );
+
+            if (res.ok) {
+                const newOutletProduct = await res.json();
+                // Redirigir directamente al panel de edición del nuevo producto de outlet
+                // para que le cargue los InventoryItems (las fallas específicas)
+                router.push(`/admin/products/${newOutletProduct.id}`);
+            } else {
+                alert("Error al crear el producto de outlet");
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     return (
         <table className="w-full">
@@ -122,20 +152,32 @@ export function ProductsTable({ products }: Props) {
 
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <p
-                                                        className="
-                                                        text-sm
-                                                        text-white
-                                                        font-medium
-                                                        line-clamp-1
-                                                    "
-                                                    >
+                                                    <p className="text-sm text-white font-medium line-clamp-1">
                                                         {product.name}
                                                     </p>
 
                                                     {product.featured && (
                                                         <span className="text-xs text-amber-400">
                                                             ★
+                                                        </span>
+                                                    )}
+
+                                                    {/* NUEVO: Badge de Outlet */}
+                                                    {product.isOutlet && (
+                                                        <span
+                                                            className="
+            text-[10px] 
+            font-bold 
+            px-1.5 
+            py-0.5 
+            rounded 
+            bg-purple-500/20 
+            text-purple-400 
+            border 
+            border-purple-500/30
+        "
+                                                        >
+                                                            OUTLET
                                                         </span>
                                                     )}
                                                 </div>
@@ -359,6 +401,28 @@ export function ProductsTable({ products }: Props) {
                                             >
                                                 Editar →
                                             </Link>
+                                            {/* NUEVO: Botón Crear Outlet (Solo si NO es outlet) */}
+                                            {!product.isOutlet && (
+                                                <button
+                                                    onClick={() =>
+                                                        handleCreateOutlet(
+                                                            product.id,
+                                                        )
+                                                    }
+                                                    className="
+                    text-xs 
+                    text-purple-400 
+                    hover:text-purple-300 
+                    transition-all
+                    flex
+                    items-center
+                    gap-1
+                "
+                                                >
+                                                    <span>⧉</span> Duplicar a
+                                                    Outlet
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

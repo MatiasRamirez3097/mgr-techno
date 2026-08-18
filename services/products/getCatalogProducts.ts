@@ -6,8 +6,13 @@ import { mapProductToDTO } from "@/lib/mappers/productMapper";
 import type { ProductFilters } from "@/types/shared/product";
 import { unstable_cache } from "next/cache";
 
+// NUEVO: Agregamos isOutlet al tipado
 export async function getCatalogProducts(
-    filters: ProductFilters & { brand?: string; inStockOnly?: boolean } = {},
+    filters: ProductFilters & {
+        brand?: string;
+        inStockOnly?: boolean;
+        isOutlet?: boolean;
+    } = {},
     page: number = 1,
     limit: number = 12,
 ) {
@@ -18,15 +23,11 @@ export async function getCatalogProducts(
         String(limit),
     ];
 
-    // Envolvemos toda la lógica pesada de la BD en unstable_cache
     const getCachedData = unstable_cache(
         async () => {
             await connectDB();
             const skip = (page - 1) * limit;
 
-            // ==========================================
-            // 1. PIPELINE BASE (Común para todas las consultas)
-            // ==========================================
             const basePipeline: any[] = [];
 
             // BÚSQUEDA
@@ -87,7 +88,15 @@ export async function getCatalogProducts(
                 baseMatchStage.salePrice = { $exists: true, $ne: null, $gt: 0 };
             }
 
-            // NUEVO: Ocultar productos sin stock si la opción está activa usando isAvailable
+            // NUEVO: Filtro exclusivo de Outlet
+            if (filters.isOutlet) {
+                baseMatchStage.isOutlet = true;
+            }
+            // Opcional: Si querés que los productos de Outlet NO aparezcan en el catálogo normal a menos que el usuario tilde el filtro, descomentá esto:
+            // else if (!filters.adminView) {
+            //     baseMatchStage.isOutlet = { $ne: true };
+            // }
+
             if (filters.inStockOnly) {
                 baseMatchStage.isAvailable = true;
             }
@@ -96,7 +105,6 @@ export async function getCatalogProducts(
                 const category = await CategoryModel.findOne({
                     slug: filters.category,
                 }).lean();
-
                 if (category) {
                     const childIds = await getCategoriesDescendants(
                         category._id.toString(),
@@ -114,9 +122,8 @@ export async function getCatalogProducts(
                 basePipeline.push({ $match: baseMatchStage });
             }
 
-            // ORDENAMIENTO
+            // ORDENAMIENTO (Mantenido igual)
             let sortStage: any = {};
-
             if (
                 filters.search &&
                 (!filters.orderby || filters.orderby === "relevance")
@@ -127,7 +134,6 @@ export async function getCatalogProducts(
                 };
             } else {
                 sortStage = { isAvailable: -1 };
-
                 switch (filters.orderby) {
                     case "price_asc":
                         sortStage.effectivePrice = 1;
@@ -150,23 +156,18 @@ export async function getCatalogProducts(
                         break;
                 }
             }
-
             basePipeline.push({ $sort: sortStage });
 
-            // ==========================================
-            // 2. PIPELINE DE MARCA (Separado del base)
-            // ==========================================
+            // PIPELINE DE MARCA (Mantenido igual)
             const brandMatchPipeline: any[] = [];
             if (filters.brand) {
                 const brandSlugs = filters.brand.split(",").filter(Boolean);
-
                 if (brandSlugs.length > 0) {
                     const brands = await BrandModel.find(
                         { slug: { $in: brandSlugs } },
                         "_id",
                     ).lean();
                     const brandIds = brands.map((b: any) => b._id);
-
                     if (brandIds.length > 0) {
                         brandMatchPipeline.push({
                             $match: { brand: { $in: brandIds } },
@@ -177,13 +178,9 @@ export async function getCatalogProducts(
                 }
             }
 
-            // ==========================================
-            // 3. EJECUCIÓN PARALELA
-            // ==========================================
             try {
                 const [dataResult, countResult, brandsResult] =
                     await Promise.all([
-                        // Consulta A: Productos Paginados
                         ProductModel.aggregate([
                             ...basePipeline,
                             ...brandMatchPipeline,
@@ -209,18 +206,15 @@ export async function getCatalogProducts(
                                     description: 1,
                                     shortDescription: 1,
                                     weight: 1,
+                                    isOutlet: 1, // NUEVO: Proyectamos el campo para que llegue al DTO
                                 },
                             },
                         ]),
-
-                        // Consulta B: Conteo Total
                         ProductModel.aggregate([
                             ...basePipeline,
                             ...brandMatchPipeline,
                             { $count: "total" },
                         ]),
-
-                        // Consulta C: Marcas Disponibles
                         ProductModel.aggregate([
                             ...basePipeline,
                             { $group: { _id: "$brand" } },
@@ -246,12 +240,9 @@ export async function getCatalogProducts(
                     ]);
 
                 const totalItems = countResult[0]?.total || 0;
-                const totalPages = Math.ceil(totalItems / limit);
-
                 const formattedProducts = dataResult.map((product: any) =>
                     mapProductToDTO(product),
                 );
-
                 const availableBrands = brandsResult.map((b: any) => ({
                     _id: b._id.toString(),
                     name: b.name,
@@ -263,13 +254,13 @@ export async function getCatalogProducts(
                     availableBrands,
                     pagination: {
                         totalItems,
-                        totalPages,
+                        totalPages: Math.ceil(totalItems / limit),
                         currentPage: page,
                         limit,
                     },
                 };
             } catch (error) {
-                console.error("Error en getCatalogProducts (Parallel):", error);
+                console.error("Error en getCatalogProducts:", error);
                 return {
                     products: [],
                     availableBrands: [],
@@ -283,12 +274,8 @@ export async function getCatalogProducts(
             }
         },
         cacheKey,
-        {
-            revalidate: 60, // Refrescará la caché en segundo plano después de 60 segundos (para no mostrar stock viejo)
-            tags: ["catalog-products"], // Útil por si más adelante quieres forzar la limpieza manual con revalidateTag()
-        },
+        { revalidate: 60, tags: ["catalog-products"] },
     );
 
-    // Retornamos el resultado (ya sea que venga de la caché ultrarrápida o calculado fresco)
     return await getCachedData();
 }

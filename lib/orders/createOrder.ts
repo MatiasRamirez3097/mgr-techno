@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-import { OrderModel } from "@/models/Order";
+import { InventoryItemModel, OrderModel } from "@/models";
 import { ProductModel } from "@/models/Product";
 
 import { findProductsById } from "../products/getProductsById";
@@ -93,9 +93,18 @@ export async function createOrder(data: unknown) {
 
                 const total = subtotal;
 
+                const allocations = item.inventoryId
+                    ? [
+                          {
+                              inventoryItemId: item.inventoryId,
+                              quantity: item.quantity,
+                          },
+                      ]
+                    : [];
+
                 return {
                     productId: product.id,
-
+                    inventoryId: item.inventoryId,
                     name: product.name,
 
                     quantity,
@@ -109,6 +118,8 @@ export async function createOrder(data: unknown) {
                     taxAmount,
 
                     total,
+
+                    allocations,
                 };
             });
 
@@ -186,6 +197,20 @@ export async function createOrder(data: unknown) {
                     item.quantity,
                     session,
                 );
+
+                if (item.allocations && item.allocations.length > 0) {
+                    for (const allocation of item.allocations) {
+                        await InventoryItemModel.findByIdAndUpdate(
+                            allocation.inventoryItemId,
+                            {
+                                $inc: {
+                                    remainingQuantity: -allocation.quantity,
+                                },
+                            },
+                            { session },
+                        );
+                    }
+                }
             }
 
             // =====================================

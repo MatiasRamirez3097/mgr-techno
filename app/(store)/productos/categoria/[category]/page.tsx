@@ -18,6 +18,7 @@ interface Props {
         page?: string;
         orderby?: ProductOrderBy;
         brand?: string;
+        isOutlet: string;
     }>;
 }
 
@@ -37,7 +38,8 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
     const resolvedSearchParams = await searchParams;
 
-    const { limit, search, page, orderby, brand } = resolvedSearchParams;
+    const { limit, search, page, orderby, brand, isOutlet } =
+        resolvedSearchParams;
 
     const suspenseKey = JSON.stringify(resolvedSearchParams);
 
@@ -50,6 +52,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
                 page={page}
                 orderby={orderby}
                 brand={brand}
+                isOutlet={isOutlet}
             />
         </Suspense>
     );

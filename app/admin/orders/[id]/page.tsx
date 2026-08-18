@@ -169,9 +169,35 @@ export default async function AdminOrderDetailPage({
                                     key={i}
                                     className="flex justify-between text-sm"
                                 >
-                                    <span className="text-gray-300">
-                                        {item.name} x{item.quantity}
-                                    </span>
+                                    <div className="flex flex-col">
+                                        <span className="text-gray-300">
+                                            {item.name} x{item.quantity}
+                                        </span>
+
+                                        {/* Renderizamos la falla directamente desde la asignación mapeada */}
+                                        {item.allocations?.map(
+                                            (alloc: any, idx: number) => {
+                                                if (
+                                                    alloc.defectDescription &&
+                                                    alloc.defectDescription !==
+                                                        "Sin detalle de falla especificado"
+                                                ) {
+                                                    return (
+                                                        <span
+                                                            key={idx}
+                                                            className="text-xs text-amber-400/90 mt-0.5"
+                                                        >
+                                                            ⚠️ Falla:{" "}
+                                                            {
+                                                                alloc.defectDescription
+                                                            }
+                                                        </span>
+                                                    );
+                                                }
+                                                return null;
+                                            },
+                                        )}
+                                    </div>
                                     <span className="text-white">
                                         ${item.total.toLocaleString("es-AR")}
                                     </span>

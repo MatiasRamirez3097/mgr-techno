@@ -11,6 +11,7 @@ export async function receivePurchase(
             productId: string;
             quantity: number;
             serials?: string[];
+            defects?: string[];
         }[];
     },
 ) {
@@ -67,9 +68,73 @@ export async function receivePurchase(
             }
 
             // 🔴 SERIALIZADO
-            if (product.hasSerialNumber) {
+            if (product.isOutlet) {
+                if (product.hasSerialNumber) {
+                    if (
+                        !item.serials ||
+                        item.serials.length !== item.quantity
+                    ) {
+                        throw new Error(
+                            "Faltan números de serie para las unidades de Outlet.",
+                        );
+                    }
+
+                    // Validar duplicados para que no ingresen seriales repetidos
+                    const existingSerials = await InventoryItemModel.findOne({
+                        productId: item.productId,
+                        serialNumber: { $in: item.serials },
+                    }).session(session);
+
+                    if (existingSerials) {
+                        throw new Error(
+                            `Uno o más números de serie de Outlet ya existen en el inventario.`,
+                        );
+                    }
+                }
+
+                // 2. Iteramos creando un InventoryItem ÚNICO por CADA unidad física recibida
+                for (let i = 0; i < item.quantity; i++) {
+                    const defect =
+                        item.defects && item.defects[i]
+                            ? item.defects[i]
+                            : "Sin detalle de falla especificado";
+
+                    const serial =
+                        item.serials && item.serials[i]
+                            ? item.serials[i]
+                            : undefined;
+
+                    const inv = await InventoryItemModel.create(
+                        [
+                            {
+                                productId: item.productId,
+                                purchaseId,
+                                serialNumber: serial, // ACÁ AHORA SÍ GUARDAMOS EL SERIAL
+                                status: "available",
+                                quantity: 1, // Siempre 1 unidad física por item en outlet
+                                remainingQuantity: 1,
+                                defectDescription: defect, // Guardamos la falla específica
+                            },
+                        ],
+                        { session },
+                    );
+                    createdInventoryItems.push(inv[0]);
+                }
+            } else if (product.hasSerialNumber) {
                 if (!item.serials || item.serials.length !== item.quantity) {
                     throw new Error("Seriales inválidos");
+                }
+
+                // NUEVO: Validar que los seriales no existan ya en la DB
+                const existingSerials = await InventoryItemModel.findOne({
+                    productId: item.productId,
+                    serialNumber: { $in: item.serials },
+                }).session(session);
+
+                if (existingSerials) {
+                    throw new Error(
+                        `Uno o más números de serie ya existen en el inventario para este producto.`,
+                    );
                 }
 
                 for (const serial of item.serials) {

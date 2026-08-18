@@ -12,7 +12,7 @@ export async function getOrdersById(id: string): Promise<OrderDTO | null> {
     const order = await OrderModel.findById(id)
         .populate({
             path: "items.allocations.inventoryItemId",
-            select: "serialNumber",
+            //select: "serialNumber",
         })
         .lean();
 

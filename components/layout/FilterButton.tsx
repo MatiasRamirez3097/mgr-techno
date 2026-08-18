@@ -13,28 +13,38 @@ interface Brand {
 interface Props {
     brands: Brand[];
     initialHideOutOfStock?: boolean;
+    initialIsOutlet?: boolean; // NUEVO
 }
 
-export function FilterButton({ brands, initialHideOutOfStock = false }: Props) {
+export function FilterButton({
+    brands,
+    initialHideOutOfStock = false,
+    initialIsOutlet = false,
+}: Props) {
     const [open, setOpen] = useState(false);
     const searchParams = useSearchParams();
+
     // ==========================================
     // CÁLCULO DE FILTROS ACTIVOS
     // ==========================================
-    // 1. Contamos cuántas marcas hay en la URL (separadas por coma)
     const brandParam = searchParams.get("brand");
     const activeBrandsCount = brandParam
         ? brandParam.split(",").filter(Boolean).length
         : 0;
 
-    // 2. Si el switch de stock está activo, suma 1
-    //const activeStockFilterCount = initialHideOutOfStock ? 1 : 0;
-    const activeStockFilterCount = 0;
-    // 3. Total
-    const totalActiveFilters = activeBrandsCount + activeStockFilterCount;
+    const activeStockFilterCount = 0; // O initialHideOutOfStock ? 1 : 0
+    const activeOutletFilterCount = initialIsOutlet ? 1 : 0; // NUEVO
 
-    // Permitimos abrir los filtros si hay marcas O si hay un filtro de stock aplicado
-    if ((!brands || brands.length === 0) && !initialHideOutOfStock) return null;
+    const totalActiveFilters =
+        activeBrandsCount + activeStockFilterCount + activeOutletFilterCount;
+
+    // Permitimos abrir los filtros si hay marcas, o si el usuario quiere limpiar el filtro de outlet
+    if (
+        (!brands || brands.length === 0) &&
+        !initialHideOutOfStock &&
+        !initialIsOutlet
+    )
+        return null;
 
     return (
         <>
@@ -65,9 +75,6 @@ export function FilterButton({ brands, initialHideOutOfStock = false }: Props) {
                     />
                 </svg>
                 Filtros
-                {/* ========================================== */}
-                {/* BADGE DE NOTIFICACIÓN */}
-                {/* ========================================== */}
                 {totalActiveFilters > 0 && (
                     <span
                         className="
@@ -88,6 +95,7 @@ export function FilterButton({ brands, initialHideOutOfStock = false }: Props) {
                 onClose={() => setOpen(false)}
                 brands={brands}
                 initialHideOutOfStock={initialHideOutOfStock}
+                initialIsOutlet={initialIsOutlet} // NUEVO
             />
         </>
     );

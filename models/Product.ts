@@ -94,6 +94,12 @@ export const ProductSchema = new Schema(
 
             ref: "Brand",
         },
+
+        isOutlet: {
+            type: Boolean,
+            default: false,
+            index: true, // Clave para excluir rápido en las consultas del Feed XML
+        },
     },
     { timestamps: true },
 );

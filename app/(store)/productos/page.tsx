@@ -18,11 +18,13 @@ interface Props {
         page?: string;
         orderby?: ProductOrderBy;
         brand?: string;
+        isOutlet?: string;
     }>;
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
-    const { limit, search, page, orderby, brand } = await searchParams;
+    const { limit, search, page, orderby, brand, isOutlet } =
+        await searchParams;
 
     return (
         <ProductsView
@@ -31,6 +33,7 @@ export default async function ProductsPage({ searchParams }: Props) {
             orderby={orderby}
             limit={limit}
             brand={brand}
+            isOutlet={isOutlet}
         />
     );
 }

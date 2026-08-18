@@ -66,6 +66,7 @@ function mapProduct(product: any) {
             id: product._id.toString(),
             name: product.name,
             hasSerialNumber: product.hasSerialNumber,
+            isOutlet: product.isOutlet,
         };
     }
 

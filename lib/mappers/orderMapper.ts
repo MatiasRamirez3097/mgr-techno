@@ -46,14 +46,16 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
                             typeof alloc.inventoryItemId === "object";
 
                         return {
-                            // Si está populado, extraemos el _id, si no usamos el valor directo
                             inventoryItemId: isPopulated
                                 ? alloc.inventoryItemId._id.toString()
                                 : alloc.inventoryItemId.toString(),
                             quantity: alloc.quantity,
-                            // Extraemos el serialNumber si está en el objeto populado
                             serialNumber: isPopulated
                                 ? alloc.inventoryItemId.serialNumber
+                                : undefined,
+                            // 🔥 NUEVO: Pasamos la falla al frontend
+                            defectDescription: isPopulated
+                                ? alloc.inventoryItemId.defectDescription
                                 : undefined,
                         };
                     }) || [],
