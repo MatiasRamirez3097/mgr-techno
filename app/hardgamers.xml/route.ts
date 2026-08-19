@@ -1,6 +1,7 @@
 export const revalidate = 3600;
 
 import { connectDB } from "@/lib/mongodb";
+import { getOptimizedImageUrl } from "@/lib/utils/imageUtils";
 import { ProductModel } from "@/models";
 
 export async function GET() {
@@ -28,7 +29,7 @@ export async function GET() {
     </link>
 
     <g:image_link>
-        ${product.image}
+        ${getOptimizedImageUrl(product.image)}
     </g:image_link>
 
     <g:condition>new</g:condition>

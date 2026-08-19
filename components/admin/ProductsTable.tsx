@@ -16,6 +16,7 @@ import { getProductHealth } from "@/lib/products/getProductHealth";
 import { useSearchParams } from "next/navigation";
 
 import type { ProductDTO } from "@/types/shared/product";
+import { getOptimizedImageUrl } from "@/lib/utils/imageUtils";
 
 interface Props {
     products: ProductDTO[];
@@ -141,7 +142,10 @@ export function ProductsTable({ products }: Props) {
                                             >
                                                 {product.image && (
                                                     <Image
-                                                        src={product.image}
+                                                        src={getOptimizedImageUrl(
+                                                            product.image,
+                                                            300,
+                                                        )}
                                                         alt={product.name}
                                                         fill
                                                         sizes="40px"
