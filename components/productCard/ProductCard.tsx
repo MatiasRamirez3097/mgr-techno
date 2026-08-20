@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ProductDTO } from "@/types/shared/product";
 import { useCart } from "@/store/cart";
 import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
@@ -15,6 +16,7 @@ export function ProductCard({
     product: ProductDTO & { isOutlet?: boolean }; // Extendemos temporalmente si el DTO no lo tiene aún
     priority?: boolean;
 }) {
+    const router = useRouter();
     const addToCart = useCart((state) => state.addToCart);
     const { open } = useCartDrawer();
     const items = useCart((state) => state.items);
@@ -31,7 +33,8 @@ export function ProductCard({
         // Si es outlet, el botón funciona como un link a la página del producto
         // y evitamos que lo agregue al carrito directamente
         if (product.isOutlet) {
-            return; // Al estar dentro del <Link>, el navegador lo llevará a la página
+            router.push(`/productos/${product.slug}`); // <-- 2. Forzamos la navegación
+            return;
         }
 
         e.preventDefault(); // Evitamos que navegue
