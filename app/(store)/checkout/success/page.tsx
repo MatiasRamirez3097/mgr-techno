@@ -10,7 +10,7 @@ export default async function SuccessPage({ searchParams }: Props) {
     const { order } = await searchParams;
 
     const data = await getOrdersById(order ?? "");
-
+    console.log(data);
     const isBankTransfer = data?.payments?.[0]?.method === "bank_transfer";
 
     if (!data)
