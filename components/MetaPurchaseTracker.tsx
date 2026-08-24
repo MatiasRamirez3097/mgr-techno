@@ -33,7 +33,8 @@ export default function MetaPurchaseTracker({
                     item.product?._id ||
                     item.product?.id ||
                     item._id ||
-                    item.id,
+                    item.id ||
+                    item.productId,
             )
             .filter(Boolean);
 
