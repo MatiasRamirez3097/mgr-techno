@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 interface MetaProductViewProps {
     productId: string;
-    price: number;
+    price: number; // A veces Next.js/React lo recibe como string desde la base de datos
 }
 
 export default function MetaProductView({
@@ -12,21 +12,22 @@ export default function MetaProductView({
     price,
 }: MetaProductViewProps) {
     useEffect(() => {
-        // Nos aseguramos de que el Pixel esté cargado en la ventana
         if (typeof window !== "undefined" && (window as any).fbq) {
+            // 🔥 LA CLAVE ESTÁ AQUÍ: Forzamos que sea un número
+            const cleanPrice = Number(price);
+
             (window as any).fbq("track", "ViewContent", {
                 content_ids: [productId],
                 content_type: "product",
                 currency: "ARS",
-                value: price,
+                value: cleanPrice, // Mandamos la variable limpia
             });
+
             console.log(
-                `✅ Meta Pixel: ViewContent enviado para ID ${productId}`,
+                `✅ Meta Pixel: ViewContent enviado para ID ${productId} (Valor numérico: ${cleanPrice})`,
             );
-            console.log(price);
         }
     }, [productId, price]);
 
-    // Este componente no muestra nada en pantalla, solo ejecuta el código por detrás
     return null;
 }
