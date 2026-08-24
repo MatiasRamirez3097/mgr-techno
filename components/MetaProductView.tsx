@@ -23,6 +23,7 @@ export default function MetaProductView({
             console.log(
                 `✅ Meta Pixel: ViewContent enviado para ID ${productId}`,
             );
+            console.log(price);
         }
     }, [productId, price]);
 

@@ -104,7 +104,6 @@ export function ProductsTable({ products }: Props) {
                     </tr>
                 ) : (
                     products.map((product) => {
-                        console.log("product>>>", product);
                         const health = getProductHealth(product);
                         const pricing = getPricing({
                             regularPrice: product.regularPrice,
