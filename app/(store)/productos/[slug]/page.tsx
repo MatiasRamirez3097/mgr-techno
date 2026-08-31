@@ -8,14 +8,14 @@ import { ProductSchema } from "@/components/products/ProductSchema";
 import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { ProductGallery } from "@/components/products/ProductGallery";
 import MetaProductView from "@/components/MetaProductView";
-import { OutletSelector } from "@/components/products/OutletSelector"; // NUEVO COMPONENTE
+import { OutletSelector } from "@/components/products/OutletSelector";
 
 import { getPricing } from "@/lib/pricing";
 import { getProductBySlug as getProductBySlugService } from "@/services/products/getProductBySlug";
 
-// NUEVAS IMPORTACIONES PARA EL OUTLET
 import { connectDB } from "@/lib/mongodb";
-import { InventoryItemModel } from "@/models/InventoryItem"; // Ajustá la ruta según tu proyecto
+import { InventoryItemModel } from "@/models/InventoryItem";
+import { getOptimizedImageUrl } from "@/lib/utils/imageUtils";
 
 interface Props {
     params: Promise<{
@@ -40,13 +40,9 @@ export default async function ProductPage({ params }: Props) {
         salePrice: product.salePrice,
     });
 
-    // =========================
-    // LÓGICA EXCLUSIVA OUTLET
-    // =========================
     let outletUnits: any[] = [];
     if (product.isOutlet) {
         await connectDB();
-        // Buscamos las unidades físicas exactas que están disponibles para este producto
         const items = await InventoryItemModel.find({
             productId: product.id,
             status: "available",
@@ -67,7 +63,6 @@ export default async function ProductPage({ params }: Props) {
                 price={product.effectivePrice}
             />
 
-            {/* BADGE VISUAL DE OUTLET (Opcional) */}
             {product.isOutlet && (
                 <div className="mb-6 inline-flex items-center gap-2 bg-purple-900/30 border border-purple-500/50 text-purple-300 px-4 py-2 rounded-lg text-sm">
                     <span className="font-bold uppercase tracking-wider">
@@ -82,7 +77,6 @@ export default async function ProductPage({ params }: Props) {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                {/* GALLERY */}
                 <ProductGallery
                     images={[product.image, ...(product.images || [])].filter(
                         Boolean,
@@ -90,14 +84,11 @@ export default async function ProductPage({ params }: Props) {
                     name={product.name}
                 />
 
-                {/* INFO */}
                 <div className="flex flex-col gap-4">
-                    {/* TITLE */}
                     <h1 className="text-2xl font-bold title-color">
                         {product.name}
                     </h1>
 
-                    {/* PRICING (Mantenido igual) */}
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-3">
                             <span className="text-sm text-brand font-medium w-28">
@@ -147,7 +138,6 @@ export default async function ProductPage({ params }: Props) {
                         </p>
                     </div>
 
-                    {/* DESCRIPTION */}
                     {product.shortDescription && (
                         <div
                             className="text-sm text-gray-400 prose prose-sm prose-invert max-w-none"
@@ -157,18 +147,13 @@ export default async function ProductPage({ params }: Props) {
                         />
                     )}
 
-                    {/* ========================= */}
-                    {/* SECCIÓN DE COMPRA / OUTLET */}
-                    {/* ========================= */}
                     <div className="mt-4 pt-4 border-t border-gray-800">
                         {product.isOutlet ? (
-                            // Flujo para productos de Outlet
                             <OutletSelector
                                 product={product}
                                 units={outletUnits}
                             />
                         ) : (
-                            // Flujo normal para productos estándar
                             <>
                                 {product.availableStock &&
                                 product.availableStock <= 0 ? (
@@ -193,4 +178,77 @@ export default async function ProductPage({ params }: Props) {
     );
 }
 
-// ... GenerateMetadata se mantiene igual ...
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const { slug } = await params;
+    const product = await getProductBySlug(slug);
+
+    if (!product) {
+        return {
+            title: "Producto no encontrado",
+        };
+    }
+
+    const cleanDescription = product.shortDescription
+        ?.replace(/<[^>]*>/g, "")
+        .slice(0, 160);
+
+    return {
+        metadataBase: new URL("https://mgrtechno.com.ar"),
+        title: product.name,
+        description:
+            cleanDescription ||
+            `Comprá ${product.name} al mejor precio en MGR Techno`,
+        alternates: {
+            canonical: `/productos/${product.slug}`,
+        },
+        openGraph: {
+            title: product.name,
+            description:
+                cleanDescription ||
+                `Comprá ${product.name} al mejor precio en MGR Techno`,
+            url: `https://mgrtechno.com.ar/productos/${product.slug}`,
+            siteName: "MGR Techno",
+            type: "website",
+            images:
+                getOptimizedImageUrl(product.image) ||
+                getOptimizedImageUrl(product.images?.[0] || "")
+                    ? [
+                          {
+                              url:
+                                  getOptimizedImageUrl(product.image) ||
+                                  getOptimizedImageUrl(product.images[0]),
+                              width: 800,
+                              height: 800,
+                              alt: product.name,
+                          },
+                      ]
+                    : [],
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: product.name,
+            description:
+                cleanDescription ||
+                `Comprá ${product.name} al mejor precio en MGR Techno`,
+            images:
+                getOptimizedImageUrl(product.image) ||
+                getOptimizedImageUrl(product.images?.[0] || "")
+                    ? [
+                          getOptimizedImageUrl(product.image) ||
+                              getOptimizedImageUrl(product.images[0]),
+                      ]
+                    : [],
+        },
+        robots: {
+            index: true,
+            follow: true,
+            googleBot: {
+                index: true,
+                follow: true,
+                "max-image-preview": "large",
+                "max-snippet": -1,
+                "max-video-preview": -1,
+            },
+        },
+    };
+}
