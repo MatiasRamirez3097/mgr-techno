@@ -29,6 +29,8 @@ export type ProductDTO = {
     featured: boolean;
     isAvailable: boolean;
     isOutlet: boolean;
+    hasFreeShipping: boolean;
+    shippingSize: string;
 };
 
 export type GetProductsResponse = {

@@ -95,6 +95,19 @@ export const ProductSchema = new Schema(
             ref: "Brand",
         },
 
+        hasFreeShipping: {
+            type: Boolean,
+            default: false,
+            index: true, // Útil si luego querés hacer un filtro de "Ver solo productos con envío gratis"
+        },
+        shippingSize: {
+            type: String,
+            enum: ["small", "standard", "bulky"],
+            default: "standard",
+            description:
+                "Define el volumen del producto para calcular recargos si se mezcla con envíos gratis.",
+        },
+
         isOutlet: {
             type: Boolean,
             default: false,

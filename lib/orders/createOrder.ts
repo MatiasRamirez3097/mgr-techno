@@ -53,6 +53,59 @@ export async function createOrder(data: unknown) {
             );
 
             // =====================================
+            // 🔒 REGLAS DE ENVÍO (BACKEND SAFE)
+            // =====================================
+            // Evaluamos la regla basándonos en los productos REALES de la base de datos
+            const hasFreeShippingItem = products.some((p) => p.hasFreeShipping);
+            const nonFreeShippingProducts = products.filter(
+                (p) => !p.hasFreeShipping,
+            );
+
+            let shippingModifier = 1; // 1 = 100% del costo
+
+            if (hasFreeShippingItem) {
+                if (nonFreeShippingProducts.length === 0) {
+                    shippingModifier = 0; // Todo es gratis
+                } else {
+                    const hasBulky = nonFreeShippingProducts.some(
+                        (p) => p.shippingSize === "bulky",
+                    );
+                    const allSmall = nonFreeShippingProducts.every(
+                        (p) => p.shippingSize === "small",
+                    );
+
+                    if (hasBulky) {
+                        shippingModifier = 1;
+                    } else if (allSmall) {
+                        shippingModifier = 0;
+                    } else {
+                        shippingModifier = 0.5; // 50% de descuento
+                    }
+                }
+            }
+
+            // Sanitizamos el costo base que nos mandó el Frontend
+            let baseShippingCost = result.data.shippingMethod.cost;
+            const methodId = result.data.shippingMethod.method;
+
+            // Seguridad extra: Forzamos los precios fijos del backend para que no los falseen
+            const LOCAL_SHIPPING_COST = 5000;
+
+            if (methodId === "local_pickup") {
+                baseShippingCost = 0;
+            } else if (methodId === "local_shipping") {
+                baseShippingCost = LOCAL_SHIPPING_COST;
+            }
+            // Si es Andreani/ViaCargo, por ahora confiamos en el costo base que mandó el front,
+            // (Para blindarlo al 100%, deberías recotizar con la API de Andreani acá adentro).
+
+            // COSTO FINAL SEGURO
+            const finalShippingCost = baseShippingCost * shippingModifier;
+
+            // Actualizamos el objeto result para que se guarde el costo con el descuento real en la DB
+            result.data.shippingMethod.cost = finalShippingCost;
+
+            // =====================================
             // PAYMENT SURCHARGE
             // =====================================
 
@@ -137,10 +190,10 @@ export async function createOrder(data: unknown) {
                 0,
             );
 
+            // Sumamos el costo de envío validado y calculado en el servidor
             const total =
                 orderItems.reduce((acc, item) => acc + item.total, 0) +
-                result.data.shippingMethod.cost;
-
+                finalShippingCost;
             // =====================================
             // PAYMENTS
             // =====================================

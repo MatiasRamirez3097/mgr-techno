@@ -64,6 +64,8 @@ export function ProductForm({ product, categories, mode }: Props) {
         height: product?.dimensions?.height || 0,
         categories: product?.categories || [],
         taxRate: product?.taxRate || 10.5,
+        hasFreeShipping: product?.hasFreeShipping || false,
+        shippingSize: product?.shippingSize || "standard",
     });
 
     const handleChange = (
@@ -378,6 +380,47 @@ export function ProductForm({ product, categories, mode }: Props) {
                         <h2 className="text-base font-bold text-white mb-4">
                             Envío
                         </h2>
+                        {/* Controles de Envío Gratis y Tamaño */}
+                        <div className="flex flex-col gap-4 mb-6 pb-6 border-b border-gray-800">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    name="hasFreeShipping"
+                                    checked={form.hasFreeShipping}
+                                    onChange={handleChange}
+                                    className="w-4 h-4 accent-brand"
+                                />
+                                <span className="text-sm text-gray-300">
+                                    Habilitar envío gratis para este producto
+                                </span>
+                            </label>
+
+                            <div>
+                                <label className={labelClass}>
+                                    Tamaño del paquete (Define reglas de costo
+                                    si se mezcla con otros productos)
+                                </label>
+                                <select
+                                    name="shippingSize"
+                                    value={form.shippingSize}
+                                    onChange={handleChange}
+                                    className={inputClass}
+                                >
+                                    <option value="small">
+                                        Pequeño (ej. RAM, Procesadores, SSD,
+                                        Pendrives)
+                                    </option>
+                                    <option value="standard">
+                                        Estándar (ej. Placas de video,
+                                        Motherboards, Periféricos)
+                                    </option>
+                                    <option value="bulky">
+                                        Voluminoso (ej. Gabinetes, Monitores,
+                                        Sillas)
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2">
                                 <label className={labelClass}>Peso (kg)</label>

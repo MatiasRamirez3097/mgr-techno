@@ -43,5 +43,7 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         featured: product.featured,
         isAvailable: Boolean(product.isAvailable),
         isOutlet: product.isOutlet,
+        hasFreeShipping: product.hasFreeShipping,
+        shippingSize: product.shippingSize,
     };
 }

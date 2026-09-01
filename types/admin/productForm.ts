@@ -36,4 +36,7 @@ export interface ProductFormState {
     categories: string[];
 
     taxRate: number;
+
+    hasFreeShipping: boolean;
+    shippingSize: string;
 }

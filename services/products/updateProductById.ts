@@ -59,52 +59,31 @@ export async function updateProductById(id: string, data: any) {
     // =========================
 
     product.name = data.name;
-
     product.brand = data.brand;
-
     product.slug = slugify(data.name);
-
     product.type = data.type;
-
     product.regularPrice = data.regularPrice;
-
     product.salePrice = salePrice;
-
     product.effectivePrice = derived.effectivePrice;
-
-    product.isAvailavle = derived.isAvailable ?? product.isAvailable;
-
+    product.isAvailable = derived.isAvailable ?? product.isAvailable;
     product.taxRate = data.taxRate;
-
     product.image = data.image || "";
-
     product.images = data.images || [];
-
     product.hasSerialNumber = data.hasSerialNumber;
-
     product.manageStock = data.manageStock;
-
     product.shortDescription = data.shortDescription;
-
     product.description = data.description;
-
     product.weight = data.weight;
-
     product.dimensions = data.dimensions;
-
     product.categories = categories;
-
     product.featured = data.featured;
-
     product.status = data.status;
-
     product.sku = data.sku;
-
     product.mpn = data.mpn;
-
     product.gtin = data.gtin;
-
     product.bundleItemsCount = data.bundleItemsCount;
+    product.hasFreeShipping = data.hasFreeShipping ?? false;
+    product.shippingSize = data.shippingSize || "standard";
 
     // =========================
     // SAVE
@@ -122,6 +101,7 @@ export async function updateProductQuickFields(
         salePrice?: number | null;
         featured?: boolean;
         status?: string;
+        hasFreeShipping?: boolean;
     },
 ) {
     await connectDB();
@@ -152,6 +132,10 @@ export async function updateProductQuickFields(
 
     if (data.status !== undefined) {
         product.status = data.status;
+    }
+
+    if (data.hasFreeShipping !== undefined) {
+        product.hasFreeShipping = data.hasFreeShipping;
     }
 
     await product.save();

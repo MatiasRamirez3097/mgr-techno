@@ -206,7 +206,9 @@ export async function getCatalogProducts(
                                     description: 1,
                                     shortDescription: 1,
                                     weight: 1,
-                                    isOutlet: 1, // NUEVO: Proyectamos el campo para que llegue al DTO
+                                    isOutlet: 1,
+                                    hasFreeShipping: 1,
+                                    shippingSize: 1,
                                 },
                             },
                         ]),

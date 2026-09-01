@@ -11,12 +11,12 @@ interface Props {
 
 export function QuickEditProduct({ product, onClose }: Props) {
     const router = useRouter();
-    console.log("product>>>>>>", product);
     const [form, setForm] = useState({
         regularPrice: product.regularPrice || "",
         salePrice: product.salePrice || "",
         featured: product.featured || false,
         status: product.status,
+        hasFreeShipping: product.hasFreeShipping || false, // <-- Agregado
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -36,6 +36,7 @@ export function QuickEditProduct({ product, onClose }: Props) {
                     salePrice: form.salePrice,
                     featured: form.featured,
                     status: form.status,
+                    hasFreeShipping: form.hasFreeShipping, // <-- Agregado
                 }),
             });
 
@@ -120,35 +121,53 @@ export function QuickEditProduct({ product, onClose }: Props) {
                         className={inputClass}
                     >
                         <option value="publish">Publicado</option>
-
                         <option value="pending_review">
                             Pendiente revisión
                         </option>
-
                         <option value="draft">Borrador</option>
                     </select>
                 </div>
 
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={form.featured}
-                        onChange={(e) =>
-                            setForm((prev) => ({
-                                ...prev,
-                                featured: e.target.checked,
-                            }))
-                        }
-                        className="w-4 h-4 accent-brand"
-                    />
-                    <span className="text-sm text-gray-300">
-                        Producto destacado
-                    </span>
-                </label>
+                {/* --- NUEVOS CHECKBOXES --- */}
+                <div className="flex flex-col gap-2 mt-1 border-t border-gray-700 pt-3">
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={form.featured}
+                            onChange={(e) =>
+                                setForm((prev) => ({
+                                    ...prev,
+                                    featured: e.target.checked,
+                                }))
+                            }
+                            className="w-4 h-4 accent-brand"
+                        />
+                        <span className="text-sm text-gray-300">
+                            Producto destacado
+                        </span>
+                    </label>
+
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={form.hasFreeShipping}
+                            onChange={(e) =>
+                                setForm((prev) => ({
+                                    ...prev,
+                                    hasFreeShipping: e.target.checked,
+                                }))
+                            }
+                            className="w-4 h-4 accent-brand"
+                        />
+                        <span className="text-sm text-gray-300">
+                            Envío Gratis
+                        </span>
+                    </label>
+                </div>
 
                 {error && <p className="text-xs text-red-400">{error}</p>}
 
-                <div className="flex gap-2 mt-1">
+                <div className="flex gap-2 mt-2">
                     <button
                         type="submit"
                         disabled={loading}
