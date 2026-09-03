@@ -20,6 +20,11 @@ type FieldError = {
 const PAYMENT_METHODS = [
     { id: "bank_transfer", label: "Transferencia bancaria", icon: "🏦" },
     { id: "cash", label: "Pago Efectivo", icon: "📦" },
+    {
+        id: "mercadopago",
+        label: "(NO USAR - TESTING) Mercado Pago (Tarjetas, Dinero en cuenta, Cuotas)",
+        icon: "💳",
+    },
 ] as const;
 
 const SHIPPING_METHODS = [
@@ -367,12 +372,23 @@ export function CheckoutForm({ session }: Props) {
                 throw new Error(data.error);
             }
 
-            setSuccess("Compra exitosa!");
+            // LIMPIAMOS EL CARRITO
             clearCart();
+
+            // 🔥 NUEVO: SI HAY UN INIT_POINT, REDIRIGIMOS A MERCADOPAGO
+            if (data.init_point) {
+                setSuccess("Redirigiendo a MercadoPago...");
+                // Usamos window.location para salir de nuestra página e ir a la de MP
+                window.location.href = data.init_point;
+                return;
+            }
+
+            // SI NO ES MERCADOPAGO (Transferencia/Efectivo) VAMOS AL SUCCESS LOCAL
+            setSuccess("Compra exitosa!");
+
             router.push(`/checkout/success?order=${data.order}`);
         } catch (e) {
             console.log(e);
-        } finally {
             setLoading(false);
         }
     };

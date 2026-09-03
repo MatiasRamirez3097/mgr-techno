@@ -38,6 +38,7 @@ export async function createOrder(data: unknown) {
     const session = await mongoose.startSession();
 
     let orderNum = "";
+    let orderTotal = 0;
 
     let createdOrder: any = null;
 
@@ -272,6 +273,7 @@ export async function createOrder(data: unknown) {
 
             //orderNum = order._id.toString().slice(-6).toUpperCase();
             orderNum = order._id.toString();
+            orderTotal = order.total;
         });
 
         // =====================================
@@ -291,6 +293,7 @@ export async function createOrder(data: unknown) {
         return {
             success: true,
             order: orderNum,
+            total: orderTotal,
         };
     } catch (error) {
         throw error;

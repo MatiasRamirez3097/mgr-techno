@@ -8,6 +8,14 @@ import bcrypt from "bcryptjs";
 import { CustomerModel, UserModel } from "@/models";
 import { connectDB } from "@/lib/mongodb";
 
+// IMPORTAMOS MERCADOPAGO
+import { MercadoPagoConfig, Preference } from "mercadopago";
+
+// INICIALIZAMOS EL CLIENTE
+const client = new MercadoPagoConfig({
+    accessToken: process.env.MP_ACCESS_TOKEN as string,
+});
+
 export async function POST(req: NextRequest) {
     try {
         await connectDB();
@@ -94,9 +102,58 @@ export async function POST(req: NextRequest) {
         }
 
         // 🔥 SERVICE
-        const order = await createOrder(result.data);
+        const orderResult = await createOrder(result.data);
 
-        return NextResponse.json(order);
+        // ==========================================
+        // 🔥 LÓGICA DE MERCADOPAGO
+        // ==========================================
+        const hasMercadoPago = result.data.payments.some(
+            (p: any) => p.method === "mercadopago",
+        );
+
+        if (hasMercadoPago) {
+            const preference = new Preference(client);
+            const appUrl =
+                process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+            const preferenceData = await preference.create({
+                body: {
+                    items: [
+                        {
+                            id: orderResult.order,
+                            title: `Pedido en MGR Techno #${orderResult.order.slice(-6).toUpperCase()}`,
+                            quantity: 1,
+                            unit_price: orderResult.total, // El total exacto calculado en el backend
+                            currency_id: "ARS",
+                        },
+                    ],
+                    payer: {
+                        email: emailToUse,
+                        name: result.data.billing.firstName,
+                        surname: result.data.billing.lastName,
+                    },
+                    back_urls: {
+                        // A dónde vuelve si sale todo bien
+                        success: `${appUrl}/checkout/success?order=${orderResult.order}`,
+                        // A dónde vuelve si falla (lo mandamos de vuelta al checkout)
+                        failure: `${appUrl}/checkout?error=pago_fallido`,
+                        // A dónde vuelve si queda pendiente (ej: Pago Fácil)
+                        pending: `${appUrl}/checkout/success?order=${orderResult.order}&status=pending`,
+                    },
+                    auto_return: "approved",
+                    external_reference: orderResult.order, // Clave para los Webhooks
+                },
+            });
+
+            // Devolvemos el init_point al Frontend para que haga la redirección
+            return NextResponse.json({
+                success: true,
+                order: orderResult.order,
+                init_point: preferenceData.init_point,
+            });
+        }
+
+        return NextResponse.json(orderResult);
     } catch (error: any) {
         if (error.name === "ZodError") {
             return NextResponse.json({ error: error.errors }, { status: 400 });
