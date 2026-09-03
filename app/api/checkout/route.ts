@@ -142,6 +142,7 @@ export async function POST(req: NextRequest) {
                     },
                     auto_return: "approved",
                     external_reference: orderResult.order, // Clave para los Webhooks
+                    notification_url: `${appUrl}/api/webhooks/mercadopago`,
                 },
             });
 
