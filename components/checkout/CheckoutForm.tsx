@@ -22,7 +22,7 @@ const PAYMENT_METHODS = [
     { id: "cash", label: "Pago Efectivo", icon: "📦" },
     {
         id: "mercadopago",
-        label: "Mercado Pago",
+        label: "Tarjeta de crédito (Precio de lista)",
         icon: "💳",
     },
 ] as const;
