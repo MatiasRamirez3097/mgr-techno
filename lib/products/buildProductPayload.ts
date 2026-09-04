@@ -42,5 +42,7 @@ export function buildProductPayload({ form, image, images }: Params) {
         images,
 
         taxRate: Number(form.taxRate),
+
+        hasFreeShipping: form.hasFreeShipping,
     };
 }

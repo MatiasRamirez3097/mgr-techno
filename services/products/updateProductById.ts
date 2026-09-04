@@ -51,7 +51,7 @@ export async function updateProductById(id: string, data: any) {
     const derived = buildProductDerivedFields({
         regularPrice: data.regularPrice ?? undefined,
         salePrice: data.salePrice ?? undefined,
-        availableStock: data.availableStock ?? undefined,
+        availableStock: product.availableStock ?? undefined,
     });
 
     // =========================
@@ -65,7 +65,6 @@ export async function updateProductById(id: string, data: any) {
     product.regularPrice = data.regularPrice;
     product.salePrice = salePrice;
     product.effectivePrice = derived.effectivePrice;
-    product.isAvailable = derived.isAvailable ?? product.isAvailable;
     product.taxRate = data.taxRate;
     product.image = data.image || "";
     product.images = data.images || [];
