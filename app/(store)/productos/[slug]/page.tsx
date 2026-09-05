@@ -40,6 +40,13 @@ export default async function ProductPage({ params }: Props) {
         salePrice: product.salePrice,
     });
 
+    // 🔥 NUEVO: Calculamos el % de descuento que representa el precio especial
+    const discountPercentage = Math.round(
+        ((pricing.listPriceFinal - pricing.finalPrice) /
+            pricing.listPriceFinal) *
+            100,
+    );
+
     let outletUnits: any[] = [];
     if (product.isOutlet) {
         await connectDB();
@@ -90,11 +97,14 @@ export default async function ProductPage({ params }: Props) {
                     </h1>
 
                     <div className="flex flex-col gap-2">
+                        {/* ================= PRECIO ESPECIAL ================= */}
                         <div className="flex items-center gap-3">
-                            <span className="text-sm text-brand font-medium w-28">
-                                Precio especial:
-                            </span>
-                            <div className="flex items-center gap-3">
+                            <div className="text-sm text-brand font-medium w-28 flex flex-col">
+                                <span>Precio especial:</span>
+                            </div>
+
+                            {/* flex-wrap ayuda a que si la pantalla es chica, el badge baje ordenadamente */}
+                            <div className="flex items-center flex-wrap gap-3">
                                 {product.salePrice && (
                                     <span className="text-base text-gray-500 line-through">
                                         $
@@ -107,6 +117,30 @@ export default async function ProductPage({ params }: Props) {
                                     $
                                     {pricing.finalPrice.toLocaleString("es-AR")}
                                 </span>
+
+                                {/* 🔥 BADGE DE DESCUENTO */}
+                                {discountPercentage > 0 && (
+                                    <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-1 rounded-lg shadow-[0_0_15px_rgba(34,197,94,0.05)] ml-1">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            fill="currentColor"
+                                            className="w-4 h-4"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M5.25 2.25a3 3 0 00-3 3v4.318a3 3 0 00.879 2.121l9.5 9.5a3 3 0 004.242 0l4.318-4.318a3 3 0 000-4.242l-9.5-9.5A3 3 0 009.568 2.25H5.25zm1.5 3a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <span className="font-bold text-sm tracking-wide">
+                                            {discountPercentage}% OFF
+                                        </span>
+                                        <span className="hidden sm:inline text-[11px] font-medium opacity-80 mt-0.5 ml-1">
+                                            (con transferencia)
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
