@@ -14,6 +14,14 @@ interface Slide {
 
 const SLIDES: Slide[] = [
     {
+        image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1788618658/banner4_bjyfwr.png",
+        title: "3 Cuotas sin interés.",
+        subtitle:
+            "Paga en 3 cuotas sin interes con tu tarjeta de crédito de Mercadopago (Precio de lista).",
+        cta: "Comprar!",
+        href: "/productos",
+    },
+    {
         image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436851/banner1_xaiuk2.jpg",
         title: "Componentes de PC",
         subtitle: "Las mejores marcas al mejor precio",
