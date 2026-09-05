@@ -169,7 +169,7 @@ export default async function ProductPage({ params }: Props) {
                         <div className="bg-black p-5 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div className="flex flex-col gap-1.5">
                                 <span className="text-sm text-gray-400 font-medium">
-                                    Precio de lista (Mercado Pago)
+                                    Precio de lista
                                 </span>
                                 <div className="flex items-center gap-2 text-white font-semibold text-sm">
                                     <svg
