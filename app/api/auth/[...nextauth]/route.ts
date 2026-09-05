@@ -2,6 +2,7 @@ import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getUserByEmail, verifyPassword } from "@/lib/auth";
 import { CustomerModel } from "@/models/Customer";
+import { connectDB } from "@/lib/mongodb";
 import { UserModel } from "@/models/User"; // Importamos UserModel
 import jwt from "jsonwebtoken"; // Instalalo si no lo tenés: npm i jsonwebtoken
 
@@ -19,6 +20,7 @@ export const authOptions = {
                     // ==========================================
                     // CASO A: INICIO DE SESIÓN POR MAGIC LINK
                     // ==========================================
+                    await connectDB();
                     if (credentials?.magicToken) {
                         try {
                             // Verificamos el token (Firma y expiración)
@@ -68,7 +70,6 @@ export const authOptions = {
                         const normalizedEmail = credentials.username
                             .toLowerCase()
                             .trim();
-
                         const user = await getUserByEmail(normalizedEmail);
                         if (!user) return null;
 
