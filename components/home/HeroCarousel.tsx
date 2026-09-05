@@ -6,7 +6,7 @@ import Link from "next/link";
 
 interface Slide {
     image: string;
-    title?: string;
+    title: string;
     subtitle?: string;
     cta?: string;
     href?: string;
@@ -15,6 +15,7 @@ interface Slide {
 const SLIDES: Slide[] = [
     {
         image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1788618658/banner4_bjyfwr.png",
+        title: "3 Cuotas sin interes con Tarjeta de Crédito de Mercadopago",
     },
     {
         image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436851/banner1_xaiuk2.jpg",
@@ -86,7 +87,7 @@ export function HeroCarousel() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
 
             {/* Contenido */}
-            {slide.title && (
+            {slide.title && slide.subtitle && slide.href && (
                 <div className="absolute inset-0 flex items-center px-8 sm:px-14">
                     <div className="max-w-lg">
                         <h2 className="text-2xl sm:text-4xl font-bold text-white mb-2 drop-shadow">
