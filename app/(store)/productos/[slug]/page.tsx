@@ -99,21 +99,21 @@ export default async function ProductPage({ params }: Props) {
                     {/* ================= SECCIÓN DE PRECIOS RENOVADA ================= */}
                     <div className="flex flex-col gap-3 mt-2">
                         {/* CAJA PRECIO ESPECIAL (Destacada estilo "Mejor Precio") */}
-                        <div className="bg-gray-900 border border-green-500/40 rounded-xl p-5 relative overflow-hidden shadow-[0_0_20px_rgba(34,197,94,0.03)]">
-                            {/* Resplandor sutil de fondo */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 blur-3xl rounded-full pointer-events-none"></div>
+                        <div className="bg-gray-900 border border-brand/30 rounded-2xl p-6 relative overflow-hidden">
+                            {/* Resplandor sutil de fondo usando tu color brand */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-brand/10 blur-3xl rounded-full pointer-events-none"></div>
 
                             {/* Fila Superior: Métodos y Etiqueta */}
                             <div className="flex items-start justify-between mb-6">
-                                <div className="flex items-center gap-2 text-green-400">
-                                    <div className="bg-green-500/20 p-1 rounded-md">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-brand/10 border border-brand/20 p-2 rounded-xl text-brand flex items-center justify-center">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             strokeWidth={2}
                                             stroke="currentColor"
-                                            className="w-4 h-4"
+                                            className="w-5 h-5"
                                         >
                                             <path
                                                 strokeLinecap="round"
@@ -122,22 +122,22 @@ export default async function ProductPage({ params }: Props) {
                                             />
                                         </svg>
                                     </div>
-                                    <span className="text-sm font-medium">
+                                    <span className="text-base font-semibold text-white">
                                         Efectivo / Transferencia
                                     </span>
                                 </div>
 
-                                <span className="bg-green-500 text-gray-900 text-[11px] font-black px-2.5 py-1.5 rounded uppercase tracking-wide">
+                                <span className="bg-brand text-white text-[11px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider">
                                     Mejor Precio
                                 </span>
                             </div>
 
                             {/* Fila Inferior: Descuento y Precios */}
                             <div className="flex items-end justify-between mt-2">
-                                {/* Badge de descuento abajo a la izquierda */}
+                                {/* Badge de descuento abajo a la izquierda (Oculto en celulares) */}
                                 <div className="hidden sm:block">
                                     {discountPercentage > 0 && (
-                                        <span className="border border-green-500/40 text-green-400 text-xs font-semibold px-2.5 py-1.5 rounded-md bg-green-500/5">
+                                        <span className="border border-brand/20 text-brand text-xs font-semibold px-3 py-1.5 rounded-xl bg-brand/10">
                                             {discountPercentage}% OFF por medio
                                             de pago
                                         </span>
@@ -154,7 +154,7 @@ export default async function ProductPage({ params }: Props) {
                                             )}
                                         </span>
                                     )}
-                                    <span className="text-4xl sm:text-5xl font-black text-green-400 tracking-tighter leading-none">
+                                    <span className="text-4xl sm:text-5xl font-black text-white tracking-tighter leading-none">
                                         $
                                         {pricing.finalPrice.toLocaleString(
                                             "es-AR",
@@ -173,9 +173,9 @@ export default async function ProductPage({ params }: Props) {
                             </div>
 
                             {/* Mostrar el descuento arriba en mobile para que no rompa el diseño */}
-                            <div className="sm:hidden mt-4">
+                            <div className="sm:hidden mt-5">
                                 {discountPercentage > 0 && (
-                                    <span className="border border-green-500/40 text-green-400 text-xs font-semibold px-2.5 py-1.5 rounded-md bg-green-500/5">
+                                    <span className="border border-brand/20 text-brand text-xs font-semibold px-3 py-1.5 rounded-xl bg-brand/10">
                                         {discountPercentage}% OFF por medio de
                                         pago
                                     </span>
@@ -184,7 +184,7 @@ export default async function ProductPage({ params }: Props) {
                         </div>
 
                         {/* CAJA PRECIO DE LISTA */}
-                        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between flex-wrap gap-3">
+                        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex items-center justify-between flex-wrap gap-4">
                             <div className="flex flex-col">
                                 <span className="text-sm font-medium text-gray-400">
                                     Precio de lista
@@ -233,7 +233,7 @@ export default async function ProductPage({ params }: Props) {
 
                         {/* ================= BADGE ENVÍO GRATIS ================= */}
                         {product.hasFreeShipping && (
-                            <div className="mt-2 inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-2 rounded-lg w-fit">
+                            <div className="mt-2 inline-flex items-center gap-2 bg-brand/10 border border-brand/20 text-brand px-4 py-2.5 rounded-xl w-fit">
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     className="h-5 w-5"
