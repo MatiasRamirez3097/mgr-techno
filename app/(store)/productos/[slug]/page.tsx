@@ -98,95 +98,97 @@ export default async function ProductPage({ params }: Props) {
 
                     {/* ================= SECCIÓN DE PRECIOS RENOVADA ================= */}
                     <div className="flex flex-col gap-3 mt-2">
-                        {/* CAJA PRECIO ESPECIAL (Destacada) */}
-                        <div className="bg-gray-800/40 border border-gray-700/60 border-l-4 border-l-brand rounded-xl p-5 shadow-sm relative">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold text-brand uppercase tracking-wider">
-                                    Precio Especial
-                                </span>
-                                {/* Íconos decorativos sutiles */}
-                                <div className="flex gap-2 text-gray-500">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        strokeWidth={1.5}
-                                        stroke="currentColor"
-                                        className="w-5 h-5"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                        />
-                                    </svg>
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        strokeWidth={1.5}
-                                        stroke="currentColor"
-                                        className="w-5 h-5"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
+                        {/* CAJA PRECIO ESPECIAL (Destacada estilo "Mejor Precio") */}
+                        <div className="bg-gray-900 border border-green-500/40 rounded-xl p-5 relative overflow-hidden shadow-[0_0_20px_rgba(34,197,94,0.03)]">
+                            {/* Resplandor sutil de fondo */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 blur-3xl rounded-full pointer-events-none"></div>
 
-                            <div className="flex items-end gap-3 flex-wrap">
-                                <span className="text-4xl font-extrabold text-white tracking-tight">
-                                    $
-                                    {pricing.finalPrice.toLocaleString("es-AR")}
-                                </span>
-
-                                {product.salePrice && (
-                                    <span className="text-lg text-gray-500 line-through mb-1 font-medium">
-                                        $
-                                        {product.regularPrice.toLocaleString(
-                                            "es-AR",
-                                        )}
-                                    </span>
-                                )}
-
-                                {discountPercentage > 0 && (
-                                    <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-1 rounded-lg mb-1.5">
+                            {/* Fila Superior: Métodos y Etiqueta */}
+                            <div className="flex items-start justify-between mb-6">
+                                <div className="flex items-center gap-2 text-green-400">
+                                    <div className="bg-green-500/20 p-1 rounded-md">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
                                             viewBox="0 0 24 24"
-                                            fill="currentColor"
+                                            strokeWidth={2}
+                                            stroke="currentColor"
                                             className="w-4 h-4"
                                         >
                                             <path
-                                                fillRule="evenodd"
-                                                d="M5.25 2.25a3 3 0 00-3 3v4.318a3 3 0 00.879 2.121l9.5 9.5a3 3 0 004.242 0l4.318-4.318a3 3 0 000-4.242l-9.5-9.5A3 3 0 009.568 2.25H5.25zm1.5 3a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"
-                                                clipRule="evenodd"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                             />
                                         </svg>
-                                        <span className="font-bold text-sm tracking-wide">
-                                            {discountPercentage}% OFF
-                                        </span>
                                     </div>
+                                    <span className="text-sm font-medium">
+                                        Efectivo / Transferencia
+                                    </span>
+                                </div>
+
+                                <span className="bg-green-500 text-gray-900 text-[11px] font-black px-2.5 py-1.5 rounded uppercase tracking-wide">
+                                    Mejor Precio
+                                </span>
+                            </div>
+
+                            {/* Fila Inferior: Descuento y Precios */}
+                            <div className="flex items-end justify-between mt-2">
+                                {/* Badge de descuento abajo a la izquierda */}
+                                <div className="hidden sm:block">
+                                    {discountPercentage > 0 && (
+                                        <span className="border border-green-500/40 text-green-400 text-xs font-semibold px-2.5 py-1.5 rounded-md bg-green-500/5">
+                                            {discountPercentage}% OFF por medio
+                                            de pago
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Bloque de precios a la derecha */}
+                                <div className="flex flex-col items-end">
+                                    {product.salePrice && (
+                                        <span className="text-sm text-gray-500 line-through font-medium mb-1">
+                                            $
+                                            {product.regularPrice.toLocaleString(
+                                                "es-AR",
+                                            )}
+                                        </span>
+                                    )}
+                                    <span className="text-4xl sm:text-5xl font-black text-green-400 tracking-tighter leading-none">
+                                        $
+                                        {pricing.finalPrice.toLocaleString(
+                                            "es-AR",
+                                        )}
+                                    </span>
+                                    <span className="text-xs text-gray-400 mt-2">
+                                        Precio s/imp. nac:{" "}
+                                        <span className="text-gray-300">
+                                            $
+                                            {pricing.priceNoTax.toLocaleString(
+                                                "es-AR",
+                                            )}
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Mostrar el descuento arriba en mobile para que no rompa el diseño */}
+                            <div className="sm:hidden mt-4">
+                                {discountPercentage > 0 && (
+                                    <span className="border border-green-500/40 text-green-400 text-xs font-semibold px-2.5 py-1.5 rounded-md bg-green-500/5">
+                                        {discountPercentage}% OFF por medio de
+                                        pago
+                                    </span>
                                 )}
                             </div>
-                            <p className="text-sm text-gray-400 mt-2">
-                                Abonando con{" "}
-                                <strong className="text-gray-300 font-medium">
-                                    Transferencia o Efectivo
-                                </strong>
-                            </p>
                         </div>
 
                         {/* CAJA PRECIO DE LISTA */}
                         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between flex-wrap gap-3">
                             <div className="flex flex-col">
-                                <span className="text-sm font-medium text-gray-300">
+                                <span className="text-sm font-medium text-gray-400">
                                     Precio de lista
                                 </span>
-                                {/* 🔥 AHORA MUESTRA LAS CUOTAS Y RESALTA EN COLOR BRAND */}
                                 <span className="text-sm text-brand mt-1 flex items-center gap-1.5 font-semibold">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -229,14 +231,9 @@ export default async function ProductPage({ params }: Props) {
                             </div>
                         </div>
 
-                        <p className="text-xs text-gray-600 px-1">
-                            Precio sin impuestos nacionales: $
-                            {pricing.priceNoTax.toLocaleString("es-AR")}
-                        </p>
-
                         {/* ================= BADGE ENVÍO GRATIS ================= */}
                         {product.hasFreeShipping && (
-                            <div className="mt-1 inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-2 rounded-lg w-fit">
+                            <div className="mt-2 inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-2 rounded-lg w-fit">
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     className="h-5 w-5"
