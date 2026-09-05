@@ -181,19 +181,20 @@ export default async function ProductPage({ params }: Props) {
                         </div>
 
                         {/* CAJA PRECIO DE LISTA */}
-                        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between">
+                        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between flex-wrap gap-3">
                             <div className="flex flex-col">
                                 <span className="text-sm font-medium text-gray-300">
                                     Precio de lista
                                 </span>
-                                <span className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                {/* 🔥 AHORA MUESTRA LAS CUOTAS Y RESALTA EN COLOR BRAND */}
+                                <span className="text-sm text-brand mt-1 flex items-center gap-1.5 font-semibold">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         strokeWidth={2}
                                         stroke="currentColor"
-                                        className="w-3.5 h-3.5"
+                                        className="w-4 h-4"
                                     >
                                         <path
                                             strokeLinecap="round"
@@ -201,13 +202,18 @@ export default async function ProductPage({ params }: Props) {
                                             d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
                                         />
                                     </svg>
-                                    Mercado Pago
+                                    3 cuotas sin interés de $
+                                    {(
+                                        pricing.listPriceFinal / 3
+                                    ).toLocaleString("es-AR", {
+                                        maximumFractionDigits: 0,
+                                    })}
                                 </span>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col items-end justify-center">
                                 {product.salePrice && (
-                                    <span className="text-sm text-gray-600 line-through">
+                                    <span className="text-xs text-gray-500 line-through mb-0.5">
                                         $
                                         {pricing.listPrice.toLocaleString(
                                             "es-AR",
