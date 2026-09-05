@@ -807,8 +807,8 @@ export function CheckoutForm({ session }: Props) {
                                         ⚠
                                     </span>
                                     <p className="text-xs text-amber-400">
-                                        Se aplica precio de lista (+10%) para
-                                        este método de pago
+                                        Se aplica precio de lista para este
+                                        método de pago
                                     </p>
                                 </div>
                             )}
