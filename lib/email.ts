@@ -756,3 +756,52 @@ export async function sendMagicLinkEmail({
         html: finalHtml,
     });
 }
+
+export async function sendOrderCancelledEmail(order: OrderDTO) {
+    await resend.emails.send({
+        from: "MGR Techno <noreply@mgrtechno.com.ar>",
+        to: order.customerEmail,
+        subject: `Pedido Cancelado ❌ - #${order.id.toString().slice(-6).toUpperCase()}`,
+        html: emailLayout({
+            title: "Pedido Cancelado",
+            subtitle: "Actualización sobre tu compra",
+            content: `
+    <p style="color:${EMAIL_THEME.body};line-height:1.7;">
+        Hola ${order.billing.firstName},
+        te informamos que tu pedido ha sido cancelado.
+    </p>
+
+    <div style="
+        display:inline-block;
+        background:${EMAIL_THEME.background};
+        border:1px solid #ef4444; /* Borde rojo */
+        color:#ef4444; /* Texto rojo */
+        padding:10px 16px;
+        border-radius:999px;
+        font-weight:600;
+        margin:16px 0 24px;
+    ">
+        Pedido #${order.id.toString().slice(-6).toUpperCase()}
+    </div>
+
+    ${orderSummary(order)}
+
+    <div style="
+        margin-top:24px;
+        background:${EMAIL_THEME.background};
+        border:1px solid ${EMAIL_THEME.border};
+        border-radius:12px;
+        padding:20px;
+    ">
+        <h3 style="color:#ffffff;margin-top:0;margin-bottom:12px;font-size:16px;">
+            ¿Qué sucede ahora?
+        </h3>
+        <p style="color:${EMAIL_THEME.body};line-height:1.7;margin:0;">
+            Si ya habías realizado un pago, el reembolso se procesará a la brevedad dependiendo del método utilizado. 
+            Si tenés alguna duda o creés que esto es un error, por favor respondé a este correo o contactanos por WhatsApp.
+        </p>
+    </div>
+`,
+        }),
+    });
+}

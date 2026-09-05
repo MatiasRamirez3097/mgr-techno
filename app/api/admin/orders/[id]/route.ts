@@ -9,6 +9,7 @@ import {
     sendOrderShippedEmail,
     sendReadyForPickupEmail,
     sendOrderCompletedEmail,
+    sendOrderCancelledEmail,
 } from "@/lib/email";
 
 import { reverseInventoryAllocation } from "@/lib/inventory/reverseInventoryAllocation";
@@ -41,7 +42,12 @@ export async function PUT(
         const oldStatus = order.status;
 
         let justBecamePaid = false;
-        let emailToSend: "shipped" | "ready" | "completed" | null = null;
+        let emailToSend:
+            | "shipped"
+            | "ready"
+            | "completed"
+            | "cancelled"
+            | null = null;
 
         // ==========================================
         // EVALUAR NUEVOS ESTADOS OBJETIVO
@@ -106,6 +112,8 @@ export async function PUT(
                         );
                     }
                 }
+
+                emailToSend = "cancelled";
             } else if (wasCancelled && !willBeCancelled) {
                 for (const item of order.items) {
                     await updateProductStock(
@@ -144,6 +152,9 @@ export async function PUT(
                 await sendReadyForPickupEmail(order);
             } else if (emailToSend === "completed") {
                 await sendOrderCompletedEmail(order);
+            } else if (emailToSend === "cancelled") {
+                // 🔥 AGREGADO: Ejecuta la función de enviar correo de cancelación
+                await sendOrderCancelledEmail(order);
             }
         } catch (emailError) {
             console.error(

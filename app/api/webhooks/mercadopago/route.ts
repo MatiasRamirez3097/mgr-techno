@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models";
+import { sendPaymentConfirmedEmail } from "@/lib/email";
+import { mapOrderToDTO } from "@/lib/mappers/orderMapper";
 
 // INICIALIZAMOS EL CLIENTE DE MP
 const client = new MercadoPagoConfig({
@@ -53,6 +55,17 @@ export async function POST(req: NextRequest) {
                     }
 
                     await order.save();
+                    // 🔥 AGREGAR ESTO: Disparamos el email automático
+                    try {
+                        const orderDTO = mapOrderToDTO(order);
+                        await sendPaymentConfirmedEmail(orderDTO);
+                    } catch (emailErr) {
+                        console.error(
+                            "No se pudo enviar el email de pago:",
+                            emailErr,
+                        );
+                        // No rompemos el proceso del webhook si falla el mail
+                    }
                     console.log(
                         `✅ Orden ${externalReference} marcada como PAGADA con éxito.`,
                     );
