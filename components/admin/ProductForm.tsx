@@ -136,7 +136,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                 mode === "edit" ? "Producto actualizado" : "Producto creado",
             );
             if (mode === "create")
-                router.push(`/admin/products/${data.product?._id}`);
+                router.push(`/admin/products/${data.data?._id}`);
             else router.refresh();
         } catch (e: unknown) {
             console.log(e);

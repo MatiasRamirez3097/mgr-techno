@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { createProduct } from "@/services/products/createProduct";
 
@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
 
         const product = await createProduct(parsed.data);
 
-        return Response.json({
+        return NextResponse.json({
             success: true,
-            product,
+            data: product,
         });
     } catch (error: any) {
         return Response.json(
