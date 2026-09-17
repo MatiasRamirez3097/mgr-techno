@@ -201,15 +201,28 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
 
 export async function sendOrderConfirmationEmail(order: OrderDTO) {
     const isBankTransfer = order.payments[0].method === "bank_transfer";
+
+    // 1. Extraemos el ID corto para usarlo en el asunto, cuerpo y WhatsApp
+    const shortOrderId = order.id.toString().slice(-6).toUpperCase();
+
+    // 2. Preparamos el link de WhatsApp con el mensaje prearmado (URL encoded)
+    const waNumber = "5493417223739";
+    const waMessage = encodeURIComponent(
+        `Hola, envío el comprobante de pago de mi pedido #${shortOrderId}`,
+    );
+    const whatsappUrl = `https://wa.me/${waNumber}?text=${waMessage}`;
+
+    // Colores (por si los necesitabas mapear manual, aunque usas EMAIL_THEME)
     const brandColor = "#d06823";
     const backgroundColor = "#030712";
     const cardColor = "#111827";
     const borderColor = "#374151";
     const textMuted = "#9ca3af";
+
     await resend.emails.send({
         from: "MGR Techno <noreply@mgrtechno.com.ar>",
         to: order.customerEmail,
-        subject: `Confirmamos tu pedido #${order.id.toString().slice(-6).toUpperCase()}`,
+        subject: `Confirmamos tu pedido #${shortOrderId}`,
         html: emailLayout({
             title: "¡Gracias por tu compra!",
             subtitle: "Confirmación de pedido",
@@ -228,7 +241,7 @@ export async function sendOrderConfirmationEmail(order: OrderDTO) {
         font-weight:600;
         margin:16px 0 24px;
     ">
-        Pedido #${order.id.toString().slice(-6).toUpperCase()}
+        Pedido #${shortOrderId}
     </div>
 
     ${orderSummary(order)}
@@ -256,7 +269,7 @@ export async function sendOrderConfirmationEmail(order: OrderDTO) {
                 line-height:1.7;
                 margin-top:0;
             ">
-                Realizá la transferencia utilizando los siguientes datos y luego envianos el comprobante a través para poder procesar tu pedido.
+                Realizá la transferencia utilizando los siguientes datos. Una vez lista, envianos el comprobante por WhatsApp para procesar tu pedido.
             </p>
 
             <div style="
@@ -267,27 +280,21 @@ export async function sendOrderConfirmationEmail(order: OrderDTO) {
                 margin-top:16px;
             ">
                 <div style="margin-bottom:12px;">
-                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
-                        Titular
-                    </div>
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">Titular</div>
                     <div style="color:${EMAIL_THEME.body};font-weight:600;">
                         ${process.env.BANK_OWNER}
                     </div>
                 </div>
 
                 <div style="margin-bottom:12px;">
-                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
-                        Banco
-                    </div>
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">Banco</div>
                     <div style="color:${EMAIL_THEME.body};font-weight:600;">
                         ${process.env.BANK_NAME}
                     </div>
                 </div>
 
                 <div style="margin-bottom:12px;">
-                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
-                        Alias
-                    </div>
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">Alias</div>
                     <div style="
                         color:${EMAIL_THEME.brand};
                         font-weight:700;
@@ -298,9 +305,7 @@ export async function sendOrderConfirmationEmail(order: OrderDTO) {
                 </div>
 
                 <div style="margin-bottom:12px;">
-                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
-                        CBU
-                    </div>
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">CBU</div>
                     <div style="
                         color:${EMAIL_THEME.body};
                         font-family:monospace;
@@ -311,39 +316,50 @@ export async function sendOrderConfirmationEmail(order: OrderDTO) {
                 </div>
 
                 <div>
-                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">
-                        Monto a transferir
-                    </div>
+                    <div style="color:${EMAIL_THEME.muted};font-size:12px;">Monto a transferir</div>
                     <div style="
-                        color:${EMAIL_THEME.brand};
-                        font-size:20px;
-                        font-weight:700;
-                    ">
-                        $${order.total.toLocaleString("es-AR")}
+                        color:${EMAIL_THEME.brand};                         font-size:20px;                         font-weight:700;                     ">                         $${order.total.toLocaleString("es-AR")}
                     </div>
                 </div>
             </div>
 
+            <!-- 🔥 NUEVO BOTÓN DE WHATSAPP -->
+            <div style="margin-top: 24px; text-align: center;">
+                <a href="${whatsappUrl}" target="_blank" style="
+                    display: inline-block;
+                    background-color: ${EMAIL_THEME.brand};
+                    color: #ffffff;
+                    text-decoration: none;
+                    font-weight: 600;
+                    padding: 14px 24px;
+                    border-radius: 8px;
+                    font-size: 15px;
+                ">
+                    📲 Enviar comprobante por WhatsApp
+                </a>
+            </div>
+            
             <p style="
                 color:${EMAIL_THEME.muted};
-                font-size:13px;
+                font-size:12px;
                 margin-top:16px;
                 margin-bottom:0;
+                text-align: center;
             ">
-                Una vez realizada la transferencia, respondé este email adjuntando el comprobante e indicando tu número de pedido.
+                O escribinos al +54 9 341 722-3739
             </p>
         </div>
     `
             : `
-            <div style="
-                margin-top:24px;
-                background:${EMAIL_THEME.background};
-                border:1px solid ${EMAIL_THEME.border};
-                border-radius:12px;
-                padding:20px;
-            ">
-                Nos contactaremos con vos a la brevedad para coordinar el pago y la entrega.
-            </div>
+        <div style="
+            margin-top:24px;
+            background:${EMAIL_THEME.background};
+            border:1px solid ${EMAIL_THEME.border};
+            border-radius:12px;
+            padding:20px;
+        ">
+            Nos contactaremos con vos a la brevedad para coordinar el pago y la entrega.
+        </div>
         `
     }
 `,
@@ -456,9 +472,10 @@ export async function sendOrderShippedEmail(order: OrderDTO) {
             <strong>Método:</strong> ${
                 order.shippingMethod.method === "andreani"
                     ? "Andreani"
-                    : "Cadetería (Rosario)"
+                    : order.shippingMethod.method === "viacargo"
+                      ? "Viacargo"
+                      : "Cadetería (Rosario)"
             }<br>
-            <strong>Dirección de entrega:</strong> ${order.shipping.address}, ${order.shipping.city}, ${order.shipping.state} (${order.shipping.postcode})
         </p>
 
         ${
