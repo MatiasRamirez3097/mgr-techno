@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-export async function middleware(req: NextRequest) {
+// 🔥 CORREGIDO: Se llama 'proxy' como exige Next.js 16+
+export async function proxy(req: NextRequest) {
     const pathname = req.nextUrl.pathname;
 
     // 1. RUTAS MUERTAS (SEO y bots de WordPress)
@@ -70,11 +71,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
 }
 
-// 4. CONFIGURACIÓN DEL MIDDLEWARE
+// 4. CONFIGURACIÓN
 export const config = {
     matcher: [
         /*
-         * Aplica el middleware a todas las rutas EXCEPTO:
+         * Aplica a todas las rutas EXCEPTO:
          * - api/webhooks (para que Mercado Pago te avise de los pagos)
          */
         "/((?!api/webhooks).*)",
