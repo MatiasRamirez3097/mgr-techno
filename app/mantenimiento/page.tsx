@@ -23,8 +23,8 @@ export default function MaintenancePage() {
 
                 <p className="text-gray-400 leading-relaxed mb-6">
                     ¡Hola! La tienda se encuentra temporalmente en pausa porque
-                    nos tomamos una semana. No te preocupes, volvemos en unos
-                    días para seguir ofreciéndote el mejor hardware.
+                    nos tomamos unos días. No te preocupes, volvemos el 01/10
+                    para seguir ofreciéndote el mejor hardware.
                 </p>
 
                 <div className="flex items-center justify-center gap-2 text-brand font-medium bg-brand/10 py-3 px-4 rounded-xl mb-6 w-fit mx-auto">
