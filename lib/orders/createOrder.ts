@@ -293,6 +293,10 @@ export async function createOrder(data: unknown) {
             orderTotal = order.total;
         });
 
+        if (!createdOrder) {
+            throw new Error("No se pudo crear la orden");
+        }
+
         // =====================================
         // EMAIL
         // =====================================
