@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 import { InventoryItemModel, OrderModel } from "@/models";
-import { ProductModel } from "@/models/Product";
+import type { OrderDB } from "@/types/backend/order";
 
 import { findProductsById } from "../products/getProductsById";
 
@@ -40,7 +40,7 @@ export async function createOrder(data: unknown) {
     let orderNum = "";
     let orderTotal = 0;
 
-    let createdOrder: any = null;
+    let createdOrder: OrderDB | null = null;
 
     try {
         await session.withTransaction(async () => {
@@ -127,8 +127,14 @@ export async function createOrder(data: unknown) {
                     throw new Error("Producto no encontrado");
                 }
 
+                if (product.status !== "publish") {
+                    throw new Error(
+                        `El producto ${product.name} no está disponible para la venta`,
+                    );
+                }
+
                 if (
-                    product.availableStock &&
+                    product.availableStock == null ||
                     product.availableStock < item.quantity
                 ) {
                     throw new Error(`Sin stock para ${product.name}`);
@@ -199,7 +205,16 @@ export async function createOrder(data: unknown) {
             // PAYMENTS
             // =====================================
 
-            const paidAmount = payments
+            // Para pedidos de ecommerce, ningún pago puede crearse como pagado
+            const sanitizedPayments =
+                source === "ecommerce"
+                    ? payments.map((p) => ({
+                          ...p,
+                          status: "pending" as const,
+                      }))
+                    : payments;
+
+            const paidAmount = sanitizedPayments
                 .filter((p) => p.status === "paid")
                 .reduce((acc, payment) => acc + payment.amount, 0);
 
@@ -217,6 +232,8 @@ export async function createOrder(data: unknown) {
                         ...result.data,
 
                         source,
+
+                        payments: sanitizedPayments,
 
                         items: orderItems,
 

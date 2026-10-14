@@ -77,7 +77,10 @@ export const OrderSchema = new Schema(
             required: true,
         },
         subtotal: { type: Number, required: true },
+        taxTotal: { type: Number, default: 0 },
         total: { type: Number, required: true },
+        paidAmount: { type: Number, default: 0 },
+        remainingAmount: { type: Number, default: 0 },
         datePaid: { type: Date, default: null },
         notes: { type: String, required: false },
         inventoryAllocatedAt: {

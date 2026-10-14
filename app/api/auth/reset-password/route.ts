@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { CustomerModel } from "@/models/Customer";
+import { UserModel } from "@/models/User";
 import { ResetTokenModel } from "@/models/ResetToken";
 import { hashPassword } from "@/lib/auth";
 
@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
         }
 
         const hashedPassword = await hashPassword(password);
-        await CustomerModel.findOneAndUpdate(
-            { email: resetToken.email },
+        await UserModel.findOneAndUpdate(
+            { email: resetToken.email.toLowerCase().trim() },
             { password: hashedPassword },
         );
         await ResetTokenModel.findByIdAndUpdate(resetToken._id, { used: true });

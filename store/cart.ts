@@ -64,7 +64,7 @@ export const useCart = create<CartStore>()(
             getTotalPrice: () => {
                 return get().items.reduce((acc, i) => {
                     const p = getFinalPrice(i);
-                    return acc + i.regularPrice * i.quantity;
+                    return acc + p * i.quantity;
                 }, 0);
             },
             updateQuantity: (id, quantity) =>
