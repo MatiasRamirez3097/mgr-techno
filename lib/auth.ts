@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { connectDB } from "./mongodb";
 import { UserModel } from "@/models/User";
 
@@ -21,4 +22,9 @@ export async function getUserByEmail(email: string) {
 export async function getUserById(id: string) {
     await connectDB();
     return UserModel.findById(id).lean();
+}
+
+export function generateVoucherToken(voucherId: string): string {
+    const secret = process.env.NEXTAUTH_SECRET || "mgr_voucher_secret";
+    return crypto.createHmac("sha256", secret).update(voucherId).digest("hex").slice(0, 32);
 }

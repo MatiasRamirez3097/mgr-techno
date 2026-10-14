@@ -156,7 +156,8 @@ export async function getCatalogProducts(
                         break;
                 }
             }
-            basePipeline.push({ $sort: sortStage });
+            const baseFilterPipeline = [...basePipeline];
+            const sortedPipeline = [...baseFilterPipeline, { $sort: sortStage }];
 
             // PIPELINE DE MARCA (Mantenido igual)
             const brandMatchPipeline: any[] = [];
@@ -182,7 +183,7 @@ export async function getCatalogProducts(
                 const [dataResult, countResult, brandsResult] =
                     await Promise.all([
                         ProductModel.aggregate([
-                            ...basePipeline,
+                            ...sortedPipeline,
                             ...brandMatchPipeline,
                             { $skip: skip },
                             { $limit: limit },
@@ -209,16 +210,17 @@ export async function getCatalogProducts(
                                     isOutlet: 1,
                                     hasFreeShipping: 1,
                                     shippingSize: 1,
+                                    isAvailable: 1,
                                 },
                             },
                         ]),
                         ProductModel.aggregate([
-                            ...basePipeline,
+                            ...baseFilterPipeline,
                             ...brandMatchPipeline,
                             { $count: "total" },
                         ]),
                         ProductModel.aggregate([
-                            ...basePipeline,
+                            ...baseFilterPipeline,
                             { $group: { _id: "$brand" } },
                             { $match: { _id: { $ne: null } } },
                             {

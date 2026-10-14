@@ -9,44 +9,32 @@ import { Types } from "mongoose";
 //FUNCTIONS
 //import { getMongoSort } from "./utils";
 
-//TYPES
-import type { OrderDTO } from "@/types/shared/order";
-//import type { GetProductsResponse } from "@/types/shared/order";
-//import type { ProductFilters } from "@/types/shared/product";
-
 export async function getOrders(filters: OrderFilters = {}) {
     await connectDB();
-    const page = filters.page || 1;
-    //const sort = getMongoSort(filters.orderby);
-    //const adminView = filters.adminView ? true : false;
+    const page = Math.max(1, filters.page || 1);
 
     // Construir query
-    const query: any = {};
-
-    //if (filters.search) {
-    //    query.$text = { $search: filters.search };
-    //}
+    const query: Record<string, unknown> = {};
 
     if (filters.customerId) {
         query.customerId = new Types.ObjectId(filters.customerId);
     }
 
-    const res = await OrderModel.find({ ...query })
-        .sort({ createdAt: -1 })
-        .lean();
-    // Filtro adicional por nombre si hay búsqueda (por si $text no está disponible)
-    /*const filtered = filters.search
-        ? res.filter((p) =>
-              p.name.toLowerCase().includes(filters.search!.toLowerCase()),
-          )
-        : res;
-    */
-    const total = res.length;
+    const skip = (page - 1) * PRODUCTS_PAGE_SIZE;
+
+    const [orders, total] = await Promise.all([
+        OrderModel.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(PRODUCTS_PAGE_SIZE)
+            .lean(),
+        OrderModel.countDocuments(query),
+    ]);
+
     const totalPages = Math.ceil(total / PRODUCTS_PAGE_SIZE);
-    const start = (page - 1) * PRODUCTS_PAGE_SIZE;
-    const paginated = res.slice(start, start + PRODUCTS_PAGE_SIZE);
+
     return {
-        orders: paginated.map(mapOrderToDTO),
+        orders: orders.map(mapOrderToDTO),
         totalPages,
         total,
     };

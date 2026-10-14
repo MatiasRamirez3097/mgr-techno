@@ -27,7 +27,7 @@ export async function PUT(
     const session = await startSession();
     try {
         session.startTransaction();
-        const order = await OrderModel.findById(id);
+        const order = await OrderModel.findById(id).session(session);
 
         if (!order) {
             await session.abortTransaction();
@@ -62,10 +62,13 @@ export async function PUT(
             "ready_for_pickup",
             "completed",
         ];
+        const isCash = order.payments?.some(
+            (p: { method?: string }) => p.method === "cash",
+        );
         if (
             advancedStates.includes(targetStatus) &&
             targetPaymentStatus !== "paid" &&
-            order.paymentMethod?.method !== "cash"
+            !isCash
         ) {
             await session.abortTransaction();
             return Response.json(

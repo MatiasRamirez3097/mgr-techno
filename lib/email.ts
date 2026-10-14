@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { OrderDTO } from "@/types/shared/order";
+import { generateVoucherToken } from "./auth";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const EMAIL_THEME = {
@@ -617,9 +618,8 @@ export async function sendFiscalInvoiceEmail(order: any, voucher: any) {
     // ==========================================
     // SOLUCIÓN DEFINITIVA: LINK LIMPIO SIN PARÁMETROS
     // ==========================================
-    // Al no tener query params (?fileName=...), Gmail no tiene nada que romper.
-    // El endpoint de descarga calculará el nombre por su cuenta.
-    const downloadLink = `${baseUrl}/api/public/vouchers/${voucherId}/download`;
+    const token = generateVoucherToken(voucherId);
+    const downloadLink = `${baseUrl}/api/public/vouchers/${voucherId}/download?token=${token}`;
 
     try {
         const { data, error } = await resend.emails.send({

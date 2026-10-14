@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 import { afipInvoiceTemplate } from "@/lib/pdf/templates/afipInvoiceTemplate";
 import { generateAfipInvoicePdf } from "@/lib/pdf/generators/generateAfipInvoicePdf";
 
 export async function GET() {
+    const session = await getServerSession(authOptions);
+    if (!session || session.role !== "administrator") {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
     const html = afipInvoiceTemplate({
         business: {
             name: "MGR Tech",

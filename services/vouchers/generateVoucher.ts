@@ -119,12 +119,23 @@ export async function generateVoucher(params: Params) {
         await order.save();
 
         return voucher;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(error);
 
-        voucher.status = "cancelled";
+        const errorMessage =
+            error instanceof Error ? error.message : "Error desconocido";
 
-        voucher.cancelReason = error.message || "Voucher generation failed";
+        // Si ya fue autorizado por AFIP (posee CAE), no debe anularse el comprobante fiscal en la base local
+        // Debe mantenerse para permitir regenerar el PDF sin perder la validez legal ante AFIP
+        const hasAfipCae = Boolean(voucher.fiscalData?.cae);
+
+        if (hasAfipCae) {
+            voucher.status = "issued";
+            voucher.cancelReason = `Error en generación/subida de PDF: ${errorMessage}`;
+        } else {
+            voucher.status = "cancelled";
+            voucher.cancelReason = errorMessage;
+        }
 
         await order.save();
 
