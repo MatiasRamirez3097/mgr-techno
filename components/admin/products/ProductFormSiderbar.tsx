@@ -124,9 +124,10 @@ export const ProductFormSidebar = ({
                             className={inputClass}
                         >
                             <option value="publish">Publicado</option>
-
+                            <option value="pending_review">
+                                Pendiente de revisión
+                            </option>
                             <option value="draft">Borrador</option>
-
                             <option value="private">Privado</option>
                         </select>
                     </div>

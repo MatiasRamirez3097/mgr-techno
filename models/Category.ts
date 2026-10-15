@@ -4,7 +4,7 @@ mongoose.models;
 
 export const CategorySchema = new Schema(
     {
-        wooId: { type: Number, required: true, unique: true, index: true },
+        wooId: { type: Number, required: false, sparse: true, index: true },
         name: { type: String, required: true },
         slug: { type: String, required: true, index: true },
         parentId: {

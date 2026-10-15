@@ -69,15 +69,17 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <h1 className="text-2xl font-bold text-white">Órdenes</h1>
-                <AdminSearch placeholder="Buscar por email o cliente..." />
-                <Link
-                    href="/admin/orders/new"
-                    className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-medium hover:brightness-110 transition-all shrink-0"
-                >
-                    + Nuevo
-                </Link>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <AdminSearch placeholder="Buscar por email o cliente..." />
+                    <Link
+                        href="/admin/orders/new"
+                        className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-medium hover:brightness-110 transition-all shrink-0"
+                    >
+                        + Nueva orden
+                    </Link>
+                </div>
             </div>
 
             <div className="mb-6">

@@ -1,8 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { connectDB } from "@/lib/mongodb";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
-import { SyncButton } from "@/components/admin/SyncButton";
 import { CategoryModel } from "@/models/Category";
 import Image from "next/image";
 
@@ -62,17 +63,16 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-white">Productos</h1>
-                <div className="flex items-center gap-3">
-                    <AdminSearch placeholder="Buscar por nombre, SKU o GTIN..." />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                <h1 className="text-2xl font-bold text-white">Categorías</h1>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <AdminSearch placeholder="Buscar categoría..." />
                     <Link
-                        href="/admin/products/new"
+                        href="/admin/categories/new"
                         className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-medium hover:brightness-110 transition-all shrink-0"
                     >
-                        + Nuevo
+                        + Nueva categoría
                     </Link>
-                    <SyncButton />
                 </div>
             </div>
 
@@ -81,19 +81,19 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                     <thead>
                         <tr className="border-b border-gray-800">
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Nombre de categoria
+                                Nombre de categoría
                             </th>
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
                                 Slug
                             </th>
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Categoria Padre
+                                Categoría Padre
                             </th>
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
                                 Fecha
                             </th>
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Accion
+                                Acción
                             </th>
                         </tr>
                     </thead>
@@ -101,10 +101,10 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                         {categories.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={6}
+                                    colSpan={5}
                                     className="px-6 py-12 text-center text-gray-400 text-sm"
                                 >
-                                    No se encontraron órdenes
+                                    No se encontraron categorías
                                     {search ? ` para "${search}"` : ""}
                                 </td>
                             </tr>
@@ -118,7 +118,7 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-800 shrink-0">
-                                                    {category.image && (
+                                                    {category.image ? (
                                                         <Image
                                                             src={category.image}
                                                             alt={category.name}
@@ -126,6 +126,10 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                                                             sizes="40px"
                                                             className="object-cover"
                                                         />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">
+                                                            📁
+                                                        </div>
                                                     )}
                                                 </div>
                                                 <div>
@@ -134,35 +138,37 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                                                             {category.name}
                                                         </p>
                                                     </div>
-                                                    <p className="text-xs text-gray-400">
-                                                        #{category._id}
+                                                    <p className="text-xs text-gray-500 font-mono">
+                                                        #{category._id.slice(-6)}
                                                     </p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-xs font-medium px-2.5 py-1 rounded-full border">
+                                            <span className="text-xs font-mono px-2.5 py-1 rounded-full border border-gray-800 text-gray-300 bg-gray-800/40">
                                                 {category.slug}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-white">
-                                            {category.parentId?.name}
+                                        <td className="px-6 py-4 text-sm text-gray-300">
+                                            {category.parentId?.name || "—"}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-400">
-                                            {new Date(
-                                                category.createdAt,
-                                            ).toLocaleDateString("es-AR", {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric",
-                                            })}
+                                            {category.createdAt
+                                                ? new Date(
+                                                      category.createdAt,
+                                                  ).toLocaleDateString("es-AR", {
+                                                      day: "2-digit",
+                                                      month: "short",
+                                                      year: "numeric",
+                                                  })
+                                                : "—"}
                                         </td>
                                         <td className="px-6 py-4">
                                             <Link
                                                 href={`/admin/categories/${category._id}`}
-                                                className="text-xs text-brand hover:brightness-125 transition-all"
+                                                className="text-xs text-brand hover:brightness-125 transition-all font-medium"
                                             >
-                                                Ver detalle →
+                                                Editar →
                                             </Link>
                                         </td>
                                     </tr>
@@ -177,7 +183,7 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                         currentPage={currentPage}
                         totalPages={totalPages}
                         totalItems={total}
-                        limit={12}
+                        limit={perPage}
                     />
                 </div>
             </div>

@@ -19,9 +19,9 @@ export default async function AdminLayout({
     const pendingReviewCount = await getPendingReviewCount();
 
     return (
-        <div className="min-h-screen bg-gray-950 flex">
+        <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
             <AdminSidebar pendingReviewCount={pendingReviewCount} />
-            <main className="flex-1 p-8 overflow-auto">{children}</main>
+            <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto pt-20 md:pt-8">{children}</main>
         </div>
     );
 }

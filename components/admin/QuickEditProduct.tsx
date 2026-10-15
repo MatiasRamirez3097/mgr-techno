@@ -77,132 +77,151 @@ export function QuickEditProduct({ product, onClose }: Props) {
 
     return (
         <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col gap-3 p-4 bg-gray-800 rounded-xl border border-gray-700 w-72">
-                <p className="text-xs font-bold text-white uppercase tracking-wider">
-                    Edición rápida
-                </p>
-
-                <div>
-                    <label className="text-xs text-gray-400 mb-1 block">
-                        Precio regular
-                    </label>
-                    <input
-                        type="number"
-                        step="0.01"
-                        value={form.regularPrice}
-                        onChange={(e) =>
-                            setForm((prev) => ({
-                                ...prev,
-                                regularPrice: e.target.value,
-                            }))
-                        }
-                        className={inputClass}
-                        placeholder="0.00"
-                    />
-                </div>
-
-                <div>
-                    <label className="text-xs text-gray-400 mb-1 block">
-                        Precio de oferta
-                        <span className="text-gray-500 ml-1">
-                            (dejar vacío para quitar)
+            <div className="p-5 bg-gray-900 border border-gray-700 rounded-2xl shadow-xl w-full max-w-4xl">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-800">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-brand uppercase tracking-wider">
+                            Edición rápida
                         </span>
-                    </label>
-                    <input
-                        type="number"
-                        step="0.01"
-                        value={form.salePrice}
-                        onChange={(e) =>
-                            setForm((prev) => ({
-                                ...prev,
-                                salePrice: e.target.value,
-                            }))
-                        }
-                        className={inputClass}
-                        placeholder="Vacío = sin oferta"
-                    />
-                </div>
-
-                <div>
-                    <label className="text-xs text-gray-400 mb-1 block">
-                        Estado
-                    </label>
-
-                    <select
-                        value={form.status}
-                        onChange={(e) =>
-                            setForm((prev) => ({
-                                ...prev,
-                                status: e.target.value as
-                                    | "private"
-                                    | "publish"
-                                    | "draft"
-                                    | "pending_review",
-                            }))
-                        }
-                        className={inputClass}
-                    >
-                        <option value="publish">Publicado</option>
-                        <option value="pending_review">
-                            Pendiente revisión
-                        </option>
-                        <option value="draft">Borrador</option>
-                    </select>
-                </div>
-
-                {/* --- NUEVOS CHECKBOXES --- */}
-                <div className="flex flex-col gap-2 mt-1 border-t border-gray-700 pt-3">
-                    <label className="flex items-center gap-2.5 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={form.featured}
-                            onChange={(e) =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    featured: e.target.checked,
-                                }))
-                            }
-                            className="w-4 h-4 accent-brand"
-                        />
-                        <span className="text-sm text-gray-300">
-                            Producto destacado
+                        <span className="text-xs text-gray-400 font-medium">
+                            — {product.name} {product.sku ? `(${product.sku})` : ""}
                         </span>
-                    </label>
-
-                    <label className="flex items-center gap-2.5 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={form.hasFreeShipping}
-                            onChange={(e) =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    hasFreeShipping: e.target.checked,
-                                }))
-                            }
-                            className="w-4 h-4 accent-brand"
-                        />
-                        <span className="text-sm text-gray-300">
-                            Envío Gratis
-                        </span>
-                    </label>
-                </div>
-
-                {error && <p className="text-xs text-red-400">{error}</p>}
-
-                <div className="flex gap-2 mt-2">
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="flex-1 py-2 rounded-lg text-xs font-medium text-white bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
-                    >
-                        {loading ? "Guardando..." : "Guardar"}
-                    </button>
+                    </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 py-2 rounded-lg text-xs font-medium text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 transition-colors"
+                        className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded"
+                    >
+                        ✕ Cerrar
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+                    <div>
+                        <label className="text-xs text-gray-400 mb-1 block font-medium">
+                            Precio regular *
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={form.regularPrice}
+                            onChange={(e) =>
+                                setForm((prev) => ({
+                                    ...prev,
+                                    regularPrice: e.target.value,
+                                }))
+                            }
+                            className={inputClass}
+                            placeholder="0.00"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-xs text-gray-400 mb-1 block font-medium">
+                            Precio oferta
+                            <span className="text-gray-500 font-normal ml-1">
+                                (opcional)
+                            </span>
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={form.salePrice}
+                            onChange={(e) =>
+                                setForm((prev) => ({
+                                    ...prev,
+                                    salePrice: e.target.value,
+                                }))
+                            }
+                            className={inputClass}
+                            placeholder="Vacío = sin oferta"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-xs text-gray-400 mb-1 block font-medium">
+                            Estado
+                        </label>
+                        <select
+                            value={form.status}
+                            onChange={(e) =>
+                                setForm((prev) => ({
+                                    ...prev,
+                                    status: e.target.value as
+                                        | "private"
+                                        | "publish"
+                                        | "draft"
+                                        | "pending_review",
+                                }))
+                            }
+                            className={inputClass}
+                        >
+                            <option value="publish">Publicado</option>
+                            <option value="pending_review">
+                                Pendiente revisión
+                            </option>
+                            <option value="draft">Borrador</option>
+                            <option value="private">Privado</option>
+                        </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2.5 pt-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={form.featured}
+                                onChange={(e) =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        featured: e.target.checked,
+                                    }))
+                                }
+                                className="w-4 h-4 accent-brand rounded"
+                            />
+                            <span className="text-xs text-gray-300 font-medium">
+                                Destacado en inicio
+                            </span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={form.hasFreeShipping}
+                                onChange={(e) =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        hasFreeShipping: e.target.checked,
+                                    }))
+                                }
+                                className="w-4 h-4 accent-brand rounded"
+                            />
+                            <span className="text-xs text-gray-300 font-medium">
+                                Envío gratis
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="mt-3 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+                        {error}
+                    </div>
+                )}
+
+                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-800">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-xl text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 transition-colors"
                     >
                         Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="px-5 py-2 rounded-xl text-xs font-medium text-white bg-brand hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-2"
+                    >
+                        {loading ? "Guardando..." : "Guardar cambios"}
                     </button>
                 </div>
             </div>

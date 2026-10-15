@@ -13,11 +13,16 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [cuitLoading, setCuitLoading] = useState(false);
+    const [cuitFeedback, setCuitFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
     const [form, setForm] = useState({
-        documentType: customer?.document?.ducomentType || "DNI",
+        documentType:
+            customer?.document?.documentType ||
+            customer?.document?.ducomentType ||
+            "DNI",
         documentNumber: customer?.document?.number || "",
-        taxCondition: customer?.taxCondiction || "",
+        taxCondition: customer?.taxCondition || customer?.taxCondiction || "",
         firstName: customer?.firstName || "",
         lastName: customer?.lastName || "",
         ivaCondition: customer?.ivaCondition?.code || "CF",
@@ -30,36 +35,48 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
     });
 
     async function fetchCustomerByCUIT(cuit: string) {
-        console.log(cuit);
+        const cleanCuit = cuit.replace(/\D/g, "");
         const res = await fetch("/api/afip/padron", {
             method: "POST",
-            body: JSON.stringify({ cuit }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cuit: cleanCuit }),
         });
 
         const data = await res.json();
-        if (data.success) {
-            console.log(">>>entity", data.entity);
+        if (data.success && data.entity) {
             return data.entity;
         }
 
-        throw new Error("No encontrado");
+        throw new Error(data.error || "No encontrado en padrón AFIP");
     }
 
     const handleCUITBlur = async (cuit: string) => {
+        if (!cuit || cuit.trim().length < 8) return;
+        setCuitLoading(true);
+        setCuitFeedback(null);
+
         try {
             const customer = await fetchCustomerByCUIT(cuit);
             setForm((prev) => ({
                 ...prev,
-                lastName: customer.name,
-                taxCondition: customer.taxCondition,
+                lastName: customer.name || prev.lastName,
+                taxCondition: customer.taxCondition || prev.taxCondition,
                 address: customer.address?.street ?? form.address,
-                city: customer.address?.city,
+                city: customer.address?.city ?? prev.city,
                 postcode: customer.address?.zip ?? form.postcode,
                 state: customer.address?.state ?? form.state,
-                notes: customer.notes,
             }));
-        } catch (err) {
-            console.log("CUIT no encontrado");
+            setCuitFeedback({
+                type: "success",
+                message: `Datos autocompletados desde AFIP (${customer.name})`,
+            });
+        } catch (err: any) {
+            setCuitFeedback({
+                type: "error",
+                message: err.message || "CUIT no encontrado en padrón AFIP",
+            });
+        } finally {
+            setCuitLoading(false);
         }
     };
 
@@ -154,26 +171,46 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
                             <option value="CUIT">CUIT</option>
                         </select>
                     </div>
-                    <div className="col-span">
-                        <label className={labelClass}>DNI/CUIL/CUIT </label>
+                    <div>
+                        <label className={labelClass}>DNI / CUIL / CUIT</label>
                         <div className="flex gap-2">
                             <input
                                 className={inputClass}
-                                placeholder="DNI/CUIL/CUIT"
+                                placeholder="Ingresá número..."
                                 name="documentNumber"
                                 value={form.documentNumber}
                                 onChange={handleChange}
                             />
                             <button
                                 type="button"
-                                onClick={(e) =>
+                                onClick={() =>
                                     handleCUITBlur(form.documentNumber)
                                 }
-                                className="px-4 py-3 rounded-lg bg-brand text-white text-sm hover:brightness-110 transition"
+                                disabled={cuitLoading || !form.documentNumber}
+                                className="px-4 py-3 rounded-lg bg-brand text-white text-xs font-medium hover:brightness-110 disabled:opacity-50 transition shrink-0 flex items-center gap-1.5"
+                                title="Consultar en Padrón AFIP"
                             >
-                                i
+                                {cuitLoading ? (
+                                    <>
+                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        <span>Buscando...</span>
+                                    </>
+                                ) : (
+                                    <span>Consultar AFIP</span>
+                                )}
                             </button>
                         </div>
+                        {cuitFeedback && (
+                            <p
+                                className={`text-xs mt-1.5 font-medium ${
+                                    cuitFeedback.type === "success"
+                                        ? "text-emerald-400"
+                                        : "text-amber-400"
+                                }`}
+                            >
+                                {cuitFeedback.message}
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className={labelClass}>CONDICION IVA</label>

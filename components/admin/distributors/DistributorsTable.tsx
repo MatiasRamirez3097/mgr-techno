@@ -28,7 +28,7 @@ export const DistributorsTable = ({ products, search }: Props) => {
                     <button
                         onClick={() => setViewMode("table")}
                         className={`p-2 rounded-md transition-all ${viewMode === "table" ? "bg-gray-700 text-white shadow" : "text-gray-500 hover:text-gray-300"}`}
-                        title="View as Table"
+                        title="Vista de tabla"
                     >
                         <svg
                             className="w-5 h-5"
@@ -47,7 +47,7 @@ export const DistributorsTable = ({ products, search }: Props) => {
                     <button
                         onClick={() => setViewMode("grid")}
                         className={`p-2 rounded-md transition-all ${viewMode === "grid" ? "bg-gray-700 text-white shadow" : "text-gray-500 hover:text-gray-300"}`}
-                        title="View as Catalog"
+                        title="Vista de catálogo"
                     >
                         <svg
                             className="w-5 h-5"
@@ -69,8 +69,8 @@ export const DistributorsTable = ({ products, search }: Props) => {
             {products.length === 0 ? (
                 <div className="py-16 text-center text-gray-500">
                     {search
-                        ? "No results found for this search."
-                        : "Use the search bar or filters to view products."}
+                        ? "No se encontraron resultados para esta búsqueda."
+                        : "Utilizá la barra de búsqueda o los filtros para consultar productos."}
                 </div>
             ) : (
                 <>
@@ -83,22 +83,22 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                 <thead className="bg-gray-800/50 border-b border-gray-800">
                                     <tr>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-400">
-                                            Distributor
+                                            Distribuidor
                                         </th>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-400">
                                             SKU
                                         </th>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-400 min-w-[300px]">
-                                            Product
+                                            Producto
                                         </th>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-400">
                                             Stock
                                         </th>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-400">
-                                            Price
+                                            Precio
                                         </th>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-400 text-center">
-                                            Link
+                                            Enlace
                                         </th>
                                     </tr>
                                 </thead>
@@ -282,12 +282,12 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                                 >
                                                     {prod.stock > 0
                                                         ? `${prod.stock} un.`
-                                                        : "Out of stock"}
+                                                        : "Sin stock"}
                                                 </span>
                                                 <span className="text-lg font-bold text-white">
                                                     $
                                                     {prod.price.toLocaleString(
-                                                        "en-US",
+                                                        "es-AR",
                                                         {
                                                             minimumFractionDigits: 2,
                                                             maximumFractionDigits: 2,
@@ -303,7 +303,7 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                                     rel="noopener noreferrer"
                                                     className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg flex items-center justify-center gap-2 text-sm transition-colors"
                                                 >
-                                                    Store Link
+                                                    Ver en distribuidor
                                                     <svg
                                                         className="w-4 h-4"
                                                         fill="none"

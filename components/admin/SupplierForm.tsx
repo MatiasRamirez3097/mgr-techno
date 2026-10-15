@@ -12,6 +12,8 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [cuitLoading, setCuitLoading] = useState(false);
+    const [cuitFeedback, setCuitFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
     const [form, setForm] = useState({
         name: supplier?.name || "",
@@ -31,34 +33,50 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
     });
 
     async function fetchSupplierByCUIT(cuit: string) {
+        const cleanCuit = cuit.replace(/\D/g, "");
         const res = await fetch("/api/afip/padron", {
             method: "POST",
-            body: JSON.stringify({ cuit }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cuit: cleanCuit }),
         });
 
         const data = await res.json();
-        console.log("res>>>", data.success);
-        console.log(">>>>", data);
-        if (data.success) {
+        if (data.success && data.entity) {
             return data.entity;
         }
 
-        throw new Error("No encontrado");
+        throw new Error(data.error || "No encontrado en padrón AFIP");
     }
 
     const handleCUITBlur = async (cuit: string) => {
+        if (!cuit || cuit.trim().length < 8) return;
+        setCuitLoading(true);
+        setCuitFeedback(null);
+
         try {
-            const supplier = await fetchSupplierByCUIT(cuit);
-            console.log("supplier>>>>>", supplier);
-            setForm((prev) => ({
+            const result = await fetchSupplierByCUIT(cuit);
+            setForm((prev: any) => ({
                 ...prev,
-                name: supplier.name,
-                address: supplier.address,
-                isActive: supplier.isActive,
-                notes: supplier.notes,
+                name: result.name || prev.name,
+                address: {
+                    ...prev.address,
+                    street: result.address?.street || prev.address?.street || "",
+                    city: result.address?.city || prev.address?.city || "",
+                    zip: result.address?.zip || prev.address?.zip || "",
+                    state: result.address?.state || prev.address?.state || "",
+                },
             }));
-        } catch (err) {
-            console.log("CUIT no encontrado");
+            setCuitFeedback({
+                type: "success",
+                message: `Datos autocompletados desde AFIP (${result.name})`,
+            });
+        } catch (err: any) {
+            setCuitFeedback({
+                type: "error",
+                message: err.message || "CUIT no encontrado en padrón AFIP",
+            });
+        } finally {
+            setCuitLoading(false);
         }
     };
 
@@ -146,12 +164,12 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
             if (!res.ok) throw new Error(data.error);
 
             setSuccess(
-                mode === "edit" ? "Producto actualizado" : "Producto creado",
+                mode === "edit" ? "Proveedor actualizado correctamente" : "Proveedor creado con éxito",
             );
             if (mode === "create") router.push(`/admin/suppliers/${data.id}`);
             else router.refresh();
         } catch (e: any) {
-            setError(e.message || "Error al guardar");
+            setError(e.message || "Error al guardar el proveedor");
         } finally {
             setLoading(false);
         }
@@ -167,24 +185,44 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                     Información básica
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span">
-                        <label className={labelClass}>CUIT </label>
+                    <div>
+                        <label className={labelClass}>CUIT *</label>
                         <div className="flex gap-2">
                             <input
                                 className={inputClass}
-                                placeholder="CUIT"
+                                placeholder="Ingresá CUIT..."
                                 name="taxId"
                                 value={form.taxId}
                                 onChange={handleChange}
                             />
                             <button
                                 type="button"
-                                onClick={(e) => handleCUITBlur(form.taxId)}
-                                className="px-4 py-3 rounded-lg bg-brand text-white text-sm hover:brightness-110 transition"
+                                onClick={() => handleCUITBlur(form.taxId)}
+                                disabled={cuitLoading || !form.taxId}
+                                className="px-4 py-3 rounded-lg bg-brand text-white text-xs font-medium hover:brightness-110 disabled:opacity-50 transition shrink-0 flex items-center gap-1.5"
+                                title="Consultar en Padrón AFIP"
                             >
-                                i
+                                {cuitLoading ? (
+                                    <>
+                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        <span>Buscando...</span>
+                                    </>
+                                ) : (
+                                    <span>Consultar AFIP</span>
+                                )}
                             </button>
                         </div>
+                        {cuitFeedback && (
+                            <p
+                                className={`text-xs mt-1.5 font-medium ${
+                                    cuitFeedback.type === "success"
+                                        ? "text-emerald-400"
+                                        : "text-amber-400"
+                                }`}
+                            >
+                                {cuitFeedback.message}
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className={labelClass}>Nombre </label>

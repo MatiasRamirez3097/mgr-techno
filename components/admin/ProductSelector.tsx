@@ -31,12 +31,12 @@ export function ProductSelector({ statusAll, value, onChange }: Props) {
 
     const statusAllProp = () => (statusAll ? `&statusAll=true` : "");
 
-    console.log(statusAllProp());
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (query.length < 2) {
             setResults([]);
+            setOpen(false);
             return;
         }
 
@@ -49,11 +49,10 @@ export function ProductSelector({ statusAll, value, onChange }: Props) {
 
             try {
                 const res = await fetch(
-                    `/api/products/search?q=${query}${statusAllProp()}`,
+                    `/api/products/search?q=${encodeURIComponent(query)}${statusAllProp()}`,
                 );
 
                 const data = await res.json();
-
                 setResults(data || []);
                 setOpen(true);
             } catch (e) {
@@ -97,15 +96,56 @@ export function ProductSelector({ statusAll, value, onChange }: Props) {
                         setQuery(e.target.value);
                         onChange(null);
                     }}
-                    placeholder="Buscar producto..."
-                    className={`w-full bg-gray-800 text-white text-sm rounded-lg py-3 border border-gray-700 focus:border-brand outline-none ${
-                        value?.image ? "pl-14 pr-4" : "px-4"
+                    onFocus={() => {
+                        if (results.length > 0) setOpen(true);
+                    }}
+                    placeholder="Buscar producto por nombre o SKU..."
+                    className={`w-full bg-gray-800 text-white text-sm rounded-lg py-3 border border-gray-700 focus:border-brand outline-none pr-10 ${
+                        value?.image ? "pl-14" : "px-4"
                     }`}
                 />
+
+                {loading ? (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-brand">
+                        <svg
+                            className="animate-spin h-4 w-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                            />
+                            <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                        </svg>
+                    </div>
+                ) : query ? (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setQuery("");
+                            onChange(null);
+                            setResults([]);
+                            setOpen(false);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-xs"
+                    >
+                        ✕
+                    </button>
+                ) : null}
             </div>
 
             {open && results.length > 0 && (
-                <div className="absolute z-50 mt-1 w-full bg-gray-900 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-50 mt-1 w-full bg-gray-900 border border-gray-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
                     {results.map((p) => (
                         <div
                             key={p.id}
@@ -114,27 +154,33 @@ export function ProductSelector({ statusAll, value, onChange }: Props) {
                                 setQuery(p.name);
                                 setOpen(false);
                             }}
-                            className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800 cursor-pointer"
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-800 cursor-pointer transition-colors border-b border-gray-800 last:border-0"
                         >
-                            {p.image && (
+                            {p.image ? (
                                 <Image
                                     src={p.image}
                                     alt={p.name}
-                                    width={40}
-                                    height={40}
-                                    className="rounded object-cover"
+                                    width={36}
+                                    height={36}
+                                    className="rounded-lg object-cover bg-gray-800 shrink-0"
                                 />
+                            ) : (
+                                <div className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center text-xs text-gray-500 shrink-0">
+                                    📦
+                                </div>
                             )}
 
-                            <span className="text-white">{p.name}</span>
+                            <span className="text-white text-sm line-clamp-1">
+                                {p.name}
+                            </span>
                         </div>
                     ))}
                 </div>
             )}
 
-            {loading && (
-                <div className="absolute right-3 top-3 text-xs text-gray-400">
-                    ...
+            {open && !loading && results.length === 0 && query.length >= 2 && (
+                <div className="absolute z-50 mt-1 w-full bg-gray-900 border border-gray-700 rounded-xl shadow-xl p-4 text-center text-xs text-gray-400">
+                    No se encontraron productos para &quot;{query}&quot;
                 </div>
             )}
         </div>

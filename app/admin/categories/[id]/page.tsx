@@ -32,10 +32,10 @@ export default async function AdminEditCategoryPage({
                     href="/admin/categories"
                     className="text-gray-400 hover:text-white transition-colors text-sm"
                 >
-                    ← Volver
+                    ← Volver a categorías
                 </Link>
                 <h1 className="text-2xl font-bold text-white">
-                    Editar Categoria
+                    Editar Categoría
                 </h1>
             </div>
             <CategoryForm

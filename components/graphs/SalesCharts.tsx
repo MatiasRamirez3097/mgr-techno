@@ -24,10 +24,10 @@ export default function SalesCharts({ data }: { data: any[] }) {
         return <p>No hay datos suficientes para graficar.</p>;
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
             {/* GRÁFICO 1: Ingresos por Mes (Barras) */}
-            <div className="p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-100 mb-4">
+            <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800 shadow-sm">
+                <h3 className="text-lg font-bold text-white mb-4">
                     Ingresos Mensuales
                 </h3>
                 <div className="h-72">
@@ -36,7 +36,7 @@ export default function SalesCharts({ data }: { data: any[] }) {
                             <CartesianGrid
                                 strokeDasharray="3 3"
                                 vertical={false}
-                                stroke="#eee"
+                                stroke="#374151"
                             />
                             <XAxis
                                 dataKey="month"
@@ -80,8 +80,8 @@ export default function SalesCharts({ data }: { data: any[] }) {
             </div>
 
             {/* GRÁFICO 2: Cantidad de Ventas (Líneas) */}
-            <div className="p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-100 mb-4">
+            <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800 shadow-sm">
+                <h3 className="text-lg font-bold text-white mb-4">
                     Ventas Concretadas
                 </h3>
                 <div className="h-72">
@@ -90,7 +90,7 @@ export default function SalesCharts({ data }: { data: any[] }) {
                             <CartesianGrid
                                 strokeDasharray="3 3"
                                 vertical={false}
-                                stroke="#eee"
+                                stroke="#374151"
                             />
                             <XAxis
                                 dataKey="month"

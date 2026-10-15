@@ -35,7 +35,7 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
             {/* HEADER */}
             <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
                 <h1 className="text-2xl font-bold text-white">
-                    Distributor Prices
+                    Precios de Distribuidores
                 </h1>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
@@ -44,7 +44,7 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
                     <CategorySelect />
 
                     {/* Search by Name/SKU */}
-                    <AdminSearch placeholder="Search by name, SKU..." />
+                    <AdminSearch placeholder="Buscar por nombre, SKU..." />
                 </div>
             </div>
 
