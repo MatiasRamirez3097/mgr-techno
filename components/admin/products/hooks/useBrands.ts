@@ -1,24 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import type { BrandDTO } from "@/types/shared/brand";
 
-export const useBrands = () => {
-    const [brands, setBrands] = useState<BrandDTO[]>([]);
-
-    const [loading, setLoading] = useState(true);
-
+export const useBrands = (initialBrands?: BrandDTO[]) => {
+    const [brands, setBrands] = useState<BrandDTO[]>(initialBrands || []);
+    const [loading, setLoading] = useState(
+        !initialBrands || initialBrands.length === 0,
+    );
     const [error, setError] = useState<string | null>(null);
 
     const loadBrands = async () => {
         try {
             setLoading(true);
-
             setError(null);
 
             const res = await fetch("/api/admin/brands");
-
             const data = await res.json();
 
             if (!res.ok) {
@@ -26,12 +23,11 @@ export const useBrands = () => {
             }
 
             setBrands(data.brands || []);
-        } catch (error) {
-            console.error(error);
-
+        } catch (err) {
+            console.error(err);
             setError(
-                error instanceof Error
-                    ? error.message
+                err instanceof Error
+                    ? err.message
                     : "Error al cargar marcas",
             );
         } finally {
@@ -40,18 +36,16 @@ export const useBrands = () => {
     };
 
     useEffect(() => {
-        loadBrands();
-    }, []);
+        if (!initialBrands || initialBrands.length === 0) {
+            loadBrands();
+        }
+    }, [initialBrands]);
 
     return {
         brands,
-
         setBrands,
-
         loading,
-
         error,
-
         reload: loadBrands,
     };
 };

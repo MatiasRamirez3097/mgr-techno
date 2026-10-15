@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-// Ajustá estas importaciones a la ruta real de tu proyecto
 import { ProductModel } from "@/models";
 import { connectDB } from "@/lib/mongodb";
 
@@ -14,7 +13,7 @@ export async function POST(req: Request, { params }: Props) {
         await connectDB();
         const { id } = await params;
 
-        // 1. Buscar el producto base (usamos .lean() para obtener un objeto JS puro)
+        // 1. Buscar el producto base
         const originalProduct = await ProductModel.findById(id).lean();
 
         if (!originalProduct) {
@@ -35,32 +34,32 @@ export async function POST(req: Request, { params }: Props) {
             availableStock,
             reservedStock,
             totalStock,
+            isAvailable,
             ...restOfProduct
-        } = originalProduct as any;
+        } = originalProduct as Record<string, unknown>;
 
         // 3. Generar un slug único para el Outlet
-        const baseSlug = `${slug}-outlet`;
+        const baseSlug = `${String(slug || "producto")}-outlet`;
         let newSlug = baseSlug;
         let counter = 1;
 
-        // Bucle por si ya existe el slug (ej: clonás el outlet de un outlet)
         while (await ProductModel.exists({ slug: newSlug })) {
-            newSlug = `${baseSlug}-${counter}`;
             counter++;
+            newSlug = `${baseSlug}-${counter}`;
         }
 
         // 4. Armar la data del nuevo producto
         const newProductData = {
             ...restOfProduct,
-            name: `${name} (OUTLET)`,
+            name: `${String(name || "Producto")} (OUTLET)`,
             slug: newSlug,
-            sku: sku ? `${sku}-OUT` : undefined, // Le agregamos el sufijo al SKU original
-            isOutlet: true, // ¡Asegurate de haber agregado este campo al ProductSchema!
-            status: "draft", // Siempre nace en borrador para que lo revises
-            // El stock nace en 0, se alimentará cuando recepciones la compra
+            sku: sku ? `${String(sku)}-OUT` : undefined,
+            isOutlet: true,
+            status: "draft",
             availableStock: 0,
             reservedStock: 0,
             totalStock: 0,
+            isAvailable: false,
         };
 
         // 5. Insertar en la base de datos
@@ -68,13 +67,18 @@ export async function POST(req: Request, { params }: Props) {
 
         return NextResponse.json({
             success: true,
-            id: newOutletProduct._id,
+            id: newOutletProduct._id.toString(),
             message: "Producto de Outlet creado correctamente",
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error al duplicar producto a outlet:", error);
         return NextResponse.json(
-            { error: "Error interno del servidor al duplicar el producto" },
+            {
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Error interno del servidor al duplicar el producto",
+            },
             { status: 500 },
         );
     }

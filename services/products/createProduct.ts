@@ -5,6 +5,8 @@ import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models";
 
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
+import { generateUniqueProductSlug } from "@/lib/products/generateUniqueSlug";
+import { revalidateProductsCache } from "./getCatalogProducts";
 
 import type { CreateProductDTO } from "@/lib/validators/productSchema";
 
@@ -34,6 +36,8 @@ export async function createProduct(data: CreateProductDTO) {
     const categories =
         data.categories?.map((id) => new Types.ObjectId(id)) || [];
 
+    const slug = data.slug || (await generateUniqueProductSlug(data.name));
+
     // =========================
     // CREATE
     // =========================
@@ -41,18 +45,15 @@ export async function createProduct(data: CreateProductDTO) {
     const product = await ProductModel.create({
         name: data.name,
 
-        slug: data.slug,
+        slug,
 
         brand,
 
         type: data.type,
 
-        effectivePrice:
-            data.salePrice &&
-            data.salePrice > 0 &&
-            data.salePrice > data.regularPrice
-                ? data.salePrice
-                : data.regularPrice,
+        effectivePrice: (salePrice !== null && salePrice > 0 && salePrice < data.regularPrice)
+            ? salePrice
+            : data.regularPrice,
 
         isAvailable: false,
 
@@ -96,6 +97,8 @@ export async function createProduct(data: CreateProductDTO) {
 
         shippingSize: data.shippingSize || "standard",
     });
+
+    revalidateProductsCache();
 
     return mapProductToDTO(product.toObject());
 }

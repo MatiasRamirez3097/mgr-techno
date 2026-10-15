@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { createProduct } from "@/services/products/createProduct";
-
 import { createProductSchemaRefined } from "@/lib/validators/productSchema";
-import { slugify } from "@/lib/utils/slugify";
+import { generateUniqueProductSlug } from "@/lib/products/generateUniqueSlug";
+import { connectDB } from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
     try {
+        await connectDB();
         const body = await req.json();
 
-        const parsed = createProductSchemaRefined.safeParse({
-            ...body,
-            slug: body.name ? slugify(body.name) : null,
-        });
+        const parsed = createProductSchemaRefined.safeParse(body);
 
         if (!parsed.success) {
-            return Response.json(
+            return NextResponse.json(
                 {
                     error: parsed.error.issues,
                 },
@@ -25,15 +22,21 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const product = await createProduct(parsed.data);
+        const slug = await generateUniqueProductSlug(parsed.data.name);
+
+        const product = await createProduct({
+            ...parsed.data,
+            slug,
+        });
 
         return NextResponse.json({
             success: true,
             data: product,
+            id: product.id,
             product,
         });
     } catch (error: unknown) {
-        return Response.json(
+        return NextResponse.json(
             {
                 error:
                     error instanceof Error

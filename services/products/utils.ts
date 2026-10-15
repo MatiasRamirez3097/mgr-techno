@@ -42,14 +42,18 @@ export function getMongoSort(
 export function buildProductDerivedFields(data: {
     regularPrice: number;
     salePrice?: number | null;
-    availableStock: number;
+    availableStock?: number;
 }) {
-    return {
-        effectivePrice:
-            data.salePrice && data.salePrice > 0
-                ? data.salePrice
-                : data.regularPrice,
+    const reg = Number(data.regularPrice) || 0;
+    const sale =
+        data.salePrice !== undefined && data.salePrice !== null
+            ? Number(data.salePrice)
+            : null;
 
-        isAvailable: data.availableStock > 0,
+    const hasValidDiscount = sale !== null && sale > 0 && sale < reg;
+
+    return {
+        effectivePrice: hasValidDiscount ? sale : reg,
+        isAvailable: (data.availableStock ?? 0) > 0,
     };
 }

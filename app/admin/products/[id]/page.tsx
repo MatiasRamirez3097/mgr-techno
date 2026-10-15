@@ -1,12 +1,14 @@
 import { connectDB } from "@/lib/mongodb";
 import { getProductsById } from "@/lib/products/getProductsById";
 import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { getBrandsBase } from "@/lib/brands/getBrandsBase";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buildBackUrl } from "@/lib/buildBackUrl";
 import type { ProductDTO } from "@/types/shared/product";
 import type { CategoryDTO } from "@/types/shared/category";
+import type { BrandDTO } from "@/types/shared/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +29,15 @@ export default async function AdminEditProductPage({
     const backUrl = buildBackUrl("/admin/products", query);
 
     await connectDB();
-    const [product, categories]: [ProductDTO | null, CategoryDTO[]] =
-        await Promise.all([
-            getProductsById(id),
-            getCategoriesBase({ limit: 0 }),
-        ]);
+    const [product, categories, brands]: [
+        ProductDTO | null,
+        CategoryDTO[],
+        BrandDTO[],
+    ] = await Promise.all([
+        getProductsById(id),
+        getCategoriesBase({ limit: 0 }),
+        getBrandsBase({ limit: 0 }),
+    ]);
 
     if (!product) notFound();
 
@@ -51,6 +57,7 @@ export default async function AdminEditProductPage({
             <ProductForm
                 product={product}
                 categories={categories}
+                brands={brands}
                 mode="edit"
             />
         </div>

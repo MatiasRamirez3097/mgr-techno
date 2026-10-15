@@ -26,21 +26,43 @@ export function QuickEditProduct({ product, onClose }: Props) {
         setLoading(true);
         setError("");
 
+        const reg = Number(form.regularPrice);
+        const sale = form.salePrice !== "" && form.salePrice !== null ? Number(form.salePrice) : null;
+
+        if (isNaN(reg) || reg <= 0) {
+            setError("El precio regular debe ser mayor a 0");
+            setLoading(false);
+            return;
+        }
+
+        if (sale !== null && (isNaN(sale) || sale <= 0)) {
+            setError("El precio de oferta debe ser mayor a 0");
+            setLoading(false);
+            return;
+        }
+
+        if (sale !== null && sale >= reg) {
+            setError("El precio de oferta debe ser menor al precio regular");
+            setLoading(false);
+            return;
+        }
+
         try {
             const res = await fetch(`/api/admin/products/${product.id}`, {
                 credentials: "include",
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    regularPrice: form.regularPrice,
-                    salePrice: form.salePrice,
+                    regularPrice: reg,
+                    salePrice: sale,
                     featured: form.featured,
                     status: form.status,
-                    hasFreeShipping: form.hasFreeShipping, // <-- Agregado
+                    hasFreeShipping: form.hasFreeShipping,
                 }),
             });
 
-            if (!res.ok) throw new Error("Error al guardar");
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Error al guardar");
             router.refresh();
             onClose();
         } catch {

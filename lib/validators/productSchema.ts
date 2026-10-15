@@ -26,32 +26,35 @@ export const createProductSchema = z.object({
     hasSerialNumber: z.boolean().optional().default(false),
     manageStock: z.boolean().optional().default(true),
 
-    shortDescription: z.string().max(160).optional(),
-    description: z.string().optional(),
+    shortDescription: z.string().max(2000).optional().nullable(),
+    description: z.string().optional().nullable(),
 
-    weight: z.number().positive().optional(),
+    weight: z.number().nonnegative().optional().nullable(),
 
     dimensions: z
         .object({
-            length: z.number().positive().optional(),
-            width: z.number().positive().optional(),
-            height: z.number().positive().optional(),
+            length: z.number().nonnegative().optional().nullable(),
+            width: z.number().nonnegative().optional().nullable(),
+            height: z.number().nonnegative().optional().nullable(),
         })
-        .optional(),
+        .optional()
+        .nullable(),
 
     categories: z.array(z.string()).optional(), // vienen como string del front
 
     featured: z.boolean().optional().default(false),
 
-    status: z.enum(["publish", "draft", "private"]).default("publish"),
+    status: z
+        .enum(["publish", "draft", "private", "pending_review"])
+        .default("publish"),
 
-    sku: z.string().min(3).optional(),
-    mpn: z.string().min(3).optional(),
-    gtin: z.string().min(3).optional(),
+    sku: z.string().optional().nullable(),
+    mpn: z.string().optional().nullable(),
+    gtin: z.string().optional().nullable(),
 
-    bundleItemsCount: z.number().int().min(0).optional(),
-    hasFreeShipping: z.boolean().optional(),
-    shippingSize: z.enum(["small", "standard", "bulky"]).optional(),
+    bundleItemsCount: z.number().int().min(0).optional().nullable(),
+    hasFreeShipping: z.boolean().optional().nullable(),
+    shippingSize: z.enum(["small", "standard", "bulky"]).optional().nullable(),
 });
 
 export const createProductSchemaRefined = createProductSchema.superRefine(

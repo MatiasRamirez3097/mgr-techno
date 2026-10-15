@@ -12,9 +12,12 @@ import type { ProductFormState } from "@/types/admin/productForm";
 import type { CategoryDTO } from "@/types/shared/category";
 import type { ProductDTO } from "@/types/shared/product";
 
+import type { BrandDTO } from "@/types/shared/brand";
+
 interface Props {
     product?: ProductDTO;
     categories: CategoryDTO[];
+    brands?: BrandDTO[];
     mode: "create" | "edit";
 }
 
@@ -23,7 +26,12 @@ type FieldError = {
     message: string;
 };
 
-export function ProductForm({ product, categories, mode }: Props) {
+export function ProductForm({
+    product,
+    categories,
+    brands: initialBrands,
+    mode,
+}: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -42,7 +50,7 @@ export function ProductForm({ product, categories, mode }: Props) {
     const [images, setImages] = useState<string[]>(
         extractProductImages(product),
     );
-    const { brands, setBrands } = useBrands();
+    const { brands, setBrands } = useBrands(initialBrands);
 
     const [form, setForm] = useState<ProductFormState>({
         brand: product?.brand || "",
@@ -119,17 +127,25 @@ export function ProductForm({ product, categories, mode }: Props) {
 
             const data = await res.json();
             if (!res.ok) {
-                setError(data.error);
-                if (Array.isArray(data.error)) {
-                    const errors = Object.fromEntries(
-                        data.error.map((e: { path: (string | number)[]; message: string }) => [
-                            e.path.join("."),
-                            e.message,
-                        ]),
-                    );
-                    setFieldErrors(errors);
+                if (data.error) {
+                    setError(data.error);
+                    if (Array.isArray(data.error)) {
+                        const errors = Object.fromEntries(
+                            data.error.map(
+                                (e: { path: (string | number)[]; message: string }) => [
+                                    e.path.join("."),
+                                    e.message,
+                                ],
+                            ),
+                        );
+                        setFieldErrors(errors);
+                    }
                 }
-                throw new Error(data);
+                throw new Error(
+                    typeof data.error === "string"
+                        ? data.error
+                        : "Error al guardar producto",
+                );
             }
 
             setSuccess(
@@ -137,6 +153,7 @@ export function ProductForm({ product, categories, mode }: Props) {
             );
             if (mode === "create") {
                 const createdId =
+                    data.id ||
                     data.data?.id ||
                     data.data?._id ||
                     data.product?.id ||
@@ -144,7 +161,7 @@ export function ProductForm({ product, categories, mode }: Props) {
                     (Array.isArray(data.data) &&
                         (data.data[0]?.id || data.data[0]?._id));
 
-                if (createdId) {
+                if (createdId && typeof createdId === "string" && createdId !== "undefined") {
                     router.push(`/admin/products/${createdId}`);
                 } else {
                     router.push("/admin/products");
@@ -153,8 +170,10 @@ export function ProductForm({ product, categories, mode }: Props) {
                 router.refresh();
             }
         } catch (e: unknown) {
-            console.log(e);
-            //setError(e.error || "Error al guardar");
+            console.error("Error al guardar producto:", e);
+            const msg =
+                e instanceof Error ? e.message : "Error al guardar el producto";
+            setError((prev) => (prev ? prev : msg));
         } finally {
             setLoading(false);
         }
@@ -168,13 +187,24 @@ export function ProductForm({ product, categories, mode }: Props) {
         )
             return;
         setDeleting(true);
+        setError(null);
         try {
             const targetId = product?.id;
             if (!targetId) return;
-            await fetch(`/api/admin/products/${targetId}`, {
+            const res = await fetch(`/api/admin/products/${targetId}`, {
                 method: "DELETE",
             });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || "Error al eliminar producto");
+            }
             router.push("/admin/products");
+        } catch (err: unknown) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Error al eliminar el producto",
+            );
         } finally {
             setDeleting(false);
         }

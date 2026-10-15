@@ -6,12 +6,11 @@ import { ProductModel } from "@/models";
 
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
 
-import { generateProductSearch } from "@/lib/search/generateProductSearch";
-import { slugify } from "@/lib/utils/slugify";
-
+import { generateUniqueProductSlug } from "@/lib/products/generateUniqueSlug";
 import { buildProductDerivedFields } from "./utils";
+import { revalidateProductsCache } from "./getCatalogProducts";
 
-export async function updateProductById(id: string, data: any) {
+export async function updateProductById(id: string, data: Record<string, any>) {
     await connectDB();
 
     // =========================
@@ -31,22 +30,11 @@ export async function updateProductById(id: string, data: any) {
         data.salePrice && data.salePrice > 0 ? data.salePrice : null;
 
     // =========================
-    // SEARCH
-    // =========================
-
-    const searchData = generateProductSearch(`
-            ${data.name}
-            ${data.sku || ""}
-            ${data.mpn || ""}
-            ${data.gtin || ""}
-        `);
-
-    // =========================
     // CATEGORIES
     // =========================
 
     const categories =
-        data.categories?.map((id: any) => new Types.ObjectId(id)) || [];
+        data.categories?.map((catId: string | Types.ObjectId) => new Types.ObjectId(catId)) || [];
 
     const derived = buildProductDerivedFields({
         regularPrice: data.regularPrice ?? undefined,
@@ -58,9 +46,19 @@ export async function updateProductById(id: string, data: any) {
     // UPDATE
     // =========================
 
+    const brand =
+        data.brand && typeof data.brand === "string" && data.brand.trim() !== "" && Types.ObjectId.isValid(data.brand)
+            ? new Types.ObjectId(data.brand)
+            : undefined;
+
+    if (!product.slug) {
+        product.slug = await generateUniqueProductSlug(data.name, id);
+    } else if (data.slug && data.slug !== product.slug) {
+        product.slug = await generateUniqueProductSlug(data.slug, id);
+    }
+
     product.name = data.name;
-    product.brand = data.brand;
-    product.slug = slugify(data.name);
+    product.brand = brand;
     product.type = data.type;
     product.regularPrice = data.regularPrice;
     product.salePrice = salePrice;
@@ -89,6 +87,7 @@ export async function updateProductById(id: string, data: any) {
     // =========================
 
     await product.save();
+    revalidateProductsCache();
 
     return mapProductToDTO(product.toObject());
 }
@@ -111,19 +110,29 @@ export async function updateProductQuickFields(
         throw new Error("Producto no encontrado");
     }
 
-    if (data.regularPrice !== undefined) {
-        product.regularPrice = data.regularPrice;
-        product.effectivePrice = data.regularPrice;
-    }
+    const newRegularPrice =
+        data.regularPrice !== undefined && data.regularPrice !== null && !isNaN(Number(data.regularPrice))
+            ? Number(data.regularPrice)
+            : product.regularPrice;
 
+    let newSalePrice: number | null = product.salePrice;
     if (data.salePrice !== undefined) {
-        if (data.salePrice && data.salePrice > 0) {
-            product.salePrice = data.salePrice;
-            product.effectivePrice = data.salePrice;
+        if (data.salePrice !== null && Number(data.salePrice) > 0) {
+            newSalePrice = Number(data.salePrice);
         } else {
-            product.salePrice = null;
+            newSalePrice = null;
         }
     }
+
+    product.regularPrice = newRegularPrice;
+    product.salePrice = newSalePrice;
+
+    const derived = buildProductDerivedFields({
+        regularPrice: newRegularPrice,
+        salePrice: newSalePrice,
+        availableStock: product.availableStock ?? 0,
+    });
+    product.effectivePrice = derived.effectivePrice;
 
     if (data.featured !== undefined) {
         product.featured = data.featured;
@@ -138,6 +147,7 @@ export async function updateProductQuickFields(
     }
 
     await product.save();
+    revalidateProductsCache();
 
     return mapProductToDTO(product.toObject());
 }

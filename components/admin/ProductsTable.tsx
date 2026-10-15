@@ -90,7 +90,7 @@ export function ProductsTable({ products }: Props) {
                 {products.length === 0 ? (
                     <tr>
                         <td
-                            colSpan={6}
+                            colSpan={7}
                             className="
                                 px-6
                                 py-12
@@ -437,7 +437,7 @@ export function ProductsTable({ products }: Props) {
                                         key={`qe-${product.id}`}
                                         className="bg-gray-800/30"
                                     >
-                                        <td colSpan={6} className="px-6 py-4">
+                                        <td colSpan={7} className="px-6 py-4">
                                             <QuickEditProduct
                                                 product={product}
                                                 onClose={() =>

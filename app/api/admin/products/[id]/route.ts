@@ -25,13 +25,19 @@ export async function PUT(req: Request, { params }: Props) {
             success: true,
             product,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Error al actualizar producto";
+        const status = message.includes("no encontrado") ? 404 : 400;
+
         return Response.json(
             {
-                error: error?.message || "Error al actualizar producto",
+                error: message,
             },
             {
-                status: 400,
+                status,
             },
         );
     }
@@ -53,13 +59,19 @@ export async function PATCH(req: Request, { params }: Props) {
             success: true,
             product,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Error al actualizar producto";
+        const status = message.includes("no encontrado") ? 404 : 400;
+
         return Response.json(
             {
-                error: error?.message || "Error al actualizar producto",
+                error: message,
             },
             {
-                status: 400,
+                status,
             },
         );
     }
@@ -78,13 +90,23 @@ export async function DELETE(req: Request, { params }: Props) {
         return Response.json({
             success: true,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Error al eliminar producto";
+        const status = message.includes("no encontrado")
+            ? 404
+            : message.includes("No se puede eliminar")
+              ? 409
+              : 500;
+
         return Response.json(
             {
-                error: error?.message || "Error al eliminar producto",
+                error: message,
             },
             {
-                status: 400,
+                status,
             },
         );
     }
