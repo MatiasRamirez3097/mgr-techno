@@ -88,4 +88,5 @@ export type OrderFilters = {
     page?: number;
     adminView?: boolean;
     customerId?: string;
+    status?: string;
 };

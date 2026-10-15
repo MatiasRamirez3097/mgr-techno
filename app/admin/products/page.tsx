@@ -7,6 +7,8 @@ import { AdminSearch } from "@/components/admin/AdminSearch";
 import { ProductsTable } from "@/components/admin/ProductsTable";
 
 import { getCatalogProducts } from "@/services/products/getCatalogProducts";
+import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { AdminProductFilters } from "@/components/admin/AdminProductFilters";
 
 interface Props {
     searchParams: Promise<{
@@ -16,6 +18,7 @@ interface Props {
         per_page?: string;
         search?: string;
         status?: "private" | "publish" | "draft" | "pending_review";
+        stock?: string;
     }>;
 }
 
@@ -24,18 +27,22 @@ export default async function AdminProductsPage({ searchParams }: Props) {
     const params = await searchParams;
     const page = Number(params.page) || 1;
 
-    // 2. Armamos el objeto de filtros
+    // 2. Traemos las categorías para el filtro
+    const categories = await getCategoriesBase({ limit: 0 });
+
+    // 3. Armamos el objeto de filtros
     const filters = {
         search: params.search as string,
         category: params.category as string,
         categoryId: params.categoryId as string,
         status: params.status,
+        stock: params.stock,
         // ¡CRUCIAL!: Le decimos al servicio que somos el admin
         // para que también nos traiga los productos en "draft" o "hidden"
         adminView: true,
         orderby: "date_desc", // Orden por defecto en el admin (los más nuevos primero)
     };
-    // 3. LA MAGIA: Una sola llamada trae los productos y la paginación lista
+    // 4. LA MAGIA: Una sola llamada trae los productos y la paginación lista
     const { products, pagination } = await getCatalogProducts(
         filters,
         page,
@@ -102,6 +109,13 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                         + Nuevo
                     </Link>
                 </div>
+            </div>
+
+            {/* ========================= */}
+            {/* FILTERS */}
+            {/* ========================= */}
+            <div className="mb-6">
+                <AdminProductFilters categories={categories} />
             </div>
 
             {/* ========================= */}

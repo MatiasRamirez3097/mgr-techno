@@ -50,6 +50,7 @@ export type ProductFilters = {
     adminView?: boolean;
     limit?: number;
     status?: "publish" | "private" | "draft" | "pending_review";
+    stock?: "in_stock" | "out_of_stock" | "all" | string;
 };
 
 export type ProductOrderBy =

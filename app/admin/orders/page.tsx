@@ -3,7 +3,9 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
+import { OrderStatusFilter } from "@/components/admin/OrderStatusFilter";
 import { getOrders } from "@/lib/orders/getOrders";
+import type { OrderDTO } from "@/types/shared/order";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -13,6 +15,14 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     processing: {
         label: "En proceso",
         color: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+    },
+    ready_for_pickup: {
+        label: "Listo para retiro",
+        color: "text-purple-400 bg-purple-400/10 border-purple-400/20",
+    },
+    shipped: {
+        label: "Enviado",
+        color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
     },
     on_hold: {
         label: "En espera",
@@ -41,16 +51,18 @@ interface Props {
         page?: string;
         per_page?: string;
         search?: string;
+        status?: string;
     }>;
 }
 
 export default async function AdminOrdersPage({ searchParams }: Props) {
-    const { page, per_page, search } = await searchParams;
+    const { page, per_page, search, status } = await searchParams;
     const currentPage = parseInt(page || "1");
     const perPage = parseInt(per_page || "20");
 
     const { orders, total, totalPages } = await getOrders({
         search,
+        status,
         page: currentPage,
         adminView: true,
     });
@@ -68,6 +80,10 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                 </Link>
             </div>
 
+            <div className="mb-6">
+                <OrderStatusFilter />
+            </div>
+
             <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
                 <table className="w-full">
                     <thead>
@@ -82,6 +98,9 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                                 Estado
                             </th>
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
+                                Facturación
+                            </th>
+                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
                                 Total
                             </th>
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
@@ -94,16 +113,21 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                         {orders.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={6}
+                                    colSpan={7}
                                     className="px-6 py-12 text-center text-gray-400 text-sm"
                                 >
                                     No se encontraron órdenes
                                     {search ? ` para "${search}"` : ""}
+                                    {status && status !== "all"
+                                        ? ` con estado "${STATUS_LABELS[status]?.label || status}"`
+                                        : ""}
                                 </td>
                             </tr>
                         ) : (
-                            orders.map((order: any) => {
-                                const status = STATUS_LABELS[order.status] || {
+                            orders.map((order: OrderDTO) => {
+                                const orderStatus = STATUS_LABELS[
+                                    order.status
+                                ] || {
                                     label: order.status,
                                     color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
                                 };
@@ -111,13 +135,21 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                                     .toString()
                                     .slice(-6)
                                     .toUpperCase();
+
+                                const fiscalInvoice = order.vouchers?.find(
+                                    (v) => v.type === "fiscal_invoice",
+                                );
+                                const receipt = order.vouchers?.find(
+                                    (v) => v.type === "non_fiscal_receipt",
+                                );
+
                                 return (
                                     <tr
                                         key={order.id.toString()}
                                         className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                                     >
                                         <td className="px-6 py-4 text-sm text-white font-medium">
-                                            #{orderId}
+                                             #{orderId}
                                         </td>
                                         <td className="px-6 py-4">
                                             <p className="text-sm text-white">
@@ -130,10 +162,33 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span
-                                                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status.color}`}
+                                                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${orderStatus.color}`}
                                             >
-                                                {status.label}
+                                                {orderStatus.label}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {fiscalInvoice ? (
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border text-emerald-400 bg-emerald-400/10 border-emerald-400/20">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                    Factura AFIP
+                                                    {fiscalInvoice.number
+                                                        ? ` #${fiscalInvoice.number}`
+                                                        : ""}
+                                                </span>
+                                            ) : receipt ? (
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border text-sky-400 bg-sky-400/10 border-sky-400/20">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                                                    Comprobante
+                                                    {receipt.number
+                                                        ? ` #${receipt.number}`
+                                                        : ""}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full border text-gray-400 bg-gray-400/10 border-gray-400/20">
+                                                    Sin facturar
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-white">
                                             $

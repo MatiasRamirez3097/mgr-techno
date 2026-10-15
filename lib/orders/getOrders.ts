@@ -20,6 +20,19 @@ export async function getOrders(filters: OrderFilters = {}) {
         query.customerId = new Types.ObjectId(filters.customerId);
     }
 
+    if (filters.status && filters.status !== "all") {
+        query.status = filters.status;
+    }
+
+    if (filters.search && filters.search.trim()) {
+        const searchRegex = new RegExp(filters.search.trim(), "i");
+        query.$or = [
+            { customerEmail: searchRegex },
+            { "billing.firstName": searchRegex },
+            { "billing.lastName": searchRegex },
+        ];
+    }
+
     const skip = (page - 1) * PRODUCTS_PAGE_SIZE;
 
     const [orders, total] = await Promise.all([

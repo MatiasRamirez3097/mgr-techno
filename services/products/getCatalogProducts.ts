@@ -101,6 +101,16 @@ export async function getCatalogProducts(
                 baseMatchStage.isAvailable = true;
             }
 
+            if (filters.stock === "in_stock") {
+                baseMatchStage.availableStock = { $gt: 0 };
+            } else if (filters.stock === "out_of_stock") {
+                baseMatchStage.$or = [
+                    { availableStock: { $lte: 0 } },
+                    { availableStock: null },
+                    { availableStock: { $exists: false } },
+                ];
+            }
+
             if (filters.category) {
                 const category = await CategoryModel.findOne({
                     slug: filters.category,
