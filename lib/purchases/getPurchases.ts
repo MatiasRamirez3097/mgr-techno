@@ -1,48 +1,45 @@
-// /lib/products/getProducts.ts
 import { connectDB } from "@/lib/mongodb";
 import { PurchaseModel } from "@/models/Purchase";
 import { mapPurchaseToDTO } from "@/lib/mappers/purchaseMapper";
-//CONSTANTS
-import { PRODUCTS_PAGE_SIZE } from "../../constants/pagination";
-
-//FUNCTIONS
-//import { getMongoSort } from "./utils";
-
-//TYPES
-import type { GetProductsResponse } from "@/types/shared/purchase";
-import type { PurchaseFilters } from "@/types/shared/purchase";
+import { PRODUCTS_PAGE_SIZE } from "@/constants/pagination";
+import type { GetProductsResponse, PurchaseFilters } from "@/types/shared/purchase";
 
 export async function getPurchases(
     filters: PurchaseFilters = {},
 ): Promise<GetProductsResponse> {
     await connectDB();
-    const page = filters.page || 1;
-    //const sort = getMongoSort(filters.orderby);
+    const page = Math.max(1, filters.page || 1);
+    const limit = PRODUCTS_PAGE_SIZE;
+    const skip = (page - 1) * limit;
 
-    // Construir query
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
-    if (filters.search) {
-        query.$text = { $search: filters.search };
+    if (filters.status && filters.status !== "all") {
+        query.status = filters.status;
     }
 
-    const res = await PurchaseModel.find({ ...query })
-        .sort({ createdAt: -1 })
-        .lean();
-    // Filtro adicional por nombre si hay búsqueda (por si $text no está disponible)
-    const filtered = filters.search
-        ? res.filter((p) =>
-              p.name.toLowerCase().includes(filters.search!.toLowerCase()),
-          )
-        : res;
+    if (filters.search && filters.search.trim()) {
+        const searchRegex = new RegExp(filters.search.trim(), "i");
+        query.$or = [
+            { supplierName: searchRegex },
+            { "document.number": searchRegex },
+            { notes: searchRegex },
+        ];
+    }
 
-    const total = filtered.length;
-    const totalPages = Math.ceil(total / PRODUCTS_PAGE_SIZE);
-    const start = (page - 1) * PRODUCTS_PAGE_SIZE;
-    const paginated = filtered.slice(start, start + PRODUCTS_PAGE_SIZE);
+    const [purchases, total] = await Promise.all([
+        PurchaseModel.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        PurchaseModel.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
 
     return {
-        purchases: paginated.map((purchase) => mapPurchaseToDTO(purchase)),
+        purchases: purchases.map((purchase) => mapPurchaseToDTO(purchase)),
         totalPages,
         total,
     };

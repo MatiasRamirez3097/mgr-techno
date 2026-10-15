@@ -1,13 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ProductSelector } from "./ProductSelector";
 import { FormModal } from "./FormModal";
 import { SupplierForm } from "./SupplierForm";
-import { PurchaseDTO } from "@/types/shared/purchase";
+import type { PurchaseDTO } from "@/types/shared/purchase";
 
 interface Props {
-    purchase?: any;
+    purchase?: PurchaseDTO;
     mode: "create" | "edit";
 }
 
@@ -44,48 +45,53 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [showSupplierModal, setShowSupplierModal] = useState(false);
-    const [suppliers, setSuppliers] = useState<any[]>([]);
+    interface SupplierOption {
+        id: string;
+        name: string;
+        taxId?: string;
+    }
+    const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
     const [loadingSuppliers, setLoadingSuppliers] = useState(true);
-    //useEffect
+
+    const isReadOnly =
+        mode === "edit" &&
+        (purchase?.status === "received" ||
+            purchase?.status === "partially_received" ||
+            purchase?.status === "cancelled");
+
     useEffect(() => {
         fetch("/api/admin/suppliers", {
             credentials: "include",
         })
             .then((res) => res.json())
             .then((data) => {
-                setSuppliers(data.suppliers);
+                setSuppliers(data.suppliers || []);
             })
+            .catch(() => {})
             .finally(() => setLoadingSuppliers(false));
     }, []);
-    // Extraer imágenes del producto — soporta tanto strings como objetos {src}
-    const extractImages = (product?: any): string[] => {
-        if (!product?.images) return [];
-        return product.images
-            .map((img: any) => (typeof img === "string" ? img : img.src || ""))
-            .filter(Boolean);
-    };
-
-    const getUnitCostARS = (item: PurchaseItem) => {
-        const cost = Number(item.unitCost);
-
-        if (form.currency === "USD") {
-            return cost * Number(form.exchangeRate || 0);
-        }
-
-        return cost;
-    };
 
     const [form, setForm] = useState<PurchaseFormState>({
         supplierId: purchase?.supplierId || "",
         status: purchase?.status || "draft",
         currency: purchase?.currency || "ARS",
-        exchangeRate: purchase?.exchangeRate || 0,
-        items: purchase?.items || [],
+        exchangeRate: purchase?.exchangeRate || 1,
+        items:
+            purchase?.items?.map((item) => ({
+                productId:
+                    typeof item.productId === "object" && item.productId !== null && "id" in item.productId
+                        ? (item.productId as { id?: string }).id || ""
+                        : String(item.productId || ""),
+                name: item.name,
+                quantity: item.quantity,
+                unitCost: item.unitCost,
+                taxRate: item.taxRate ?? 10.5,
+            })) || [],
 
         document: {
             date: purchase?.document?.date
                 ? purchase.document.date.split("T")[0]
-                : "",
+                : new Date().toISOString().split("T")[0],
             type: purchase?.document?.type || "generic",
             number: purchase?.document?.number || "",
             fileUrl: purchase?.document?.fileUrl || undefined,
@@ -95,6 +101,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
     });
 
     const addItem = () => {
+        if (isReadOnly) return;
         setForm((prev) => ({
             ...prev,
             items: [
@@ -104,7 +111,8 @@ export function PurchaseForm({ purchase, mode }: Props) {
         }));
     };
 
-    const updateItem = (index: number, field: string, value: any) => {
+    const updateItem = (index: number, field: string, value: string | number) => {
+        if (isReadOnly) return;
         setForm((prev) => {
             const items = [...prev.items];
             items[index] = { ...items[index], [field]: value };
@@ -113,34 +121,38 @@ export function PurchaseForm({ purchase, mode }: Props) {
     };
 
     const removeItem = (index: number) => {
+        if (isReadOnly) return;
         setForm((prev) => ({
             ...prev,
             items: prev.items.filter((_, i) => i !== index),
         }));
     };
 
-    const formatCurrency = (value: number) => {
+    const formatCurrency = (value: number, curr = form.currency) => {
         return new Intl.NumberFormat("es-AR", {
             style: "currency",
-            currency: form.currency === "USD" ? "USD" : "ARS",
+            currency: curr === "USD" ? "USD" : "ARS",
         }).format(value);
     };
 
+    // Subtotal en la moneda seleccionada
     const subtotal =
         Math.round(
             form.items.reduce(
                 (acc, item) =>
-                    acc + Number(item.quantity) * getUnitCostARS(item),
+                    acc + Number(item.quantity || 0) * Number(item.unitCost || 0),
                 0,
             ) * 100,
         ) / 100;
 
+    // IVA en la moneda seleccionada
     const tax =
         Math.round(
             form.items.reduce((acc, item) => {
                 const lineSubtotal =
-                    Number(item.quantity) * getUnitCostARS(item);
-                return acc + lineSubtotal * (Number(item.taxRate) / 100);
+                    Number(item.quantity || 0) * Number(item.unitCost || 0);
+                const rate = Number(item.taxRate ?? 10.5);
+                return acc + lineSubtotal * (rate / 100);
             }, 0) * 100,
         ) / 100;
 
@@ -151,6 +163,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
             HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
         >,
     ) => {
+        if (isReadOnly) return;
         const { name, value, type } = e.target;
         setForm((prev) => ({
             ...prev,
@@ -164,31 +177,48 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const buildPayload = () => ({
         supplierId: form.supplierId,
         status: form.status,
+        currency: form.currency,
+        exchangeRate: form.currency === "USD" ? Number(form.exchangeRate) : 1,
 
         items: form.items.map((item) => ({
             productId: item.productId,
-            name: item.name,
-            taxRate: item.taxRate,
+            name: item.name || "Producto",
+            taxRate: Number(item.taxRate ?? 10.5),
             quantity: Number(item.quantity),
-            unitCost: getUnitCostARS(item),
+            unitCost: Number(item.unitCost),
         })),
 
         document: form.document,
-
         notes: form.notes,
-        subtotal: subtotal,
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isReadOnly) return;
+
         setLoading(true);
         setError("");
         setSuccess("");
 
         try {
+            if (!form.supplierId) {
+                throw new Error("Debe seleccionar un proveedor");
+            }
+            if (form.items.length === 0) {
+                throw new Error("Debe agregar al menos un producto a la compra");
+            }
+            for (const it of form.items) {
+                if (!it.productId) {
+                    throw new Error("Todos los renglones deben tener un producto seleccionado");
+                }
+                if (Number(it.quantity) < 1) {
+                    throw new Error("La cantidad debe ser de al menos 1");
+                }
+            }
+
             const res = await fetch(
                 mode === "edit"
-                    ? `/api/admin/purchases/${purchase.id}`
+                    ? `/api/admin/purchases/${purchase?.id}`
                     : "/api/admin/purchases",
                 {
                     method: mode === "edit" ? "PUT" : "POST",
@@ -199,16 +229,23 @@ export function PurchaseForm({ purchase, mode }: Props) {
             );
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            if (!res.ok) throw new Error(data.error || "Error al procesar la solicitud");
 
             setSuccess(
-                mode === "edit" ? "Compra actualizada" : "Compra creada",
+                mode === "edit" ? "Compra actualizada con éxito" : "Compra creada con éxito",
             );
-            if (mode === "create")
-                router.push(`/admin/purchases/${data.data._id}`);
-            else router.refresh();
-        } catch (e: any) {
-            setError(e.message || "Error al guardar");
+            if (mode === "create") {
+                const targetId = data.data?._id || data.data?.id;
+                if (targetId) {
+                    router.push(`/admin/purchases/${targetId}`);
+                } else {
+                    router.push("/admin/purchases");
+                }
+            } else {
+                router.refresh();
+            }
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : "Error al guardar");
         } finally {
             setLoading(false);
         }
@@ -217,27 +254,56 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const handleDelete = async () => {
         if (
             !confirm(
-                "¿Estás seguro que querés eliminar este producto? Esta acción no se puede deshacer.",
+                "¿Estás seguro que querés eliminar esta compra? Esta acción no se puede deshacer.",
             )
         )
             return;
         setDeleting(true);
+        setError("");
         try {
-            await fetch(`/api/admin/purchases/${purchase.id}`, {
+            const res = await fetch(`/api/admin/purchases/${purchase?.id}`, {
                 method: "DELETE",
             });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || "Error al eliminar la compra");
+            }
             router.push("/admin/purchases");
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : "Error al eliminar la compra");
         } finally {
             setDeleting(false);
         }
     };
 
     const inputClass =
-        "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
+        "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
     const labelClass = "text-sm text-gray-400 mb-1 block";
 
     return (
         <>
+            {isReadOnly && (
+                <div className="mb-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 text-sm flex items-center justify-between">
+                    <div>
+                        <strong>Modo sólo lectura:</strong> Esta compra está en estado{" "}
+                        <span className="font-semibold uppercase">{purchase?.status}</span>.
+                        {purchase?.status === "received"
+                            ? " Ya ha sido recibida completamente y no admite modificaciones."
+                            : purchase?.status === "partially_received"
+                              ? " Ya comenzó el proceso de recepción de inventario y no se pueden editar los productos."
+                              : " Se encuentra cancelada."}
+                    </div>
+                    {purchase?.status === "partially_received" && (
+                        <Link
+                            href={`/admin/purchases/${purchase.id}/receive`}
+                            className="ml-4 px-3 py-1.5 bg-yellow-500 text-gray-950 font-medium rounded-lg text-xs hover:bg-yellow-400 transition"
+                        >
+                            Continuar recepción →
+                        </Link>
+                    )}
+                </div>
+            )}
+
             <form
                 onSubmit={handleSubmit}
                 className="grid grid-cols-1 lg:grid-cols-3 gap-6"
@@ -258,7 +324,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                         value={form.supplierId}
                                         onChange={handleChange}
                                         className={`${inputClass} flex-1`}
-                                        disabled={loadingSuppliers}
+                                        disabled={loadingSuppliers || isReadOnly}
                                     >
                                         <option value="">
                                             {loadingSuppliers
@@ -273,15 +339,17 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                             </option>
                                         ))}
                                     </select>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowSupplierModal(true)
-                                        }
-                                        className="px-4 py-3 rounded-lg bg-brand text-white text-sm hover:brightness-110 transition"
-                                    >
-                                        +
-                                    </button>
+                                    {!isReadOnly && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowSupplierModal(true)
+                                            }
+                                            className="px-4 py-3 rounded-lg bg-brand text-white text-sm hover:brightness-110 transition"
+                                        >
+                                            +
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                             <div>
@@ -290,6 +358,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                     name="date"
                                     value={form.document.date}
                                     className={inputClass}
+                                    disabled={isReadOnly}
                                     onChange={(e) =>
                                         setForm({
                                             ...form,
@@ -300,7 +369,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                         })
                                     }
                                     type="date"
-                                ></input>
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>
@@ -309,6 +378,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                 <select
                                     className={inputClass}
                                     value={form.document.type}
+                                    disabled={isReadOnly}
                                     onChange={(e) =>
                                         setForm({
                                             ...form,
@@ -320,7 +390,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                     }
                                 >
                                     <option value="generic">
-                                        Comprobante Generico
+                                        Comprobante Genérico (automático)
                                     </option>
                                     <option value="invoice">Factura</option>
                                 </select>
@@ -328,12 +398,21 @@ export function PurchaseForm({ purchase, mode }: Props) {
                             <div>
                                 <label className={labelClass}>
                                     Nro de Comprobante{" "}
+                                    {form.document.type === "generic" && (
+                                        <span className="text-xs text-gray-500 font-normal">
+                                            (se autogenera si está vacío)
+                                        </span>
+                                    )}
                                 </label>
                                 <input
                                     className={inputClass}
-                                    placeholder="Número"
+                                    placeholder={
+                                        form.document.type === "generic"
+                                            ? "Ej: COM-0001 (autogenerado)"
+                                            : "Ej: 0001-00001234"
+                                    }
                                     value={form.document.number}
-                                    disabled={form.document.type === "generic"}
+                                    disabled={isReadOnly}
                                     onChange={(e) =>
                                         setForm({
                                             ...form,
@@ -347,10 +426,10 @@ export function PurchaseForm({ purchase, mode }: Props) {
                             </div>
                             <div>
                                 <label className={labelClass}>Moneda</label>
-
                                 <select
                                     className={inputClass}
                                     value={form.currency}
+                                    disabled={isReadOnly}
                                     onChange={(e) =>
                                         setForm({
                                             ...form,
@@ -367,13 +446,14 @@ export function PurchaseForm({ purchase, mode }: Props) {
                             {form.currency === "USD" && (
                                 <div>
                                     <label className={labelClass}>
-                                        Cotización USD
+                                        Cotización USD (tipo de cambio)
                                     </label>
-
                                     <input
                                         type="number"
                                         min="0"
+                                        step="0.01"
                                         value={form.exchangeRate}
+                                        disabled={isReadOnly}
                                         className={inputClass}
                                         onChange={(e) =>
                                             setForm({
@@ -388,187 +468,282 @@ export function PurchaseForm({ purchase, mode }: Props) {
                             )}
                         </div>
                     </section>
+
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Productos
-                        </h2>
-                        <div className="grid grid-cols-6 gap-2 mb-2 text-xs font-medium text-gray-400">
-                            <div className="col-span-3">Producto</div>
-                            <div>Cantidad</div>
-                            <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-bold text-white">
+                                Productos
+                            </h2>
+                            {mode === "edit" && purchase?.items && (
+                                <span className="text-xs text-gray-400">
+                                    {purchase.items.reduce(
+                                        (acc, i) => acc + (i.quantity || 0),
+                                        0,
+                                    )}{" "}
+                                    unidades totales
+                                </span>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-12 gap-2 mb-2 text-xs font-medium text-gray-400 px-1">
+                            <div className="col-span-6">Producto</div>
+                            <div className="col-span-2">Cantidad</div>
+                            <div className="col-span-2">
                                 {form.currency === "USD"
                                     ? "Costo USD"
                                     : "Costo ARS"}
                             </div>
-                            <div>Quitar</div>
+                            <div className="col-span-1 text-center">IVA %</div>
+                            {!isReadOnly && <div className="col-span-1 text-center">Quitar</div>}
                         </div>
+
                         {form.items.map((item, i) => (
-                            <div key={i} className="grid grid-cols-6 gap-2">
-                                <div className="col-span-3">
-                                    <ProductSelector
-                                        statusAll
-                                        value={
-                                            item.productId
-                                                ? {
-                                                      id: item.productId,
-                                                      name: item.name || "",
-                                                      taxRate: item.taxRate,
-                                                      image: item.image || "",
-                                                  }
-                                                : null
+                            <div
+                                key={i}
+                                className="grid grid-cols-12 gap-2 items-center mb-2"
+                            >
+                                <div className={isReadOnly ? "col-span-7" : "col-span-6"}>
+                                    {isReadOnly ? (
+                                        <div className="bg-gray-800/60 border border-gray-700/60 rounded-lg px-3 py-2 text-sm text-gray-200">
+                                            {item.name || "Producto"}
+                                        </div>
+                                    ) : (
+                                        <ProductSelector
+                                            statusAll
+                                            value={
+                                                item.productId
+                                                    ? {
+                                                          id: item.productId,
+                                                          name: item.name || "",
+                                                          taxRate: item.taxRate,
+                                                          image: item.image || "",
+                                                      }
+                                                    : null
+                                            }
+                                            onChange={(product) => {
+                                                updateItem(
+                                                    i,
+                                                    "productId",
+                                                    product?.id || "",
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "name",
+                                                    product?.name || "",
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "image",
+                                                    product?.image || "",
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "taxRate",
+                                                    product?.taxRate ?? 10.5,
+                                                );
+                                            }}
+                                        />
+                                    )}
+                                </div>
+
+                                <div className="col-span-2">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        disabled={isReadOnly}
+                                        value={item.quantity}
+                                        onChange={(e) =>
+                                            updateItem(
+                                                i,
+                                                "quantity",
+                                                e.target.value,
+                                            )
                                         }
-                                        onChange={(product) => {
-                                            updateItem(
-                                                i,
-                                                "productId",
-                                                product?.id || "",
-                                            );
-                                            updateItem(
-                                                i,
-                                                "name",
-                                                product?.name || "",
-                                            );
-                                            updateItem(
-                                                i,
-                                                "image",
-                                                product?.image || "",
-                                            );
-                                            updateItem(
-                                                i,
-                                                "taxRate",
-                                                product?.taxRate || 10.5,
-                                            );
-                                        }}
+                                        className={inputClass}
                                     />
                                 </div>
 
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={item.quantity}
-                                    onChange={(e) =>
-                                        updateItem(
-                                            i,
-                                            "quantity",
-                                            e.target.value,
-                                        )
-                                    }
-                                    className={inputClass}
-                                />
+                                <div className="col-span-2">
+                                    <input
+                                        min="0"
+                                        type="number"
+                                        disabled={isReadOnly}
+                                        value={item.unitCost}
+                                        onChange={(e) =>
+                                            updateItem(
+                                                i,
+                                                "unitCost",
+                                                e.target.value,
+                                            )
+                                        }
+                                        className={inputClass}
+                                        step="0.01"
+                                    />
+                                </div>
 
-                                <input
-                                    min="0"
-                                    type="number"
-                                    value={item.unitCost}
-                                    onChange={(e) =>
-                                        updateItem(
-                                            i,
-                                            "unitCost",
-                                            e.target.value,
-                                        )
-                                    }
-                                    className={inputClass}
-                                    step="0.01"
-                                />
+                                <div className="col-span-1 text-center">
+                                    <span className="text-xs text-gray-400 font-mono">
+                                        {item.taxRate}%
+                                    </span>
+                                </div>
 
-                                <button onClick={() => removeItem(i)}>✕</button>
+                                {!isReadOnly && (
+                                    <div className="col-span-1 flex justify-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => removeItem(i)}
+                                            className="w-8 h-8 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors flex items-center justify-center text-sm"
+                                            title="Quitar producto"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ))}
 
-                        <button type="button" onClick={addItem}>
-                            + Agregar producto
-                        </button>
+                        {!isReadOnly && (
+                            <button
+                                type="button"
+                                onClick={addItem}
+                                className="mt-3 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 rounded-lg transition-colors border border-gray-700 flex items-center gap-2"
+                            >
+                                <span>+</span>
+                                <span>Agregar producto</span>
+                            </button>
+                        )}
                     </section>
 
-                    {/* Precios */}
+                    {/* Precios y totales */}
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
-                            Precios
+                            Totales de la compra
                         </h2>
                         <div className="grid grid-cols-2 gap-4 text-gray-300">
-                            <div>Subtotal:</div>
-                            <div className="text-right">
+                            <div>Subtotal ({form.currency}):</div>
+                            <div className="text-right font-mono">
                                 {formatCurrency(subtotal)}
                             </div>
 
-                            <div>IVA:</div>
-                            <div className="text-right">
+                            <div>IVA ({form.currency}):</div>
+                            <div className="text-right font-mono">
                                 {formatCurrency(tax)}
                             </div>
 
                             <div className="font-bold text-white text-lg border-t border-gray-700 pt-2 mt-2">
-                                Total:
+                                Total ({form.currency}):
                             </div>
-                            <div className="font-bold text-brand text-lg text-right border-t border-gray-700 pt-2 mt-2">
+                            <div className="font-bold text-brand text-lg text-right border-t border-gray-700 pt-2 mt-2 font-mono">
                                 {formatCurrency(total)}
                             </div>
+
+                            {form.currency === "USD" && form.exchangeRate > 0 && (
+                                <>
+                                    <div className="text-xs text-gray-400 pt-1">
+                                        Equivalente en ARS (tipo de cambio {form.exchangeRate}):
+                                    </div>
+                                    <div className="text-xs text-right text-gray-400 pt-1 font-mono">
+                                        {formatCurrency(total * form.exchangeRate, "ARS")}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </section>
                 </div>
+
                 {/* Columna lateral */}
                 <div className="flex flex-col gap-4">
-                    {/* Acciones */}
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
-                            Publicación
+                            Estado y acciones
                         </h2>
                         <div className="flex flex-col gap-4">
                             <div>
                                 <label className={labelClass}>Estado</label>
-                                <select
-                                    name="status"
-                                    value={form.status}
-                                    onChange={handleChange}
-                                    className={inputClass}
-                                >
-                                    <option value="draft">Borrador</option>
-                                    <option value="confirmed">
-                                        Confirmada
-                                    </option>
-                                    <option value="received">Recibida</option>
-                                    <option value="cancelled">Cancelada</option>
-                                </select>
+                                {isReadOnly ? (
+                                    <div className="px-4 py-3 bg-gray-800 text-white text-sm rounded-lg border border-gray-700 capitalize">
+                                        {form.status === "partially_received"
+                                            ? "Parcialmente recibida"
+                                            : form.status === "received"
+                                              ? "Recibida"
+                                              : form.status === "cancelled"
+                                                ? "Cancelada"
+                                                : form.status}
+                                    </div>
+                                ) : (
+                                    <select
+                                        name="status"
+                                        value={form.status}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                    >
+                                        <option value="draft">Borrador</option>
+                                        <option value="confirmed">Confirmada</option>
+                                        {mode === "edit" && (
+                                            <option value="cancelled">Cancelada</option>
+                                        )}
+                                    </select>
+                                )}
                             </div>
 
+                            {/* Acceso directo a recepcionar si la compra está confirmada */}
+                            {mode === "edit" &&
+                                (purchase?.status === "confirmed" ||
+                                    purchase?.status === "partially_received") && (
+                                    <Link
+                                        href={`/admin/purchases/${purchase.id}/receive`}
+                                        className="w-full py-3 rounded-xl text-center text-white font-medium bg-emerald-600 hover:bg-emerald-500 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <span>📦</span>
+                                        <span>Recepcionar compra</span>
+                                    </Link>
+                                )}
+
                             {error && (
-                                <p className="text-sm text-red-400">{error}</p>
+                                <p className="text-sm text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                                    {error}
+                                </p>
                             )}
                             {success && (
-                                <p className="text-sm text-green-400">
+                                <p className="text-sm text-green-400 bg-green-500/10 p-3 rounded-lg border border-green-500/20">
                                     {success}
                                 </p>
                             )}
 
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
-                            >
-                                {loading
-                                    ? "Guardando..."
-                                    : mode === "edit"
-                                      ? "Guardar cambios"
-                                      : "Guardar compra"}
-                            </button>
-
-                            {mode === "edit" && (
+                            {!isReadOnly && (
                                 <button
-                                    type="button"
-                                    onClick={handleDelete}
-                                    disabled={deleting}
-                                    className="w-full py-2.5 rounded-xl text-red-400 text-sm font-medium border border-red-400/20 hover:bg-red-400/10 disabled:opacity-50 transition-all"
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
                                 >
-                                    {deleting
-                                        ? "Eliminando..."
-                                        : "Eliminar compra"}
+                                    {loading
+                                        ? "Guardando..."
+                                        : mode === "edit"
+                                          ? "Guardar cambios"
+                                          : "Crear compra"}
                                 </button>
                             )}
+
+                            {mode === "edit" &&
+                                (purchase?.status === "draft" ||
+                                    purchase?.status === "cancelled") && (
+                                    <button
+                                        type="button"
+                                        onClick={handleDelete}
+                                        disabled={deleting}
+                                        className="w-full py-2.5 rounded-xl text-red-400 text-sm font-medium border border-red-400/20 hover:bg-red-400/10 disabled:opacity-50 transition-all"
+                                    >
+                                        {deleting
+                                            ? "Eliminando..."
+                                            : "Eliminar compra"}
+                                    </button>
+                                )}
                         </div>
                     </section>
                 </div>
             </form>
+
             {showSupplierModal && (
-                <FormModal title="Proveedor">
+                <FormModal title="Nuevo Proveedor">
                     <SupplierForm
                         onCancel={() => setShowSupplierModal(false)}
                         mode="create"

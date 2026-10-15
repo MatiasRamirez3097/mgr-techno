@@ -4,11 +4,16 @@ export type PurchaseDTO = {
     supplierId: string;
     supplierName?: string;
 
-    status: "draft" | "confirmed" | "received" | "cancelled";
+    status: "draft" | "confirmed" | "partially_received" | "received" | "cancelled";
+
+    currency?: "ARS" | "USD";
+    exchangeRate?: number;
 
     items: {
         productId: string | object;
+        name: string;
         quantity: number;
+        receivedQuantity?: number;
         unitCost: number;
         total: number;
         taxRate: number;
@@ -27,12 +32,15 @@ export type PurchaseDTO = {
 
     notes?: string;
 
+    itemsCount?: number;
+
     receivedAt?: string | null;
     createdAt: string;
 };
 
 export type PurchaseFilters = {
     search?: string;
+    status?: string;
     page?: number;
     orderby?: "date" | "price" | "price-desc" | "name" | "popularity";
 };

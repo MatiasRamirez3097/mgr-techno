@@ -3,24 +3,17 @@ import { PurchaseModel } from "@/models/Purchase";
 import { ProductModel } from "@/models/Product";
 import { InventoryItemModel } from "@/models/InventoryItem";
 import { connectDB } from "../mongodb";
+import { receivePurchaseBodySchema } from "../validators/purchaseSchema";
 
-export async function receivePurchase(
-    purchaseId: string,
-    data: {
-        items: {
-            productId: string;
-            quantity: number;
-            serials?: string[];
-            defects?: string[];
-        }[];
-    },
-) {
+export async function receivePurchase(purchaseId: string, data: unknown) {
     await connectDB();
+
+    const validatedData = receivePurchaseBodySchema.parse(data);
+
     const session = await mongoose.startSession();
+    session.startTransaction();
 
     try {
-        session.startTransaction();
-
         const purchase =
             await PurchaseModel.findById(purchaseId).session(session);
 
@@ -29,179 +22,195 @@ export async function receivePurchase(
         }
 
         if (purchase.status === "received") {
-            throw new Error("La compra ya fue recepcionada");
+            throw new Error("La compra ya fue recepcionada en su totalidad");
         }
 
-        // 🔒 Mapear items de la compra original
-        const purchaseMap = new Map<string, number>(
-            purchase.items.map((i: any) => [
-                i.productId.toString(),
-                i.quantity,
-            ]),
-        );
+        if (purchase.status === "cancelled") {
+            throw new Error("No se puede recepcionar una compra cancelada");
+        }
 
-        // 🔥 Traer TODOS los productos de una
-        const productIds = data.items.map((i) => i.productId);
+        if (purchase.status === "draft") {
+            throw new Error("La compra debe estar confirmada antes de recepcionarse");
+        }
 
+        if (purchase.status !== "confirmed" && purchase.status !== "partially_received") {
+            throw new Error(`Estado de compra inválido para recepcionar: ${purchase.status}`);
+        }
+
+        // Mapear items de la compra por productId
+        type PurchaseItemDoc = (typeof purchase.items)[number];
+        const purchaseItemMap = new Map<string, PurchaseItemDoc>();
+        for (const pi of purchase.items) {
+            purchaseItemMap.set(pi.productId.toString(), pi);
+        }
+
+        // Validar que los seriales no vengan duplicados en el payload
+        const incomingSerials = validatedData.items
+            .filter((i) => i.quantity > 0 && i.serials)
+            .flatMap((i) => (i.serials || []).map((s) => s.trim()))
+            .filter(Boolean);
+
+        const uniqueSerials = new Set(incomingSerials);
+        if (uniqueSerials.size !== incomingSerials.length) {
+            throw new Error("Se detectaron números de serie duplicados en los datos ingresados");
+        }
+
+        if (incomingSerials.length > 0) {
+            const existingInDb = await InventoryItemModel.findOne({
+                serialNumber: { $in: incomingSerials },
+            }).session(session);
+
+            if (existingInDb) {
+                throw new Error(
+                    `El número de serie "${existingInDb.serialNumber}" ya existe en el inventario`,
+                );
+            }
+        }
+
+        // Traer productos de la base de datos
+        const productIds = validatedData.items.map((i) => i.productId);
         const products = await ProductModel.find({
             _id: { $in: productIds },
         }).session(session);
 
         const productMap = new Map(products.map((p) => [p._id.toString(), p]));
 
-        const createdInventoryItems = [];
-        console.log("data.items>>>", data.items);
-        for (const item of data.items) {
+        const itemsToInsert: Record<string, unknown>[] = [];
+        let totalQuantityToReceive = 0;
+
+        for (const item of validatedData.items) {
+            if (item.quantity <= 0) continue; // Sin recepción para este item en esta tanda
+
+            const purchaseItem = purchaseItemMap.get(item.productId);
+            if (!purchaseItem) {
+                throw new Error("Uno o más productos no pertenecen a la compra");
+            }
+
+            const currentReceived = purchaseItem.receivedQuantity || 0;
+            const pendingQty = purchaseItem.quantity - currentReceived;
+
+            if (item.quantity > pendingQty) {
+                throw new Error(
+                    `Cantidad a recibir (${item.quantity}) para "${purchaseItem.name}" supera el saldo pendiente (${pendingQty})`,
+                );
+            }
+
             const product = productMap.get(item.productId);
-
-            if (!product) throw new Error("Producto no encontrado");
-
-            // 🔒 VALIDAR contra la compra
-            const purchasedQty = purchaseMap.get(item.productId);
-
-            if (!purchasedQty) {
-                throw new Error("Producto no pertenece a la compra");
+            if (!product) {
+                throw new Error(`Producto "${purchaseItem.name}" no encontrado en catálogo`);
             }
 
-            if (item.quantity > purchasedQty) {
-                throw new Error("Cantidad recibida mayor a la comprada");
-            }
+            totalQuantityToReceive += item.quantity;
 
-            // 🔴 SERIALIZADO
+            // Outlet
             if (product.isOutlet) {
                 if (product.hasSerialNumber) {
-                    if (
-                        !item.serials ||
-                        item.serials.length !== item.quantity
-                    ) {
+                    const cleanSerials = (item.serials || []).map((s) => s.trim()).filter(Boolean);
+                    if (cleanSerials.length !== item.quantity) {
                         throw new Error(
-                            "Faltan números de serie para las unidades de Outlet.",
-                        );
-                    }
-
-                    // Validar duplicados para que no ingresen seriales repetidos
-                    const existingSerials = await InventoryItemModel.findOne({
-                        productId: item.productId,
-                        serialNumber: { $in: item.serials },
-                    }).session(session);
-
-                    if (existingSerials) {
-                        throw new Error(
-                            `Uno o más números de serie de Outlet ya existen en el inventario.`,
+                            `Faltan números de serie para las ${item.quantity} unidades de Outlet de "${product.name}".`,
                         );
                     }
                 }
 
-                // 2. Iteramos creando un InventoryItem ÚNICO por CADA unidad física recibida
                 for (let i = 0; i < item.quantity; i++) {
                     const defect =
-                        item.defects && item.defects[i]
-                            ? item.defects[i]
+                        item.defects && item.defects[i] && item.defects[i].trim()
+                            ? item.defects[i].trim()
                             : "Sin detalle de falla especificado";
 
                     const serial =
-                        item.serials && item.serials[i]
-                            ? item.serials[i]
+                        item.serials && item.serials[i] && item.serials[i].trim()
+                            ? item.serials[i].trim()
                             : undefined;
 
-                    const inv = await InventoryItemModel.create(
-                        [
-                            {
-                                productId: item.productId,
-                                purchaseId,
-                                serialNumber: serial, // ACÁ AHORA SÍ GUARDAMOS EL SERIAL
-                                status: "available",
-                                quantity: 1, // Siempre 1 unidad física por item en outlet
-                                remainingQuantity: 1,
-                                defectDescription: defect, // Guardamos la falla específica
-                            },
-                        ],
-                        { session },
-                    );
-                    createdInventoryItems.push(inv[0]);
+                    itemsToInsert.push({
+                        productId: item.productId,
+                        purchaseId,
+                        serialNumber: serial,
+                        status: "available",
+                        quantity: 1,
+                        remainingQuantity: 1,
+                        defectDescription: defect,
+                        unitCost: purchaseItem.unitCost,
+                    });
                 }
             } else if (product.hasSerialNumber) {
-                if (!item.serials || item.serials.length !== item.quantity) {
-                    throw new Error("Seriales inválidos");
-                }
-
-                // NUEVO: Validar que los seriales no existan ya en la DB
-                const existingSerials = await InventoryItemModel.findOne({
-                    productId: item.productId,
-                    serialNumber: { $in: item.serials },
-                }).session(session);
-
-                if (existingSerials) {
+                // Producto normal con número de serie
+                const cleanSerials = (item.serials || []).map((s) => s.trim()).filter(Boolean);
+                if (cleanSerials.length !== item.quantity) {
                     throw new Error(
-                        `Uno o más números de serie ya existen en el inventario para este producto.`,
+                        `Se esperaban ${item.quantity} números de serie para "${product.name}", pero se recibieron ${cleanSerials.length}`,
                     );
                 }
 
-                for (const serial of item.serials) {
-                    const inv = await InventoryItemModel.create(
-                        [
-                            {
-                                productId: item.productId,
-                                serialNumber: serial,
-                                purchaseId,
-                                status: "available",
-                                quantity: 1,
-                                remainingQuantity: 1,
-                            },
-                        ],
-                        { session },
-                    );
-
-                    createdInventoryItems.push(inv[0]);
+                for (const serial of cleanSerials) {
+                    itemsToInsert.push({
+                        productId: item.productId,
+                        serialNumber: serial,
+                        purchaseId,
+                        status: "available",
+                        quantity: 1,
+                        remainingQuantity: 1,
+                        unitCost: purchaseItem.unitCost,
+                    });
                 }
             } else {
-                // 🟢 NO SERIAL → lote
-                const inv = await InventoryItemModel.create(
-                    [
-                        {
-                            productId: item.productId,
-                            purchaseId,
-                            status: "available",
-                            quantity: item.quantity,
-                            remainingQuantity: item.quantity,
-                        },
-                    ],
-                    { session },
-                );
-
-                createdInventoryItems.push(inv[0]);
+                // Producto por lote (sin serial)
+                itemsToInsert.push({
+                    productId: item.productId,
+                    purchaseId,
+                    status: "available",
+                    quantity: item.quantity,
+                    remainingQuantity: item.quantity,
+                    unitCost: purchaseItem.unitCost,
+                });
             }
 
-            // 📦 guardar stock anterior
+            // Actualizar stock del producto
             const previousAvailableStock = product.availableStock ?? 0;
-
-            // 📦 actualizar stock
-            product.availableStock += item.quantity;
-            product.totalStock += item.quantity;
+            product.availableStock = (product.availableStock ?? 0) + item.quantity;
+            product.totalStock = (product.totalStock ?? 0) + item.quantity;
             product.isAvailable = product.availableStock > 0;
-            // 🔍 detectar reposición
+
             const stockRecovered =
                 previousAvailableStock === 0 && product.availableStock > 0;
 
             if (stockRecovered && product.status === "publish") {
                 product.status = "pending_review";
             }
-            console.log("product:::", product);
+
             await product.save({ session });
+
+            // Registrar cantidad recibida acumulada en el item de compra
+            purchaseItem.receivedQuantity = currentReceived + item.quantity;
         }
 
-        // ✅ Marcar compra como recibida
-        purchase.status = "received";
+        if (totalQuantityToReceive === 0) {
+            throw new Error("Debe ingresar al menos una unidad para recepcionar");
+        }
+
+        const createdInventoryItems = await InventoryItemModel.insertMany(
+            itemsToInsert,
+            { session },
+        );
+
+        // Determinar si la compra quedó completa o parcialmente recibida
+        const allReceived = purchase.items.every(
+            (pi: PurchaseItemDoc) => (pi.receivedQuantity || 0) >= pi.quantity,
+        );
+
+        purchase.status = allReceived ? "received" : "partially_received";
         purchase.receivedAt = new Date();
+        purchase.markModified("items");
         await purchase.save({ session });
 
         await session.commitTransaction();
-        session.endSession();
-
         return createdInventoryItems;
     } catch (error) {
         await session.abortTransaction();
-        session.endSession();
         throw error;
+    } finally {
+        session.endSession();
     }
 }

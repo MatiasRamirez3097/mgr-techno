@@ -12,7 +12,7 @@ export const purchaseDocumentSchema = z.object({
     number: z.string().optional(),
     fileUrl: z.string().pipe(z.url()).optional(),
     fileName: z.string().optional(),
-    date: z.coerce.date().optional(), // coerce convierte string a Date automáticamente
+    date: z.coerce.date().optional(),
 });
 
 // Schema para item de compra
@@ -21,6 +21,7 @@ export const purchaseItemSchema = z.object({
     productId: objectIdSchema,
     quantity: z.number().int().min(1, "La cantidad debe ser al menos 1"),
     unitCost: z.number().min(0, "El costo unitario debe ser positivo"),
+    taxRate: z.number().min(0).max(100).default(10.5),
     serialNumbers: z.array(z.string().min(1)).optional(),
     location: z.string().default("main"),
 });
@@ -31,30 +32,39 @@ export const createPurchaseSchema = z.object({
     items: z
         .array(purchaseItemSchema)
         .min(1, "Debe incluir al menos un producto"),
-    document: purchaseDocumentSchema,
+    document: purchaseDocumentSchema.default({ type: "generic" }),
     notes: z.string().optional(),
-    status: z.string(),
-    /*orderDate: z.coerce
-        .date()
-        .optional()
-        .default(() => new Date()),*/
+    status: z.enum(["draft", "confirmed"]).default("draft"),
+    currency: z.enum(["ARS", "USD"]).default("ARS"),
+    exchangeRate: z.number().min(0).optional().default(1),
 });
 
-// Schema para recibir items
-export const receiveItemSchema = z.object({
-    productId: objectIdSchema,
-    quantityReceived: z.number().int().min(1, "Debe recibir al menos 1 unidad"),
-    serialNumbers: z.array(z.string().min(1)).optional(),
-    location: z.string().default("main"),
-});
-
-export const receivePurchaseSchema = z.object({
-    purchaseId: objectIdSchema,
-    receivedItems: z
-        .array(receiveItemSchema)
-        .min(1, "Debe recibir al menos un item"),
-    // Opcional: actualizar documento al recibir
+// Schema para actualizar compra
+export const updatePurchaseSchema = z.object({
+    supplierId: objectIdSchema.optional(),
+    items: z
+        .array(purchaseItemSchema)
+        .min(1, "Debe incluir al menos un producto")
+        .optional(),
     document: purchaseDocumentSchema.optional(),
+    notes: z.string().optional(),
+    status: z.enum(["draft", "confirmed", "cancelled"]).optional(),
+    currency: z.enum(["ARS", "USD"]).optional(),
+    exchangeRate: z.number().min(0).optional(),
+});
+
+// Schema para recepcionar compra (lo que envía ReceivePurchaseForm)
+export const receivePurchaseItemSchema = z.object({
+    productId: objectIdSchema,
+    quantity: z.number().int().min(0, "La cantidad debe ser mayor o igual a 0"),
+    serials: z.array(z.string().trim()).optional(),
+    defects: z.array(z.string().trim()).optional(),
+});
+
+export const receivePurchaseBodySchema = z.object({
+    items: z
+        .array(receivePurchaseItemSchema)
+        .min(1, "Debe incluir al menos un producto"),
 });
 
 // Schema para actualizar documento de compra
@@ -67,8 +77,9 @@ export const updatePurchaseDocumentSchema = z.object({
 export type PurchaseDocumentInput = z.infer<typeof purchaseDocumentSchema>;
 export type PurchaseItemInput = z.infer<typeof purchaseItemSchema>;
 export type CreatePurchaseInput = z.infer<typeof createPurchaseSchema>;
-export type ReceiveItemInput = z.infer<typeof receiveItemSchema>;
-export type ReceivePurchaseInput = z.infer<typeof receivePurchaseSchema>;
+export type UpdatePurchaseInput = z.infer<typeof updatePurchaseSchema>;
+export type ReceivePurchaseItemInput = z.infer<typeof receivePurchaseItemSchema>;
+export type ReceivePurchaseBodyInput = z.infer<typeof receivePurchaseBodySchema>;
 export type UpdatePurchaseDocumentInput = z.infer<
     typeof updatePurchaseDocumentSchema
 >;

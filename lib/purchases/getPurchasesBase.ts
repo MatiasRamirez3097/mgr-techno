@@ -7,8 +7,8 @@ import type { PurchaseDTO } from "@/types/shared/purchase";
 
 type BaseOptions = {
     limit?: number;
-    query?: any;
-    sort?: any;
+    query?: Record<string, unknown>;
+    sort?: Record<string, 1 | -1>;
 };
 
 export async function getPurchasesBase({

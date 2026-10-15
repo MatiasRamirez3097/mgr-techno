@@ -71,6 +71,11 @@ export const InventoryItemSchema = new Schema(
         defectDescription: {
             type: String,
         },
+
+        unitCost: {
+            type: Number,
+            min: 0,
+        },
     },
     { timestamps: true },
 );

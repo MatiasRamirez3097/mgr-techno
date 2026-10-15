@@ -17,9 +17,27 @@ export const PurchaseSchema = new Schema(
 
         status: {
             type: String,
-            enum: ["draft", "confirmed", "received", "cancelled"],
+            enum: [
+                "draft",
+                "confirmed",
+                "partially_received",
+                "received",
+                "cancelled",
+            ],
             default: "draft",
             index: true,
+        },
+
+        currency: {
+            type: String,
+            enum: ["ARS", "USD"],
+            default: "ARS",
+        },
+
+        exchangeRate: {
+            type: Number,
+            default: 1,
+            min: 0,
         },
 
         items: {

@@ -1,42 +1,92 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import type { PurchaseDTO } from "@/types/shared/purchase";
 
-type ReceiveItem = {
+interface Props {
+    purchase: PurchaseDTO;
+}
+
+type ReceiveItemState = {
     productId: string;
+    name: string;
+    totalQuantity: number;
+    alreadyReceived: number;
+    pendingQuantity: number;
     receiveQuantity: number;
-    hasSerialNumber?: boolean;
-    isOutlet?: boolean; // NUEVO
-    serials?: string[];
-    defects?: string[]; // NUEVO
+    hasSerialNumber: boolean;
+    isOutlet: boolean;
+    serials: string[];
+    defects: string[];
 };
 
-export function ReceivePurchaseForm({ purchase }: any) {
-    const [items, setItems] = useState(
-        purchase.items.map((item: any) => ({
-            productId: item.productId.id,
-            name: item.name,
-            hasSerialNumber: item.productId.hasSerialNumber,
-            isOutlet: item.productId.isOutlet, // Traemos el flag del producto
-            quantity: item.quantity,
-            receiveQuantity: item.quantity,
-            serials: Array(item.quantity).fill(""),
-            defects: Array(item.quantity).fill(""), // Inicializamos el array de fallas
-        })),
-    );
+export function ReceivePurchaseForm({ purchase }: Props) {
+    const router = useRouter();
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
-    const handleQuantityChange = (index: number, value: number) => {
+    const initialItems: ReceiveItemState[] = purchase.items.map((item) => {
+        const prodObj =
+            typeof item.productId === "object" && item.productId !== null
+                ? (item.productId as { id?: string; name?: string; hasSerialNumber?: boolean; isOutlet?: boolean })
+                : null;
+        const productId = prodObj?.id || String(item.productId || "");
+        const hasSerialNumber = Boolean(prodObj?.hasSerialNumber);
+        const isOutlet = Boolean(prodObj?.isOutlet);
+
+        const totalQuantity = item.quantity || 0;
+        const alreadyReceived = item.receivedQuantity || 0;
+        const pendingQuantity = Math.max(0, totalQuantity - alreadyReceived);
+        const initialReceive = pendingQuantity;
+
+        return {
+            productId,
+            name: item.name || prodObj?.name || "Producto",
+            totalQuantity,
+            alreadyReceived,
+            pendingQuantity,
+            receiveQuantity: initialReceive,
+            hasSerialNumber,
+            isOutlet,
+            serials: hasSerialNumber ? Array(initialReceive).fill("") : [],
+            defects: isOutlet ? Array(initialReceive).fill("") : [],
+        };
+    });
+
+    const [items, setItems] = useState<ReceiveItemState[]>(initialItems);
+
+    const handleQuantityChange = (index: number, val: number) => {
         const newItems = [...items];
-        newItems[index].receiveQuantity = value;
+        const item = newItems[index];
+        const safeVal = Math.max(0, Math.min(item.pendingQuantity, Math.floor(val || 0)));
 
-        // ajustar seriales si cambia cantidad
-        if (newItems[index].hasSerialNumber) {
-            newItems[index].serials = Array(value).fill("");
+        item.receiveQuantity = safeVal;
+
+        if (item.hasSerialNumber) {
+            const currentSerials = item.serials || [];
+            if (safeVal > currentSerials.length) {
+                item.serials = [
+                    ...currentSerials,
+                    ...Array(safeVal - currentSerials.length).fill(""),
+                ];
+            } else {
+                item.serials = currentSerials.slice(0, safeVal);
+            }
         }
 
-        // NUEVO: ajustar inputs de fallas si cambia cantidad
-        if (newItems[index].isOutlet) {
-            newItems[index].defects = Array(value).fill("");
+        if (item.isOutlet) {
+            const currentDefects = item.defects || [];
+            if (safeVal > currentDefects.length) {
+                item.defects = [
+                    ...currentDefects,
+                    ...Array(safeVal - currentDefects.length).fill(""),
+                ];
+            } else {
+                item.defects = currentDefects.slice(0, safeVal);
+            }
         }
 
         setItems(newItems);
@@ -52,7 +102,6 @@ export function ReceivePurchaseForm({ purchase }: any) {
         setItems(newItems);
     };
 
-    // NUEVO: Manejador para los textos de las fallas
     const handleDefectChange = (
         itemIndex: number,
         defectIndex: number,
@@ -63,168 +112,327 @@ export function ReceivePurchaseForm({ purchase }: any) {
         setItems(newItems);
     };
 
+    const totalToReceive = items.reduce(
+        (acc, item) => acc + (item.receiveQuantity || 0),
+        0,
+    );
+
     const handleSubmit = async () => {
-        // 🔒 validación básica frontend
+        setError("");
+        setSuccess("");
+
+        if (totalToReceive <= 0) {
+            setError("Debe ingresar al menos una unidad para recepcionar.");
+            return;
+        }
+
+        // Validaciones en cliente
+        const seenSerials = new Set<string>();
+
         for (const item of items) {
             if (item.receiveQuantity < 0) {
-                return alert("Cantidad inválida");
+                setError(`Cantidad inválida en "${item.name}"`);
+                return;
             }
 
-            // Validar seriales
-            if (item.hasSerialNumber) {
-                const filled = item.serials.filter(
-                    (s: string) => s.trim() !== "",
+            if (item.receiveQuantity > item.pendingQuantity) {
+                setError(
+                    `La cantidad a recibir de "${item.name}" (${item.receiveQuantity}) no puede ser mayor al saldo pendiente (${item.pendingQuantity})`,
                 );
+                return;
+            }
+
+            if (item.hasSerialNumber && item.receiveQuantity > 0) {
+                const filled = item.serials.map((s) => s.trim()).filter(Boolean);
                 if (filled.length !== item.receiveQuantity) {
-                    return alert(`Faltan seriales en ${item.name}`);
+                    setError(
+                        `Faltan completar números de serie para "${item.name}" (${filled.length}/${item.receiveQuantity})`,
+                    );
+                    return;
+                }
+
+                for (const s of filled) {
+                    if (seenSerials.has(s.toLowerCase())) {
+                        setError(`El número de serie "${s}" está repetido en el formulario.`);
+                        return;
+                    }
+                    seenSerials.add(s.toLowerCase());
                 }
             }
 
-            // NUEVO: Validar fallas de outlet
-            if (item.isOutlet) {
-                const filledDefects = item.defects.filter(
-                    (d: string) => d.trim() !== "",
-                );
+            if (item.isOutlet && item.receiveQuantity > 0) {
+                const filledDefects = item.defects.map((d) => d.trim()).filter(Boolean);
                 if (filledDefects.length !== item.receiveQuantity) {
-                    return alert(
-                        `Faltan detallar las fallas (Outlet) en ${item.name}`,
+                    setError(
+                        `Falta detallar la descripción de fallas de todas las unidades de Outlet para "${item.name}" (${filledDefects.length}/${item.receiveQuantity})`,
                     );
+                    return;
                 }
             }
         }
 
         if (
-            !confirm("¿Confirmar recepción? Esta acción no se puede deshacer.")
+            !confirm(
+                `¿Confirmar la recepción de ${totalToReceive} unidad(es)? Esta acción impactará directamente en el inventario.`,
+            )
         ) {
             return;
         }
 
-        const payload = {
-            items: items.map((item: ReceiveItem) => ({
-                productId: item.productId,
-                quantity: item.receiveQuantity,
-                serials: item.hasSerialNumber ? item.serials : undefined,
-                defects: item.isOutlet ? item.defects : undefined, // Lo sumamos al payload
-            })),
-        };
+        setSubmitting(true);
 
-        const res = await fetch(`/api/admin/purchases/${purchase.id}/receive`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
+        try {
+            const payload = {
+                items: items
+                    .filter((item) => item.receiveQuantity > 0)
+                    .map((item) => ({
+                        productId: item.productId,
+                        quantity: item.receiveQuantity,
+                        serials: item.hasSerialNumber ? item.serials.map((s) => s.trim()) : undefined,
+                        defects: item.isOutlet ? item.defects.map((d) => d.trim()) : undefined,
+                    })),
+            };
 
-        const data = await res.json();
+            const res = await fetch(`/api/admin/purchases/${purchase.id}/receive`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
 
-        if (!res.ok) {
-            alert(data.error || "Error al recepcionar");
-            return;
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Error al recepcionar");
+            }
+
+            setSuccess("Recepción registrada con éxito.");
+            router.push(`/admin/purchases/${purchase.id}`);
+            router.refresh();
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Error al registrar la recepción");
+        } finally {
+            setSubmitting(false);
         }
-
-        alert("Compra recepcionada correctamente");
-        window.location.href = "/admin/purchases";
     };
+
+    const allFullyReceived = items.every((i) => i.pendingQuantity === 0);
+
+    if (allFullyReceived) {
+        return (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center">
+                <p className="text-emerald-400 font-medium mb-3">
+                    ✓ Todos los productos de esta compra ya fueron recepcionados en su totalidad.
+                </p>
+                <Link
+                    href={`/admin/purchases/${purchase.id}`}
+                    className="inline-block px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm transition"
+                >
+                    Ver detalle de la compra
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
-            {items.map((item: any, index: number) => (
-                <div
-                    key={index}
-                    className="bg-gray-900 border border-gray-800 rounded-xl p-4"
-                >
-                    <div className="flex items-center gap-2 mb-1">
-                        <p className="text-white font-medium">{item.name}</p>
-                        {item.isOutlet && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                                OUTLET
-                            </span>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-sm">
+                <div>
+                    <span className="text-gray-400">Proveedor:</span>{" "}
+                    <span className="text-white font-medium">
+                        {purchase.supplierName || "—"}
+                    </span>
+                </div>
+                <div>
+                    <span className="text-gray-400">Comprobante:</span>{" "}
+                    <span className="text-white font-mono font-medium">
+                        {purchase.document.number || "Sin número"}
+                    </span>
+                </div>
+                <div>
+                    <span className="text-gray-400">Total a recibir ahora:</span>{" "}
+                    <span className="text-brand font-bold text-base font-mono">
+                        {totalToReceive} u.
+                    </span>
+                </div>
+            </div>
+
+            {items.map((item, index) => {
+                const isItemDone = item.pendingQuantity === 0;
+
+                return (
+                    <div
+                        key={index}
+                        className={`bg-gray-900 border rounded-xl p-5 transition-all ${
+                            isItemDone
+                                ? "border-gray-800/50 opacity-60"
+                                : "border-gray-800"
+                        }`}
+                    >
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div className="flex items-center gap-2">
+                                <p className="text-white font-medium text-base">
+                                    {item.name}
+                                </p>
+                                {item.isOutlet && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                        OUTLET
+                                    </span>
+                                )}
+                                {item.hasSerialNumber && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                        SERIALIZADO
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-4 text-xs font-mono">
+                                <span className="text-gray-400">
+                                    Comprado:{" "}
+                                    <strong className="text-gray-200">
+                                        {item.totalQuantity}
+                                    </strong>
+                                </span>
+                                <span className="text-emerald-400">
+                                    Recibido previo:{" "}
+                                    <strong>{item.alreadyReceived}</strong>
+                                </span>
+                                <span className="text-yellow-400">
+                                    Pendiente:{" "}
+                                    <strong>{item.pendingQuantity}</strong>
+                                </span>
+                            </div>
+                        </div>
+
+                        {isItemDone ? (
+                            <p className="text-xs text-emerald-400">
+                                ✓ Item completamente recibido
+                            </p>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-3 my-4">
+                                    <label className="text-sm text-gray-300">
+                                        Cantidad a recepcionar en esta tanda:
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max={item.pendingQuantity}
+                                        value={item.receiveQuantity}
+                                        onChange={(e) =>
+                                            handleQuantityChange(
+                                                index,
+                                                Number(e.target.value),
+                                            )
+                                        }
+                                        className="bg-gray-800 border border-gray-700 text-white font-semibold px-3 py-2 rounded-lg w-28 text-center focus:border-brand outline-none transition-colors"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            handleQuantityChange(
+                                                index,
+                                                item.pendingQuantity,
+                                            )
+                                        }
+                                        className="text-xs text-brand hover:underline"
+                                    >
+                                        Recibir todo ({item.pendingQuantity})
+                                    </button>
+                                </div>
+
+                                {/* Seriales requeridos si el producto es serializado */}
+                                {item.hasSerialNumber && item.receiveQuantity > 0 && (
+                                    <div className="space-y-2 mt-4 pt-4 border-t border-gray-800">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-xs font-medium text-blue-400">
+                                                Números de serie ({item.receiveQuantity} requeridos):
+                                            </label>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {item.serials.map(
+                                                (serial, sIndex) => (
+                                                    <input
+                                                        key={`serial-${sIndex}`}
+                                                        value={serial}
+                                                        onChange={(e) =>
+                                                            handleSerialChange(
+                                                                index,
+                                                                sIndex,
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        placeholder={`Número de serie #${sIndex + 1}`}
+                                                        className="w-full bg-gray-800 border border-gray-700 text-white text-sm px-3 py-2 rounded-lg focus:border-brand outline-none transition-colors font-mono"
+                                                    />
+                                                ),
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Fallas de outlet */}
+                                {item.isOutlet && item.receiveQuantity > 0 && (
+                                    <div className="space-y-2 mt-4 pt-4 border-t border-gray-800">
+                                        <label className="text-xs text-purple-400 font-medium">
+                                            Detalle de fallas por unidad ({item.receiveQuantity} descripciones):
+                                        </label>
+                                        <div className="space-y-2">
+                                            {item.defects.map(
+                                                (defect, dIndex) => (
+                                                    <input
+                                                        key={`defect-${dIndex}`}
+                                                        type="text"
+                                                        value={defect}
+                                                        onChange={(e) =>
+                                                            handleDefectChange(
+                                                                index,
+                                                                dIndex,
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        placeholder={`Unidad #${dIndex + 1}: ej. Caja abollada, detalle estético en tapa...`}
+                                                        className="w-full bg-gray-800/60 border border-purple-500/30 text-white text-sm px-3 py-2 rounded-lg focus:border-purple-500 outline-none transition-colors"
+                                                    />
+                                                ),
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
-                    <p className="text-sm text-gray-400 mb-4">
-                        Comprado: {item.quantity}
-                    </p>
+                );
+            })}
 
-                    {/* 🟢 CANTIDAD (Si no tiene serial, el usuario puede cambiar la cantidad) */}
-                    {!item.hasSerialNumber && (
-                        <div className="mb-4">
-                            <label className="block text-xs text-gray-400 mb-1">
-                                Cant. a recepcionar:
-                            </label>
-                            <input
-                                type="number"
-                                value={item.receiveQuantity}
-                                onChange={(e) =>
-                                    handleQuantityChange(
-                                        index,
-                                        Number(e.target.value),
-                                    )
-                                }
-                                className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded w-32 focus:border-brand outline-none transition-colors"
-                            />
-                        </div>
-                    )}
-
-                    {/* 🔴 SERIAL */}
-                    {item.hasSerialNumber && (
-                        <div className="space-y-2 mt-2">
-                            <label className="block text-xs text-gray-400">
-                                Números de serie:
-                            </label>
-                            {item.serials.map(
-                                (serial: string, sIndex: number) => (
-                                    <input
-                                        key={sIndex}
-                                        value={serial}
-                                        onChange={(e) =>
-                                            handleSerialChange(
-                                                index,
-                                                sIndex,
-                                                e.target.value,
-                                            )
-                                        }
-                                        placeholder={`Serial ${sIndex + 1}`}
-                                        className="w-full bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded focus:border-brand outline-none transition-colors"
-                                    />
-                                ),
-                            )}
-                        </div>
-                    )}
-
-                    {/* 🟣 DETALLES OUTLET */}
-                    {item.isOutlet && (
-                        <div className="space-y-2 mt-4 pt-4 border-t border-gray-800">
-                            <label className="block text-xs text-purple-400 font-medium">
-                                Descripciones de falla por unidad:
-                            </label>
-                            {item.defects.map(
-                                (defect: string, dIndex: number) => (
-                                    <input
-                                        key={`defect-${dIndex}`}
-                                        type="text"
-                                        value={defect}
-                                        onChange={(e) =>
-                                            handleDefectChange(
-                                                index,
-                                                dIndex,
-                                                e.target.value,
-                                            )
-                                        }
-                                        placeholder={`Falla de la unidad ${dIndex + 1} (Ej: Caja rota, raya lateral...)`}
-                                        className="w-full bg-gray-800/50 border border-purple-500/30 text-white px-3 py-2 rounded focus:border-purple-500 outline-none transition-colors"
-                                    />
-                                ),
-                            )}
-                        </div>
-                    )}
+            {error && (
+                <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-sm">
+                    {error}
                 </div>
-            ))}
+            )}
 
-            <button
-                onClick={handleSubmit}
-                className="w-full py-3 bg-green-600 text-white rounded-xl font-medium hover:brightness-110 transition-all"
-            >
-                Confirmar recepción
-            </button>
+            {success && (
+                <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-sm">
+                    {success}
+                </div>
+            )}
+
+            <div className="flex items-center justify-between gap-4 pt-2">
+                <Link
+                    href={`/admin/purchases/${purchase.id}`}
+                    className="px-5 py-3 rounded-xl border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-800 transition text-sm"
+                >
+                    ← Volver a la compra
+                </Link>
+
+                <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={submitting || totalToReceive <= 0}
+                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-emerald-900/30 text-sm"
+                >
+                    {submitting ? "Procesando ingreso..." : `Confirmar recepción (${totalToReceive} u.)`}
+                </button>
+            </div>
         </div>
     );
 }
