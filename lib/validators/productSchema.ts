@@ -5,7 +5,7 @@ export const createProductSchema = z.object({
 
     slug: z.string().min(1, "El slug es obligatorio").optional(),
 
-    brand: z.string().optional(),
+    brand: z.string().optional().nullable(),
 
     type: z.enum(["simple", "bundle"]).default("simple"),
 
@@ -50,6 +50,8 @@ export const createProductSchema = z.object({
     gtin: z.string().min(3).optional(),
 
     bundleItemsCount: z.number().int().min(0).optional(),
+    hasFreeShipping: z.boolean().optional(),
+    shippingSize: z.enum(["small", "standard", "bulky"]).optional(),
 });
 
 export const createProductSchemaRefined = createProductSchema.superRefine(

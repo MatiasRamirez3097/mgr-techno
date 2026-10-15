@@ -45,5 +45,6 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         isOutlet: product.isOutlet,
         hasFreeShipping: product.hasFreeShipping,
         shippingSize: product.shippingSize,
+        manageStock: product.manageStock ?? true,
     };
 }

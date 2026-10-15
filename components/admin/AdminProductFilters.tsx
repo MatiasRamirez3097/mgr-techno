@@ -1,10 +1,69 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import type { CategoryDTO } from "@/types/shared/category";
 
 interface Props {
     categories: CategoryDTO[];
+}
+
+interface HierarchicalCategory {
+    id: string;
+    slug: string;
+    name: string;
+    level: number;
+}
+
+function buildCategoryHierarchy(categories: CategoryDTO[]): HierarchicalCategory[] {
+    const result: HierarchicalCategory[] = [];
+    const childrenMap = new Map<string, CategoryDTO[]>();
+    const idSet = new Set(categories.map((c) => c.id));
+    const roots: CategoryDTO[] = [];
+
+    // Separar raíces y agrupar hijos por parentId
+    for (const cat of categories) {
+        if (!cat.parentId || !idSet.has(cat.parentId)) {
+            roots.push(cat);
+        } else {
+            const list = childrenMap.get(cat.parentId) || [];
+            list.push(cat);
+            childrenMap.set(cat.parentId, list);
+        }
+    }
+
+    // Ordenar raíces alfabéticamente
+    roots.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+
+    // Ordenar hijos alfabéticamente
+    for (const [, children] of childrenMap.entries()) {
+        children.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+    }
+
+    const visited = new Set<string>();
+
+    function traverse(category: CategoryDTO, level: number) {
+        if (visited.has(category.id)) return;
+        visited.add(category.id);
+
+        result.push({
+            id: category.id,
+            slug: category.slug,
+            name: category.name,
+            level,
+        });
+
+        const children = childrenMap.get(category.id) || [];
+        for (const child of children) {
+            traverse(child, level + 1);
+        }
+    }
+
+    for (const root of roots) {
+        traverse(root, 0);
+    }
+
+    return result;
 }
 
 export function AdminProductFilters({ categories }: Props) {
@@ -14,6 +73,11 @@ export function AdminProductFilters({ categories }: Props) {
 
     const currentCategory = searchParams.get("category") || "";
     const currentStock = searchParams.get("stock") || "";
+
+    const hierarchicalCategories = useMemo(
+        () => buildCategoryHierarchy(categories),
+        [categories],
+    );
 
     const updateFilter = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -38,14 +102,9 @@ export function AdminProductFilters({ categories }: Props) {
 
     const hasActiveFilters = Boolean(currentCategory || currentStock);
 
-    // Sort categories alphabetically
-    const sortedCategories = [...categories].sort((a, b) =>
-        a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
-    );
-
     return (
         <div className="flex items-center gap-3 flex-wrap">
-            {/* Filtro por Categoría */}
+            {/* Filtro por Categoría con Jerarquía */}
             <div className="flex items-center gap-2">
                 <label
                     htmlFor="category-filter"
@@ -60,11 +119,18 @@ export function AdminProductFilters({ categories }: Props) {
                     className="bg-gray-900 border border-gray-800 text-gray-200 text-xs rounded-xl px-3 py-2 focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-colors max-w-xs"
                 >
                     <option value="">Todas las categorías</option>
-                    {sortedCategories.map((cat) => (
-                        <option key={cat.id} value={cat.slug}>
-                            {cat.name}
-                        </option>
-                    ))}
+                    {hierarchicalCategories.map((cat) => {
+                        const prefix =
+                            cat.level === 0
+                                ? ""
+                                : `${"\u00A0\u00A0".repeat(cat.level)}└─ `;
+                        return (
+                            <option key={cat.id} value={cat.slug}>
+                                {prefix}
+                                {cat.name}
+                            </option>
+                        );
+                    })}
                 </select>
             </div>
 

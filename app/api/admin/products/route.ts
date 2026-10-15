@@ -29,12 +29,16 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            data: [product],
+            data: product,
+            product,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         return Response.json(
             {
-                error: error?.message || "Error al crear producto",
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Error al crear producto",
             },
             {
                 status: 500,

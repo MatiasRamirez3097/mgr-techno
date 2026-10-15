@@ -31,6 +31,8 @@ export type ProductDTO = {
     isOutlet: boolean;
     hasFreeShipping: boolean;
     shippingSize: string;
+    manageStock?: boolean;
+    stockQuantity?: number | string;
 };
 
 export type GetProductsResponse = {

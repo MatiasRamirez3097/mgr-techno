@@ -6,8 +6,6 @@ import { ProductModel } from "@/models";
 
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
 
-import { generateProductSearch } from "@/lib/search/generateProductSearch";
-
 import type { CreateProductDTO } from "@/lib/validators/productSchema";
 
 export async function createProduct(data: CreateProductDTO) {
@@ -21,22 +19,20 @@ export async function createProduct(data: CreateProductDTO) {
         data.salePrice && data.salePrice > 0 ? data.salePrice : null;
 
     // =========================
+    // BRAND
+    // =========================
+
+    const brand =
+        data.brand && data.brand.trim() !== "" && Types.ObjectId.isValid(data.brand)
+            ? new Types.ObjectId(data.brand)
+            : undefined;
+
+    // =========================
     // CATEGORIES
     // =========================
 
     const categories =
         data.categories?.map((id) => new Types.ObjectId(id)) || [];
-
-    // =========================
-    // SEARCH
-    // =========================
-
-    const searchData = generateProductSearch(`
-            ${data.name}
-            ${data.sku || ""}
-            ${data.mpn || ""}
-            ${data.gtin || ""}
-        `);
 
     // =========================
     // CREATE
@@ -46,6 +42,8 @@ export async function createProduct(data: CreateProductDTO) {
         name: data.name,
 
         slug: data.slug,
+
+        brand,
 
         type: data.type,
 
@@ -93,6 +91,10 @@ export async function createProduct(data: CreateProductDTO) {
         gtin: data.gtin,
 
         bundleItemsCount: data.bundleItemsCount,
+
+        hasFreeShipping: data.hasFreeShipping ?? false,
+
+        shippingSize: data.shippingSize || "standard",
     });
 
     return mapProductToDTO(product.toObject());

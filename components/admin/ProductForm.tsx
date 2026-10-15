@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductFormSidebar } from "@/components/admin/products/ProductFormSiderbar";
 import { buildProductPayload } from "@/lib/products/buildProductPayload";
 import { extractProductImages } from "@/lib/products/extractProductImages";
 import { CreateBrandModal } from "./CreateBrandModal";
-import { slugify } from "@/lib/utils/slugify";
 import { useBrands } from "./products/hooks/useBrands";
 import { RichTextEditor } from "@/components/admin/editor/RichTextEditor";
 import type { ProductFormState } from "@/types/admin/productForm";
 import type { CategoryDTO } from "@/types/shared/category";
+import type { ProductDTO } from "@/types/shared/product";
 
 interface Props {
-    product?: any;
+    product?: ProductDTO;
     categories: CategoryDTO[];
     mode: "create" | "edit";
 }
@@ -101,7 +101,7 @@ export function ProductForm({ product, categories, mode }: Props) {
         try {
             const res = await fetch(
                 mode === "edit"
-                    ? `/api/admin/products/${product.id}`
+                    ? `/api/admin/products/${product?.id}`
                     : "/api/admin/products",
                 {
                     method: mode === "edit" ? "PUT" : "POST",
@@ -120,9 +120,9 @@ export function ProductForm({ product, categories, mode }: Props) {
             const data = await res.json();
             if (!res.ok) {
                 setError(data.error);
-                if (Array.isArray(error)) {
+                if (Array.isArray(data.error)) {
                     const errors = Object.fromEntries(
-                        data.error.map((e: any) => [
+                        data.error.map((e: { path: (string | number)[]; message: string }) => [
                             e.path.join("."),
                             e.message,
                         ]),
@@ -135,9 +135,23 @@ export function ProductForm({ product, categories, mode }: Props) {
             setSuccess(
                 mode === "edit" ? "Producto actualizado" : "Producto creado",
             );
-            if (mode === "create")
-                router.push(`/admin/products/${data.data?._id}`);
-            else router.refresh();
+            if (mode === "create") {
+                const createdId =
+                    data.data?.id ||
+                    data.data?._id ||
+                    data.product?.id ||
+                    data.product?._id ||
+                    (Array.isArray(data.data) &&
+                        (data.data[0]?.id || data.data[0]?._id));
+
+                if (createdId) {
+                    router.push(`/admin/products/${createdId}`);
+                } else {
+                    router.push("/admin/products");
+                }
+            } else {
+                router.refresh();
+            }
         } catch (e: unknown) {
             console.log(e);
             //setError(e.error || "Error al guardar");
@@ -155,7 +169,9 @@ export function ProductForm({ product, categories, mode }: Props) {
             return;
         setDeleting(true);
         try {
-            await fetch(`/api/admin/products/${product._id}`, {
+            const targetId = product?.id;
+            if (!targetId) return;
+            await fetch(`/api/admin/products/${targetId}`, {
                 method: "DELETE",
             });
             router.push("/admin/products");
@@ -168,12 +184,6 @@ export function ProductForm({ product, categories, mode }: Props) {
         "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
 
-    useEffect(() => {
-        setForm((prev) => ({
-            ...prev,
-            slug: slugify(prev.name),
-        }));
-    }, [form.name]);
     return (
         <>
             <form

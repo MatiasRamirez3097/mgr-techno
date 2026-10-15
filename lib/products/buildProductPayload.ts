@@ -12,7 +12,7 @@ export function buildProductPayload({ form, image, images }: Params) {
         sku: form.sku != "" ? form.sku : undefined,
         mpn: form.mpn != "" ? form.mpn : undefined,
         gtin: form.gtin != "" ? form.gtin : undefined,
-        brand: form.brand,
+        brand: form.brand != "" ? form.brand : undefined,
         status: form.status,
 
         description: form.description,
@@ -44,5 +44,6 @@ export function buildProductPayload({ form, image, images }: Params) {
         taxRate: Number(form.taxRate),
 
         hasFreeShipping: form.hasFreeShipping,
+        shippingSize: form.shippingSize,
     };
 }
