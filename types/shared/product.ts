@@ -74,6 +74,7 @@ export type ProductFilters = {
     limit?: number;
     status?: "publish" | "private" | "draft" | "pending_review";
     stock?: "in_stock" | "out_of_stock" | "all" | string;
+    quality?: "optimal" | "warnings" | "critical" | "missing_attributes" | "all" | string;
 };
 
 export type ProductOrderBy =

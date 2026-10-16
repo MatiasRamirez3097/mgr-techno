@@ -73,6 +73,7 @@ export function AdminProductFilters({ categories }: Props) {
 
     const currentCategory = searchParams.get("category") || "";
     const currentStock = searchParams.get("stock") || "";
+    const currentQuality = searchParams.get("quality") || "";
 
     const hierarchicalCategories = useMemo(
         () => buildCategoryHierarchy(categories),
@@ -96,11 +97,14 @@ export function AdminProductFilters({ categories }: Props) {
         const params = new URLSearchParams(searchParams.toString());
         params.delete("category");
         params.delete("stock");
+        params.delete("quality");
         params.delete("page");
         router.replace(`${pathname}?${params.toString()}`);
     };
 
-    const hasActiveFilters = Boolean(currentCategory || currentStock);
+    const hasActiveFilters = Boolean(
+        currentCategory || currentStock || currentQuality,
+    );
 
     return (
         <div className="flex items-center gap-3 flex-wrap">
@@ -151,6 +155,30 @@ export function AdminProductFilters({ categories }: Props) {
                     <option value="">Todos los niveles</option>
                     <option value="in_stock">Con stock</option>
                     <option value="out_of_stock">Sin stock</option>
+                </select>
+            </div>
+
+            {/* Filtro por Calidad */}
+            <div className="flex items-center gap-2">
+                <label
+                    htmlFor="quality-filter"
+                    className="text-xs text-gray-400 shrink-0 font-medium"
+                >
+                    Calidad:
+                </label>
+                <select
+                    id="quality-filter"
+                    value={currentQuality}
+                    onChange={(e) => updateFilter("quality", e.target.value)}
+                    className="bg-gray-900 border border-gray-800 text-gray-200 text-xs rounded-xl px-3 py-2 focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-colors"
+                >
+                    <option value="">Todas las calidades</option>
+                    <option value="optimal">Óptima (≥ 90%)</option>
+                    <option value="warnings">Con avisos (70% - 89%)</option>
+                    <option value="critical">Crítica (&lt; 70% o con errores)</option>
+                    <option value="missing_attributes">
+                        Sin atributos de categoría
+                    </option>
                 </select>
             </div>
 

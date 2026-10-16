@@ -19,6 +19,7 @@ interface Props {
         search?: string;
         status?: "private" | "publish" | "draft" | "pending_review";
         stock?: string;
+        quality?: string;
     }>;
 }
 
@@ -27,7 +28,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
     const params = await searchParams;
     const page = Number(params.page) || 1;
 
-    // 2. Traemos las categorías para el filtro
+    // 2. Traemos las categorías para el filtro y validación de atributos
     const categories = await getCategoriesBase({ limit: 0 });
 
     // 3. Armamos el objeto de filtros
@@ -37,6 +38,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         categoryId: params.categoryId as string,
         status: params.status,
         stock: params.stock,
+        quality: params.quality,
         // ¡CRUCIAL!: Le decimos al servicio que somos el admin
         // para que también nos traiga los productos en "draft" o "hidden"
         adminView: true,
@@ -47,7 +49,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         filters,
         page,
         10,
-    ); //
+    );
 
     return (
         <div>
@@ -131,7 +133,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                 overflow-hidden
             "
             >
-                <ProductsTable products={products} />
+                <ProductsTable products={products} categories={categories} />
 
                 {/* PAGINATION */}
 

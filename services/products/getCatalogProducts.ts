@@ -2,7 +2,9 @@ import { connectDB } from "@/lib/mongodb";
 import { ProductModel, CategoryModel, BrandModel } from "@/models";
 import { normalizeSearch } from "@/lib/search/normalize";
 import { getCategoriesDescendants } from "@/services/categories/getCategoriesDescendants";
+import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
+import { getProductHealth } from "@/lib/products/getProductHealth";
 import type { ProductFilters } from "@/types/shared/product";
 import { unstable_cache, revalidateTag, revalidatePath } from "next/cache";
 import { Types } from "mongoose";
@@ -16,6 +18,38 @@ export function revalidateProductsCache() {
         // Ignorar si se ejecuta fuera del contexto de una petición Next.js
     }
 }
+
+const PRODUCT_PROJECT_STAGE = {
+    $project: {
+        _id: 1,
+        type: 1,
+        bundleItemsCount: 1,
+        attributes: 1,
+        name: 1,
+        slug: 1,
+        regularPrice: 1,
+        salePrice: 1,
+        image: 1,
+        availableStock: 1,
+        status: 1,
+        categories: 1,
+        taxRate: 1,
+        effectivePrice: 1,
+        images: 1,
+        sku: 1,
+        gtin: 1,
+        brand: 1,
+        description: 1,
+        shortDescription: 1,
+        weight: 1,
+        dimensions: 1,
+        featured: 1,
+        isOutlet: 1,
+        hasFreeShipping: 1,
+        shippingSize: 1,
+        isAvailable: 1,
+    },
+};
 
 async function fetchCatalogProducts(
     filters: ProductFilters & {
@@ -203,38 +237,69 @@ async function fetchCatalogProducts(
     }
 
     try {
+        const hasQualityFilter =
+            Boolean(filters.adminView) &&
+            Boolean(filters.quality) &&
+            filters.quality !== "all";
+
+        if (hasQualityFilter) {
+            const [rawProducts, allCategories] = await Promise.all([
+                ProductModel.aggregate([
+                    ...sortedPipeline,
+                    ...brandMatchPipeline,
+                    PRODUCT_PROJECT_STAGE,
+                ]),
+                getCategoriesBase({ limit: 0 }),
+            ]);
+
+            const mappedAll = rawProducts.map((p: any) => mapProductToDTO(p));
+            const filteredByQuality = mappedAll.filter((product) => {
+                const health = getProductHealth(product, allCategories);
+                switch (filters.quality) {
+                    case "optimal":
+                        return (
+                            health.score >= 90 && health.critical.length === 0
+                        );
+                    case "warnings":
+                        return (
+                            health.score >= 70 &&
+                            health.score < 90 &&
+                            health.critical.length === 0
+                        );
+                    case "critical":
+                        return health.score < 70 || health.critical.length > 0;
+                    case "missing_attributes":
+                        return health.missingAttributes.length > 0;
+                    default:
+                        return true;
+                }
+            });
+
+            const totalItems = filteredByQuality.length;
+            const paginatedProducts = filteredByQuality.slice(
+                skip,
+                skip + limit,
+            );
+
+            return {
+                products: paginatedProducts,
+                availableBrands: [],
+                pagination: {
+                    totalItems,
+                    totalPages: Math.ceil(totalItems / limit),
+                    currentPage: page,
+                    limit,
+                },
+            };
+        }
+
         const [dataResult, countResult, brandsResult] = await Promise.all([
             ProductModel.aggregate([
                 ...sortedPipeline,
                 ...brandMatchPipeline,
                 { $skip: skip },
                 { $limit: limit },
-                {
-                    $project: {
-                        _id: 1,
-                        name: 1,
-                        slug: 1,
-                        regularPrice: 1,
-                        salePrice: 1,
-                        image: 1,
-                        availableStock: 1,
-                        status: 1,
-                        categories: 1,
-                        taxRate: 1,
-                        effectivePrice: 1,
-                        images: 1,
-                        sku: 1,
-                        gtin: 1,
-                        brand: 1,
-                        description: 1,
-                        shortDescription: 1,
-                        weight: 1,
-                        isOutlet: 1,
-                        hasFreeShipping: 1,
-                        shippingSize: 1,
-                        isAvailable: 1,
-                    },
-                },
+                PRODUCT_PROJECT_STAGE,
             ]),
             ProductModel.aggregate([
                 ...baseFilterPipeline,
