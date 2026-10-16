@@ -105,8 +105,11 @@ export async function searchProducts(
         $project: {
             name: 1,
             slug: 1,
+            type: 1,
+            bundleItemsCount: 1,
             regularPrice: 1,
             salePrice: 1,
+            effectivePrice: 1,
             image: 1,
             images: 1,
             availableStock: 1,
@@ -122,6 +125,5 @@ export async function searchProducts(
     const products = await ProductModel.aggregate(pipeline);
 
     // Retornamos mapeando los datos tal cual los espera tu frontend
-    console.log(products);
     return products.map(mapProductToDTO);
 }

@@ -6,6 +6,7 @@ import { ProductModel } from "@/models";
 
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
 import { generateUniqueProductSlug } from "@/lib/products/generateUniqueSlug";
+import { calculateBundleMetrics } from "@/lib/products/recalculateBundlesStock";
 import { revalidateProductsCache } from "./getCatalogProducts";
 
 import type { CreateProductDTO } from "@/lib/validators/productSchema";
@@ -39,6 +40,36 @@ export async function createProduct(data: CreateProductDTO) {
     const slug = data.slug || (await generateUniqueProductSlug(data.name));
 
     // =========================
+    // BUNDLE / SIMPLE METRICS
+    // =========================
+    const isBundle = data.type === "bundle";
+    let finalRegularPrice = data.regularPrice;
+    let finalAvailableStock = 0;
+    let finalIsAvailable = false;
+    let finalBundleItems: { productId: Types.ObjectId; quantity: number }[] = [];
+    let finalBundleItemsCount = 0;
+
+    if (isBundle) {
+        const metrics = await calculateBundleMetrics(data.bundleItems || []);
+        finalRegularPrice = metrics.regularPrice;
+        finalAvailableStock = metrics.availableStock;
+        finalIsAvailable = metrics.isAvailable;
+        finalBundleItems = metrics.normalizedBundleItems;
+        finalBundleItemsCount = metrics.bundleItemsCount;
+
+        if (!salePrice || salePrice <= 0) {
+            throw new Error(
+                "El precio de oferta es obligatorio para un producto tipo combo",
+            );
+        }
+        if (salePrice >= finalRegularPrice) {
+            throw new Error(
+                `El precio de oferta del combo ($${salePrice}) debe ser menor a la suma de precios regulares de sus componentes ($${finalRegularPrice})`,
+            );
+        }
+    }
+
+    // =========================
     // CREATE
     // =========================
 
@@ -49,15 +80,18 @@ export async function createProduct(data: CreateProductDTO) {
 
         brand,
 
-        type: data.type,
+        type: data.type || "simple",
 
-        effectivePrice: (salePrice !== null && salePrice > 0 && salePrice < data.regularPrice)
-            ? salePrice
-            : data.regularPrice,
+        effectivePrice:
+            salePrice !== null && salePrice > 0 && salePrice < finalRegularPrice
+                ? salePrice
+                : finalRegularPrice,
 
-        isAvailable: false,
+        availableStock: finalAvailableStock,
+        totalStock: finalAvailableStock,
+        isAvailable: finalIsAvailable,
 
-        regularPrice: data.regularPrice,
+        regularPrice: finalRegularPrice,
 
         salePrice,
 
@@ -67,7 +101,7 @@ export async function createProduct(data: CreateProductDTO) {
 
         images: data.images || [],
 
-        hasSerialNumber: data.hasSerialNumber,
+        hasSerialNumber: isBundle ? false : data.hasSerialNumber,
 
         manageStock: data.manageStock,
 
@@ -91,7 +125,8 @@ export async function createProduct(data: CreateProductDTO) {
 
         gtin: data.gtin,
 
-        bundleItemsCount: data.bundleItemsCount,
+        bundleItemsCount: finalBundleItemsCount,
+        bundleItems: finalBundleItems,
 
         hasFreeShipping: data.hasFreeShipping ?? false,
 

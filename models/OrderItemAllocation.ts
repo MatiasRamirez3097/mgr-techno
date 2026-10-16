@@ -13,6 +13,15 @@ export const OrderItemAllocationSchema = new Schema(
             required: true,
             min: 1,
         },
+
+        componentProductId: {
+            type: Schema.Types.ObjectId,
+            ref: "Product",
+        },
+
+        componentName: {
+            type: String,
+        },
     },
     { _id: false },
 );

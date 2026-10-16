@@ -1,5 +1,105 @@
 import { OrderModel, ProductModel, InventoryItemModel } from "@/models";
 
+async function buildProductSuggestion(
+    targetProduct: any,
+    requiredQuantity: number,
+    orderProductId: string,
+    usedSerialIds: Set<string>,
+    usedLotQuantities: Map<string, number>,
+    bundleMeta?: {
+        componentProductId: string;
+        parentBundleName: string;
+    },
+) {
+    const targetIdStr = targetProduct._id.toString();
+    const allocationKey = bundleMeta
+        ? `${orderProductId}::${bundleMeta.componentProductId}`
+        : orderProductId;
+
+    if (targetProduct.hasSerialNumber) {
+        const inventoryItems = await InventoryItemModel.find({
+            productId: targetProduct._id,
+            status: "available",
+        })
+            .sort({ createdAt: 1 })
+            .lean();
+
+        const suggestions = inventoryItems.map((inv: any) => ({
+            inventoryItemId: inv._id.toString(),
+            serialNumber: inv.serialNumber,
+            quantity: 1,
+            createdAt: inv.createdAt,
+        }));
+
+        // Sugerir inicialmente seriales que no hayan sido pre-sugeridos en otro ítem de la misma orden
+        const initialSelectedIds: string[] = [];
+        for (const s of suggestions) {
+            if (initialSelectedIds.length >= requiredQuantity) break;
+            if (!usedSerialIds.has(s.inventoryItemId)) {
+                initialSelectedIds.push(s.inventoryItemId);
+                usedSerialIds.add(s.inventoryItemId);
+            }
+        }
+
+        return {
+            allocationKey,
+            productId: orderProductId,
+            componentProductId: bundleMeta?.componentProductId,
+            parentBundleName: bundleMeta?.parentBundleName,
+            productName: targetProduct.name,
+            quantity: requiredQuantity,
+            isSerialized: true,
+            hasInsufficientInventory: inventoryItems.length < requiredQuantity,
+            initialSelectedIds,
+            suggestions,
+        };
+    }
+
+    const lots = await InventoryItemModel.find({
+        productId: targetProduct._id,
+        remainingQuantity: { $gt: 0 },
+    })
+        .sort({ createdAt: 1 })
+        .lean();
+
+    let remaining = requiredQuantity;
+    const suggestions = [];
+
+    for (const lot of lots) {
+        if (remaining <= 0) break;
+
+        const lotIdStr = lot._id.toString();
+        const alreadyUsed = usedLotQuantities.get(lotIdStr) || 0;
+        const available = Math.max(0, lot.remainingQuantity - alreadyUsed);
+
+        if (available <= 0) continue;
+
+        const qty = Math.min(available, remaining);
+
+        suggestions.push({
+            inventoryItemId: lotIdStr,
+            quantity: qty,
+            availableQuantity: lot.remainingQuantity,
+            createdAt: lot.createdAt,
+        });
+
+        usedLotQuantities.set(lotIdStr, alreadyUsed + qty);
+        remaining -= qty;
+    }
+
+    return {
+        allocationKey,
+        productId: orderProductId,
+        componentProductId: bundleMeta?.componentProductId,
+        parentBundleName: bundleMeta?.parentBundleName,
+        productName: targetProduct.name,
+        quantity: requiredQuantity,
+        isSerialized: false,
+        hasInsufficientInventory: remaining > 0,
+        suggestions,
+    };
+}
+
 export async function getAllocationSuggestions(orderId: string) {
     const order = await OrderModel.findById(orderId).lean();
 
@@ -7,87 +107,74 @@ export async function getAllocationSuggestions(orderId: string) {
         throw new Error("Orden no encontrada");
     }
 
-    const results = await Promise.all(
-        order.items.map(async (item: any) => {
-            const product = await ProductModel.findById(item.productId).lean();
+    const usedSerialIds = new Set<string>();
+    const usedLotQuantities = new Map<string, number>();
+    const results: any[] = [];
 
-            if (!product) {
-                throw new Error("Producto no encontrado");
+    for (const item of order.items as any[]) {
+        const product = await ProductModel.findById(item.productId).lean();
+
+        if (!product) {
+            throw new Error("Producto no encontrado");
+        }
+
+        const isBundle =
+            item.isBundle ||
+            (product.type === "bundle" &&
+                Array.isArray(product.bundleItems) &&
+                product.bundleItems.length > 0);
+
+        if (isBundle) {
+            const rawComponents =
+                item.bundleComponents && item.bundleComponents.length > 0
+                    ? item.bundleComponents.map((c: any) => ({
+                          productId: c.productId,
+                          quantityPerBundle: c.quantityPerBundle,
+                      }))
+                    : (product.bundleItems || []).map((bi: any) => ({
+                          productId: bi.productId,
+                          quantityPerBundle: bi.quantity,
+                      }));
+
+            for (const comp of rawComponents) {
+                const compProduct = await ProductModel.findById(
+                    comp.productId,
+                ).lean();
+                if (!compProduct) {
+                    throw new Error(
+                        `Producto componente no encontrado en el combo "${item.name}"`,
+                    );
+                }
+
+                const requiredQty =
+                    Number(item.quantity) *
+                    Math.max(1, Number(comp.quantityPerBundle) || 1);
+
+                const sug = await buildProductSuggestion(
+                    compProduct,
+                    requiredQty,
+                    item.productId.toString(),
+                    usedSerialIds,
+                    usedLotQuantities,
+                    {
+                        componentProductId: compProduct._id.toString(),
+                        parentBundleName: item.name,
+                    },
+                );
+                results.push(sug);
             }
-
-            // ============================================
-            // PRODUCTOS SERIALIZADOS
-            // ============================================
-
-            if (product.hasSerialNumber) {
-                // TRAEMOS TODOS LOS SERIALES DISPONIBLES (quitamos el .limit)
-                const inventoryItems = await InventoryItemModel.find({
-                    productId: item.productId,
-                    status: "available",
-                })
-                    .sort({ createdAt: 1 }) // Sigue siendo FIFO
-                    .lean();
-
-                return {
-                    productId: item.productId.toString(),
-                    productName: item.name,
-                    quantity: item.quantity,
-                    isSerialized: true,
-                    hasInsufficientInventory:
-                        inventoryItems.length < item.quantity,
-
-                    suggestions: inventoryItems.map((inv: any) => ({
-                        inventoryItemId: inv._id.toString(),
-                        serialNumber: inv.serialNumber,
-                        quantity: 1,
-                        createdAt: inv.createdAt,
-                    })),
-                };
-            }
-
-            // ============================================
-            // PRODUCTOS NO SERIALIZADOS (Lotes) - Se mantiene igual
-            // ============================================
-
-            const lots = await InventoryItemModel.find({
-                productId: item.productId,
-                remainingQuantity: { $gt: 0 },
-            })
-                .sort({ createdAt: 1 })
-                .lean();
-
-            let remaining = item.quantity;
-            const suggestions = [];
-
-            for (const lot of lots) {
-                if (remaining <= 0) break;
-
-                const available = lot.remainingQuantity;
-
-                if (available <= 0) continue;
-
-                const qty = Math.min(available, remaining);
-
-                suggestions.push({
-                    inventoryItemId: lot._id.toString(),
-                    quantity: qty,
-                    availableQuantity: available,
-                    createdAt: lot.createdAt,
-                });
-
-                remaining -= qty;
-            }
-
-            return {
-                productId: item.productId.toString(),
-                productName: item.name,
-                quantity: item.quantity,
-                isSerialized: false,
-                hasInsufficientInventory: remaining > 0,
-                suggestions,
-            };
-        }),
-    );
+        } else {
+            const sug = await buildProductSuggestion(
+                product,
+                Number(item.quantity),
+                item.productId.toString(),
+                usedSerialIds,
+                usedLotQuantities,
+            );
+            results.push(sug);
+        }
+    }
 
     return results;
 }
+

@@ -7,6 +7,10 @@ import { ProductModel } from "@/models";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
 
 import { generateUniqueProductSlug } from "@/lib/products/generateUniqueSlug";
+import {
+    calculateBundleMetrics,
+    recalculateBundlesForProducts,
+} from "@/lib/products/recalculateBundlesStock";
 import { buildProductDerivedFields } from "./utils";
 import { revalidateProductsCache } from "./getCatalogProducts";
 
@@ -36,10 +40,41 @@ export async function updateProductById(id: string, data: Record<string, any>) {
     const categories =
         data.categories?.map((catId: string | Types.ObjectId) => new Types.ObjectId(catId)) || [];
 
+    const isBundle = (data.type ?? product.type) === "bundle";
+    let finalRegularPrice = data.regularPrice;
+    let finalAvailableStock = product.availableStock ?? 0;
+    let finalBundleItems = product.bundleItems || [];
+    let finalBundleItemsCount = product.bundleItemsCount || 0;
+
+    if (isBundle) {
+        const rawBundleItems = data.bundleItems ?? product.bundleItems ?? [];
+        const metrics = await calculateBundleMetrics(
+            rawBundleItems.map((bi: any) => ({
+                productId: bi.productId.toString(),
+                quantity: Number(bi.quantity) || 1,
+            })),
+        );
+        finalRegularPrice = metrics.regularPrice;
+        finalAvailableStock = metrics.availableStock;
+        finalBundleItems = metrics.normalizedBundleItems;
+        finalBundleItemsCount = metrics.bundleItemsCount;
+
+        if (!salePrice || salePrice <= 0) {
+            throw new Error(
+                "El precio de oferta es obligatorio para un producto tipo combo",
+            );
+        }
+        if (salePrice >= finalRegularPrice) {
+            throw new Error(
+                `El precio de oferta del combo ($${salePrice}) debe ser menor a la suma de precios regulares de sus componentes ($${finalRegularPrice})`,
+            );
+        }
+    }
+
     const derived = buildProductDerivedFields({
-        regularPrice: data.regularPrice ?? undefined,
-        salePrice: data.salePrice ?? undefined,
-        availableStock: product.availableStock ?? undefined,
+        regularPrice: finalRegularPrice ?? undefined,
+        salePrice: salePrice ?? undefined,
+        availableStock: finalAvailableStock ?? undefined,
     });
 
     // =========================
@@ -59,14 +94,19 @@ export async function updateProductById(id: string, data: Record<string, any>) {
 
     product.name = data.name;
     product.brand = brand;
-    product.type = data.type;
-    product.regularPrice = data.regularPrice;
+    product.type = isBundle ? "bundle" : "simple";
+    product.regularPrice = finalRegularPrice;
     product.salePrice = salePrice;
     product.effectivePrice = derived.effectivePrice;
+    product.availableStock = finalAvailableStock;
+    if (isBundle) {
+        product.totalStock = finalAvailableStock;
+    }
+    product.isAvailable = finalAvailableStock > 0;
     product.taxRate = data.taxRate;
     product.image = data.image || "";
     product.images = data.images || [];
-    product.hasSerialNumber = data.hasSerialNumber;
+    product.hasSerialNumber = isBundle ? false : data.hasSerialNumber;
     product.manageStock = data.manageStock;
     product.shortDescription = data.shortDescription;
     product.description = data.description;
@@ -78,7 +118,8 @@ export async function updateProductById(id: string, data: Record<string, any>) {
     product.sku = data.sku;
     product.mpn = data.mpn;
     product.gtin = data.gtin;
-    product.bundleItemsCount = data.bundleItemsCount;
+    product.bundleItemsCount = isBundle ? finalBundleItemsCount : 0;
+    product.bundleItems = isBundle ? finalBundleItems : [];
     product.hasFreeShipping = data.hasFreeShipping ?? false;
     product.shippingSize = data.shippingSize || "standard";
 
@@ -87,6 +128,12 @@ export async function updateProductById(id: string, data: Record<string, any>) {
     // =========================
 
     await product.save();
+
+    // Si es un producto simple, sincronizar los combos que lo contengan (por si cambió su regularPrice)
+    if (!isBundle) {
+        await recalculateBundlesForProducts([id]);
+    }
+
     revalidateProductsCache();
 
     return mapProductToDTO(product.toObject());
@@ -110,8 +157,14 @@ export async function updateProductQuickFields(
         throw new Error("Producto no encontrado");
     }
 
+    const isBundle = product.type === "bundle";
+
+    // Para un combo, su regularPrice depende de sus componentes y no se edita manualmente
     const newRegularPrice =
-        data.regularPrice !== undefined && data.regularPrice !== null && !isNaN(Number(data.regularPrice))
+        !isBundle &&
+        data.regularPrice !== undefined &&
+        data.regularPrice !== null &&
+        !isNaN(Number(data.regularPrice))
             ? Number(data.regularPrice)
             : product.regularPrice;
 
@@ -119,7 +172,7 @@ export async function updateProductQuickFields(
     if (data.salePrice !== undefined) {
         if (data.salePrice !== null && Number(data.salePrice) > 0) {
             newSalePrice = Number(data.salePrice);
-        } else {
+        } else if (!isBundle) {
             newSalePrice = null;
         }
     }
@@ -147,6 +200,11 @@ export async function updateProductQuickFields(
     }
 
     await product.save();
+
+    if (!isBundle && data.regularPrice !== undefined) {
+        await recalculateBundlesForProducts([id]);
+    }
+
     revalidateProductsCache();
 
     return mapProductToDTO(product.toObject());

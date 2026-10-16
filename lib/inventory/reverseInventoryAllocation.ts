@@ -1,6 +1,7 @@
 import { ClientSession } from "mongoose";
 
 import { InventoryItemModel, OrderModel, ProductModel } from "@/models";
+import { recalculateBundlesForProducts } from "@/lib/products/recalculateBundlesStock";
 
 export async function reverseInventoryAllocation(
     orderId: string,
@@ -16,7 +17,9 @@ export async function reverseInventoryAllocation(
         throw new Error("La orden no tiene inventario asignado");
     }
 
-    for (const item of order.items) {
+    const affectedProductIds = new Set<string>();
+
+    for (const item of order.items as any[]) {
         const product = await ProductModel.findById(item.productId).session(
             session,
         );
@@ -25,10 +28,70 @@ export async function reverseInventoryAllocation(
             throw new Error("Producto no encontrado");
         }
 
-        // =====================================
-        // SERIALIZADOS
-        // =====================================
+        const isBundle = item.isBundle || product.type === "bundle";
 
+        if (isBundle) {
+            for (const allocation of item.allocations || []) {
+                const invItem = await InventoryItemModel.findById(
+                    allocation.inventoryItemId,
+                ).session(session);
+
+                if (!invItem) {
+                    throw new Error(
+                        `Ítem de inventario no encontrado al revertir combo "${item.name}"`,
+                    );
+                }
+
+                const compProductId =
+                    allocation.componentProductId || invItem.productId;
+                const compProduct =
+                    await ProductModel.findById(compProductId).session(session);
+
+                if (compProduct?.hasSerialNumber || invItem.serialNumber) {
+                    await InventoryItemModel.updateOne(
+                        { _id: invItem._id },
+                        {
+                            $set: {
+                                status: "available",
+                                saleId: null,
+                            },
+                        },
+                        { session },
+                    );
+                } else {
+                    await InventoryItemModel.updateOne(
+                        { _id: invItem._id },
+                        {
+                            $inc: {
+                                remainingQuantity: allocation.quantity,
+                            },
+                        },
+                        { session },
+                    );
+                }
+
+                await ProductModel.updateOne(
+                    { _id: compProductId },
+                    {
+                        $inc: {
+                            totalStock: allocation.quantity,
+                            availableStock: allocation.quantity,
+                        },
+                        $set: {
+                            isAvailable: true,
+                        },
+                    },
+                    { session },
+                );
+
+                affectedProductIds.add(compProductId.toString());
+            }
+            continue;
+        }
+
+        // =====================================
+        // PRODUCTOS SIMPLES
+        // =====================================
         if (product.hasSerialNumber) {
             const inventoryIds = item.allocations.map(
                 (a: any) => a.inventoryItemId,
@@ -39,13 +102,11 @@ export async function reverseInventoryAllocation(
                     _id: {
                         $in: inventoryIds,
                     },
-
                     status: "sold",
                 },
                 {
                     $set: {
                         status: "available",
-
                         saleId: null,
                     },
                 },
@@ -57,17 +118,11 @@ export async function reverseInventoryAllocation(
                     `Error revirtiendo seriales de ${product.name}`,
                 );
             }
-        }
-
-        // =====================================
-        // NO SERIALIZADOS
-        // =====================================
-        else {
+        } else {
             for (const allocation of item.allocations) {
                 const updated = await InventoryItemModel.updateOne(
                     {
                         _id: allocation.inventoryItemId,
-
                         productId: product._id,
                     },
                     {
@@ -86,10 +141,6 @@ export async function reverseInventoryAllocation(
             }
         }
 
-        // =====================================
-        // PRODUCT STOCK
-        // =====================================
-
         const updatedProduct = await ProductModel.updateOne(
             {
                 _id: product._id,
@@ -97,8 +148,10 @@ export async function reverseInventoryAllocation(
             {
                 $inc: {
                     totalStock: item.quantity,
-
                     availableStock: item.quantity,
+                },
+                $set: {
+                    isAvailable: true,
                 },
             },
             { session },
@@ -107,13 +160,19 @@ export async function reverseInventoryAllocation(
         if (updatedProduct.modifiedCount === 0) {
             throw new Error(`Error actualizando stock de ${product.name}`);
         }
+
+        affectedProductIds.add(product._id.toString());
     }
 
-    // =====================================
-    // ORDER
-    // =====================================
+    if (affectedProductIds.size > 0) {
+        await recalculateBundlesForProducts(
+            Array.from(affectedProductIds),
+            session,
+        );
+    }
 
     order.inventoryAllocatedAt = null;
 
     await order.save({ session });
 }
+

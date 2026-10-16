@@ -202,6 +202,27 @@ export function ProductsTable({ products }: Props) {
                                                             OUTLET
                                                         </span>
                                                     )}
+
+                                                    {product.type === "bundle" && (
+                                                        <span
+                                                            className="
+            text-[10px] 
+            font-bold 
+            px-1.5 
+            py-0.5 
+            rounded 
+            bg-blue-500/20 
+            text-blue-300 
+            border 
+            border-blue-500/30
+        "
+                                                        >
+                                                            COMBO
+                                                            {product.bundleItemsCount
+                                                                ? ` (${product.bundleItemsCount})`
+                                                                : ""}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 <p className="text-xs text-gray-400">

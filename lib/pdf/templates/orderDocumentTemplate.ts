@@ -583,7 +583,22 @@ export async function orderDocumentTemplate(data: any) {
                                 <tr>
 
                                     <td>
-                                        ${item.name}
+                                        <div style="${item.subItems && item.subItems.length > 0 ? "font-weight: bold;" : ""}">
+                                            ${item.name}
+                                        </div>
+                                        ${
+                                            item.subItems &&
+                                            item.subItems.length > 0
+                                                ? `<div style="margin-top: 3px; padding-left: 8px; font-size: 9px; color: #333; line-height: 1.4;">
+                                                    ${item.subItems
+                                                        .map(
+                                                            (sub: string) =>
+                                                                `<div>• ${sub}</div>`,
+                                                        )
+                                                        .join("")}
+                                                   </div>`
+                                                : ""
+                                        }
                                     </td>
 
                                     <td class="text-right">

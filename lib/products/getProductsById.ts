@@ -8,7 +8,12 @@ import { ClientSession } from "mongoose";
 
 export async function getProductsById(id: string): Promise<ProductDTO | null> {
     await connectDB();
-    const product = await ProductModel.findById(id).lean();
+    const product = await ProductModel.findById(id)
+        .populate({
+            path: "bundleItems.productId",
+            select: "name sku image regularPrice availableStock",
+        })
+        .lean();
     if (!product) return null;
     return mapProductToDTO(product);
 }

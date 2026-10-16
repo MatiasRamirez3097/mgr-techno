@@ -37,6 +37,14 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 total: item.total,
+                isBundle: Boolean(item.isBundle),
+                bundleComponents:
+                    item.bundleComponents?.map((c: any) => ({
+                        productId: c.productId.toString(),
+                        name: c.name,
+                        quantityPerBundle: c.quantityPerBundle,
+                        totalQuantity: c.totalQuantity,
+                    })) || [],
                 // NUEVO: Agregamos las asignaciones si existen
                 allocations:
                     item.allocations?.map((alloc: any) => {
@@ -57,6 +65,12 @@ export function mapOrderToDTO(order: OrderDB): OrderDTO {
                             defectDescription: isPopulated
                                 ? alloc.inventoryItemId.defectDescription
                                 : undefined,
+                            componentProductId: alloc.componentProductId
+                                ? alloc.componentProductId.toString()
+                                : isPopulated && alloc.inventoryItemId.productId
+                                  ? alloc.inventoryItemId.productId.toString()
+                                  : undefined,
+                            componentName: alloc.componentName || undefined,
                         };
                     }) || [],
             })) || [],

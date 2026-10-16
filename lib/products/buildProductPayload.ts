@@ -7,7 +7,22 @@ interface Params {
 }
 
 export function buildProductPayload({ form, image, images }: Params) {
+    const isBundle = form.type === "bundle";
+    const cleanBundleItems = isBundle
+        ? (form.bundleItems || []).map((item) => ({
+              productId: item.productId,
+              quantity: Math.max(1, Number(item.quantity) || 1),
+          }))
+        : [];
+    const bundleItemsCount = cleanBundleItems.reduce(
+        (acc, item) => acc + item.quantity,
+        0,
+    );
+
     return {
+        type: form.type || "simple",
+        bundleItems: cleanBundleItems,
+        bundleItemsCount,
         name: form.name,
         sku: form.sku != "" ? form.sku : undefined,
         mpn: form.mpn != "" ? form.mpn : undefined,
@@ -23,7 +38,11 @@ export function buildProductPayload({ form, image, images }: Params) {
         salePrice:
             Number(form.salePrice) > 0 ? Number(form.salePrice) : undefined,
 
-        hasSerialNumber: form.manageStock ? form.hasSerialNumber : false,
+        hasSerialNumber: isBundle
+            ? false
+            : form.manageStock
+              ? form.hasSerialNumber
+              : false,
 
         manageStock: form.manageStock,
 

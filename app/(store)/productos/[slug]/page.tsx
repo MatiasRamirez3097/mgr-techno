@@ -220,6 +220,31 @@ export default async function ProductPage({ params }: Props) {
                         </div>
                     )}
 
+                    {product.type === "bundle" &&
+                        product.bundleItems &&
+                        product.bundleItems.length > 0 && (
+                            <div className="mt-2 rounded-xl border border-gray-800 bg-gray-900/60 p-4">
+                                <p className="text-xs font-bold uppercase tracking-wider text-brand mb-2.5">
+                                    📦 Este combo incluye:
+                                </p>
+                                <ul className="space-y-1.5 text-sm text-gray-300">
+                                    {product.bundleItems.map((bi) => (
+                                        <li
+                                            key={bi.productId}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <span className="font-bold text-white">
+                                                {bi.quantity}x
+                                            </span>
+                                            <span>
+                                                {bi.name || "Producto incluido"}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
                     {product.shortDescription && (
                         <div
                             className="text-sm text-gray-400 prose prose-sm prose-invert max-w-none"

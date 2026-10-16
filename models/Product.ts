@@ -89,6 +89,21 @@ export const ProductSchema = new Schema(
             type: Number,
             default: 0,
         },
+        bundleItems: [
+            {
+                productId: {
+                    type: Schema.Types.ObjectId,
+                    ref: "Product",
+                    required: true,
+                },
+                quantity: {
+                    type: Number,
+                    required: true,
+                    min: 1,
+                },
+                _id: false,
+            },
+        ],
         brand: {
             type: Schema.Types.ObjectId,
 
@@ -122,5 +137,6 @@ ProductSchema.index({ name: "text", sku: "text" });
 //ProductSchema.index({ stockStatus: 1, createdAt: -1 });
 ProductSchema.index({ "categories.slug": 1 });
 ProductSchema.index({ featured: 1 });
+ProductSchema.index({ "bundleItems.productId": 1 });
 
 export const ProductModel = models.Product || model("Product", ProductSchema);

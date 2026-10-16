@@ -13,6 +13,7 @@ import { createOrderSchema } from "../validators/createOrderSchema";
 
 import { notifyNewOrder } from "@/lib/notifications/discord/notifyNewOrder";
 import { updateProductStock } from "../products/updateProductStock";
+import { buildOrderBundleComponentsMap } from "../products/recalculateBundlesStock";
 
 function getPaymentStatus(total: number, paidAmount: number) {
     if (paidAmount <= 0) {
@@ -50,6 +51,11 @@ export async function createOrder(data: unknown) {
 
             const products = await findProductsById(
                 items.map((i) => i.productId),
+                session,
+            );
+
+            const bundleComponentsMap = await buildOrderBundleComponentsMap(
+                products,
                 session,
             );
 
@@ -162,6 +168,17 @@ export async function createOrder(data: unknown) {
                       ]
                     : [];
 
+                const isBundle = (product as any).type === "bundle";
+                const rawComps = isBundle
+                    ? bundleComponentsMap.get(product.id.toString()) || []
+                    : [];
+                const bundleComponents = rawComps.map((c) => ({
+                    productId: c.productId,
+                    name: c.name,
+                    quantityPerBundle: c.quantityPerBundle,
+                    totalQuantity: c.quantityPerBundle * quantity,
+                }));
+
                 return {
                     productId: product.id,
                     inventoryId: item.inventoryId,
@@ -178,6 +195,9 @@ export async function createOrder(data: unknown) {
                     taxAmount,
 
                     total,
+
+                    isBundle,
+                    bundleComponents,
 
                     allocations,
                 };

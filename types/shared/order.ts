@@ -10,6 +10,21 @@ export type OrderDTO = {
         total: number;
         image?: string;
         slug?: string;
+        isBundle?: boolean;
+        bundleComponents?: {
+            productId: string;
+            name: string;
+            quantityPerBundle: number;
+            totalQuantity: number;
+        }[];
+        allocations?: {
+            inventoryItemId: string;
+            quantity: number;
+            serialNumber?: string;
+            defectDescription?: string;
+            componentProductId?: string;
+            componentName?: string;
+        }[];
     }[];
     status:
         | "pending"

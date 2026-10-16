@@ -20,6 +20,28 @@ export const OrderItemSchema = new Schema(
 
         total: { type: Number, required: true, min: 0 },
 
+        isBundle: {
+            type: Boolean,
+            default: false,
+        },
+
+        bundleComponents: {
+            type: [
+                {
+                    productId: {
+                        type: Schema.Types.ObjectId,
+                        ref: "Product",
+                        required: true,
+                    },
+                    name: { type: String, required: true },
+                    quantityPerBundle: { type: Number, required: true, min: 1 },
+                    totalQuantity: { type: Number, required: true, min: 1 },
+                    _id: false,
+                },
+            ],
+            default: [],
+        },
+
         allocations: {
             type: [OrderItemAllocationSchema],
             default: [],

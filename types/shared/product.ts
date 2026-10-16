@@ -1,5 +1,18 @@
+export type BundleItemDTO = {
+    productId: string;
+    quantity: number;
+    name?: string;
+    sku?: string;
+    image?: string;
+    regularPrice?: number;
+    availableStock?: number;
+};
+
 export type ProductDTO = {
     id: string;
+    type?: "simple" | "bundle";
+    bundleItemsCount?: number;
+    bundleItems?: BundleItemDTO[];
     categories: string[];
     image: string;
     images: string[];

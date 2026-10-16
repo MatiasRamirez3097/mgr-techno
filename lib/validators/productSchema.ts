@@ -53,6 +53,15 @@ export const createProductSchema = z.object({
     gtin: z.string().optional().nullable(),
 
     bundleItemsCount: z.number().int().min(0).optional().nullable(),
+    bundleItems: z
+        .array(
+            z.object({
+                productId: z.string().min(1, "Producto requerido"),
+                quantity: z.number().int().min(1, "La cantidad debe ser al menos 1"),
+            }),
+        )
+        .optional()
+        .default([]),
     hasFreeShipping: z.boolean().optional().nullable(),
     shippingSize: z.enum(["small", "standard", "bulky"]).optional().nullable(),
 });
@@ -70,11 +79,18 @@ export const createProductSchemaRefined = createProductSchema.superRefine(
 
         // 🔴 bundle
         if (data.type === "bundle") {
-            if (!data.bundleItemsCount || data.bundleItemsCount <= 0) {
+            if (!data.bundleItems || data.bundleItems.length === 0) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: "Bundle inválido",
-                    path: ["bundleItemsCount"],
+                    message: "Un combo debe contener al menos un producto componente",
+                    path: ["bundleItems"],
+                });
+            }
+            if (data.salePrice == null || data.salePrice <= 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "El precio de oferta es obligatorio para los productos tipo combo",
+                    path: ["salePrice"],
                 });
             }
         }

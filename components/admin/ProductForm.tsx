@@ -6,11 +6,12 @@ import { ProductFormSidebar } from "@/components/admin/products/ProductFormSider
 import { buildProductPayload } from "@/lib/products/buildProductPayload";
 import { extractProductImages } from "@/lib/products/extractProductImages";
 import { CreateBrandModal } from "./CreateBrandModal";
+import { ProductSelector } from "./ProductSelector";
 import { useBrands } from "./products/hooks/useBrands";
 import { RichTextEditor } from "@/components/admin/editor/RichTextEditor";
 import type { ProductFormState } from "@/types/admin/productForm";
 import type { CategoryDTO } from "@/types/shared/category";
-import type { ProductDTO } from "@/types/shared/product";
+import type { BundleItemDTO, ProductDTO } from "@/types/shared/product";
 
 import type { BrandDTO } from "@/types/shared/brand";
 
@@ -26,6 +27,30 @@ type FieldError = {
     message: string;
 };
 
+function computeBundleRegularSum(items: BundleItemDTO[]): number {
+    return items.reduce(
+        (acc, item) =>
+            acc +
+            (Number(item.regularPrice) || 0) *
+                Math.max(1, Number(item.quantity) || 1),
+        0,
+    );
+}
+
+function computeBundlePossibleStock(items: BundleItemDTO[]): number {
+    if (!items || items.length === 0) return 0;
+    let minPossible = Infinity;
+    for (const item of items) {
+        const compStock = Math.max(0, Number(item.availableStock) || 0);
+        const qty = Math.max(1, Number(item.quantity) || 1);
+        const possible = Math.floor(compStock / qty);
+        if (possible < minPossible) {
+            minPossible = possible;
+        }
+    }
+    return minPossible === Infinity ? 0 : Math.max(0, minPossible);
+}
+
 export function ProductForm({
     product,
     categories,
@@ -40,6 +65,10 @@ export function ProductForm({
     const [success, setSuccess] = useState("");
 
     const [showCreateBrand, setShowCreateBrand] = useState(false);
+    const [selectedBundleCandidate, setSelectedBundleCandidate] =
+        useState<any>(null);
+    const [candidateQuantity, setCandidateQuantity] = useState<number>(1);
+
     const [image, setImage] = useState(
         product?.image &&
             product?.image !=
@@ -53,6 +82,8 @@ export function ProductForm({
     const { brands, setBrands } = useBrands(initialBrands);
 
     const [form, setForm] = useState<ProductFormState>({
+        type: product?.type || "simple",
+        bundleItems: product?.bundleItems || [],
         brand: product?.brand || "",
         name: product?.name || "",
         sku: product?.sku || "",
@@ -75,6 +106,90 @@ export function ProductForm({
         hasFreeShipping: product?.hasFreeShipping || false,
         shippingSize: product?.shippingSize || "standard",
     });
+
+    const isBundle = form.type === "bundle";
+
+    const handleAddBundleComponent = () => {
+        if (!selectedBundleCandidate) return;
+        if (selectedBundleCandidate.type === "bundle") {
+            setError(
+                "No se puede agregar un combo dentro de otro combo. Seleccioná un producto simple.",
+            );
+            return;
+        }
+        if (product?.id && selectedBundleCandidate.id === product.id) {
+            setError("No se puede agregar el mismo producto como componente.");
+            return;
+        }
+
+        const qtyToAdd = Math.max(1, Math.floor(Number(candidateQuantity) || 1));
+
+        setForm((prev) => {
+            const existingIdx = prev.bundleItems.findIndex(
+                (b) => b.productId === selectedBundleCandidate.id,
+            );
+            let nextItems: BundleItemDTO[];
+
+            if (existingIdx >= 0) {
+                nextItems = prev.bundleItems.map((b, i) =>
+                    i === existingIdx
+                        ? { ...b, quantity: b.quantity + qtyToAdd }
+                        : b,
+                );
+            } else {
+                nextItems = [
+                    ...prev.bundleItems,
+                    {
+                        productId: selectedBundleCandidate.id,
+                        quantity: qtyToAdd,
+                        name: selectedBundleCandidate.name,
+                        sku: selectedBundleCandidate.sku || "",
+                        image: selectedBundleCandidate.image || "",
+                        regularPrice:
+                            Number(selectedBundleCandidate.regularPrice) || 0,
+                        availableStock:
+                            Number(selectedBundleCandidate.availableStock) || 0,
+                    },
+                ];
+            }
+
+            return {
+                ...prev,
+                bundleItems: nextItems,
+                regularPrice: computeBundleRegularSum(nextItems),
+            };
+        });
+
+        setSelectedBundleCandidate(null);
+        setCandidateQuantity(1);
+    };
+
+    const handleUpdateComponentQty = (productId: string, newQty: number) => {
+        const qty = Math.max(1, Math.floor(Number(newQty) || 1));
+        setForm((prev) => {
+            const nextItems = prev.bundleItems.map((b) =>
+                b.productId === productId ? { ...b, quantity: qty } : b,
+            );
+            return {
+                ...prev,
+                bundleItems: nextItems,
+                regularPrice: computeBundleRegularSum(nextItems),
+            };
+        });
+    };
+
+    const handleRemoveComponent = (productId: string) => {
+        setForm((prev) => {
+            const nextItems = prev.bundleItems.filter(
+                (b) => b.productId !== productId,
+            );
+            return {
+                ...prev,
+                bundleItems: nextItems,
+                regularPrice: computeBundleRegularSum(nextItems),
+            };
+        });
+    };
 
     const handleChange = (
         e: React.ChangeEvent<
@@ -214,6 +329,18 @@ export function ProductForm({
         "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
 
+    const bundlePossibleStock = computeBundlePossibleStock(form.bundleItems);
+    const discountPercentage =
+        Number(form.regularPrice) > 0 &&
+        Number(form.salePrice) > 0 &&
+        Number(form.salePrice) < Number(form.regularPrice)
+            ? Math.round(
+                  ((Number(form.regularPrice) - Number(form.salePrice)) /
+                      Number(form.regularPrice)) *
+                      100,
+              )
+            : 0;
+
     return (
         <>
             <form
@@ -222,6 +349,266 @@ export function ProductForm({
             >
                 {/* Columna principal */}
                 <div className="lg:col-span-2 flex flex-col gap-6">
+                    {/* Selector de Tipo de Producto */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <h2 className="text-base font-bold text-white mb-3">
+                            Tipo de producto
+                        </h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        type: "simple",
+                                    }))
+                                }
+                                className={`p-4 rounded-xl border text-left transition-all ${
+                                    !isBundle
+                                        ? "border-brand bg-brand/10 text-white"
+                                        : "border-gray-800 bg-gray-800/40 text-gray-400 hover:border-gray-700"
+                                }`}
+                            >
+                                <div className="font-semibold text-sm">
+                                    Producto Simple
+                                </div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                    Artículo individual con su propio stock y
+                                    precio.
+                                </div>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        type: "bundle",
+                                        hasSerialNumber: false,
+                                        regularPrice: computeBundleRegularSum(
+                                            prev.bundleItems,
+                                        ),
+                                    }))
+                                }
+                                className={`p-4 rounded-xl border text-left transition-all ${
+                                    isBundle
+                                        ? "border-brand bg-brand/10 text-white"
+                                        : "border-gray-800 bg-gray-800/40 text-gray-400 hover:border-gray-700"
+                                }`}
+                            >
+                                <div className="font-semibold text-sm flex items-center gap-2">
+                                    <span>📦 Combo / Producto Compuesto</span>
+                                </div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                    Compuesto por 1 o más productos. Su stock y
+                                    precio regular se calculan automáticamente.
+                                </div>
+                            </button>
+                        </div>
+                    </section>
+
+                    {/* Componentes del Combo (solo cuando type === "bundle") */}
+                    {isBundle && (
+                        <section className="bg-gray-900 rounded-2xl p-6 border border-blue-500/30">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                                <div>
+                                    <h2 className="text-base font-bold text-white">
+                                        Componentes del Combo
+                                    </h2>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                        Agregá los productos que integran este
+                                        combo y la cantidad de unidades de cada
+                                        uno.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span
+                                        className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                                            bundlePossibleStock > 0
+                                                ? "bg-green-500/10 text-green-400 border-green-500/20"
+                                                : "bg-red-500/10 text-red-400 border-red-500/20"
+                                        }`}
+                                    >
+                                        Stock armable: {bundlePossibleStock} u.
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end mb-5">
+                                <div className="md:col-span-7">
+                                    <label className={labelClass}>
+                                        Buscar producto componente
+                                    </label>
+                                    <ProductSelector
+                                        statusAll
+                                        value={selectedBundleCandidate}
+                                        onChange={(prod) =>
+                                            setSelectedBundleCandidate(prod)
+                                        }
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className={labelClass}>
+                                        Cantidad
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={candidateQuantity}
+                                        onChange={(e) =>
+                                            setCandidateQuantity(
+                                                Math.max(
+                                                    1,
+                                                    Number(e.target.value) || 1,
+                                                ),
+                                            )
+                                        }
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div className="md:col-span-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleAddBundleComponent}
+                                        disabled={!selectedBundleCandidate}
+                                        className="w-full py-3 px-4 rounded-lg bg-brand hover:brightness-110 disabled:opacity-40 text-white text-sm font-semibold transition-all"
+                                    >
+                                        + Agregar al combo
+                                    </button>
+                                </div>
+                            </div>
+
+                            {form.bundleItems.length === 0 ? (
+                                <div className="rounded-xl border border-dashed border-gray-700 p-6 text-center text-sm text-gray-400">
+                                    Todavía no agregaste productos a este combo.
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto rounded-xl border border-gray-800">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-gray-800/60 text-xs text-gray-400 uppercase">
+                                            <tr>
+                                                <th className="px-4 py-3">
+                                                    Producto
+                                                </th>
+                                                <th className="px-4 py-3 text-center">
+                                                    Stock disp.
+                                                </th>
+                                                <th className="px-4 py-3 text-right">
+                                                    Precio reg. u.
+                                                </th>
+                                                <th className="px-4 py-3 text-center w-28">
+                                                    Cant. en combo
+                                                </th>
+                                                <th className="px-4 py-3 text-right">
+                                                    Subtotal reg.
+                                                </th>
+                                                <th className="px-4 py-3 text-right w-16" />
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-800">
+                                            {form.bundleItems.map((comp) => {
+                                                const unitReg =
+                                                    Number(comp.regularPrice) ||
+                                                    0;
+                                                const subReg =
+                                                    unitReg * comp.quantity;
+                                                const compStock =
+                                                    Number(
+                                                        comp.availableStock,
+                                                    ) || 0;
+                                                const enoughForOne =
+                                                    compStock >= comp.quantity;
+
+                                                return (
+                                                    <tr
+                                                        key={comp.productId}
+                                                        className="bg-gray-900/40"
+                                                    >
+                                                        <td className="px-4 py-3">
+                                                            <div className="font-medium text-white line-clamp-1">
+                                                                {comp.name ||
+                                                                    `ID: ${comp.productId}`}
+                                                            </div>
+                                                            {comp.sku && (
+                                                                <div className="text-xs text-gray-500">
+                                                                    SKU:{" "}
+                                                                    {comp.sku}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <span
+                                                                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                                                    enoughForOne
+                                                                        ? "bg-green-500/10 text-green-400"
+                                                                        : "bg-red-500/10 text-red-400"
+                                                                }`}
+                                                            >
+                                                                {compStock} u.
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right text-gray-300">
+                                                            $
+                                                            {unitReg.toLocaleString(
+                                                                "es-AR",
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                value={
+                                                                    comp.quantity
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleUpdateComponentQty(
+                                                                        comp.productId,
+                                                                        Number(
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        ),
+                                                                    )
+                                                                }
+                                                                className="w-20 bg-gray-800 text-white text-sm text-center rounded-lg px-2 py-1.5 border border-gray-700 focus:border-brand outline-none"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-semibold text-white">
+                                                            $
+                                                            {subReg.toLocaleString(
+                                                                "es-AR",
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleRemoveComponent(
+                                                                        comp.productId,
+                                                                    )
+                                                                }
+                                                                className="text-red-400 hover:text-red-300 text-xs font-medium px-2 py-1"
+                                                                title="Quitar del combo"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {fieldErrors.bundleItems && (
+                                <p className="text-sm text-red-400 mt-2">
+                                    {fieldErrors.bundleItems}
+                                </p>
+                            )}
+                        </section>
+                    )}
+
                     {/* Info básica */}
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
@@ -314,13 +701,22 @@ export function ProductForm({
 
                     {/* Precios */}
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Precios
-                        </h2>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-bold text-white">
+                                Precios
+                            </h2>
+                            {isBundle && discountPercentage > 0 && (
+                                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">
+                                    Ahorro del combo: {discountPercentage}% OFF
+                                </span>
+                            )}
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClass}>
-                                    Precio regular
+                                    {isBundle
+                                        ? "Precio regular (Suma automática de componentes)"
+                                        : "Precio regular"}
                                 </label>
                                 <input
                                     name="regularPrice"
@@ -329,7 +725,8 @@ export function ProductForm({
                                     type="number"
                                     step="0.01"
                                     required
-                                    className={inputClass}
+                                    readOnly={isBundle}
+                                    className={`${inputClass} ${isBundle ? "opacity-60 cursor-not-allowed bg-gray-900" : ""}`}
                                 />
                                 {fieldErrors.regularPrice && (
                                     <p className="text-sm text-red-400">
@@ -339,7 +736,9 @@ export function ProductForm({
                             </div>
                             <div>
                                 <label className={labelClass}>
-                                    Precio de oferta
+                                    {isBundle
+                                        ? "Precio de oferta del combo (Obligatorio)"
+                                        : "Precio de oferta"}
                                 </label>
                                 <input
                                     name="salePrice"
@@ -347,12 +746,17 @@ export function ProductForm({
                                     onChange={handleChange}
                                     type="number"
                                     step="0.01"
+                                    required={isBundle}
                                     className={inputClass}
-                                    placeholder="Dejar vacío si no aplica"
+                                    placeholder={
+                                        isBundle
+                                            ? "Precio final de venta del combo"
+                                            : "Dejar vacío si no aplica"
+                                    }
                                 />
                                 {fieldErrors.salePrice && (
                                     <p className="text-sm text-red-400">
-                                        {fieldErrors.regularPrice}
+                                        {fieldErrors.salePrice}
                                     </p>
                                 )}
                             </div>
@@ -378,41 +782,53 @@ export function ProductForm({
                         <h2 className="text-base font-bold text-white mb-4">
                             Stock
                         </h2>
-                        <div className="flex flex-col gap-4">
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    name="manageStock"
-                                    checked={form.manageStock}
-                                    onChange={handleChange}
-                                    className="w-4 h-4 accent-brand"
-                                />
-                                <span className="text-sm text-gray-300">
-                                    Gestionar stock
-                                </span>
-                            </label>
-                            {form.manageStock && (
-                                <div className="flex flex-col gap-4">
-                                    <label className="flex items-center gap-3 cursor-pointer">
-                                        <input
-                                            name="hasSerialNumber"
-                                            checked={form.hasSerialNumber}
-                                            onChange={handleChange}
-                                            type="checkbox"
-                                            className="w-4 h-4 accent-brand"
-                                        />
-                                        <span className="text-sm text-gray-300">
-                                            Tiene Número de serie?
-                                        </span>
-                                        {fieldErrors.manageStock && (
-                                            <p className="text-sm text-red-400">
-                                                {fieldErrors.manageStock}
-                                            </p>
-                                        )}
-                                    </label>
-                                </div>
-                            )}
-                        </div>
+                        {isBundle ? (
+                            <div className="rounded-xl bg-gray-800/50 border border-gray-700 p-4 text-xs text-gray-300 leading-relaxed">
+                                El stock de este combo es <strong>virtual</strong>{" "}
+                                y se calcula automáticamente según el stock
+                                disponible de los productos que lo componen. Si
+                                el combo se queda sin stock y luego sus
+                                componentes recuperan stock, el combo pasará a{" "}
+                                <strong>Pendiente de revisión</strong> para
+                                verificar su precio de oferta.
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-4">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="manageStock"
+                                        checked={form.manageStock}
+                                        onChange={handleChange}
+                                        className="w-4 h-4 accent-brand"
+                                    />
+                                    <span className="text-sm text-gray-300">
+                                        Gestionar stock
+                                    </span>
+                                </label>
+                                {form.manageStock && (
+                                    <div className="flex flex-col gap-4">
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                name="hasSerialNumber"
+                                                checked={form.hasSerialNumber}
+                                                onChange={handleChange}
+                                                type="checkbox"
+                                                className="w-4 h-4 accent-brand"
+                                            />
+                                            <span className="text-sm text-gray-300">
+                                                Tiene Número de serie?
+                                            </span>
+                                            {fieldErrors.manageStock && (
+                                                <p className="text-sm text-red-400">
+                                                    {fieldErrors.manageStock}
+                                                </p>
+                                            )}
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </section>
 
                     {/* Envío */}

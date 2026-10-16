@@ -7,6 +7,7 @@ import { findProductsById } from "../products/getProductsById";
 
 import { createAdminOrderSchema } from "../validators/createAdminOrderSchema";
 import { updateProductStock } from "../products/updateProductStock";
+import { buildOrderBundleComponentsMap } from "../products/recalculateBundlesStock";
 
 export async function createAdminOrder(data: unknown) {
     const result = createAdminOrderSchema.safeParse(data);
@@ -38,6 +39,11 @@ export async function createAdminOrder(data: unknown) {
             session,
         );
 
+        const bundleComponentsMap = await buildOrderBundleComponentsMap(
+            products,
+            session,
+        );
+
         const orderItems = items.map((item) => {
             const product = products.find((p) => p.id === item.productId);
 
@@ -55,6 +61,17 @@ export async function createAdminOrder(data: unknown) {
 
             const taxAmount = subtotal - subtotal / (1 + taxRate / 100);
 
+            const isBundle = (product as any).type === "bundle";
+            const rawComps = isBundle
+                ? bundleComponentsMap.get(product.id.toString()) || []
+                : [];
+            const bundleComponents = rawComps.map((c) => ({
+                productId: c.productId,
+                name: c.name,
+                quantityPerBundle: c.quantityPerBundle,
+                totalQuantity: c.quantityPerBundle * quantity,
+            }));
+
             return {
                 productId: product.id,
                 name: product.name,
@@ -69,6 +86,9 @@ export async function createAdminOrder(data: unknown) {
                 taxAmount,
 
                 total: subtotal,
+
+                isBundle,
+                bundleComponents,
             };
         });
 

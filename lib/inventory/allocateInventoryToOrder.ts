@@ -6,7 +6,8 @@ import { OrderModel, ProductModel, InventoryItemModel } from "@/models";
 
 type AllocationInput = {
     productId: string;
-
+    componentProductId?: string;
+    componentName?: string;
     allocations: {
         inventoryItemId: string;
         quantity: number;
@@ -37,6 +38,9 @@ export async function allocateInventoryToOrder(
                 throw new Error("La orden ya tiene inventario asignado");
             }
 
+            // Limpiar asignaciones previas en combos antes de acumular sus componentes
+            const clearedBundleOrderItemIds = new Set<string>();
+
             for (const item of items) {
                 const orderItem = order.items.find(
                     (i: any) =>
@@ -47,6 +51,165 @@ export async function allocateInventoryToOrder(
                     throw new Error("Producto no encontrado en la orden");
                 }
 
+                // Determinar si estamos asignando un componente de un combo o un producto simple
+                const isBundleComponent = Boolean(item.componentProductId);
+
+                if (isBundleComponent) {
+                    const parentKey = orderItem.productId.toString();
+                    if (!clearedBundleOrderItemIds.has(parentKey)) {
+                        orderItem.allocations = [];
+                        clearedBundleOrderItemIds.add(parentKey);
+                    }
+
+                    const compProduct = await ProductModel.findById(
+                        item.componentProductId,
+                    ).session(session);
+
+                    if (!compProduct) {
+                        throw new Error(
+                            "Producto componente del combo no encontrado",
+                        );
+                    }
+
+                    // Determinar cantidad requerida de este componente
+                    const snapshotComp = (
+                        orderItem.bundleComponents || []
+                    ).find(
+                        (c: any) =>
+                            c.productId.toString() ===
+                            item.componentProductId?.toString(),
+                    );
+
+                    let requiredQty = snapshotComp
+                        ? Number(snapshotComp.totalQuantity) ||
+                          Number(orderItem.quantity) *
+                              Number(snapshotComp.quantityPerBundle)
+                        : 0;
+
+                    if (!requiredQty) {
+                        const parentProduct = await ProductModel.findById(
+                            orderItem.productId,
+                        )
+                            .select("bundleItems")
+                            .session(session)
+                            .lean();
+                        const bi = (parentProduct?.bundleItems || []).find(
+                            (b: any) =>
+                                b.productId.toString() ===
+                                item.componentProductId?.toString(),
+                        );
+                        requiredQty =
+                            Number(orderItem.quantity) *
+                            Math.max(1, Number(bi?.quantity) || 1);
+                    }
+
+                    if (compProduct.hasSerialNumber) {
+                        if (item.allocations.length !== requiredQty) {
+                            throw new Error(
+                                `Cantidad de seriales inválida para "${compProduct.name}" (requeridos: ${requiredQty})`,
+                            );
+                        }
+
+                        const inventoryIds = item.allocations.map(
+                            (a) => a.inventoryItemId,
+                        );
+
+                        const inventoryItems = await InventoryItemModel.find({
+                            _id: { $in: inventoryIds },
+                            productId: compProduct._id,
+                            status: "available",
+                        }).session(session);
+
+                        if (inventoryItems.length !== requiredQty) {
+                            throw new Error(
+                                `Uno o más seriales seleccionados para "${compProduct.name}" ya no están disponibles`,
+                            );
+                        }
+
+                        await InventoryItemModel.updateMany(
+                            { _id: { $in: inventoryIds } },
+                            {
+                                $set: {
+                                    status: "sold",
+                                    saleId: order._id,
+                                },
+                            },
+                            { session },
+                        );
+                    } else {
+                        let totalAllocated = 0;
+
+                        for (const allocation of item.allocations) {
+                            if (allocation.quantity <= 0) continue;
+                            totalAllocated += allocation.quantity;
+
+                            const updated = await InventoryItemModel.updateOne(
+                                {
+                                    _id: allocation.inventoryItemId,
+                                    productId: compProduct._id,
+                                    remainingQuantity: {
+                                        $gte: allocation.quantity,
+                                    },
+                                },
+                                {
+                                    $inc: {
+                                        remainingQuantity: -allocation.quantity,
+                                    },
+                                },
+                                { session },
+                            );
+
+                            if (updated.modifiedCount === 0) {
+                                throw new Error(
+                                    `Stock insuficiente en el lote para "${compProduct.name}"`,
+                                );
+                            }
+                        }
+
+                        if (totalAllocated !== requiredQty) {
+                            throw new Error(
+                                `Cantidad asignada inválida para "${compProduct.name}" (requeridos: ${requiredQty}, asignados: ${totalAllocated})`,
+                            );
+                        }
+                    }
+
+                    for (const a of item.allocations) {
+                        if (a.quantity <= 0) continue;
+                        orderItem.allocations.push({
+                            inventoryItemId: a.inventoryItemId,
+                            quantity: a.quantity,
+                            componentProductId: compProduct._id,
+                            componentName: compProduct.name,
+                        });
+                    }
+
+                    const updatedComp = await ProductModel.updateOne(
+                        {
+                            _id: compProduct._id,
+                            reservedStock: { $gte: requiredQty },
+                            totalStock: { $gte: requiredQty },
+                        },
+                        {
+                            $inc: {
+                                reservedStock: -requiredQty,
+                                totalStock: -requiredQty,
+                            },
+                        },
+                        { session },
+                    );
+
+                    if (updatedComp.modifiedCount === 0) {
+                        throw new Error(
+                            `Stock reservado inconsistente en "${compProduct.name}"`,
+                        );
+                    }
+
+                    continue;
+                }
+
+                // =====================================
+                // PRODUCTO SIMPLE (Flujo tradicional)
+                // =====================================
                 const product = await ProductModel.findById(
                     item.productId,
                 ).session(session);
@@ -55,17 +218,10 @@ export async function allocateInventoryToOrder(
                     throw new Error("Producto no encontrado");
                 }
 
-                // =====================================
-                // NUEVO: VERIFICAR SI YA ESTABA ASIGNADO (OUTLET)
-                // =====================================
                 const isPreAllocated =
                     orderItem.allocations && orderItem.allocations.length > 0;
 
-                // Solo descontamos inventario físico si NO fue asignado en el Checkout
                 if (!isPreAllocated) {
-                    // =====================================
-                    // SERIALIZADOS
-                    // =====================================
                     if (product.hasSerialNumber) {
                         if (item.allocations.length !== orderItem.quantity) {
                             throw new Error(
@@ -99,14 +255,11 @@ export async function allocateInventoryToOrder(
                             },
                             { session },
                         );
-                    }
-                    // =====================================
-                    // NO SERIALIZADOS
-                    // =====================================
-                    else {
+                    } else {
                         let totalAllocated = 0;
 
                         for (const allocation of item.allocations) {
+                            if (allocation.quantity <= 0) continue;
                             totalAllocated += allocation.quantity;
 
                             const updated = await InventoryItemModel.updateOne(
@@ -139,14 +292,10 @@ export async function allocateInventoryToOrder(
                         }
                     }
 
-                    // Guardamos las asignaciones nuevas en la orden
-                    orderItem.allocations = item.allocations;
+                    orderItem.allocations = item.allocations.filter(
+                        (a) => a.quantity > 0,
+                    );
                 } else {
-                    // =====================================
-                    // SI YA ESTABA ASIGNADO (OUTLET)
-                    // =====================================
-                    // Opcional pero recomendado: Si es serializado de Outlet, aprovechamos
-                    // y le cambiamos el estado a "sold" acá para mantener prolija la base de datos.
                     if (product.hasSerialNumber) {
                         const preAllocatedIds = orderItem.allocations.map(
                             (a: any) => a.inventoryItemId,
@@ -164,10 +313,6 @@ export async function allocateInventoryToOrder(
                     }
                 }
 
-                // =====================================
-                // PRODUCT STOCK (Aplica a TODOS)
-                // =====================================
-                // Esto pasa el stock de "reservado" a "entregado definitivamente"
                 const updatedProduct = await ProductModel.updateOne(
                     {
                         _id: product._id,
@@ -188,11 +333,8 @@ export async function allocateInventoryToOrder(
                 }
             }
 
-            // =====================================
-            // ORDER STATUS
-            // =====================================
-
             order.inventoryAllocatedAt = new Date();
+            order.markModified("items");
 
             await order.save({ session });
         });
@@ -200,3 +342,4 @@ export async function allocateInventoryToOrder(
         session.endSession();
     }
 }
+

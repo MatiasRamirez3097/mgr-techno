@@ -128,21 +128,62 @@ export function mapOrderToDocument({
         */
 
         items: order.items.map((item: any) => {
-            // Buscamos los seriales asignados a este ítem en la orden
+            const displayName = item.title || item.name;
+
+            // Si es un combo con desglose de componentes, listamos cada componente con sus seriales (sin precios individuales)
+            if (
+                item.isBundle &&
+                Array.isArray(item.bundleComponents) &&
+                item.bundleComponents.length > 0
+            ) {
+                const subItems = item.bundleComponents.map((comp: any) => {
+                    const compIdStr = comp.productId?.toString();
+                    const compSerials = (item.allocations || [])
+                        .filter((alloc: any) => {
+                            const allocCompId =
+                                alloc.componentProductId?.toString() ||
+                                alloc.inventoryItemId?.productId?.toString();
+                            return (
+                                allocCompId === compIdStr &&
+                                alloc.inventoryItemId?.serialNumber
+                            );
+                        })
+                        .map((alloc: any) => alloc.inventoryItemId.serialNumber);
+
+                    const totalCompQty =
+                        Number(comp.totalQuantity) ||
+                        Number(item.quantity) *
+                            Math.max(1, Number(comp.quantityPerBundle) || 1);
+
+                    let line = `${totalCompQty}x ${comp.name}`;
+                    if (compSerials.length > 0) {
+                        line += ` (S/N: ${compSerials.join(", ")})`;
+                    }
+                    return line;
+                });
+
+                return {
+                    name: displayName,
+                    subItems,
+                    quantity: item.quantity,
+                    price: item.unitPrice,
+                    total: item.subtotal,
+                };
+            }
+
+            // Producto simple: buscamos los seriales asignados a este ítem en la orden
             const serials = item.allocations
-                ?.filter((alloc: any) => alloc.inventoryItemId?.serialNumber) // Solo los que tienen serial
+                ?.filter((alloc: any) => alloc.inventoryItemId?.serialNumber)
                 .map((alloc: any) => alloc.inventoryItemId.serialNumber);
 
-            // Armamos el nombre base
-            let displayName = item.title || item.name;
-
-            // Si hay seriales, los concatenamos
+            let simpleDisplayName = displayName;
             if (serials && serials.length > 0) {
-                displayName += ` (S/N: ${serials.join(", ")})`;
+                simpleDisplayName += ` (S/N: ${serials.join(", ")})`;
             }
-            console.log(item.allocations);
+
             return {
-                name: displayName,
+                name: simpleDisplayName,
+                subItems: [],
                 quantity: item.quantity,
                 price: item.unitPrice,
                 total: item.subtotal,

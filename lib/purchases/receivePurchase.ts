@@ -4,6 +4,7 @@ import { ProductModel } from "@/models/Product";
 import { InventoryItemModel } from "@/models/InventoryItem";
 import { connectDB } from "../mongodb";
 import { receivePurchaseBodySchema } from "../validators/purchaseSchema";
+import { recalculateBundlesForProducts } from "../products/recalculateBundlesStock";
 
 export async function receivePurchase(purchaseId: string, data: unknown) {
     await connectDB();
@@ -189,6 +190,9 @@ export async function receivePurchase(purchaseId: string, data: unknown) {
         if (totalQuantityToReceive === 0) {
             throw new Error("Debe ingresar al menos una unidad para recepcionar");
         }
+
+        // Recalcular stock y estado (pending_review si recuperan stock) de todos los combos compuestos por estos productos
+        await recalculateBundlesForProducts(productIds, session);
 
         const createdInventoryItems = await InventoryItemModel.insertMany(
             itemsToInsert,

@@ -11,12 +11,13 @@ interface Props {
 
 export function QuickEditProduct({ product, onClose }: Props) {
     const router = useRouter();
+    const isBundle = product.type === "bundle";
     const [form, setForm] = useState({
         regularPrice: product.regularPrice || "",
         salePrice: product.salePrice || "",
         featured: product.featured || false,
         status: product.status,
-        hasFreeShipping: product.hasFreeShipping || false, // <-- Agregado
+        hasFreeShipping: product.hasFreeShipping || false,
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -31,6 +32,12 @@ export function QuickEditProduct({ product, onClose }: Props) {
 
         if (isNaN(reg) || reg <= 0) {
             setError("El precio regular debe ser mayor a 0");
+            setLoading(false);
+            return;
+        }
+
+        if (isBundle && (sale === null || isNaN(sale) || sale <= 0)) {
+            setError("El precio de oferta es obligatorio para un combo");
             setLoading(false);
             return;
         }
@@ -99,19 +106,21 @@ export function QuickEditProduct({ product, onClose }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
                     <div>
                         <label className="text-xs text-gray-400 mb-1 block font-medium">
-                            Precio regular *
+                            Precio regular {isBundle ? "(suma combo)" : "*"}
                         </label>
                         <input
                             type="number"
                             step="0.01"
                             value={form.regularPrice}
+                            readOnly={isBundle}
+                            disabled={isBundle}
                             onChange={(e) =>
                                 setForm((prev) => ({
                                     ...prev,
                                     regularPrice: e.target.value,
                                 }))
                             }
-                            className={inputClass}
+                            className={`${inputClass} ${isBundle ? "opacity-60 cursor-not-allowed" : ""}`}
                             placeholder="0.00"
                         />
                     </div>
@@ -120,13 +129,14 @@ export function QuickEditProduct({ product, onClose }: Props) {
                         <label className="text-xs text-gray-400 mb-1 block font-medium">
                             Precio oferta
                             <span className="text-gray-500 font-normal ml-1">
-                                (opcional)
+                                {isBundle ? "(obligatorio)" : "(opcional)"}
                             </span>
                         </label>
                         <input
                             type="number"
                             step="0.01"
                             value={form.salePrice}
+                            required={isBundle}
                             onChange={(e) =>
                                 setForm((prev) => ({
                                     ...prev,
@@ -134,7 +144,7 @@ export function QuickEditProduct({ product, onClose }: Props) {
                                 }))
                             }
                             className={inputClass}
-                            placeholder="Vacío = sin oferta"
+                            placeholder={isBundle ? "Precio del combo" : "Vacío = sin oferta"}
                         />
                     </div>
 

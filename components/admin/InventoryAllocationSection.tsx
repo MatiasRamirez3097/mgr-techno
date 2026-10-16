@@ -12,11 +12,15 @@ type Suggestion = {
 };
 
 type AllocationSuggestion = {
+    allocationKey?: string;
     productId: string;
+    componentProductId?: string;
+    parentBundleName?: string;
     productName: string;
     quantity: number;
     isSerialized: boolean;
     hasInsufficientInventory: boolean;
+    initialSelectedIds?: string[];
     suggestions: Suggestion[];
 };
 
@@ -24,12 +28,15 @@ type ExistingAllocation = {
     inventoryItemId: string | any; // Acepta string o el objeto populado de MongoDB
     quantity: number;
     serialNumber?: string;
+    componentProductId?: string | any;
+    componentName?: string;
 };
 
 type OrderItem = {
     productId: string;
     name: string;
     quantity: number;
+    isBundle?: boolean;
     allocations?: ExistingAllocation[];
 };
 
@@ -58,20 +65,42 @@ export function InventoryAllocationSection({
     // ============================================
     const initialAllocations = useMemo(() => {
         return allocationSuggestions.map((itemSuggestion) => {
+            const key =
+                itemSuggestion.allocationKey || itemSuggestion.productId;
+
             // 1. Buscamos si el ítem ya trae asignaciones guardadas desde la Orden
             const orderItem = items.find(
                 (i) =>
                     i.productId.toString() ===
                     itemSuggestion.productId.toString(),
             );
-            const existingAllocations = orderItem?.allocations || [];
+            const allOrderItemAllocations = orderItem?.allocations || [];
+
+            const existingAllocations = itemSuggestion.componentProductId
+                ? allOrderItemAllocations.filter((a) => {
+                      const compId =
+                          a.componentProductId ||
+                          (typeof a.inventoryItemId === "object"
+                              ? a.inventoryItemId?.productId
+                              : undefined);
+                      return (
+                          compId &&
+                          compId.toString() ===
+                              itemSuggestion.componentProductId?.toString()
+                      );
+                  })
+                : allOrderItemAllocations;
 
             // 2. Si YA tiene asignaciones en la DB (Ej: Outlet), usamos esas
             if (existingAllocations.length > 0) {
                 return {
+                    allocationKey: key,
                     productId: itemSuggestion.productId,
+                    componentProductId: itemSuggestion.componentProductId,
+                    componentName: itemSuggestion.componentProductId
+                        ? itemSuggestion.productName
+                        : undefined,
                     allocations: existingAllocations.map((a) => {
-                        // Extraemos el ID sin importar si vino como string o como objeto populado
                         const invId =
                             typeof a.inventoryItemId === "object"
                                 ? a.inventoryItemId._id || a.inventoryItemId.id
@@ -87,12 +116,23 @@ export function InventoryAllocationSection({
 
             // 3. Si no tiene asignaciones, aplicamos lógica de sugerencia FIFO normal
             if (itemSuggestion.isSerialized) {
-                const fifoSelection = itemSuggestion.suggestions.slice(
-                    0,
-                    itemSuggestion.quantity,
-                );
+                const fifoSelection = itemSuggestion.initialSelectedIds
+                    ? itemSuggestion.suggestions.filter((s) =>
+                          itemSuggestion.initialSelectedIds!.includes(
+                              s.inventoryItemId,
+                          ),
+                      )
+                    : itemSuggestion.suggestions.slice(
+                          0,
+                          itemSuggestion.quantity,
+                      );
                 return {
+                    allocationKey: key,
                     productId: itemSuggestion.productId,
+                    componentProductId: itemSuggestion.componentProductId,
+                    componentName: itemSuggestion.componentProductId
+                        ? itemSuggestion.productName
+                        : undefined,
                     allocations: fifoSelection.map((s) => ({
                         inventoryItemId: s.inventoryItemId,
                         quantity: s.quantity,
@@ -100,7 +140,12 @@ export function InventoryAllocationSection({
                 };
             } else {
                 return {
+                    allocationKey: key,
                     productId: itemSuggestion.productId,
+                    componentProductId: itemSuggestion.componentProductId,
+                    componentName: itemSuggestion.componentProductId
+                        ? itemSuggestion.productName
+                        : undefined,
                     allocations: itemSuggestion.suggestions.map((s) => ({
                         inventoryItemId: s.inventoryItemId,
                         quantity: s.quantity,
@@ -117,13 +162,13 @@ export function InventoryAllocationSection({
     // SERIALIZED TOGGLE CON LÍMITE
     // ============================================
     function toggleSerializedAllocation(
-        productId: string,
+        allocationKey: string,
         inventoryItemId: string,
         maxQuantity: number,
     ) {
         setSelectedAllocations((prev) =>
             prev.map((item) => {
-                if (item.productId !== productId) return item;
+                if (item.allocationKey !== allocationKey) return item;
 
                 const exists = item.allocations.find(
                     (a) => a.inventoryItemId === inventoryItemId,
@@ -163,13 +208,13 @@ export function InventoryAllocationSection({
     // NON SERIALIZED QUANTITY
     // ============================================
     function updateNonSerializedQuantity(
-        productId: string,
+        allocationKey: string,
         inventoryItemId: string,
         quantity: number,
     ) {
         setSelectedAllocations((prev) =>
             prev.map((item) => {
-                if (item.productId !== productId) return item;
+                if (item.allocationKey !== allocationKey) return item;
 
                 const exists = item.allocations.find(
                     (a) => a.inventoryItemId === inventoryItemId,
@@ -207,8 +252,9 @@ export function InventoryAllocationSection({
             setSuccess(false);
 
             const missingAllocations = allocationSuggestions.some((sug) => {
+                const key = sug.allocationKey || sug.productId;
                 const sel = selectedAllocations.find(
-                    (a) => a.productId === sug.productId,
+                    (a) => a.allocationKey === key,
                 );
                 if (sug.isSerialized) {
                     return !sel || sel.allocations.length !== sug.quantity;
@@ -265,8 +311,12 @@ export function InventoryAllocationSection({
 
             <div className="flex flex-col gap-6">
                 {allocationSuggestions.map((itemSuggestion) => {
+                    const key =
+                        itemSuggestion.allocationKey ||
+                        itemSuggestion.productId;
+
                     const currentSelection = selectedAllocations.find(
-                        (a) => a.productId === itemSuggestion.productId,
+                        (a) => a.allocationKey === key,
                     );
 
                     const orderItem = items.find(
@@ -275,11 +325,25 @@ export function InventoryAllocationSection({
                             itemSuggestion.productId.toString(),
                     );
 
-                    // 🔥 NUEVO: Verificamos si ESTE ítem en particular ya vino asignado de la DB
-                    const isItemPreAllocated =
-                        (orderItem?.allocations?.length || 0) > 0;
+                    const existingAllocationsForItem =
+                        itemSuggestion.componentProductId
+                            ? (orderItem?.allocations || []).filter((a) => {
+                                  const compId =
+                                      a.componentProductId ||
+                                      (typeof a.inventoryItemId === "object"
+                                          ? a.inventoryItemId?.productId
+                                          : undefined);
+                                  return (
+                                      compId &&
+                                      compId.toString() ===
+                                          itemSuggestion.componentProductId?.toString()
+                                  );
+                              })
+                            : orderItem?.allocations || [];
 
-                    // Mostramos modo lectura si TODA la orden está asignada, o si ESTE ítem ya estaba asignado
+                    const isItemPreAllocated =
+                        existingAllocationsForItem.length > 0;
+
                     const showAsAllocated = isAllocated || isItemPreAllocated;
 
                     const selectedCount =
@@ -289,11 +353,17 @@ export function InventoryAllocationSection({
 
                     return (
                         <div
-                            key={itemSuggestion.productId}
+                            key={key}
                             className="border border-gray-800 rounded-2xl p-4 bg-gray-800/20"
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div>
+                                    {itemSuggestion.parentBundleName && (
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-300 border border-blue-500/20 mb-1.5">
+                                            📦 Combo:{" "}
+                                            {itemSuggestion.parentBundleName}
+                                        </span>
+                                    )}
                                     <h3 className="text-sm font-semibold text-white">
                                         {itemSuggestion.productName}
                                     </h3>
@@ -328,9 +398,8 @@ export function InventoryAllocationSection({
                             {showAsAllocated ? (
                                 <div className="space-y-2">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                        {orderItem?.allocations?.map(
+                                        {existingAllocationsForItem.map(
                                             (allocation, idx) => {
-                                                // NUEVO: Normalizamos el ID por si viene como String o como Objeto Populado
                                                 const invId =
                                                     typeof allocation.inventoryItemId ===
                                                     "object"
@@ -347,7 +416,6 @@ export function InventoryAllocationSection({
                                                               .serialNumber
                                                         : undefined;
 
-                                                // Si por algún milagro sigue en sugerencias, lo sacamos de ahí
                                                 const matchedSuggestion =
                                                     itemSuggestion.suggestions.find(
                                                         (s) =>
@@ -355,7 +423,6 @@ export function InventoryAllocationSection({
                                                             invId,
                                                     );
 
-                                                // Prioridades: 1. Serial guardado plano, 2. Serial populado de MongoDB, 3. Sugerencia, 4. ID crudo
                                                 const serialToShow =
                                                     allocation.serialNumber ||
                                                     populatedSerial ||
@@ -426,7 +493,7 @@ export function InventoryAllocationSection({
                                                                     }
                                                                     onChange={() =>
                                                                         toggleSerializedAllocation(
-                                                                            itemSuggestion.productId,
+                                                                            key,
                                                                             suggestion.inventoryItemId,
                                                                             itemSuggestion.quantity,
                                                                         )
@@ -455,7 +522,7 @@ export function InventoryAllocationSection({
                                                                         e,
                                                                     ) =>
                                                                         updateNonSerializedQuantity(
-                                                                            itemSuggestion.productId,
+                                                                            key,
                                                                             suggestion.inventoryItemId,
                                                                             Number(
                                                                                 e
