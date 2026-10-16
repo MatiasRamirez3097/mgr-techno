@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ProductsView } from "@/components/products/ProductsView";
+import { extractAttributeFiltersFromSearchParams } from "@/lib/products/extractAttributeFilters";
 
 import type { ProductOrderBy } from "@/types/shared/product";
 
@@ -12,14 +13,16 @@ interface Props {
         category: string;
     }>;
 
-    searchParams: Promise<{
-        limit?: string;
-        search?: string;
-        page?: string;
-        orderby?: ProductOrderBy;
-        brand?: string;
-        isOutlet: string;
-    }>;
+    searchParams: Promise<
+        Record<string, string | string[] | undefined> & {
+            limit?: string;
+            search?: string;
+            page?: string;
+            orderby?: ProductOrderBy;
+            brand?: string;
+            isOutlet?: string;
+        }
+    >;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -41,6 +44,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     const { limit, search, page, orderby, brand, isOutlet } =
         resolvedSearchParams;
 
+    const attributeFilters =
+        extractAttributeFiltersFromSearchParams(resolvedSearchParams);
+
     const suspenseKey = JSON.stringify(resolvedSearchParams);
 
     return (
@@ -53,6 +59,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
                 orderby={orderby}
                 brand={brand}
                 isOutlet={isOutlet}
+                attributeFilters={attributeFilters}
             />
         </Suspense>
     );

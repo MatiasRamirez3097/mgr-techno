@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FilterDrawer } from "./FilterDrawer";
 import { useSearchParams } from "next/navigation";
+import type { AvailableAttributeFacet } from "@/types/shared/product";
 
 interface Brand {
     _id: string;
@@ -12,12 +13,14 @@ interface Brand {
 
 interface Props {
     brands: Brand[];
+    attributes?: AvailableAttributeFacet[];
     initialHideOutOfStock?: boolean;
-    initialIsOutlet?: boolean; // NUEVO
+    initialIsOutlet?: boolean;
 }
 
 export function FilterButton({
     brands,
+    attributes = [],
     initialHideOutOfStock = false,
     initialIsOutlet = false,
 }: Props) {
@@ -32,11 +35,21 @@ export function FilterButton({
         ? brandParam.split(",").filter(Boolean).length
         : 0;
 
+    let activeAttributesCount = 0;
+    searchParams.forEach((val, key) => {
+        if (key.startsWith("attr_") && val) {
+            activeAttributesCount += val.split(",").filter(Boolean).length;
+        }
+    });
+
     const activeStockFilterCount = !initialHideOutOfStock ? 1 : 0;
-    const activeOutletFilterCount = initialIsOutlet ? 1 : 0; // NUEVO
+    const activeOutletFilterCount = initialIsOutlet ? 1 : 0;
 
     const totalActiveFilters =
-        activeBrandsCount + activeStockFilterCount + activeOutletFilterCount;
+        activeBrandsCount +
+        activeAttributesCount +
+        activeStockFilterCount +
+        activeOutletFilterCount;
 
     return (
         <>
@@ -86,8 +99,9 @@ export function FilterButton({
                 open={open}
                 onClose={() => setOpen(false)}
                 brands={brands}
+                attributes={attributes}
                 initialHideOutOfStock={initialHideOutOfStock}
-                initialIsOutlet={initialIsOutlet} // NUEVO
+                initialIsOutlet={initialIsOutlet}
             />
         </>
     );

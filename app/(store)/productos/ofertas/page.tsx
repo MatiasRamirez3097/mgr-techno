@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ProductsView } from "@/components/products/ProductsView";
+import { extractAttributeFiltersFromSearchParams } from "@/lib/products/extractAttributeFilters";
 
 import type { ProductOrderBy } from "@/types/shared/product";
 
@@ -10,17 +11,35 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-    searchParams: Promise<{
-        search?: string;
-        page?: string;
-        orderby?: ProductOrderBy;
-    }>;
+    searchParams: Promise<
+        Record<string, string | string[] | undefined> & {
+            limit?: string;
+            search?: string;
+            page?: string;
+            orderby?: ProductOrderBy;
+            brand?: string;
+            isOutlet?: string;
+        }
+    >;
 }
 
 export default async function SaleProductsPage({ searchParams }: Props) {
-    const { search, page, orderby } = await searchParams;
+    const resolvedSearchParams = await searchParams;
+    const { limit, search, page, orderby, brand, isOutlet } =
+        resolvedSearchParams;
+    const attributeFilters =
+        extractAttributeFiltersFromSearchParams(resolvedSearchParams);
 
     return (
-        <ProductsView onSale search={search} page={page} orderby={orderby} />
+        <ProductsView
+            onSale
+            limit={limit}
+            search={search}
+            page={page}
+            orderby={orderby}
+            brand={brand}
+            isOutlet={isOutlet}
+            attributeFilters={attributeFilters}
+        />
     );
 }

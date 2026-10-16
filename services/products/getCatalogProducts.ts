@@ -5,7 +5,10 @@ import { getCategoriesDescendants } from "@/services/categories/getCategoriesDes
 import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
 import { getProductHealth } from "@/lib/products/getProductHealth";
-import type { ProductFilters } from "@/types/shared/product";
+import type {
+    AvailableAttributeFacet,
+    ProductFilters,
+} from "@/types/shared/product";
 import { unstable_cache, revalidateTag, revalidatePath } from "next/cache";
 import { Types } from "mongoose";
 
@@ -50,6 +53,71 @@ const PRODUCT_PROJECT_STAGE = {
         isAvailable: 1,
     },
 };
+
+function expandAttributeCandidateValues(rawValues: string[]): any[] {
+    const candidates: any[] = [];
+    for (const raw of rawValues) {
+        const trimmed = String(raw).trim();
+        if (!trimmed) continue;
+        candidates.push(trimmed);
+
+        const num = Number(trimmed);
+        if (!Number.isNaN(num)) {
+            candidates.push(num);
+        }
+
+        const lower = trimmed.toLowerCase();
+        if (lower === "true" || lower === "sí" || lower === "si") {
+            candidates.push(true);
+        } else if (lower === "false" || lower === "no") {
+            candidates.push(false);
+        }
+    }
+    return candidates;
+}
+
+function formatAttributeFacets(rawFacets: any[]): AvailableAttributeFacet[] {
+    if (!Array.isArray(rawFacets)) return [];
+
+    return rawFacets
+        .filter((f) => f?._id && f?.label && Array.isArray(f?.options) && f.options.length > 0)
+        .map((f) => {
+            const unit = f.unit ? String(f.unit).trim() : "";
+            const options = [...f.options]
+                .map((opt: any) => {
+                    const valStr = String(opt.value ?? "").trim();
+                    let displayValue = valStr;
+                    if (valStr === "true") {
+                        displayValue = "Sí";
+                    } else if (valStr === "false") {
+                        displayValue = "No";
+                    } else if (unit) {
+                        displayValue = `${valStr} ${unit}`;
+                    }
+                    return {
+                        value: valStr,
+                        displayValue,
+                        count: Number(opt.count) || 0,
+                    };
+                })
+                .sort((a, b) =>
+                    a.value.localeCompare(b.value, "es", {
+                        numeric: true,
+                        sensitivity: "base",
+                    }),
+                );
+
+            return {
+                key: String(f._id),
+                label: String(f.label),
+                unit: unit || undefined,
+                options,
+            };
+        })
+        .sort((a, b) =>
+            a.label.localeCompare(b.label, "es", { sensitivity: "base" }),
+        );
+}
 
 async function fetchCatalogProducts(
     filters: ProductFilters & {
@@ -236,6 +304,39 @@ async function fetchCatalogProducts(
         }
     }
 
+    // PIPELINE DE ATRIBUTOS DINÁMICOS (?attr_<key>=val1,val2)
+    const attributeMatchPipeline: any[] = [];
+    if (
+        filters.attributeFilters &&
+        Object.keys(filters.attributeFilters).length > 0
+    ) {
+        const attrAndConditions: any[] = [];
+        for (const [attrKey, rawVals] of Object.entries(
+            filters.attributeFilters,
+        )) {
+            if (!attrKey || !Array.isArray(rawVals) || rawVals.length === 0) {
+                continue;
+            }
+            const candidates = expandAttributeCandidateValues(rawVals);
+            if (candidates.length === 0) continue;
+
+            attrAndConditions.push({
+                attributes: {
+                    $elemMatch: {
+                        key: attrKey,
+                        value: { $in: candidates },
+                    },
+                },
+            });
+        }
+
+        if (attrAndConditions.length > 0) {
+            attributeMatchPipeline.push({
+                $match: { $and: attrAndConditions },
+            });
+        }
+    }
+
     try {
         const hasQualityFilter =
             Boolean(filters.adminView) &&
@@ -247,6 +348,7 @@ async function fetchCatalogProducts(
                 ProductModel.aggregate([
                     ...sortedPipeline,
                     ...brandMatchPipeline,
+                    ...attributeMatchPipeline,
                     PRODUCT_PROJECT_STAGE,
                 ]),
                 getCategoriesBase({ limit: 0 }),
@@ -284,6 +386,7 @@ async function fetchCatalogProducts(
             return {
                 products: paginatedProducts,
                 availableBrands: [],
+                availableAttributes: [] as AvailableAttributeFacet[],
                 pagination: {
                     totalItems,
                     totalPages: Math.ceil(totalItems / limit),
@@ -293,42 +396,92 @@ async function fetchCatalogProducts(
             };
         }
 
-        const [dataResult, countResult, brandsResult] = await Promise.all([
-            ProductModel.aggregate([
-                ...sortedPipeline,
-                ...brandMatchPipeline,
-                { $skip: skip },
-                { $limit: limit },
-                PRODUCT_PROJECT_STAGE,
-            ]),
-            ProductModel.aggregate([
-                ...baseFilterPipeline,
-                ...brandMatchPipeline,
-                { $count: "total" },
-            ]),
-            ProductModel.aggregate([
-                ...baseFilterPipeline,
-                { $group: { _id: "$brand" } },
-                { $match: { _id: { $ne: null } } },
-                {
-                    $lookup: {
-                        from: "brands",
-                        localField: "_id",
-                        foreignField: "_id",
-                        as: "brandInfo",
+        const [dataResult, countResult, brandsResult, attributesResult] =
+            await Promise.all([
+                ProductModel.aggregate([
+                    ...sortedPipeline,
+                    ...brandMatchPipeline,
+                    ...attributeMatchPipeline,
+                    { $skip: skip },
+                    { $limit: limit },
+                    PRODUCT_PROJECT_STAGE,
+                ]),
+                ProductModel.aggregate([
+                    ...baseFilterPipeline,
+                    ...brandMatchPipeline,
+                    ...attributeMatchPipeline,
+                    { $count: "total" },
+                ]),
+                ProductModel.aggregate([
+                    ...baseFilterPipeline,
+                    { $group: { _id: "$brand" } },
+                    { $match: { _id: { $ne: null } } },
+                    {
+                        $lookup: {
+                            from: "brands",
+                            localField: "_id",
+                            foreignField: "_id",
+                            as: "brandInfo",
+                        },
                     },
-                },
-                { $unwind: "$brandInfo" },
-                {
-                    $project: {
-                        _id: 1,
-                        name: "$brandInfo.name",
-                        slug: "$brandInfo.slug",
+                    { $unwind: "$brandInfo" },
+                    {
+                        $project: {
+                            _id: 1,
+                            name: "$brandInfo.name",
+                            slug: "$brandInfo.slug",
+                        },
                     },
-                },
-                { $sort: { name: 1 } },
-            ]),
-        ]);
+                    { $sort: { name: 1 } },
+                ]),
+                // FACETAS DE ATRIBUTOS EN TODO EL CATÁLOGO CONSULTADO (TODAS LAS PÁGINAS)
+                ProductModel.aggregate([
+                    ...baseFilterPipeline,
+                    { $match: { "attributes.0": { $exists: true } } },
+                    { $unwind: "$attributes" },
+                    {
+                        $addFields: {
+                            _attrValuesArray: {
+                                $cond: [
+                                    { $isArray: "$attributes.value" },
+                                    "$attributes.value",
+                                    ["$attributes.value"],
+                                ],
+                            },
+                        },
+                    },
+                    { $unwind: "$_attrValuesArray" },
+                    {
+                        $match: {
+                            _attrValuesArray: { $nin: [null, ""] },
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: {
+                                key: "$attributes.key",
+                                val: { $toString: "$_attrValuesArray" },
+                            },
+                            label: { $first: "$attributes.label" },
+                            unit: { $first: "$attributes.unit" },
+                            count: { $sum: 1 },
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: "$_id.key",
+                            label: { $first: "$label" },
+                            unit: { $first: "$unit" },
+                            options: {
+                                $push: {
+                                    value: "$_id.val",
+                                    count: "$count",
+                                },
+                            },
+                        },
+                    },
+                ]),
+            ]);
 
         const totalItems = countResult[0]?.total || 0;
         const formattedProducts = dataResult.map((product: any) =>
@@ -339,10 +492,12 @@ async function fetchCatalogProducts(
             name: b.name,
             slug: b.slug,
         }));
+        const availableAttributes = formatAttributeFacets(attributesResult);
 
         return {
             products: formattedProducts,
             availableBrands,
+            availableAttributes,
             pagination: {
                 totalItems,
                 totalPages: Math.ceil(totalItems / limit),
@@ -355,6 +510,7 @@ async function fetchCatalogProducts(
         return {
             products: [],
             availableBrands: [],
+            availableAttributes: [] as AvailableAttributeFacet[],
             pagination: {
                 totalItems: 0,
                 totalPages: 0,

@@ -62,6 +62,19 @@ export type GetProductsResponse = {
     total: number;
 };
 
+export type AvailableAttributeOption = {
+    value: string;
+    displayValue: string;
+    count: number;
+};
+
+export type AvailableAttributeFacet = {
+    key: string;
+    label: string;
+    unit?: string;
+    options: AvailableAttributeOption[];
+};
+
 export type ProductFilters = {
     onSale?: boolean;
     categoryId?: string;
@@ -75,6 +88,7 @@ export type ProductFilters = {
     status?: "publish" | "private" | "draft" | "pending_review";
     stock?: "in_stock" | "out_of_stock" | "all" | string;
     quality?: "optimal" | "warnings" | "critical" | "missing_attributes" | "all" | string;
+    attributeFilters?: Record<string, string[]>;
 };
 
 export type ProductOrderBy =

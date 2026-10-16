@@ -3,6 +3,7 @@ export const revalidate = 3600;
 import type { Metadata } from "next";
 
 import { ProductsView } from "@/components/products/ProductsView";
+import { extractAttributeFiltersFromSearchParams } from "@/lib/products/extractAttributeFilters";
 
 import type { ProductOrderBy } from "@/types/shared/product";
 
@@ -12,19 +13,24 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-    searchParams: Promise<{
-        limit?: string;
-        search?: string;
-        page?: string;
-        orderby?: ProductOrderBy;
-        brand?: string;
-        isOutlet?: string;
-    }>;
+    searchParams: Promise<
+        Record<string, string | string[] | undefined> & {
+            limit?: string;
+            search?: string;
+            page?: string;
+            orderby?: ProductOrderBy;
+            brand?: string;
+            isOutlet?: string;
+        }
+    >;
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
+    const resolvedSearchParams = await searchParams;
     const { limit, search, page, orderby, brand, isOutlet } =
-        await searchParams;
+        resolvedSearchParams;
+    const attributeFilters =
+        extractAttributeFiltersFromSearchParams(resolvedSearchParams);
 
     return (
         <ProductsView
@@ -34,6 +40,7 @@ export default async function ProductsPage({ searchParams }: Props) {
             limit={limit}
             brand={brand}
             isOutlet={isOutlet}
+            attributeFilters={attributeFilters}
         />
     );
 }

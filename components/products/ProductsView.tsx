@@ -2,7 +2,7 @@ import { getCatalogProducts } from "@/services/products/getCatalogProducts";
 
 import { ProductCard } from "@/components/productCard/ProductCard";
 import { SortSelector } from "@/components/products/SortSelector";
-import { AdminPagination } from "../admin/AdminPagination"; // Sugerencia: Quizás renombrar a CatalogPagination a futuro
+import { AdminPagination } from "../admin/AdminPagination";
 import type { ProductOrderBy } from "@/types/shared/product";
 import { FilterButton } from "../layout/FilterButton";
 import { cookies } from "next/headers";
@@ -13,10 +13,11 @@ interface Props {
     category?: string;
     search?: string;
     onSale?: boolean;
-    isOutlet?: string; // NUEVO: Capturamos el parámetro de outlet de la URL
+    isOutlet?: string;
     page?: string;
     limit?: string;
     orderby?: ProductOrderBy;
+    attributeFilters?: Record<string, string[]>;
 }
 
 export async function ProductsView({
@@ -24,39 +25,41 @@ export async function ProductsView({
     category,
     categoryId,
     onSale,
-    isOutlet, // NUEVO
+    isOutlet,
     search,
     page,
     limit,
     orderby,
+    attributeFilters,
 }: Props) {
     const currentPage = Math.max(1, Number(page) || 1);
     const currentLimit = Number(limit) || 12;
 
-    // Leemos la cookie para saber si el usuario quiere ocultar los productos sin stock (por defecto true)
     const cookieStore = await cookies();
     const hideOutOfStockCookie = cookieStore.get("hideOutOfStock");
-    const inStockOnly = hideOutOfStockCookie ? hideOutOfStockCookie.value === "true" : true;
+    const inStockOnly = hideOutOfStockCookie
+        ? hideOutOfStockCookie.value === "true"
+        : true;
 
-    // Convertimos el string de la URL a booleano para el servicio
     const isOutletFilter = isOutlet === "true" ? true : undefined;
 
-    const { availableBrands, products, pagination } = await getCatalogProducts(
-        {
-            onSale,
-            isOutlet: isOutletFilter, // NUEVO: Pasamos el filtro al servicio
-            category,
-            categoryId,
-            search,
-            orderby,
-            brand,
-            inStockOnly,
-        },
-        currentPage,
-        currentLimit,
-    );
+    const { availableBrands, availableAttributes, products, pagination } =
+        await getCatalogProducts(
+            {
+                onSale,
+                isOutlet: isOutletFilter,
+                category,
+                categoryId,
+                search,
+                orderby,
+                brand,
+                inStockOnly,
+                attributeFilters,
+            },
+            currentPage,
+            currentLimit,
+        );
 
-    // Mejoramos el título para que refleje si estamos viendo solo Outlet u Ofertas
     const title = search
         ? `Resultados para "${search}"`
         : isOutletFilter
@@ -89,8 +92,9 @@ export async function ProductsView({
                     <SortSelector />
                     <FilterButton
                         brands={availableBrands}
+                        attributes={availableAttributes}
                         initialHideOutOfStock={inStockOnly}
-                        initialIsOutlet={isOutletFilter} // NUEVO: Le pasamos el estado inicial al botón de filtros
+                        initialIsOutlet={isOutletFilter}
                     />
                 </div>
             </div>
@@ -100,11 +104,9 @@ export async function ProductsView({
                     <p className="text-lg font-medium text-gray-400">
                         No se encontraron productos
                     </p>
-                    {search && (
-                        <p className="text-sm">
-                            Intentá con otra búsqueda o eliminá algunos filtros.
-                        </p>
-                    )}
+                    <p className="text-sm">
+                        Intentá con otra búsqueda o eliminá algunos filtros.
+                    </p>
                 </div>
             ) : (
                 <>
