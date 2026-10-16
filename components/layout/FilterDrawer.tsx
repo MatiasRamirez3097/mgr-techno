@@ -158,6 +158,27 @@ export function FilterDrawer({
                         </label>
                     </div>
 
+                    {/* Switch Disponibilidad */}
+                    <div className="border-t border-gray-800 pt-6">
+                        <h3 className="text-gray-400 font-semibold mb-4 text-sm uppercase tracking-wider">
+                            Disponibilidad
+                        </h3>
+                        <label className="flex items-center justify-between cursor-pointer group bg-gray-800/30 border border-gray-700 p-3 rounded-xl hover:border-brand/50 transition-colors">
+                            <span className="text-gray-300 font-medium group-hover:text-white transition-colors text-sm">
+                                Solo productos en stock
+                            </span>
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={hideOutOfStock}
+                                    onChange={() => setHideOutOfStock(!hideOutOfStock)}
+                                />
+                                <div className="w-11 h-6 bg-gray-800 border border-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand peer-checked:border-brand"></div>
+                            </div>
+                        </label>
+                    </div>
+
                     {/* Marcas */}
                     {brands && brands.length > 0 && (
                         <div className="border-t border-gray-800 pt-6">

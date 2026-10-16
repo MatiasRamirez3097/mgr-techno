@@ -15,7 +15,10 @@ interface Slide {
 const SLIDES: Slide[] = [
     {
         image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1788618658/banner4_bjyfwr.png",
-        title: "3 Cuotas sin interes con Tarjeta de Crédito de Mercadopago",
+        title: "3 Cuotas sin interés",
+        subtitle: "Con tarjeta de crédito a través de Mercado Pago",
+        cta: "Ver productos",
+        href: "/productos",
     },
     {
         image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436851/banner1_xaiuk2.jpg",

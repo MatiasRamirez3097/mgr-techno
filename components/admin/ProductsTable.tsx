@@ -22,6 +22,25 @@ interface Props {
     products: ProductDTO[];
 }
 
+const PRODUCT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+    publish: {
+        label: "Publicado",
+        color: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+    },
+    pending_review: {
+        label: "Pendiente revisión",
+        color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
+    },
+    draft: {
+        label: "Borrador",
+        color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
+    },
+    private: {
+        label: "Privado",
+        color: "text-purple-400 bg-purple-400/10 border-purple-400/20",
+    },
+};
+
 export function ProductsTable({ products }: Props) {
     const searchParams = useSearchParams();
     const [quickEditId, setQuickEditId] = useState<string | null>(null);
@@ -251,27 +270,25 @@ export function ProductsTable({ products }: Props) {
                                     </td>
 
                                     {/* STATUS */}
-
                                     <td className="px-6 py-4">
-                                        <span
-                                            className={`
-                                                text-xs
-                                                font-medium
-                                                px-2.5
-                                                py-1
-                                                rounded-full
-                                                border
-                                                ${
-                                                    product.status === "publish"
-                                                        ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
-                                                        : "text-gray-400 bg-gray-400/10 border-gray-400/20"
-                                                }
-                                            `}
-                                        >
-                                            {product.status === "publish"
-                                                ? "Publicado"
-                                                : "Borrador"}
-                                        </span>
+                                        {(() => {
+                                            const statusConfig =
+                                                PRODUCT_STATUS_CONFIG[
+                                                    product.status
+                                                ] || {
+                                                    label:
+                                                        product.status ||
+                                                        "Borrador",
+                                                    color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
+                                                };
+                                            return (
+                                                <span
+                                                    className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusConfig.color}`}
+                                                >
+                                                    {statusConfig.label}
+                                                </span>
+                                            );
+                                        })()}
                                     </td>
 
                                     {/* HEALTH */}

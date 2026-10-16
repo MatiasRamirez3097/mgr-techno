@@ -12,20 +12,26 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     await connectDB();
 
+    const firstName = body.firstName ?? body.first_name;
+    const lastName = body.lastName ?? body.last_name;
+    const phone = body.phone;
+    const tipoDocumento = body.tipoDocumento ?? body.tipo_documento ?? body.document?.documentType;
+    const numeroDocumento = body.numeroDocumento ?? body.numero_documento ?? body.document?.number;
+
     await CustomerModel.findByIdAndUpdate((session as any).customerId, {
-        firstName: body.first_name,
-        lastName: body.last_name,
-        phone: body.phone,
-        tipoDocumento: body.tipo_documento,
-        numeroDocumento: body.numero_documento,
+        firstName,
+        lastName,
+        phone,
+        tipoDocumento,
+        numeroDocumento,
         billing: {
-            firstName: body.first_name,
-            lastName: body.last_name,
+            firstName,
+            lastName,
             address: body.address,
             city: body.city,
             state: body.state,
             postcode: body.postcode,
-            phone: body.phone,
+            phone,
             country: "AR",
         },
     });

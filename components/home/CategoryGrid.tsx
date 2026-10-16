@@ -25,7 +25,7 @@ export function CategoryGrid({ categories }: { categories: CategoryDTO[] }) {
                         className="group flex flex-col items-center gap-3 bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-brand rounded-2xl p-4 transition-all"
                     >
                         {/* Imagen o ícono */}
-                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-800 flex items-center justify-center shrink-0">
+                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-800 flex items-center justify-center shrink-0">
                             {cat.image ? (
                                 <Image
                                     src={cat.image}

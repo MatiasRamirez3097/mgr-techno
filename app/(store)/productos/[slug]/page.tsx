@@ -237,15 +237,15 @@ export default async function ProductPage({ params }: Props) {
                             />
                         ) : (
                             <>
-                                {product.availableStock &&
-                                product.availableStock <= 0 ? (
+                                {typeof product.availableStock === "number" && product.availableStock <= 0 ? (
                                     <p className="text-sm text-red-500 font-medium stock-color mb-4">
                                         Sin stock
                                     </p>
                                 ) : (
                                     <p className="text-sm text-green-400 font-medium mb-4">
-                                        {product.availableStock} unidades
-                                        disponibles
+                                        {typeof product.availableStock === "number"
+                                            ? `${product.availableStock} ${product.availableStock === 1 ? "unidad disponible" : "unidades disponibles"}`
+                                            : "En stock"}
                                     </p>
                                 )}
                                 <AddToCartButton product={product} />

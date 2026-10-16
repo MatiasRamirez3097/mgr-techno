@@ -27,7 +27,7 @@ export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
     const ofertasSubs = getOfertaCategories(categories);
 
     return (
-        <nav className="max-w-6xl mx-auto px-4 flex items-center gap-1 h-10">
+        <nav className="relative max-w-6xl mx-auto px-4 flex items-center gap-1 h-10">
             {/* Desplegable Ofertas */}
             <div
                 className="relative"
@@ -68,7 +68,7 @@ export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
                 return (
                     <div
                         key={cat.id}
-                        className="relative"
+                        className={isMegaMenu ? "static" : "relative"}
                         onMouseEnter={() => hasChildren && setOpenId(cat.id)}
                         onMouseLeave={() => setOpenId(null)}
                     >

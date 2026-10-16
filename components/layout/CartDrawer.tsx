@@ -157,11 +157,8 @@ export function CartDrawer({ open, onClose }: Props) {
                                         </span>
                                         <button
                                             disabled={
-                                                item.availableStock &&
-                                                item.availableStock <=
-                                                    item.quantity
-                                                    ? true
-                                                    : false
+                                                typeof item.availableStock === "number" &&
+                                                item.availableStock <= item.quantity
                                             }
                                             onClick={() =>
                                                 updateQuantity(
@@ -169,7 +166,7 @@ export function CartDrawer({ open, onClose }: Props) {
                                                     item.quantity + 1,
                                                 )
                                             }
-                                            className="w-7 h-7 rounded-lg bg-gray-700 hover:bg-brand text-white text-lg flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+                                            className="w-7 h-7 rounded-lg bg-gray-700 hover:bg-brand text-white text-lg flex items-center justify-center transition-colors disabled:opacity-40 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
                                         >
                                             +
                                         </button>

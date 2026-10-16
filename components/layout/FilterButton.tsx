@@ -32,19 +32,11 @@ export function FilterButton({
         ? brandParam.split(",").filter(Boolean).length
         : 0;
 
-    const activeStockFilterCount = 0; // O initialHideOutOfStock ? 1 : 0
+    const activeStockFilterCount = !initialHideOutOfStock ? 1 : 0;
     const activeOutletFilterCount = initialIsOutlet ? 1 : 0; // NUEVO
 
     const totalActiveFilters =
         activeBrandsCount + activeStockFilterCount + activeOutletFilterCount;
-
-    // Permitimos abrir los filtros si hay marcas, o si el usuario quiere limpiar el filtro de outlet
-    if (
-        (!brands || brands.length === 0) &&
-        !initialHideOutOfStock &&
-        !initialIsOutlet
-    )
-        return null;
 
     return (
         <>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const PROVINCIAS = [
     "Buenos Aires",
@@ -32,25 +32,43 @@ const PROVINCIAS = [
 
 export default function ProfilePage() {
     const { data: session } = useSession();
-    const billing = (session as any)?.billing;
-    const document = {
-        documentType: (session as any)?.documentType,
-        number: (session as any)?.number,
-    };
 
     const [form, setForm] = useState({
-        firstName: billing?.firstName || "",
-        lastName: billing?.lastName || "",
-        address: billing?.address || "",
-        city: billing?.city || "",
-        state: billing?.state || "",
-        postcode: billing?.postcode || "",
-        phone: billing?.phone || "",
+        firstName: "",
+        lastName: "",
+        address: "",
+        city: "",
+        state: "",
+        postcode: "",
+        phone: "",
         document: {
-            documentType: document.documentType || "DNI",
-            number: document.number || "",
+            documentType: "DNI",
+            number: "",
         },
     });
+
+    useEffect(() => {
+        if (session) {
+            const billing = (session as any).billing;
+            const doc = (session as any).document || {
+                documentType: (session as any).documentType,
+                number: (session as any).number,
+            };
+            setForm((prev) => ({
+                firstName: billing?.firstName || (session.user?.name?.split(" ")[0] ?? "") || prev.firstName,
+                lastName: billing?.lastName || (session.user?.name?.split(" ").slice(1).join(" ") ?? "") || prev.lastName,
+                address: billing?.address || prev.address,
+                city: billing?.city || prev.city,
+                state: billing?.state || prev.state,
+                postcode: billing?.postcode || prev.postcode,
+                phone: billing?.phone || prev.phone,
+                document: {
+                    documentType: doc?.documentType || prev.document.documentType || "DNI",
+                    number: doc?.number || prev.document.number || "",
+                },
+            }));
+        }
+    }, [session]);
 
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -59,7 +77,18 @@ export default function ProfilePage() {
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     ) => {
-        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        if (name === "documentType" || name === "number") {
+            setForm((prev) => ({
+                ...prev,
+                document: {
+                    ...prev.document,
+                    [name]: value,
+                },
+            }));
+        } else {
+            setForm((prev) => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

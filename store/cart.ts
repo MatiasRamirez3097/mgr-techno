@@ -73,19 +73,26 @@ export const useCart = create<CartStore>()(
 
                     if (existing) {
                         const maxStock = existing.availableStock ?? Infinity;
-                        // No superar el stock disponible
-                        if (
-                            existing.quantity >= maxStock &&
-                            existing.quantity < quantity
-                        )
-                            return state;
+
+                        if (quantity <= 0) {
+                            return {
+                                items: state.items.filter((i) => i.id !== id),
+                            };
+                        }
+
+                        const finalQuantity = Math.min(quantity, maxStock);
+                        if (finalQuantity <= 0) {
+                            return {
+                                items: state.items.filter((i) => i.id !== id),
+                            };
+                        }
+
                         return {
-                            items:
-                                quantity <= 0
-                                    ? state.items.filter((i) => i.id !== id)
-                                    : state.items.map((i) =>
-                                          i.id === id ? { ...i, quantity } : i,
-                                      ),
+                            items: state.items.map((i) =>
+                                i.id === id
+                                    ? { ...i, quantity: finalQuantity }
+                                    : i,
+                            ),
                         };
                     }
                     return state;

@@ -25,6 +25,11 @@ const nextConfig: NextConfig = {
     async redirects() {
         return [
             {
+                source: "/cart",
+                destination: "/",
+                permanent: true,
+            },
+            {
                 source: "/wp-content/uploads/woo-feed/custom2/xml/hardgamers.xml",
                 destination: "/hardgamers.xml",
                 permanent: true,

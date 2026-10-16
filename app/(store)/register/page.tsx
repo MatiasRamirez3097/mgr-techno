@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 
-export default function RegisterPage() {
+function RegisterForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const nextParam = searchParams.get("next");
+    const nextUrl = nextParam && nextParam.startsWith("/") ? nextParam : "/productos";
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -59,7 +62,7 @@ export default function RegisterPage() {
                 redirect: false,
             });
 
-            router.push("/productos");
+            router.push(nextUrl);
             router.refresh();
         } catch (e: any) {
             setError(e.message || "Error al registrarse");
@@ -166,7 +169,7 @@ export default function RegisterPage() {
                     <p className="text-sm text-center text-gray-400">
                         ¿Ya tenés cuenta?{" "}
                         <Link
-                            href="/login"
+                            href={nextUrl !== "/productos" ? `/login?next=${encodeURIComponent(nextUrl)}` : "/login"}
                             className="text-brand hover:brightness-125 transition-all"
                         >
                             Iniciá sesión
@@ -175,5 +178,13 @@ export default function RegisterPage() {
                 </form>
             </div>
         </main>
+    );
+}
+
+export default function RegisterPage() {
+    return (
+        <Suspense fallback={null}>
+            <RegisterForm />
+        </Suspense>
     );
 }

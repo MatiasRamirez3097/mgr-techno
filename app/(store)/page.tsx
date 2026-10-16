@@ -25,7 +25,7 @@ export default async function HomePage() {
             <ProductRow
                 title="🔥 Ofertas"
                 products={onSale}
-                href="/productos?on_sale=true"
+                href="/productos/ofertas"
                 linkLabel="Ver todas las ofertas"
             />
 

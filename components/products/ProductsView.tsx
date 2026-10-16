@@ -33,11 +33,10 @@ export async function ProductsView({
     const currentPage = Math.max(1, Number(page) || 1);
     const currentLimit = Number(limit) || 12;
 
-    // Leemos la cookie para saber si el usuario quiere ocultar los productos sin stock
+    // Leemos la cookie para saber si el usuario quiere ocultar los productos sin stock (por defecto true)
     const cookieStore = await cookies();
-    // const hideOutOfStockCookie = cookieStore.get("hideOutOfStock");
-    // const inStockOnly = hideOutOfStockCookie?.value === "true";
-    const inStockOnly = true; // Forzado según tu código actual
+    const hideOutOfStockCookie = cookieStore.get("hideOutOfStock");
+    const inStockOnly = hideOutOfStockCookie ? hideOutOfStockCookie.value === "true" : true;
 
     // Convertimos el string de la URL a booleano para el servicio
     const isOutletFilter = isOutlet === "true" ? true : undefined;
@@ -57,14 +56,16 @@ export async function ProductsView({
         currentLimit,
     );
 
-    // Mejoramos el título para que refleje si estamos viendo solo Outlet
+    // Mejoramos el título para que refleje si estamos viendo solo Outlet u Ofertas
     const title = search
         ? `Resultados para "${search}"`
         : isOutletFilter
           ? "Zona Outlet"
-          : category
-            ? category.replace(/-/g, " ")
-            : "Todos los productos";
+          : onSale
+            ? "Productos en Oferta"
+            : category
+              ? category.replace(/-/g, " ")
+              : "Todos los productos";
 
     return (
         <main className="max-w-6xl mx-auto px-4 py-10">

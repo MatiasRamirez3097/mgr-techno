@@ -26,7 +26,7 @@ export function AddToCartButton({ product }: { product: ProductDTO }) {
         <button
             onClick={() => handleAdd()}
             disabled={disabled}
-            className="bg-brand mt-auto w-full py-3 px-6 rounded-xl font-medium text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="bg-brand mt-auto w-full py-3 px-6 rounded-xl font-medium text-white hover:brightness-110 disabled:bg-gray-800 disabled:text-gray-500 disabled:border disabled:border-gray-700/60 disabled:cursor-not-allowed transition-all shadow-lg shadow-brand/20 disabled:shadow-none"
         >
             {product.availableStock === 0
                 ? "Sin stock"

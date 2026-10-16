@@ -348,7 +348,7 @@ export function CheckoutForm({ session }: Props) {
                                   : shippingMethod === "viacargo"
                                     ? "Via Cargo"
                                     : "Andreani",
-                        cost: baseShippingCost, // <- Mandamos el costo con el descuento aplicado
+                        cost: finalShippingCost, // <- Mandamos el costo con el descuento aplicado
                     },
                     notes: "",
                 }),

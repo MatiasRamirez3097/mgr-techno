@@ -15,14 +15,18 @@ export default function ForgotPasswordPage() {
         setError("");
 
         try {
-            await fetch("/api/auth/forgot-password", {
+            const res = await fetch("/api/auth/forgot-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
             });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || "Error al enviar el email");
+            }
             setSent(true);
-        } catch {
-            setError("Error al enviar el email");
+        } catch (err: any) {
+            setError(err.message || "Error al enviar el email");
         } finally {
             setLoading(false);
         }

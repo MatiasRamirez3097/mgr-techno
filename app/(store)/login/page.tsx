@@ -9,6 +9,8 @@ function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const resetSuccess = searchParams.get("reset") === "success";
+    const nextParam = searchParams.get("next");
+    const nextUrl = nextParam && nextParam.startsWith("/") ? nextParam : "/";
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -37,7 +39,7 @@ function LoginForm() {
             return;
         }
 
-        router.push("/");
+        router.push(nextUrl);
         router.refresh();
     };
 
@@ -105,7 +107,7 @@ function LoginForm() {
                 <p className="text-sm text-center text-gray-400">
                     ¿No tenés cuenta?{" "}
                     <Link
-                        href="/register"
+                        href={nextUrl !== "/" ? `/register?next=${encodeURIComponent(nextUrl)}` : "/register"}
                         className="text-brand hover:brightness-125 transition-all"
                     >
                         Registrate

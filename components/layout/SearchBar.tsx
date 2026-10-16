@@ -26,6 +26,7 @@ export const SearchBar = () => {
     const [loading, setLoading] = useState(false);
 
     const [open, setOpen] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState(-1);
 
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +56,7 @@ export const SearchBar = () => {
 
     useEffect(() => {
         const trimmedQuery = query.trim();
+        setSelectedIndex(-1);
 
         // Minimum chars
 
@@ -119,11 +121,18 @@ export const SearchBar = () => {
     }, [query]);
 
     // =========================
-    // SUBMIT
+    // SUBMIT & KEYBOARD
     // =========================
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+            const selected = suggestions[selectedIndex];
+            handleSelect();
+            router.push(`/productos/${selected.slug}`);
+            return;
+        }
 
         const trimmedQuery = query.trim();
 
@@ -134,6 +143,26 @@ export const SearchBar = () => {
         router.push(`/productos?search=${encodeURIComponent(trimmedQuery)}`);
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!open || suggestions.length === 0) {
+            if (e.key === "Escape") setOpen(false);
+            return;
+        }
+
+        const totalItems = suggestions.length + 1; // suggestions + "Ver todos"
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setSelectedIndex((prev) => (prev + 1) % totalItems);
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+        } else if (e.key === "Escape") {
+            e.preventDefault();
+            setOpen(false);
+        }
+    };
+
     // =========================
     // SELECT
     // =========================
@@ -141,6 +170,7 @@ export const SearchBar = () => {
     const handleSelect = () => {
         setQuery("");
         setOpen(false);
+        setSelectedIndex(-1);
     };
 
     return (
@@ -198,6 +228,7 @@ export const SearchBar = () => {
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     onFocus={() => {
                         if (suggestions.length > 0) {
                             setOpen(true);
@@ -241,15 +272,17 @@ export const SearchBar = () => {
                             rounded-xl
                             shadow-2xl
                             overflow-hidden
+                            max-h-[70vh]
+                            overflow-y-auto
                             z-50
                         "
                 >
-                    {suggestions.map((suggestion) => (
+                    {suggestions.map((suggestion, index) => (
                         <Link
                             key={suggestion.id}
                             href={`/productos/${suggestion.slug}`}
                             onClick={handleSelect}
-                            className="
+                            className={`
                                         flex
                                         items-center
                                         gap-3
@@ -257,7 +290,8 @@ export const SearchBar = () => {
                                         py-3
                                         hover:bg-gray-800
                                         transition-colors
-                                    "
+                                        ${selectedIndex === index ? "bg-gray-800" : ""}
+                                    `}
                         >
                             {/* IMAGE */}
 
@@ -344,7 +378,7 @@ export const SearchBar = () => {
                                 )}`,
                             );
                         }}
-                        className="
+                        className={`
                                 w-full
                                 px-4
                                 py-3
@@ -355,7 +389,8 @@ export const SearchBar = () => {
                                 text-left
                                 border-t
                                 border-gray-800
-                            "
+                                ${selectedIndex === suggestions.length ? "bg-gray-800" : ""}
+                            `}
                     >
                         Ver todos los resultados para "{query}" →
                     </button>
