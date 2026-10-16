@@ -62,6 +62,22 @@ export const createProductSchema = z.object({
         )
         .optional()
         .default([]),
+    attributes: z
+        .array(
+            z.object({
+                key: z.string().min(1, "Clave de atributo requerida"),
+                label: z.string().min(1, "Etiqueta de atributo requerida"),
+                value: z.union([
+                    z.string(),
+                    z.number(),
+                    z.boolean(),
+                    z.array(z.string()),
+                ]),
+                unit: z.string().optional().default(""),
+            }),
+        )
+        .optional()
+        .default([]),
     hasFreeShipping: z.boolean().optional().nullable(),
     shippingSize: z.enum(["small", "standard", "bulky"]).optional().nullable(),
 });

@@ -1,3 +1,20 @@
+export type AttributeInputType =
+    | "select"
+    | "multiselect"
+    | "number"
+    | "boolean"
+    | "text";
+
+export type CategoryAttributeDefinitionDTO = {
+    key: string;
+    label: string;
+    type: AttributeInputType;
+    options?: string[];
+    unit?: string;
+    required?: boolean;
+    filterable?: boolean;
+};
+
 export type CategoryDTO = {
     id: string;
     image: string;
@@ -5,6 +22,7 @@ export type CategoryDTO = {
     parentId: string | null;
     slug: string;
     menuOrder: number;
+    attributeDefinitions?: CategoryAttributeDefinitionDTO[];
 };
 
 export type GetCategoriesResponse = {

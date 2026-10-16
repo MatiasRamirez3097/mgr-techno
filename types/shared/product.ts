@@ -1,3 +1,10 @@
+export type ProductAttributeDTO = {
+    key: string;
+    label: string;
+    value: string | number | boolean | string[];
+    unit?: string;
+};
+
 export type BundleItemDTO = {
     productId: string;
     quantity: number;
@@ -13,6 +20,7 @@ export type ProductDTO = {
     type?: "simple" | "bundle";
     bundleItemsCount?: number;
     bundleItems?: BundleItemDTO[];
+    attributes?: ProductAttributeDTO[];
     categories: string[];
     image: string;
     images: string[];

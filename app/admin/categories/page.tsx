@@ -36,6 +36,9 @@ async function getAdminCategories(
         slug: p.slug,
         image: p.image,
         parentId: p.parentId,
+        attributesCount: Array.isArray(p.attributeDefinitions)
+            ? p.attributeDefinitions.length
+            : 0,
         createdAt: p.createdAt?.toISOString?.() || null,
         updatedAt: p.updatedAt?.toISOString?.() || null,
     }));
@@ -90,6 +93,9 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                                 Categoría Padre
                             </th>
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
+                                Atributos
+                            </th>
+                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
                                 Fecha
                             </th>
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
@@ -101,7 +107,7 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                         {categories.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={5}
+                                    colSpan={6}
                                     className="px-6 py-12 text-center text-gray-400 text-sm"
                                 >
                                     No se encontraron categorías
@@ -151,6 +157,20 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-300">
                                             {category.parentId?.name || "—"}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {category.attributesCount > 0 ? (
+                                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-brand/15 text-brand border border-brand/30">
+                                                    {category.attributesCount}{" "}
+                                                    {category.attributesCount === 1
+                                                        ? "atributo"
+                                                        : "atributos"}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-500">
+                                                    —
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-400">
                                             {category.createdAt

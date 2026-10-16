@@ -56,6 +56,13 @@ export function buildProductPayload({ form, image, images }: Params) {
 
         categories: form.categories,
 
+        attributes: (form.attributes || []).filter((attr) => {
+            if (!attr.key || !attr.label) return false;
+            if (attr.value === undefined || attr.value === null || attr.value === "") return false;
+            if (Array.isArray(attr.value) && attr.value.length === 0) return false;
+            return true;
+        }),
+
         image: image || undefined,
 
         images,

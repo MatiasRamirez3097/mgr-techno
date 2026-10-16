@@ -1,17 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ProductFormSidebar } from "@/components/admin/products/ProductFormSiderbar";
 import { buildProductPayload } from "@/lib/products/buildProductPayload";
 import { extractProductImages } from "@/lib/products/extractProductImages";
+import { getEffectiveCategoryAttributeDefinitions } from "@/lib/categories/getEffectiveCategoryAttributes";
 import { CreateBrandModal } from "./CreateBrandModal";
 import { ProductSelector } from "./ProductSelector";
 import { useBrands } from "./products/hooks/useBrands";
 import { RichTextEditor } from "@/components/admin/editor/RichTextEditor";
 import type { ProductFormState } from "@/types/admin/productForm";
 import type { CategoryDTO } from "@/types/shared/category";
-import type { BundleItemDTO, ProductDTO } from "@/types/shared/product";
+import type {
+    BundleItemDTO,
+    ProductAttributeDTO,
+    ProductDTO,
+} from "@/types/shared/product";
 
 import type { BrandDTO } from "@/types/shared/brand";
 
@@ -68,6 +74,12 @@ export function ProductForm({
     const [selectedBundleCandidate, setSelectedBundleCandidate] =
         useState<any>(null);
     const [candidateQuantity, setCandidateQuantity] = useState<number>(1);
+    const [customSelectMode, setCustomSelectMode] = useState<
+        Record<string, boolean>
+    >({});
+    const [customMultiInputs, setCustomMultiInputs] = useState<
+        Record<string, string>
+    >({});
 
     const [image, setImage] = useState(
         product?.image &&
@@ -84,6 +96,7 @@ export function ProductForm({
     const [form, setForm] = useState<ProductFormState>({
         type: product?.type || "simple",
         bundleItems: product?.bundleItems || [],
+        attributes: product?.attributes || [],
         brand: product?.brand || "",
         name: product?.name || "",
         sku: product?.sku || "",
@@ -108,6 +121,62 @@ export function ProductForm({
     });
 
     const isBundle = form.type === "bundle";
+
+    const effectiveAttributeDefs = useMemo(
+        () =>
+            getEffectiveCategoryAttributeDefinitions(
+                form.categories,
+                categories,
+            ),
+        [form.categories, categories],
+    );
+
+    const getAttributeValue = (key: string): any => {
+        const found = form.attributes.find((a) => a.key === key);
+        return found ? found.value : undefined;
+    };
+
+    const handleSetAttributeValue = (
+        key: string,
+        label: string,
+        value: ProductAttributeDTO["value"] | undefined,
+        unit?: string,
+    ) => {
+        setForm((prev) => {
+            const existingIdx = prev.attributes.findIndex((a) => a.key === key);
+            const isEmpty =
+                value === undefined ||
+                value === null ||
+                value === "" ||
+                (Array.isArray(value) && value.length === 0);
+
+            if (isEmpty) {
+                if (existingIdx === -1) return prev;
+                return {
+                    ...prev,
+                    attributes: prev.attributes.filter((a) => a.key !== key),
+                };
+            }
+
+            const newAttr: ProductAttributeDTO = {
+                key,
+                label,
+                value,
+                unit: unit || "",
+            };
+
+            if (existingIdx >= 0) {
+                const next = [...prev.attributes];
+                next[existingIdx] = newAttr;
+                return { ...prev, attributes: next };
+            }
+
+            return {
+                ...prev,
+                attributes: [...prev.attributes, newAttr],
+            };
+        });
+    };
 
     const handleAddBundleComponent = () => {
         if (!selectedBundleCandidate) return;
@@ -697,6 +766,476 @@ export function ProductForm({
                                 )}
                             </div>
                         </div>
+                    </section>
+
+                    {/* Atributos / Especificaciones por Categoría */}
+                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                            <div>
+                                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                                    <span>Atributos / Especificaciones por Categoría</span>
+                                    {effectiveAttributeDefs.length > 0 && (
+                                        <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-brand/15 text-brand border border-brand/30">
+                                            {effectiveAttributeDefs.length} disponibles
+                                        </span>
+                                    )}
+                                </h2>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Estos atributos dependen de las categorías asignadas al producto y se utilizan en la ficha técnica y el sistema &ldquo;Armá tu PC&rdquo;.
+                                </p>
+                            </div>
+                        </div>
+
+                        {form.categories.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-gray-700 p-5 text-center text-sm text-gray-400">
+                                Seleccioná al menos una categoría en el panel derecho para desplegar sus atributos técnicos (ej. Socket, Chipset, Slots de RAM, Watts, etc.).
+                            </div>
+                        ) : effectiveAttributeDefs.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-gray-700 p-5 text-center text-sm text-gray-400">
+                                <p>
+                                    Las categorías seleccionadas aún no tienen atributos configurados.
+                                </p>
+                                <Link
+                                    href={`/admin/categories/${form.categories[0]}`}
+                                    target="_blank"
+                                    className="inline-block mt-2 text-xs font-semibold text-brand hover:underline"
+                                >
+                                    Configurar atributos o cargar plantilla en la categoría →
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {effectiveAttributeDefs.map((def) => {
+                                    const rawVal = getAttributeValue(def.key);
+                                    const isCustomSelect =
+                                        Boolean(customSelectMode[def.key]) ||
+                                        (def.type === "select" &&
+                                            (!def.options ||
+                                                def.options.length === 0));
+                                    const selectOptions = Array.from(
+                                        new Set([
+                                            ...(def.options || []),
+                                            ...(typeof rawVal === "string" &&
+                                            rawVal.trim() !== ""
+                                                ? [rawVal]
+                                                : []),
+                                        ]),
+                                    );
+
+                                    return (
+                                        <div
+                                            key={def.key}
+                                            className={`p-3.5 rounded-xl bg-gray-800/40 border border-gray-800 ${
+                                                def.type === "multiselect"
+                                                    ? "md:col-span-2"
+                                                    : ""
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <label className="text-xs font-medium text-gray-300 flex items-center gap-1.5">
+                                                    <span>{def.label}</span>
+                                                    {def.required && (
+                                                        <span
+                                                            className="text-brand text-[10px] font-bold"
+                                                            title="Recomendado para compatibilidad en Armá tu PC"
+                                                        >
+                                                            *
+                                                        </span>
+                                                    )}
+                                                </label>
+                                                <span className="text-[10px] font-mono text-gray-500">
+                                                    {def.key}
+                                                </span>
+                                            </div>
+
+                                            {/* SELECT */}
+                                            {def.type === "select" && (
+                                                <div>
+                                                    {isCustomSelect ? (
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="text"
+                                                                value={
+                                                                    typeof rawVal ===
+                                                                    "string"
+                                                                        ? rawVal
+                                                                        : ""
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleSetAttributeValue(
+                                                                        def.key,
+                                                                        def.label,
+                                                                        e.target
+                                                                            .value,
+                                                                        def.unit,
+                                                                    )
+                                                                }
+                                                                placeholder={`Ingresar ${def.label.toLowerCase()}...`}
+                                                                className={
+                                                                    inputClass
+                                                                }
+                                                            />
+                                                            {def.options &&
+                                                                def.options
+                                                                    .length >
+                                                                    0 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            setCustomSelectMode(
+                                                                                (
+                                                                                    prev,
+                                                                                ) => ({
+                                                                                    ...prev,
+                                                                                    [def.key]: false,
+                                                                                }),
+                                                                            )
+                                                                        }
+                                                                        className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs text-gray-200 shrink-0"
+                                                                    >
+                                                                        Lista
+                                                                    </button>
+                                                                )}
+                                                        </div>
+                                                    ) : (
+                                                        <select
+                                                            value={
+                                                                typeof rawVal ===
+                                                                "string"
+                                                                    ? rawVal
+                                                                    : ""
+                                                            }
+                                                            onChange={(e) => {
+                                                                if (
+                                                                    e.target
+                                                                        .value ===
+                                                                    "__custom__"
+                                                                ) {
+                                                                    setCustomSelectMode(
+                                                                        (
+                                                                            prev,
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            [def.key]: true,
+                                                                        }),
+                                                                    );
+                                                                } else {
+                                                                    handleSetAttributeValue(
+                                                                        def.key,
+                                                                        def.label,
+                                                                        e.target
+                                                                            .value,
+                                                                        def.unit,
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className={
+                                                                inputClass
+                                                            }
+                                                        >
+                                                            <option value="">
+                                                                — Sin especificar —
+                                                            </option>
+                                                            {selectOptions.map(
+                                                                (opt) => (
+                                                                    <option
+                                                                        key={
+                                                                            opt
+                                                                        }
+                                                                        value={
+                                                                            opt
+                                                                        }
+                                                                    >
+                                                                        {opt}
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                            <option value="__custom__">
+                                                                + Escribir otro valor...
+                                                            </option>
+                                                        </select>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* MULTISELECT */}
+                                            {def.type === "multiselect" && (
+                                                <div>
+                                                    {(() => {
+                                                        const selectedArr: string[] =
+                                                            Array.isArray(
+                                                                rawVal,
+                                                            )
+                                                                ? rawVal.map(
+                                                                      String,
+                                                                  )
+                                                                : typeof rawVal ===
+                                                                        "string" &&
+                                                                    rawVal
+                                                                  ? [rawVal]
+                                                                  : [];
+                                                        const allMultiOpts =
+                                                            Array.from(
+                                                                new Set([
+                                                                    ...(def.options ||
+                                                                        []),
+                                                                    ...selectedArr,
+                                                                ]),
+                                                            );
+
+                                                        const toggleOpt = (
+                                                            opt: string,
+                                                        ) => {
+                                                            const next =
+                                                                selectedArr.includes(
+                                                                    opt,
+                                                                )
+                                                                    ? selectedArr.filter(
+                                                                          (x) =>
+                                                                              x !==
+                                                                              opt,
+                                                                      )
+                                                                    : [
+                                                                          ...selectedArr,
+                                                                          opt,
+                                                                      ];
+                                                            handleSetAttributeValue(
+                                                                def.key,
+                                                                def.label,
+                                                                next,
+                                                                def.unit,
+                                                            );
+                                                        };
+
+                                                        const addCustomMulti =
+                                                            () => {
+                                                                const custom = (
+                                                                    customMultiInputs[
+                                                                        def.key
+                                                                    ] || ""
+                                                                ).trim();
+                                                                if (!custom)
+                                                                    return;
+                                                                if (
+                                                                    !selectedArr.includes(
+                                                                        custom,
+                                                                    )
+                                                                ) {
+                                                                    handleSetAttributeValue(
+                                                                        def.key,
+                                                                        def.label,
+                                                                        [
+                                                                            ...selectedArr,
+                                                                            custom,
+                                                                        ],
+                                                                        def.unit,
+                                                                    );
+                                                                }
+                                                                setCustomMultiInputs(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        [def.key]:
+                                                                            "",
+                                                                    }),
+                                                                );
+                                                            };
+
+                                                        return (
+                                                            <div className="flex flex-col gap-2">
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {allMultiOpts.map(
+                                                                        (
+                                                                            opt,
+                                                                        ) => {
+                                                                            const active =
+                                                                                selectedArr.includes(
+                                                                                    opt,
+                                                                                );
+                                                                            return (
+                                                                                <button
+                                                                                    key={
+                                                                                        opt
+                                                                                    }
+                                                                                    type="button"
+                                                                                    onClick={() =>
+                                                                                        toggleOpt(
+                                                                                            opt,
+                                                                                        )
+                                                                                    }
+                                                                                    className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                                                                                        active
+                                                                                            ? "bg-brand/20 border-brand text-white font-medium"
+                                                                                            : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                                                                                    }`}
+                                                                                >
+                                                                                    {active
+                                                                                        ? `✓ ${opt}`
+                                                                                        : opt}
+                                                                                </button>
+                                                                            );
+                                                                        },
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex gap-2 mt-1">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            customMultiInputs[
+                                                                                def
+                                                                                    .key
+                                                                            ] ||
+                                                                            ""
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setCustomMultiInputs(
+                                                                                (
+                                                                                    prev,
+                                                                                ) => ({
+                                                                                    ...prev,
+                                                                                    [def.key]:
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                }),
+                                                                            )
+                                                                        }
+                                                                        onKeyDown={(
+                                                                            e,
+                                                                        ) => {
+                                                                            if (
+                                                                                e.key ===
+                                                                                "Enter"
+                                                                            ) {
+                                                                                e.preventDefault();
+                                                                                addCustomMulti();
+                                                                            }
+                                                                        }}
+                                                                        placeholder="Agregar otro valor compatible..."
+                                                                        className="bg-gray-800 text-white text-xs rounded-lg px-3 py-2 border border-gray-700 focus:border-brand outline-none flex-1"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={
+                                                                            addCustomMulti
+                                                                        }
+                                                                        className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs text-white font-medium shrink-0"
+                                                                    >
+                                                                        + Agregar
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
+
+                                            {/* NUMBER */}
+                                            {def.type === "number" && (
+                                                <div className="relative flex items-center">
+                                                    <input
+                                                        type="number"
+                                                        step="any"
+                                                        value={
+                                                            rawVal !==
+                                                                undefined &&
+                                                            rawVal !== null &&
+                                                            rawVal !== ""
+                                                                ? String(rawVal)
+                                                                : ""
+                                                        }
+                                                        onChange={(e) => {
+                                                            const v =
+                                                                e.target.value;
+                                                            handleSetAttributeValue(
+                                                                def.key,
+                                                                def.label,
+                                                                v === ""
+                                                                    ? undefined
+                                                                    : Number(v),
+                                                                def.unit,
+                                                            );
+                                                        }}
+                                                        placeholder="0"
+                                                        className={`${inputClass} ${
+                                                            def.unit
+                                                                ? "pr-16"
+                                                                : ""
+                                                        }`}
+                                                    />
+                                                    {def.unit && (
+                                                        <span className="absolute right-3 text-xs font-mono text-gray-400 pointer-events-none">
+                                                            {def.unit}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* BOOLEAN */}
+                                            {def.type === "boolean" && (
+                                                <select
+                                                    value={
+                                                        rawVal === true
+                                                            ? "true"
+                                                            : rawVal === false
+                                                              ? "false"
+                                                              : ""
+                                                    }
+                                                    onChange={(e) => {
+                                                        const v =
+                                                            e.target.value;
+                                                        handleSetAttributeValue(
+                                                            def.key,
+                                                            def.label,
+                                                            v === "true"
+                                                                ? true
+                                                                : v === "false"
+                                                                  ? false
+                                                                  : undefined,
+                                                            def.unit,
+                                                        );
+                                                    }}
+                                                    className={inputClass}
+                                                >
+                                                    <option value="">
+                                                        — Sin especificar —
+                                                    </option>
+                                                    <option value="true">
+                                                        Sí
+                                                    </option>
+                                                    <option value="false">
+                                                        No
+                                                    </option>
+                                                </select>
+                                            )}
+
+                                            {/* TEXT */}
+                                            {def.type === "text" && (
+                                                <input
+                                                    type="text"
+                                                    value={
+                                                        typeof rawVal ===
+                                                        "string"
+                                                            ? rawVal
+                                                            : ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleSetAttributeValue(
+                                                            def.key,
+                                                            def.label,
+                                                            e.target.value,
+                                                            def.unit,
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </section>
 
                     {/* Precios */}

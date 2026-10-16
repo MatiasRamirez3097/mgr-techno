@@ -128,6 +128,8 @@ export async function createProduct(data: CreateProductDTO) {
         bundleItemsCount: finalBundleItemsCount,
         bundleItems: finalBundleItems,
 
+        attributes: Array.isArray(data.attributes) ? data.attributes : [],
+
         hasFreeShipping: data.hasFreeShipping ?? false,
 
         shippingSize: data.shippingSize || "standard",

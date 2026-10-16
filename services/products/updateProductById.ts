@@ -120,6 +120,9 @@ export async function updateProductById(id: string, data: Record<string, any>) {
     product.gtin = data.gtin;
     product.bundleItemsCount = isBundle ? finalBundleItemsCount : 0;
     product.bundleItems = isBundle ? finalBundleItems : [];
+    if (Array.isArray(data.attributes)) {
+        product.attributes = data.attributes;
+    }
     product.hasFreeShipping = data.hasFreeShipping ?? false;
     product.shippingSize = data.shippingSize || "standard";
 

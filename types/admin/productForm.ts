@@ -1,9 +1,11 @@
-import type { BundleItemDTO } from "@/types/shared/product";
+import type { BundleItemDTO, ProductAttributeDTO } from "@/types/shared/product";
 
 export interface ProductFormState {
     type: "simple" | "bundle";
 
     bundleItems: BundleItemDTO[];
+
+    attributes: ProductAttributeDTO[];
 
     brand: string;
 

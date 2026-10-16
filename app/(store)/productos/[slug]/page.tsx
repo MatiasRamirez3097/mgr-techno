@@ -280,6 +280,46 @@ export default async function ProductPage({ params }: Props) {
                 </div>
             </div>
 
+            {/* ================= ESPECIFICACIONES TÉCNICAS ================= */}
+            {product.attributes && product.attributes.length > 0 && (
+                <section className="mt-12 pt-8 border-t border-gray-800">
+                    <h2 className="text-xl font-bold text-white mb-5">
+                        Especificaciones Técnicas
+                    </h2>
+                    <div className="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden">
+                        <dl className="divide-y divide-gray-800/80 grid grid-cols-1 md:grid-cols-2">
+                            {product.attributes.map((attr) => {
+                                let formattedVal = "";
+                                if (typeof attr.value === "boolean") {
+                                    formattedVal = attr.value ? "Sí" : "No";
+                                } else if (Array.isArray(attr.value)) {
+                                    formattedVal = attr.value.join(", ");
+                                } else {
+                                    formattedVal = String(attr.value ?? "");
+                                }
+                                if (attr.unit && formattedVal) {
+                                    formattedVal = `${formattedVal} ${attr.unit}`;
+                                }
+
+                                return (
+                                    <div
+                                        key={attr.key}
+                                        className="px-5 py-3.5 flex items-center justify-between gap-4 border-b md:odd:border-r border-gray-800/80"
+                                    >
+                                        <dt className="text-sm text-gray-400 font-medium">
+                                            {attr.label}
+                                        </dt>
+                                        <dd className="text-sm text-white font-semibold text-right">
+                                            {formattedVal}
+                                        </dd>
+                                    </div>
+                                );
+                            })}
+                        </dl>
+                    </div>
+                </section>
+            )}
+
             <ProductSchema product={product} />
         </main>
     );

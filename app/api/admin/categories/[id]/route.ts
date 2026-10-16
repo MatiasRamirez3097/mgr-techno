@@ -6,6 +6,34 @@ import { ProductModel } from "@/models/Product";
 import { NextRequest } from "next/server";
 import { Types } from "mongoose";
 
+function sanitizeAttributeDefinitions(raw: any): any[] {
+    if (!Array.isArray(raw)) return [];
+    const seen = new Set<string>();
+    const result: any[] = [];
+    for (const def of raw) {
+        const key = String(def?.key || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
+        const label = String(def?.label || "").trim();
+        if (!key || !label || seen.has(key)) continue;
+        seen.add(key);
+        const type = ["select", "multiselect", "number", "boolean", "text"].includes(def?.type)
+            ? def.type
+            : "select";
+        const options = Array.isArray(def?.options)
+            ? def.options.map((o: any) => String(o).trim()).filter(Boolean)
+            : [];
+        result.push({
+            key,
+            label,
+            type,
+            options,
+            unit: def?.unit ? String(def.unit).trim() : "",
+            required: Boolean(def?.required),
+            filterable: def?.filterable !== undefined ? Boolean(def.filterable) : true,
+        });
+    }
+    return result;
+}
+
 export async function PUT(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> },
@@ -28,6 +56,12 @@ export async function PUT(
                 ? new Types.ObjectId(body.parentId)
                 : null,
     };
+
+    if (body.attributeDefinitions !== undefined) {
+        updateData.attributeDefinitions = sanitizeAttributeDefinitions(
+            body.attributeDefinitions,
+        );
+    }
 
     const category = await CategoryModel.findByIdAndUpdate(id, updateData, {
         returnDocument: "after",

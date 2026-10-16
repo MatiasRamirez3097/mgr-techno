@@ -128,6 +128,19 @@ export const ProductSchema = new Schema(
             default: false,
             index: true, // Clave para excluir rápido en las consultas del Feed XML
         },
+
+        attributes: {
+            type: [
+                {
+                    key: { type: String, required: true },
+                    label: { type: String, required: true },
+                    value: { type: Schema.Types.Mixed, required: true },
+                    unit: { type: String, default: "" },
+                    _id: false,
+                },
+            ],
+            default: [],
+        },
     },
     { timestamps: true },
 );
@@ -138,5 +151,6 @@ ProductSchema.index({ name: "text", sku: "text" });
 ProductSchema.index({ "categories.slug": 1 });
 ProductSchema.index({ featured: 1 });
 ProductSchema.index({ "bundleItems.productId": 1 });
+ProductSchema.index({ "attributes.key": 1, "attributes.value": 1 });
 
 export const ProductModel = models.Product || model("Product", ProductSchema);

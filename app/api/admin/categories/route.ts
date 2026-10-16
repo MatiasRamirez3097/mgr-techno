@@ -17,6 +17,34 @@ function slugify(text: string): string {
         .replace(/--+/g, "-");
 }
 
+function sanitizeAttributeDefinitions(raw: any): any[] {
+    if (!Array.isArray(raw)) return [];
+    const seen = new Set<string>();
+    const result: any[] = [];
+    for (const def of raw) {
+        const key = String(def?.key || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
+        const label = String(def?.label || "").trim();
+        if (!key || !label || seen.has(key)) continue;
+        seen.add(key);
+        const type = ["select", "multiselect", "number", "boolean", "text"].includes(def?.type)
+            ? def.type
+            : "select";
+        const options = Array.isArray(def?.options)
+            ? def.options.map((o: any) => String(o).trim()).filter(Boolean)
+            : [];
+        result.push({
+            key,
+            label,
+            type,
+            options,
+            unit: def?.unit ? String(def.unit).trim() : "",
+            required: Boolean(def?.required),
+            filterable: def?.filterable !== undefined ? Boolean(def.filterable) : true,
+        });
+    }
+    return result;
+}
+
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session || (session as any).role !== "administrator") {
@@ -25,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { name, parentId, image } = body;
+        const { name, parentId, image, attributeDefinitions } = body;
 
         if (!name || typeof name !== "string" || !name.trim()) {
             return Response.json(
@@ -56,6 +84,7 @@ export async function POST(req: NextRequest) {
                 parentId && Types.ObjectId.isValid(parentId)
                     ? new Types.ObjectId(parentId)
                     : null,
+            attributeDefinitions: sanitizeAttributeDefinitions(attributeDefinitions),
         };
 
         const newCategory = await CategoryModel.create(categoryData);

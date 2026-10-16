@@ -73,5 +73,13 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
                   };
               })
             : [],
+        attributes: Array.isArray((product as any).attributes)
+            ? (product as any).attributes.map((attr: any) => ({
+                  key: attr.key,
+                  label: attr.label,
+                  value: attr.value,
+                  unit: attr.unit || "",
+              }))
+            : [],
     };
 }
