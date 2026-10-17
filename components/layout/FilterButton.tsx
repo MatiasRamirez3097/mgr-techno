@@ -14,14 +14,12 @@ interface Brand {
 interface Props {
     brands: Brand[];
     attributes?: AvailableAttributeFacet[];
-    initialHideOutOfStock?: boolean;
     initialIsOutlet?: boolean;
 }
 
 export function FilterButton({
     brands,
     attributes = [],
-    initialHideOutOfStock = false,
     initialIsOutlet = false,
 }: Props) {
     const [open, setOpen] = useState(false);
@@ -42,13 +40,11 @@ export function FilterButton({
         }
     });
 
-    const activeStockFilterCount = !initialHideOutOfStock ? 1 : 0;
     const activeOutletFilterCount = initialIsOutlet ? 1 : 0;
 
     const totalActiveFilters =
         activeBrandsCount +
         activeAttributesCount +
-        activeStockFilterCount +
         activeOutletFilterCount;
 
     return (
@@ -100,7 +96,6 @@ export function FilterButton({
                 onClose={() => setOpen(false)}
                 brands={brands}
                 attributes={attributes}
-                initialHideOutOfStock={initialHideOutOfStock}
                 initialIsOutlet={initialIsOutlet}
             />
         </>

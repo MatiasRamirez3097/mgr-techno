@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { AvailableAttributeFacet } from "@/types/shared/product";
 
@@ -15,7 +15,6 @@ interface Props {
     onClose: () => void;
     brands: Brand[];
     attributes?: AvailableAttributeFacet[];
-    initialHideOutOfStock: boolean;
     initialIsOutlet?: boolean;
 }
 
@@ -24,12 +23,12 @@ export function FilterDrawer({
     onClose,
     brands,
     attributes = [],
-    initialHideOutOfStock,
     initialIsOutlet = false,
 }: Props) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const [isPending, startTransition] = useTransition();
 
     const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
     const [selectedAttributes, setSelectedAttributes] = useState<
@@ -38,7 +37,6 @@ export function FilterDrawer({
     const [expandedFacets, setExpandedFacets] = useState<
         Record<string, boolean>
     >({});
-    const [hideOutOfStock, setHideOutOfStock] = useState(initialHideOutOfStock);
     const [isOutlet, setIsOutlet] = useState(initialIsOutlet);
 
     useEffect(() => {
@@ -75,9 +73,8 @@ export function FilterDrawer({
             ...prev,
         }));
 
-        setHideOutOfStock(initialHideOutOfStock);
         setIsOutlet(initialIsOutlet);
-    }, [searchParams, initialHideOutOfStock, initialIsOutlet, open, attributes]);
+    }, [searchParams, initialIsOutlet, open, attributes]);
 
     useEffect(() => {
         document.body.style.overflow = open ? "hidden" : "";
@@ -122,8 +119,6 @@ export function FilterDrawer({
     };
 
     const handleApply = () => {
-        document.cookie = `hideOutOfStock=${hideOutOfStock}; path=/; max-age=31536000`;
-
         const params = new URLSearchParams(searchParams.toString());
 
         if (selectedBrands.length > 0) {
@@ -158,17 +153,16 @@ export function FilterDrawer({
 
         params.delete("page");
 
-        router.push(`${pathname}?${params.toString()}`);
-        router.refresh();
         onClose();
+        startTransition(() => {
+            router.push(`${pathname}?${params.toString()}`);
+        });
     };
 
     const handleClear = () => {
         setSelectedBrands([]);
         setSelectedAttributes({});
         setIsOutlet(false);
-
-        document.cookie = `hideOutOfStock=false; path=/; max-age=31536000`;
 
         const params = new URLSearchParams(searchParams.toString());
         params.delete("brand");
@@ -185,13 +179,45 @@ export function FilterDrawer({
             params.delete(k);
         }
 
-        router.push(`${pathname}?${params.toString()}`);
-        router.refresh();
         onClose();
+        startTransition(() => {
+            router.push(`${pathname}?${params.toString()}`);
+        });
     };
 
     return (
         <>
+            {isPending && (
+                <div className="fixed inset-x-0 top-0 z-50 pointer-events-none flex flex-col items-center">
+                    <div className="w-full h-1 bg-gray-800 overflow-hidden">
+                        <div className="h-full bg-brand w-1/2 animate-pulse" />
+                    </div>
+                    <div className="mt-4 inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-gray-900/95 border border-brand/40 text-white text-xs font-medium shadow-xl backdrop-blur-md">
+                        <svg
+                            className="animate-spin h-4 w-4 text-brand"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                            />
+                            <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                        </svg>
+                        <span>Actualizando productos...</span>
+                    </div>
+                </div>
+            )}
+
             <div
                 onClick={onClose}
                 className={`fixed inset-0 bg-black/60 z-40 transition-opacity duration-300 ${
@@ -244,29 +270,6 @@ export function FilterDrawer({
                                     onChange={() => setIsOutlet(!isOutlet)}
                                 />
                                 <div className="w-11 h-6 bg-gray-800 border border-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 peer-checked:border-purple-500"></div>
-                            </div>
-                        </label>
-                    </div>
-
-                    {/* Switch Disponibilidad */}
-                    <div className="border-t border-gray-800 pt-5">
-                        <h3 className="text-gray-400 font-semibold mb-3 text-xs uppercase tracking-wider">
-                            Disponibilidad
-                        </h3>
-                        <label className="flex items-center justify-between cursor-pointer group bg-gray-800/30 border border-gray-700 p-3 rounded-xl hover:border-brand/50 transition-colors">
-                            <span className="text-gray-300 font-medium group-hover:text-white transition-colors text-sm">
-                                Solo productos en stock
-                            </span>
-                            <div className="relative">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={hideOutOfStock}
-                                    onChange={() =>
-                                        setHideOutOfStock(!hideOutOfStock)
-                                    }
-                                />
-                                <div className="w-11 h-6 bg-gray-800 border border-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand peer-checked:border-brand"></div>
                             </div>
                         </label>
                     </div>
@@ -410,13 +413,41 @@ export function FilterDrawer({
                 <div className="px-6 py-4 border-t border-gray-800 flex flex-col gap-3 bg-gray-900">
                     <button
                         onClick={handleApply}
-                        className="w-full py-3 rounded-xl text-center text-white font-medium bg-brand hover:brightness-110 transition-all shadow-lg shadow-brand/20"
+                        disabled={isPending}
+                        className="w-full py-3 rounded-xl text-center text-white font-medium bg-brand hover:brightness-110 transition-all shadow-lg shadow-brand/20 disabled:opacity-60 flex items-center justify-center gap-2"
                     >
-                        Aplicar filtros
+                        {isPending ? (
+                            <>
+                                <svg
+                                    className="animate-spin h-4 w-4 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                    />
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    />
+                                </svg>
+                                <span>Aplicando...</span>
+                            </>
+                        ) : (
+                            "Aplicar filtros"
+                        )}
                     </button>
                     <button
                         onClick={handleClear}
-                        className="w-full py-2 rounded-xl text-center text-gray-400 hover:text-white text-sm transition-colors"
+                        disabled={isPending}
+                        className="w-full py-2 rounded-xl text-center text-gray-400 hover:text-white text-sm transition-colors disabled:opacity-50"
                     >
                         Limpiar todo
                     </button>

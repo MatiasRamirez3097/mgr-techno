@@ -9,6 +9,7 @@ import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { ProductGallery } from "@/components/products/ProductGallery";
 import MetaProductView from "@/components/MetaProductView";
 import { OutletSelector } from "@/components/products/OutletSelector";
+import { ProductShippingCalculator } from "@/components/products/ProductShippingCalculator";
 
 import { getPricing } from "@/lib/pricing";
 import { getProductBySlug as getProductBySlugService } from "@/services/products/getProductBySlug";
@@ -276,6 +277,11 @@ export default async function ProductPage({ params }: Props) {
                                 <AddToCartButton product={product} />
                             </>
                         )}
+
+                        <ProductShippingCalculator
+                            productId={product.id}
+                            hasFreeShipping={product.hasFreeShipping}
+                        />
                     </div>
                 </div>
             </div>

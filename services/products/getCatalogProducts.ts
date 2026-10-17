@@ -15,6 +15,8 @@ import { Types } from "mongoose";
 export function revalidateProductsCache() {
     try {
         revalidateTag("catalog-products", "default");
+        revalidatePath("/productos");
+        revalidatePath("/productos/ofertas");
         revalidatePath("/products");
         revalidatePath("/admin/products");
     } catch {
@@ -134,9 +136,11 @@ async function fetchCatalogProducts(
     const basePipeline: any[] = [];
 
     // BÚSQUEDA
+    let hasAtlasSearch = false;
     if (filters.search) {
         const normalizedSearch = normalizeSearch(filters.search).trim();
         if (normalizedSearch) {
+            hasAtlasSearch = true;
             basePipeline.push({
                 $search: {
                     index: "search_products",
@@ -195,7 +199,8 @@ async function fetchCatalogProducts(
         baseMatchStage.isOutlet = true;
     }
 
-    if (filters.inStockOnly) {
+    // En la tienda pública siempre mostramos únicamente productos con stock disponible
+    if (!filters.adminView || filters.inStockOnly) {
         baseMatchStage.isAvailable = true;
     }
 
@@ -239,15 +244,25 @@ async function fetchCatalogProducts(
         basePipeline.push({ $match: baseMatchStage });
     }
 
+    // Si hay búsqueda con Atlas Search y se ordena por relevancia, proyectamos el searchScore antes del $facet
+    const useSearchScore =
+        hasAtlasSearch &&
+        (!filters.orderby || filters.orderby === "relevance");
+
+    if (useSearchScore) {
+        basePipeline.push({
+            $addFields: {
+                _searchScore: { $meta: "searchScore" },
+            },
+        });
+    }
+
     // ORDENAMIENTO
     let sortStage: any = {};
-    if (
-        filters.search &&
-        (!filters.orderby || filters.orderby === "relevance")
-    ) {
+    if (useSearchScore) {
         sortStage = {
             isAvailable: -1,
-            score: { $meta: "searchScore" },
+            _searchScore: -1,
         };
     } else {
         sortStage = { isAvailable: -1 };
@@ -396,92 +411,102 @@ async function fetchCatalogProducts(
             };
         }
 
-        const [dataResult, countResult, brandsResult, attributesResult] =
-            await Promise.all([
-                ProductModel.aggregate([
-                    ...sortedPipeline,
-                    ...brandMatchPipeline,
-                    ...attributeMatchPipeline,
-                    { $skip: skip },
-                    { $limit: limit },
-                    PRODUCT_PROJECT_STAGE,
-                ]),
-                ProductModel.aggregate([
-                    ...baseFilterPipeline,
-                    ...brandMatchPipeline,
-                    ...attributeMatchPipeline,
-                    { $count: "total" },
-                ]),
-                ProductModel.aggregate([
-                    ...baseFilterPipeline,
-                    { $group: { _id: "$brand" } },
-                    { $match: { _id: { $ne: null } } },
-                    {
-                        $lookup: {
-                            from: "brands",
-                            localField: "_id",
-                            foreignField: "_id",
-                            as: "brandInfo",
+        const facetStages: Record<string, any[]> = {
+            data: [
+                ...brandMatchPipeline,
+                ...attributeMatchPipeline,
+                { $sort: sortStage },
+                { $skip: skip },
+                { $limit: limit },
+                PRODUCT_PROJECT_STAGE,
+            ],
+            totalCount: [
+                ...brandMatchPipeline,
+                ...attributeMatchPipeline,
+                { $count: "total" },
+            ],
+        };
+
+        if (!filters.adminView) {
+            facetStages.brands = [
+                { $group: { _id: "$brand" } },
+                { $match: { _id: { $ne: null } } },
+                {
+                    $lookup: {
+                        from: "brands",
+                        localField: "_id",
+                        foreignField: "_id",
+                        as: "brandInfo",
+                    },
+                },
+                { $unwind: "$brandInfo" },
+                {
+                    $project: {
+                        _id: 1,
+                        name: "$brandInfo.name",
+                        slug: "$brandInfo.slug",
+                    },
+                },
+                { $sort: { name: 1 } },
+            ];
+
+            facetStages.attributes = [
+                { $match: { "attributes.0": { $exists: true } } },
+                { $project: { attributes: 1 } },
+                { $unwind: "$attributes" },
+                {
+                    $addFields: {
+                        _attrValuesArray: {
+                            $cond: [
+                                { $isArray: "$attributes.value" },
+                                "$attributes.value",
+                                ["$attributes.value"],
+                            ],
                         },
                     },
-                    { $unwind: "$brandInfo" },
-                    {
-                        $project: {
-                            _id: 1,
-                            name: "$brandInfo.name",
-                            slug: "$brandInfo.slug",
-                        },
+                },
+                { $unwind: "$_attrValuesArray" },
+                {
+                    $match: {
+                        _attrValuesArray: { $nin: [null, ""] },
                     },
-                    { $sort: { name: 1 } },
-                ]),
-                // FACETAS DE ATRIBUTOS EN TODO EL CATÁLOGO CONSULTADO (TODAS LAS PÁGINAS)
-                ProductModel.aggregate([
-                    ...baseFilterPipeline,
-                    { $match: { "attributes.0": { $exists: true } } },
-                    { $unwind: "$attributes" },
-                    {
-                        $addFields: {
-                            _attrValuesArray: {
-                                $cond: [
-                                    { $isArray: "$attributes.value" },
-                                    "$attributes.value",
-                                    ["$attributes.value"],
-                                ],
+                },
+                {
+                    $group: {
+                        _id: {
+                            key: "$attributes.key",
+                            val: { $toString: "$_attrValuesArray" },
+                        },
+                        label: { $first: "$attributes.label" },
+                        unit: { $first: "$attributes.unit" },
+                        count: { $sum: 1 },
+                    },
+                },
+                {
+                    $group: {
+                        _id: "$_id.key",
+                        label: { $first: "$label" },
+                        unit: { $first: "$unit" },
+                        options: {
+                            $push: {
+                                value: "$_id.val",
+                                count: "$count",
                             },
                         },
                     },
-                    { $unwind: "$_attrValuesArray" },
-                    {
-                        $match: {
-                            _attrValuesArray: { $nin: [null, ""] },
-                        },
-                    },
-                    {
-                        $group: {
-                            _id: {
-                                key: "$attributes.key",
-                                val: { $toString: "$_attrValuesArray" },
-                            },
-                            label: { $first: "$attributes.label" },
-                            unit: { $first: "$attributes.unit" },
-                            count: { $sum: 1 },
-                        },
-                    },
-                    {
-                        $group: {
-                            _id: "$_id.key",
-                            label: { $first: "$label" },
-                            unit: { $first: "$unit" },
-                            options: {
-                                $push: {
-                                    value: "$_id.val",
-                                    count: "$count",
-                                },
-                            },
-                        },
-                    },
-                ]),
-            ]);
+                },
+            ];
+        }
+
+        const [facetResult] = await ProductModel.aggregate([
+            ...baseFilterPipeline,
+            { $facet: facetStages },
+        ]);
+
+        const dataResult = facetResult?.data || [];
+        const countResult = facetResult?.totalCount || [];
+        const brandsResult = facetResult?.brands || [];
+        const attributesResult = facetResult?.attributes || [];
 
         const totalItems = countResult[0]?.total || 0;
         const formattedProducts = dataResult.map((product: any) =>

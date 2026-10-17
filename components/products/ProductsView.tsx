@@ -5,7 +5,6 @@ import { SortSelector } from "@/components/products/SortSelector";
 import { AdminPagination } from "../admin/AdminPagination";
 import type { ProductOrderBy } from "@/types/shared/product";
 import { FilterButton } from "../layout/FilterButton";
-import { cookies } from "next/headers";
 
 interface Props {
     brand?: string;
@@ -35,12 +34,6 @@ export async function ProductsView({
     const currentPage = Math.max(1, Number(page) || 1);
     const currentLimit = Number(limit) || 12;
 
-    const cookieStore = await cookies();
-    const hideOutOfStockCookie = cookieStore.get("hideOutOfStock");
-    const inStockOnly = hideOutOfStockCookie
-        ? hideOutOfStockCookie.value === "true"
-        : true;
-
     const isOutletFilter = isOutlet === "true" ? true : undefined;
 
     const { availableBrands, availableAttributes, products, pagination } =
@@ -53,7 +46,7 @@ export async function ProductsView({
                 search,
                 orderby,
                 brand,
-                inStockOnly,
+                inStockOnly: true,
                 attributeFilters,
             },
             currentPage,
@@ -93,7 +86,6 @@ export async function ProductsView({
                     <FilterButton
                         brands={availableBrands}
                         attributes={availableAttributes}
-                        initialHideOutOfStock={inStockOnly}
                         initialIsOutlet={isOutletFilter}
                     />
                 </div>

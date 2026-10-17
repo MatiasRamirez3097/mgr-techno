@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { ProductsView } from "@/components/products/ProductsView";
+import { ProductsLoading } from "@/components/products/ProductsLoading";
 import { extractAttributeFiltersFromSearchParams } from "@/lib/products/extractAttributeFilters";
 
 import type { ProductOrderBy } from "@/types/shared/product";
@@ -30,16 +32,20 @@ export default async function SaleProductsPage({ searchParams }: Props) {
     const attributeFilters =
         extractAttributeFiltersFromSearchParams(resolvedSearchParams);
 
+    const suspenseKey = JSON.stringify(resolvedSearchParams);
+
     return (
-        <ProductsView
-            onSale
-            limit={limit}
-            search={search}
-            page={page}
-            orderby={orderby}
-            brand={brand}
-            isOutlet={isOutlet}
-            attributeFilters={attributeFilters}
-        />
+        <Suspense key={suspenseKey} fallback={<ProductsLoading />}>
+            <ProductsView
+                onSale
+                limit={limit}
+                search={search}
+                page={page}
+                orderby={orderby}
+                brand={brand}
+                isOutlet={isOutlet}
+                attributeFilters={attributeFilters}
+            />
+        </Suspense>
     );
 }

@@ -152,5 +152,6 @@ ProductSchema.index({ "categories.slug": 1 });
 ProductSchema.index({ featured: 1 });
 ProductSchema.index({ "bundleItems.productId": 1 });
 ProductSchema.index({ "attributes.key": 1, "attributes.value": 1 });
+ProductSchema.index({ status: 1, isAvailable: 1, categories: 1, createdAt: -1 });
 
 export const ProductModel = models.Product || model("Product", ProductSchema);
