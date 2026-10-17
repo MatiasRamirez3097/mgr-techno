@@ -7,7 +7,11 @@ import { ProductDTO } from "@/types/shared/product";
 import { useCart } from "@/store/cart";
 import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
 import { getPricing } from "@/lib/pricing";
-import { getOptimizedImageUrl } from "@/lib/utils/imageUtils";
+import {
+    getOptimizedImageUrl,
+    hasOwnProductImage,
+} from "@/lib/utils/imageUtils";
+import { BundleImageCollage } from "@/components/products/BundleImageCollage";
 
 export function ProductCard({
     product,
@@ -28,6 +32,12 @@ export function ProductCard({
     const disabled = product.availableStock === 0 || reachedMax;
     const pricing = getPricing(product);
 
+    const hasMainImage = hasOwnProductImage(product.image);
+    const hasBundleCollage =
+        !hasMainImage &&
+        product.type === "bundle" &&
+        Boolean(product.bundleItems?.some((bi) => hasOwnProductImage(bi.image)));
+
     const handleAction = (e: React.MouseEvent) => {
         if (disabled) return;
 
@@ -47,14 +57,20 @@ export function ProductCard({
                 href={`/productos/${product.slug}`}
                 className="flex-1 flex flex-col"
             >
-                <div className="relative aspect-square bg-gray-800 shrink-0 flex items-center justify-center">
-                    {product.image ? (
+                <div className="relative aspect-square bg-gray-800 shrink-0 flex items-center justify-center overflow-hidden">
+                    {hasMainImage ? (
                         <Image
                             src={getOptimizedImageUrl(product.image)}
                             alt={product.name}
                             fill
                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            priority={priority}
+                        />
+                    ) : hasBundleCollage ? (
+                        <BundleImageCollage
+                            bundleItems={product.bundleItems}
+                            alt={product.name}
                             priority={priority}
                         />
                     ) : (
@@ -72,11 +88,18 @@ export function ProductCard({
                                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                                 />
                             </svg>
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">MGR TECHNO</span>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
+                                MGR TECHNO
+                            </span>
                         </div>
                     )}
                     {/* Contenedor de etiquetas */}
-                    <div className="absolute top-2 left-2 flex flex-col gap-1.5 items-start">
+                    <div className="absolute top-2 left-2 z-20 flex flex-col gap-1.5 items-start">
+                        {product.type === "bundle" && (
+                            <span className="bg-blue-600/90 text-white border border-blue-400/50 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm shadow-sm">
+                                Combo
+                            </span>
+                        )}
                         {product.isOutlet && (
                             <span className="bg-purple-900/80 text-purple-200 border border-purple-500/50 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm">
                                 Outlet

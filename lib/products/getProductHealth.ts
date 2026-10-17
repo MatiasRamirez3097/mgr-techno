@@ -46,7 +46,17 @@ export function getProductHealth(
         critical.push("Sin IVA");
     }
 
-    if (!product.images?.length && !product.image) {
+    const bundleComponentImagesCount =
+        product.type === "bundle" && Array.isArray(product.bundleItems)
+            ? product.bundleItems.filter((bi) => Boolean(bi.image)).length
+            : 0;
+
+    const totalImagesCount =
+        (product.image ? 1 : 0) +
+        (product.images?.length || 0) +
+        bundleComponentImagesCount;
+
+    if (totalImagesCount === 0) {
         critical.push("Sin imagen");
     }
 
@@ -66,7 +76,7 @@ export function getProductHealth(
         warnings.push("Sin marca");
     }
 
-    if (product.image && (!product.images || product.images.length === 0)) {
+    if (totalImagesCount === 1) {
         warnings.push("Solo 1 imagen");
     }
 

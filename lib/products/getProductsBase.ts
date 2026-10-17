@@ -18,10 +18,25 @@ export async function getProductsBase({
 }: BaseOptions): Promise<ProductDTO[]> {
     await connectDB();
 
+    const normalizedQuery: Record<string, any> = { ...query };
+    if (normalizedQuery.stockStatus === "instock") {
+        delete normalizedQuery.stockStatus;
+        normalizedQuery.isAvailable = true;
+    }
+    if (normalizedQuery.onSale === true) {
+        delete normalizedQuery.onSale;
+        normalizedQuery.salePrice = { $exists: true, $ne: null, $gt: 0 };
+    }
+
     const products = await ProductModel.find({
         status: "publish",
-        ...query,
+        isAvailable: true,
+        ...normalizedQuery,
     })
+        .populate({
+            path: "bundleItems.productId",
+            select: "name slug sku image regularPrice availableStock",
+        })
         .sort(sort)
         .limit(limit)
         .lean();

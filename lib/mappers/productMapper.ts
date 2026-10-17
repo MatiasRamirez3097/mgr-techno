@@ -1,5 +1,6 @@
 import { ProductDB } from "@/types/backend/product";
 import { ProductDTO } from "@/types/shared/product";
+import { hasOwnProductImage } from "@/lib/utils/imageUtils";
 
 export function mapProductToDTO(product: ProductDB): ProductDTO {
     return {
@@ -7,10 +8,8 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
         categories: product.categories
             ? product.categories.map((id) => id.toString())
             : [],
-        image:
-            product.image ||
-            "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780913722/noimage_gamsgz.png",
-        images: product.images || [],
+        image: hasOwnProductImage(product.image) ? product.image! : "",
+        images: (product.images || []).filter((img) => hasOwnProductImage(img)),
         name: product.name,
         salePrice: product.salePrice || null,
         regularPrice: product.regularPrice || 0,
@@ -56,20 +55,31 @@ export function mapProductToDTO(product: ProductDB): ProductDTO {
                       b.productId &&
                       typeof b.productId === "object" &&
                       "_id" in b.productId;
+                  const rawImg = isPopulated ? b.productId.image : b.image;
                   return {
                       productId: isPopulated
                           ? b.productId._id.toString()
                           : b.productId.toString(),
                       quantity: b.quantity,
-                      name: isPopulated ? b.productId.name : undefined,
-                      sku: isPopulated ? b.productId.sku : undefined,
-                      image: isPopulated ? b.productId.image : undefined,
+                      name: isPopulated ? b.productId.name : b.name,
+                      slug: isPopulated ? b.productId.slug : b.slug,
+                      sku: isPopulated ? b.productId.sku : b.sku,
+                      image: hasOwnProductImage(rawImg) ? rawImg : undefined,
                       regularPrice: isPopulated
                           ? b.productId.regularPrice
-                          : undefined,
+                          : b.regularPrice,
                       availableStock: isPopulated
                           ? b.productId.availableStock
-                          : undefined,
+                          : b.availableStock,
+                      attributes:
+                          isPopulated && Array.isArray(b.productId.attributes)
+                              ? b.productId.attributes.map((attr: any) => ({
+                                    key: attr.key,
+                                    label: attr.label,
+                                    value: attr.value,
+                                    unit: attr.unit || "",
+                                }))
+                              : undefined,
                   };
               })
             : [],

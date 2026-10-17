@@ -9,10 +9,12 @@ export type BundleItemDTO = {
     productId: string;
     quantity: number;
     name?: string;
+    slug?: string;
     sku?: string;
     image?: string;
     regularPrice?: number;
     availableStock?: number;
+    attributes?: ProductAttributeDTO[];
 };
 
 export type ProductDTO = {

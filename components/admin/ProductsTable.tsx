@@ -11,6 +11,7 @@ import { getProductHealth } from "@/lib/products/getProductHealth";
 import type { ProductDTO } from "@/types/shared/product";
 import type { CategoryDTO } from "@/types/shared/category";
 import { getOptimizedImageUrl } from "@/lib/utils/imageUtils";
+import { BundleImageCollage } from "@/components/products/BundleImageCollage";
 
 interface Props {
     products: ProductDTO[];
@@ -134,7 +135,7 @@ export function ProductsTable({ products, categories = [] }: Props) {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-800 shrink-0">
-                                                {product.image && (
+                                                {product.image ? (
                                                     <Image
                                                         src={getOptimizedImageUrl(
                                                             product.image,
@@ -145,7 +146,17 @@ export function ProductsTable({ products, categories = [] }: Props) {
                                                         sizes="40px"
                                                         className="object-cover"
                                                     />
-                                                )}
+                                                ) : product.type === "bundle" &&
+                                                  product.bundleItems?.length ? (
+                                                    <BundleImageCollage
+                                                        bundleItems={
+                                                            product.bundleItems
+                                                        }
+                                                        alt={product.name}
+                                                        compact
+                                                        imageWidth={150}
+                                                    />
+                                                ) : null}
                                             </div>
 
                                             <div>

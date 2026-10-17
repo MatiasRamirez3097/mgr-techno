@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getFinalPrice } from "@/lib/pricing";
+import { hasOwnProductImage } from "@/lib/utils/imageUtils";
+import { BundleImageCollage } from "@/components/products/BundleImageCollage";
 
 interface Props {
     open: boolean;
@@ -101,14 +103,28 @@ export function CartDrawer({ open, onClose }: Props) {
                                 className="flex gap-4 bg-gray-800 rounded-xl p-3"
                             >
                                 {/* Imagen */}
-                                <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-700 shrink-0">
-                                    <Image
-                                        src={item.image}
-                                        alt={item.name}
-                                        fill
-                                        sizes="80px"
-                                        className="object-cover"
-                                    />
+                                <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-700 shrink-0 flex items-center justify-center">
+                                    {hasOwnProductImage(item.image) ? (
+                                        <Image
+                                            src={item.image}
+                                            alt={item.name}
+                                            fill
+                                            sizes="80px"
+                                            className="object-cover"
+                                        />
+                                    ) : item.type === "bundle" &&
+                                      item.bundleItems?.length ? (
+                                        <BundleImageCollage
+                                            bundleItems={item.bundleItems}
+                                            alt={item.name}
+                                            compact
+                                            imageWidth={200}
+                                        />
+                                    ) : (
+                                        <span className="text-[10px] font-bold text-gray-500">
+                                            MGR
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* Info */}

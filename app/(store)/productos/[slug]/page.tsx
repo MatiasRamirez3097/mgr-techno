@@ -3,6 +3,8 @@ export const revalidate = 3600;
 import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 
 import { ProductSchema } from "@/components/products/ProductSchema";
 import { AddToCartButton } from "@/components/products/AddToCartButton";
@@ -16,7 +18,10 @@ import { getProductBySlug as getProductBySlugService } from "@/services/products
 
 import { connectDB } from "@/lib/mongodb";
 import { InventoryItemModel } from "@/models/InventoryItem";
-import { getOptimizedImageUrl } from "@/lib/utils/imageUtils";
+import {
+    getOptimizedImageUrl,
+    hasOwnProductImage,
+} from "@/lib/utils/imageUtils";
 
 interface Props {
     params: Promise<{
@@ -90,9 +95,18 @@ export default async function ProductPage({ params }: Props) {
                         Boolean,
                     )}
                     name={product.name}
+                    bundleItems={product.bundleItems}
+                    hasOwnMainImage={hasOwnProductImage(product.image)}
                 />
 
                 <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {product.type === "bundle" && (
+                            <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                Combo ahorro
+                            </span>
+                        )}
+                    </div>
                     <h1 className="text-2xl font-bold title-color">
                         {product.name}
                     </h1>
@@ -224,22 +238,83 @@ export default async function ProductPage({ params }: Props) {
                     {product.type === "bundle" &&
                         product.bundleItems &&
                         product.bundleItems.length > 0 && (
-                            <div className="mt-2 rounded-xl border border-gray-800 bg-gray-900/60 p-4">
-                                <p className="text-xs font-bold uppercase tracking-wider text-brand mb-2.5">
+                            <div className="mt-2 rounded-2xl border border-gray-800 bg-gray-900/60 p-4">
+                                <p className="text-xs font-bold uppercase tracking-wider text-brand mb-3">
                                     📦 Este combo incluye:
                                 </p>
-                                <ul className="space-y-1.5 text-sm text-gray-300">
+                                <ul className="space-y-2.5 text-sm text-gray-300">
                                     {product.bundleItems.map((bi) => (
                                         <li
                                             key={bi.productId}
-                                            className="flex items-center gap-2"
+                                            className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-800/80 hover:border-gray-700 transition-colors"
                                         >
-                                            <span className="font-bold text-white">
-                                                {bi.quantity}x
-                                            </span>
-                                            <span>
-                                                {bi.name || "Producto incluido"}
-                                            </span>
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                {hasOwnProductImage(bi.image) ? (
+                                                    <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-800 border border-gray-700 shrink-0">
+                                                        <Image
+                                                            src={getOptimizedImageUrl(
+                                                                bi.image!,
+                                                                200,
+                                                            )}
+                                                            alt={
+                                                                bi.name ||
+                                                                "Componente"
+                                                            }
+                                                            fill
+                                                            sizes="44px"
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-11 h-11 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-xs font-bold text-brand shrink-0">
+                                                        {bi.quantity}x
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-bold text-brand text-xs px-1.5 py-0.5 rounded bg-brand/10 border border-brand/20 shrink-0">
+                                                            {bi.quantity}x
+                                                        </span>
+                                                        {bi.slug ? (
+                                                            <Link
+                                                                href={`/productos/${bi.slug}`}
+                                                                className="font-medium text-white hover:text-brand transition-colors truncate"
+                                                            >
+                                                                {bi.name ||
+                                                                    "Producto incluido"}
+                                                            </Link>
+                                                        ) : (
+                                                            <span className="font-medium text-white truncate">
+                                                                {bi.name ||
+                                                                    "Producto incluido"}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {typeof bi.regularPrice ===
+                                                        "number" &&
+                                                        bi.regularPrice > 0 && (
+                                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                                Valor individual:{" "}
+                                                                $
+                                                                {bi.regularPrice.toLocaleString(
+                                                                    "es-AR",
+                                                                )}
+                                                                {bi.quantity > 1
+                                                                    ? " c/u"
+                                                                    : ""}
+                                                            </p>
+                                                        )}
+                                                </div>
+                                            </div>
+                                            {bi.slug && (
+                                                <Link
+                                                    href={`/productos/${bi.slug}`}
+                                                    title="Ver producto individual"
+                                                    className="text-xs text-gray-400 hover:text-brand transition-colors shrink-0 px-2 py-1"
+                                                >
+                                                    Ver →
+                                                </Link>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
@@ -287,42 +362,111 @@ export default async function ProductPage({ params }: Props) {
             </div>
 
             {/* ================= ESPECIFICACIONES TÉCNICAS ================= */}
-            {product.attributes && product.attributes.length > 0 && (
-                <section className="mt-12 pt-8 border-t border-gray-800">
-                    <h2 className="text-xl font-bold text-white mb-5">
+            {((product.attributes && product.attributes.length > 0) ||
+                (product.type === "bundle" &&
+                    product.bundleItems?.some(
+                        (bi) => bi.attributes && bi.attributes.length > 0,
+                    ))) && (
+                <section className="mt-12 pt-8 border-t border-gray-800 space-y-6">
+                    <h2 className="text-xl font-bold text-white">
                         Especificaciones Técnicas
                     </h2>
-                    <div className="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden">
-                        <dl className="divide-y divide-gray-800/80 grid grid-cols-1 md:grid-cols-2">
-                            {product.attributes.map((attr) => {
-                                let formattedVal = "";
-                                if (typeof attr.value === "boolean") {
-                                    formattedVal = attr.value ? "Sí" : "No";
-                                } else if (Array.isArray(attr.value)) {
-                                    formattedVal = attr.value.join(", ");
-                                } else {
-                                    formattedVal = String(attr.value ?? "");
-                                }
-                                if (attr.unit && formattedVal) {
-                                    formattedVal = `${formattedVal} ${attr.unit}`;
-                                }
 
-                                return (
-                                    <div
-                                        key={attr.key}
-                                        className="px-5 py-3.5 flex items-center justify-between gap-4 border-b md:odd:border-r border-gray-800/80"
-                                    >
-                                        <dt className="text-sm text-gray-400 font-medium">
-                                            {attr.label}
-                                        </dt>
-                                        <dd className="text-sm text-white font-semibold text-right">
-                                            {formattedVal}
-                                        </dd>
+                    {product.attributes && product.attributes.length > 0 && (
+                        <div className="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden">
+                            <dl className="divide-y divide-gray-800/80 grid grid-cols-1 md:grid-cols-2">
+                                {product.attributes.map((attr) => {
+                                    let formattedVal = "";
+                                    if (typeof attr.value === "boolean") {
+                                        formattedVal = attr.value ? "Sí" : "No";
+                                    } else if (Array.isArray(attr.value)) {
+                                        formattedVal = attr.value.join(", ");
+                                    } else {
+                                        formattedVal = String(attr.value ?? "");
+                                    }
+                                    if (attr.unit && formattedVal) {
+                                        formattedVal = `${formattedVal} ${attr.unit}`;
+                                    }
+
+                                    return (
+                                        <div
+                                            key={attr.key}
+                                            className="px-5 py-3.5 flex items-center justify-between gap-4 border-b md:odd:border-r border-gray-800/80"
+                                        >
+                                            <dt className="text-sm text-gray-400 font-medium">
+                                                {attr.label}
+                                            </dt>
+                                            <dd className="text-sm text-white font-semibold text-right">
+                                                {formattedVal}
+                                            </dd>
+                                        </div>
+                                    );
+                                })}
+                            </dl>
+                        </div>
+                    )}
+
+                    {product.type === "bundle" &&
+                        product.bundleItems?.map((bi) => {
+                            if (!bi.attributes || bi.attributes.length === 0) {
+                                return null;
+                            }
+                            return (
+                                <div
+                                    key={bi.productId}
+                                    className="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden"
+                                >
+                                    <div className="px-5 py-3 bg-gray-800/50 border-b border-gray-800 flex items-center justify-between gap-2">
+                                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <span className="text-brand">
+                                                {bi.quantity}x
+                                            </span>
+                                            <span>
+                                                {bi.name || "Componente"}
+                                            </span>
+                                        </h3>
                                     </div>
-                                );
-                            })}
-                        </dl>
-                    </div>
+                                    <dl className="divide-y divide-gray-800/80 grid grid-cols-1 md:grid-cols-2">
+                                        {bi.attributes.map((attr) => {
+                                            let formattedVal = "";
+                                            if (
+                                                typeof attr.value === "boolean"
+                                            ) {
+                                                formattedVal = attr.value
+                                                    ? "Sí"
+                                                    : "No";
+                                            } else if (
+                                                Array.isArray(attr.value)
+                                            ) {
+                                                formattedVal =
+                                                    attr.value.join(", ");
+                                            } else {
+                                                formattedVal = String(
+                                                    attr.value ?? "",
+                                                );
+                                            }
+                                            if (attr.unit && formattedVal) {
+                                                formattedVal = `${formattedVal} ${attr.unit}`;
+                                            }
+
+                                            return (
+                                                <div
+                                                    key={attr.key}
+                                                    className="px-5 py-3.5 flex items-center justify-between gap-4 border-b md:odd:border-r border-gray-800/80"
+                                                >
+                                                    <dt className="text-sm text-gray-400 font-medium">
+                                                        {attr.label}
+                                                    </dt>
+                                                    <dd className="text-sm text-white font-semibold text-right">
+                                                        {formattedVal}
+                                                    </dd>
+                                                </div>
+                                            );
+                                        })}
+                                    </dl>
+                                </div>
+                            );
+                        })}
                 </section>
             )}
 
@@ -345,6 +489,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ?.replace(/<[^>]*>/g, "")
         .slice(0, 160);
 
+    const fallbackBundleImg =
+        product.bundleItems?.find((bi) => hasOwnProductImage(bi.image))
+            ?.image || "";
+    const metaImageUrl =
+        getOptimizedImageUrl(product.image) ||
+        getOptimizedImageUrl(product.images?.[0] || "") ||
+        getOptimizedImageUrl(fallbackBundleImg);
+
     return {
         metadataBase: new URL("https://mgrtechno.com.ar"),
         title: product.name,
@@ -362,20 +514,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             url: `https://mgrtechno.com.ar/productos/${product.slug}`,
             siteName: "MGR Techno",
             type: "website",
-            images:
-                getOptimizedImageUrl(product.image) ||
-                getOptimizedImageUrl(product.images?.[0] || "")
-                    ? [
-                          {
-                              url:
-                                  getOptimizedImageUrl(product.image) ||
-                                  getOptimizedImageUrl(product.images[0]),
-                              width: 800,
-                              height: 800,
-                              alt: product.name,
-                          },
-                      ]
-                    : [],
+            images: metaImageUrl
+                ? [
+                      {
+                          url: metaImageUrl,
+                          width: 800,
+                          height: 800,
+                          alt: product.name,
+                      },
+                  ]
+                : [],
         },
         twitter: {
             card: "summary_large_image",
@@ -383,14 +531,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             description:
                 cleanDescription ||
                 `Comprá ${product.name} al mejor precio en MGR Techno`,
-            images:
-                getOptimizedImageUrl(product.image) ||
-                getOptimizedImageUrl(product.images?.[0] || "")
-                    ? [
-                          getOptimizedImageUrl(product.image) ||
-                              getOptimizedImageUrl(product.images[0]),
-                      ]
-                    : [],
+            images: metaImageUrl ? [metaImageUrl] : [],
         },
         robots: {
             index: true,

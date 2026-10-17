@@ -12,11 +12,17 @@ export interface BundleMetricsResult {
     regularPrice: number;
     availableStock: number;
     isAvailable: boolean;
+    totalWeight: number;
+    estimatedDimensions: {
+        length: number;
+        width: number;
+        height: number;
+    };
 }
 
 /**
  * Normaliza los items de un combo (unificando duplicados), valida que existan y sean
- * productos simples, y calcula el regularPrice y availableStock resultantes.
+ * productos simples, y calcula el regularPrice, availableStock, peso y dimensiones resultantes.
  */
 export async function calculateBundleMetrics(
     rawItems: { productId: string; quantity: number }[],
@@ -41,7 +47,7 @@ export async function calculateBundleMetrics(
     );
 
     const query = ProductModel.find({ _id: { $in: componentIds } }).select(
-        "_id name type regularPrice availableStock",
+        "_id name type regularPrice availableStock weight dimensions",
     );
     if (session) {
         query.session(session);
@@ -68,6 +74,10 @@ export async function calculateBundleMetrics(
     let bundleItemsCount = 0;
     let regularPrice = 0;
     let minPossibleBundles = Infinity;
+    let totalWeight = 0;
+    let maxLength = 0;
+    let maxWidth = 0;
+    let totalHeight = 0;
 
     for (const [idStr, quantity] of mergedMap.entries()) {
         const comp = compMap.get(idStr);
@@ -77,6 +87,14 @@ export async function calculateBundleMetrics(
         });
         bundleItemsCount += quantity;
         regularPrice += (Number(comp.regularPrice) || 0) * quantity;
+        totalWeight += (Number(comp.weight) || 0) * quantity;
+
+        const dLength = Number(comp.dimensions?.length) || 0;
+        const dWidth = Number(comp.dimensions?.width) || 0;
+        const dHeight = Number(comp.dimensions?.height) || 0;
+        if (dLength > maxLength) maxLength = dLength;
+        if (dWidth > maxWidth) maxWidth = dWidth;
+        totalHeight += dHeight * quantity;
 
         const compAvailable = Math.max(0, Number(comp.availableStock) || 0);
         const possibleWithThisComp = Math.floor(compAvailable / quantity);
@@ -94,6 +112,12 @@ export async function calculateBundleMetrics(
         regularPrice,
         availableStock,
         isAvailable: availableStock > 0,
+        totalWeight,
+        estimatedDimensions: {
+            length: maxLength,
+            width: maxWidth,
+            height: totalHeight,
+        },
     };
 }
 

@@ -767,12 +767,23 @@ export function CheckoutForm({ session }: Props) {
                                         key={item.id}
                                         className="flex gap-4 items-start"
                                     >
-                                        <div className="w-14 h-14 bg-gray-800 rounded-md overflow-hidden shrink-0 border border-gray-700">
-                                            <img
-                                                src={item.image}
-                                                alt={item.name}
-                                                className="w-full h-full object-contain"
-                                            />
+                                        <div className="w-14 h-14 bg-gray-800 rounded-md overflow-hidden shrink-0 border border-gray-700 flex items-center justify-center">
+                                            {item.image ||
+                                            item.bundleItems?.[0]?.image ? (
+                                                <img
+                                                    src={
+                                                        item.image ||
+                                                        item.bundleItems?.[0]
+                                                            ?.image
+                                                    }
+                                                    alt={item.name}
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            ) : (
+                                                <span className="text-[9px] font-bold text-gray-500">
+                                                    MGR
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex flex-col min-w-0">
                                             <p className="text-sm text-gray-200 line-clamp-2">

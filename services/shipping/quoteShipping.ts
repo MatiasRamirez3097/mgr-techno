@@ -19,13 +19,76 @@ export async function quoteShipping({
     items,
     shippingMethod,
 }: QuoteShippingParams) {
-    console.log("items>>>", items);
     const products = await getProductsByIds(items.map((item) => item.id));
+
+    // Si algún producto es un combo sin peso propio cargado, calculamos su peso y dimensiones a partir de sus componentes
+    const bundleCompIds = new Set<string>();
+    for (const p of products) {
+        if (
+            p.type === "bundle" &&
+            (!p.weight || p.weight <= 0) &&
+            Array.isArray(p.bundleItems)
+        ) {
+            for (const bi of p.bundleItems) {
+                if (bi.productId) {
+                    bundleCompIds.add(bi.productId);
+                }
+            }
+        }
+    }
+
+    const compMap = new Map<string, any>();
+    if (bundleCompIds.size > 0) {
+        const compProducts = await getProductsByIds(Array.from(bundleCompIds));
+        for (const cp of compProducts) {
+            compMap.set(cp.id, cp);
+        }
+    }
+
+    const normalizedProducts = products.map((product) => {
+        if (
+            product.type === "bundle" &&
+            (!product.weight || product.weight <= 0) &&
+            Array.isArray(product.bundleItems)
+        ) {
+            let sumWeight = 0;
+            let maxLength = 0;
+            let maxWidth = 0;
+            let sumHeight = 0;
+            for (const bi of product.bundleItems) {
+                const cp = compMap.get(bi.productId);
+                const qty = Math.max(1, Number(bi.quantity) || 1);
+                if (cp) {
+                    sumWeight += (Number(cp.weight) || 0) * qty;
+                    const l = Number(cp.dimensions?.length) || 0;
+                    const w = Number(cp.dimensions?.width) || 0;
+                    const h = Number(cp.dimensions?.height) || 0;
+                    if (l > maxLength) maxLength = l;
+                    if (w > maxWidth) maxWidth = w;
+                    sumHeight += h * qty;
+                }
+            }
+            return {
+                ...product,
+                weight: sumWeight > 0 ? sumWeight : product.weight || 1,
+                dimensions:
+                    maxLength > 0 || maxWidth > 0 || sumHeight > 0
+                        ? {
+                              length: maxLength || 20,
+                              width: maxWidth || 20,
+                              height: sumHeight || 20,
+                          }
+                        : product.dimensions,
+            };
+        }
+        return product;
+    });
+
     let res;
     if (shippingMethod === "andreani") {
         res = await cotizarAndreani(
             postcode,
-            products.map((product) => {
+            normalizedProducts.map((product) => {
                 const item = items.find((item) => item.id === product.id);
                 return {
                     weight: product.weight,
@@ -37,7 +100,7 @@ export async function quoteShipping({
         );
     } else {
         // 1. Transformamos tus datos a los parámetros de la función
-        const itemsData = products.map((product) => {
+        const itemsData = normalizedProducts.map((product) => {
             const item = items.find((i) => i.id === product.id);
             return {
                 weight: product.weight || 0,
@@ -79,6 +142,5 @@ export async function quoteShipping({
         const cost = response?.cost ? response.cost : undefined;
         res = cost ? { total: cost } : "error";
     }
-    console.log(res);
     return res;
 }

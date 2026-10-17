@@ -19,7 +19,7 @@ export async function getProductBySlug(slug: string) {
     })
         .populate({
             path: "bundleItems.productId",
-            select: "name sku image regularPrice availableStock",
+            select: "name slug sku image regularPrice availableStock attributes",
         })
         .lean();
 

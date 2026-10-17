@@ -45,6 +45,8 @@ export async function updateProductById(id: string, data: Record<string, any>) {
     let finalAvailableStock = product.availableStock ?? 0;
     let finalBundleItems = product.bundleItems || [];
     let finalBundleItemsCount = product.bundleItemsCount || 0;
+    let finalWeight = data.weight;
+    let finalDimensions = data.dimensions;
 
     if (isBundle) {
         const rawBundleItems = data.bundleItems ?? product.bundleItems ?? [];
@@ -58,6 +60,18 @@ export async function updateProductById(id: string, data: Record<string, any>) {
         finalAvailableStock = metrics.availableStock;
         finalBundleItems = metrics.normalizedBundleItems;
         finalBundleItemsCount = metrics.bundleItemsCount;
+
+        if (!finalWeight || Number(finalWeight) <= 0) {
+            finalWeight = metrics.totalWeight;
+        }
+        const hasDims =
+            finalDimensions &&
+            (Number(finalDimensions.length) > 0 ||
+                Number(finalDimensions.width) > 0 ||
+                Number(finalDimensions.height) > 0);
+        if (!hasDims) {
+            finalDimensions = metrics.estimatedDimensions;
+        }
 
         if (!salePrice || salePrice <= 0) {
             throw new Error(
@@ -110,8 +124,8 @@ export async function updateProductById(id: string, data: Record<string, any>) {
     product.manageStock = data.manageStock;
     product.shortDescription = data.shortDescription;
     product.description = data.description;
-    product.weight = data.weight;
-    product.dimensions = data.dimensions;
+    product.weight = finalWeight;
+    product.dimensions = finalDimensions;
     product.categories = categories;
     product.featured = data.featured;
     product.status = data.status;

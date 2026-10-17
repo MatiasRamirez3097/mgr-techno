@@ -29,6 +29,7 @@ const PRODUCT_PROJECT_STAGE = {
         _id: 1,
         type: 1,
         bundleItemsCount: 1,
+        bundleItems: 1,
         attributes: 1,
         name: 1,
         slug: 1,
@@ -55,6 +56,58 @@ const PRODUCT_PROJECT_STAGE = {
         isAvailable: 1,
     },
 };
+
+async function populateBundleComponents(rawProducts: any[]): Promise<any[]> {
+    if (!Array.isArray(rawProducts) || rawProducts.length === 0) {
+        return rawProducts;
+    }
+
+    const componentIdSet = new Set<string>();
+    for (const p of rawProducts) {
+        if (p?.type === "bundle" && Array.isArray(p.bundleItems)) {
+            for (const bi of p.bundleItems) {
+                const idStr = bi?.productId?.toString();
+                if (idStr && Types.ObjectId.isValid(idStr)) {
+                    componentIdSet.add(idStr);
+                }
+            }
+        }
+    }
+
+    if (componentIdSet.size === 0) {
+        return rawProducts;
+    }
+
+    const componentDocs = await ProductModel.find({
+        _id: {
+            $in: Array.from(componentIdSet).map((id) => new Types.ObjectId(id)),
+        },
+    })
+        .select("_id name slug sku image regularPrice availableStock")
+        .lean();
+
+    const compMap = new Map<string, any>(
+        componentDocs.map((doc: any) => [doc._id.toString(), doc]),
+    );
+
+    return rawProducts.map((p) => {
+        if (p?.type !== "bundle" || !Array.isArray(p.bundleItems)) {
+            return p;
+        }
+        return {
+            ...p,
+            bundleItems: p.bundleItems.map((bi: any) => {
+                const idStr = bi?.productId?.toString();
+                const comp = idStr ? compMap.get(idStr) : undefined;
+                if (!comp) return bi;
+                return {
+                    ...bi,
+                    productId: comp,
+                };
+            }),
+        };
+    });
+}
 
 function expandAttributeCandidateValues(rawValues: string[]): any[] {
     const candidates: any[] = [];
@@ -369,7 +422,8 @@ async function fetchCatalogProducts(
                 getCategoriesBase({ limit: 0 }),
             ]);
 
-            const mappedAll = rawProducts.map((p: any) => mapProductToDTO(p));
+            const populatedRaw = await populateBundleComponents(rawProducts);
+            const mappedAll = populatedRaw.map((p: any) => mapProductToDTO(p));
             const filteredByQuality = mappedAll.filter((product) => {
                 const health = getProductHealth(product, allCategories);
                 switch (filters.quality) {
@@ -503,7 +557,9 @@ async function fetchCatalogProducts(
             { $facet: facetStages },
         ]);
 
-        const dataResult = facetResult?.data || [];
+        const dataResult = await populateBundleComponents(
+            facetResult?.data || [],
+        );
         const countResult = facetResult?.totalCount || [];
         const brandsResult = facetResult?.brands || [];
         const attributesResult = facetResult?.attributes || [];

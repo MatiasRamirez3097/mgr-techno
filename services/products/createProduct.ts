@@ -48,6 +48,8 @@ export async function createProduct(data: CreateProductDTO) {
     let finalIsAvailable = false;
     let finalBundleItems: { productId: Types.ObjectId; quantity: number }[] = [];
     let finalBundleItemsCount = 0;
+    let finalWeight = data.weight;
+    let finalDimensions = data.dimensions;
 
     if (isBundle) {
         const metrics = await calculateBundleMetrics(data.bundleItems || []);
@@ -56,6 +58,18 @@ export async function createProduct(data: CreateProductDTO) {
         finalIsAvailable = metrics.isAvailable;
         finalBundleItems = metrics.normalizedBundleItems;
         finalBundleItemsCount = metrics.bundleItemsCount;
+
+        if (!finalWeight || Number(finalWeight) <= 0) {
+            finalWeight = metrics.totalWeight;
+        }
+        const hasDims =
+            finalDimensions &&
+            (Number(finalDimensions.length) > 0 ||
+                Number(finalDimensions.width) > 0 ||
+                Number(finalDimensions.height) > 0);
+        if (!hasDims) {
+            finalDimensions = metrics.estimatedDimensions;
+        }
 
         if (!salePrice || salePrice <= 0) {
             throw new Error(
@@ -109,9 +123,9 @@ export async function createProduct(data: CreateProductDTO) {
 
         description: data.description,
 
-        weight: data.weight,
+        weight: finalWeight,
 
-        dimensions: data.dimensions,
+        dimensions: finalDimensions,
 
         categories,
 
