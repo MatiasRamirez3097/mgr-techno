@@ -1,6 +1,10 @@
 import { connectDB } from "@/lib/mongodb";
 import { ProductModel, CategoryModel, BrandModel } from "@/models";
 import { normalizeSearch } from "@/lib/search/normalize";
+import {
+    buildAdminProductSearchMatch,
+    buildAdminProductSearchScoreStage,
+} from "@/lib/search/adminProductSearch";
 import { getCategoriesDescendants } from "@/services/categories/getCategoriesDescendants";
 import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
@@ -190,48 +194,59 @@ async function fetchCatalogProducts(
 
     // BÚSQUEDA
     let hasAtlasSearch = false;
+    let hasAdminSearch = false;
     if (filters.search) {
-        const normalizedSearch = normalizeSearch(filters.search).trim();
-        if (normalizedSearch) {
-            hasAtlasSearch = true;
-            basePipeline.push({
-                $search: {
-                    index: "search_products",
-                    compound: {
-                        should: [
-                            {
-                                autocomplete: {
-                                    query: normalizedSearch,
-                                    path: "name",
-                                    fuzzy: {
-                                        maxEdits: 1,
-                                        prefixLength: 1,
+        if (filters.adminView) {
+            const adminSearchMatch = buildAdminProductSearchMatch(
+                filters.search,
+            );
+            if (adminSearchMatch) {
+                hasAdminSearch = true;
+                basePipeline.push({ $match: adminSearchMatch });
+            }
+        } else {
+            const normalizedSearch = normalizeSearch(filters.search).trim();
+            if (normalizedSearch) {
+                hasAtlasSearch = true;
+                basePipeline.push({
+                    $search: {
+                        index: "search_products",
+                        compound: {
+                            should: [
+                                {
+                                    autocomplete: {
+                                        query: normalizedSearch,
+                                        path: "name",
+                                        fuzzy: {
+                                            maxEdits: 1,
+                                            prefixLength: 1,
+                                        },
                                     },
                                 },
-                            },
-                            {
-                                autocomplete: {
-                                    query: normalizedSearch,
-                                    path: "sku",
+                                {
+                                    autocomplete: {
+                                        query: normalizedSearch,
+                                        path: "sku",
+                                    },
                                 },
-                            },
-                            {
-                                autocomplete: {
-                                    query: normalizedSearch,
-                                    path: "mpn",
+                                {
+                                    autocomplete: {
+                                        query: normalizedSearch,
+                                        path: "mpn",
+                                    },
                                 },
-                            },
-                            {
-                                autocomplete: {
-                                    query: normalizedSearch,
-                                    path: "gtin",
+                                {
+                                    autocomplete: {
+                                        query: normalizedSearch,
+                                        path: "gtin",
+                                    },
                                 },
-                            },
-                        ],
-                        minimumShouldMatch: 1,
+                            ],
+                            minimumShouldMatch: 1,
+                        },
                     },
-                },
-            });
+                });
+            }
         }
     }
 
@@ -308,11 +323,19 @@ async function fetchCatalogProducts(
                 _searchScore: { $meta: "searchScore" },
             },
         });
+    } else if (hasAdminSearch && filters.search) {
+        basePipeline.push(buildAdminProductSearchScoreStage(filters.search));
     }
 
     // ORDENAMIENTO
     let sortStage: any = {};
-    if (useSearchScore) {
+    if (hasAdminSearch) {
+        sortStage = {
+            _adminSearchScore: -1,
+            availableStock: -1,
+            createdAt: -1,
+        };
+    } else if (useSearchScore) {
         sortStage = {
             isAvailable: -1,
             _searchScore: -1,

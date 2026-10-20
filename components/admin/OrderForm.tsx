@@ -1,11 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ProductSelector } from "./ProductSelector";
+import { SearchableEntitySelect } from "./SearchableEntitySelect";
 import { FormModal } from "./FormModal";
-import { PurchaseDTO } from "@/types/shared/purchase";
 import { CustomerForm } from "./CustomerForm";
-import { $ZodAny } from "zod/v4/core";
 
 interface Props {
     order?: any;
@@ -22,6 +21,8 @@ type Document = {
 type OrderItem = {
     productId: string;
     name?: string;
+    sku?: string;
+    availableStock?: number;
     quantity: number;
     unitPrice: number;
     taxRate: number;
@@ -54,13 +55,6 @@ type OrderFormState = {
     };
 };
 
-const SHIPPING_METHOD_LABELS = {
-    local_pickup: "Retiro en local",
-    delivery: "Envío local",
-    andreani: "Andreani",
-    other: "Otro",
-};
-
 export function OrderForm({ order, mode }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -69,52 +63,64 @@ export function OrderForm({ order, mode }: Props) {
     const [success, setSuccess] = useState("");
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [customers, setCustomers] = useState<any[]>([]);
-    const [loadingSuppliers, setLoadingSuppliers] = useState(true);
+    const [loadingCustomers, setLoadingCustomers] = useState(true);
     const [quotingShipping, setQuotingShipping] = useState(false);
     const [postcode, setPostcode] = useState("");
 
-    //useEffect
     useEffect(() => {
         fetch("/api/admin/customers", {
             credentials: "include",
         })
             .then((res) => res.json())
             .then((data) => {
-                setCustomers(data.customers);
+                setCustomers(data.customers || []);
             })
-            .finally(() => setLoadingSuppliers(false));
+            .catch(() => {})
+            .finally(() => setLoadingCustomers(false));
     }, []);
 
-    // Extraer imágenes del producto — soporta tanto strings como objetos {src}
-    const extractImages = (product?: any): string[] => {
-        if (!product?.images) return [];
-        return product.images
-            .map((img: any) => (typeof img === "string" ? img : img.src || ""))
-            .filter(Boolean);
-    };
+    const customerOptions = useMemo(() => {
+        return [...customers]
+            .sort((a, b) => {
+                const nameA = `${a.firstName || ""} ${a.lastName || ""}`.trim();
+                const nameB = `${b.firstName || ""} ${b.lastName || ""}`.trim();
+                return nameA.localeCompare(nameB, "es", {
+                    sensitivity: "base",
+                });
+            })
+            .map((c) => {
+                const fullName =
+                    `${c.firstName || ""} ${c.lastName || ""}`.trim() ||
+                    "Cliente sin nombre";
+                const docNumber = c.document?.number || "";
+                const docType = c.document?.documentType || "DOC";
+                return {
+                    value: c.id,
+                    label: fullName,
+                    badge: docNumber ? `${docType}: ${docNumber}` : undefined,
+                    sublabel: c.email || c.billing?.phone || undefined,
+                    searchText: `${c.firstName || ""} ${c.lastName || ""} ${c.lastName || ""} ${c.firstName || ""} ${docNumber} ${c.email || ""}`,
+                };
+            });
+    }, [customers]);
 
     const [form, setForm] = useState<OrderFormState>({
         customerId: order?.customerId || "",
-
         payments: order?.payments || [],
-
         status: order?.status || "pending",
-
         items: order?.items || [],
-
         document: {
             date: order?.document?.date
                 ? order.document.date.split("T")[0]
-                : "",
+                : new Date().toISOString().split("T")[0],
             type: order?.document?.type || "generic",
             number: order?.document?.number || "",
             fileUrl: order?.document?.fileUrl || undefined,
         },
         shippingMethod: {
-            method: "local_pickup",
-            cost: 0,
+            method: order?.shippingMethod?.method || "local_pickup",
+            cost: order?.shippingMethod?.cost || 0,
         },
-
         notes: order?.notes || "",
     });
 
@@ -143,7 +149,6 @@ export function OrderForm({ order, mode }: Props) {
 
             setForm((prev) => ({
                 ...prev,
-
                 shippingMethod: {
                     ...prev.shippingMethod,
                     method: "andreani",
@@ -193,15 +198,24 @@ export function OrderForm({ order, mode }: Props) {
     };
 
     const subtotal = form.items.reduce(
-        (acc, item) => acc + item.quantity * item.unitPrice,
+        (acc, item) => acc + Number(item.quantity || 0) * Number(item.unitPrice || 0),
         0,
     );
 
     const tax = form.items.reduce((acc, item) => {
-        const lineSubtotal = item.quantity * item.unitPrice;
-        return acc + lineSubtotal * (item.taxRate / 100);
+        const lineSubtotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
+        return acc + lineSubtotal * (Number(item.taxRate || 0) / 100);
     }, 0);
     const total = subtotal + Number(form.shippingMethod.cost || 0);
+
+    const handleSelectCustomer = (customerId: string) => {
+        const customer = customers.find((c) => c.id === customerId);
+        setPostcode(customer?.billing?.postcode || "");
+        setForm((prev) => ({
+            ...prev,
+            customerId,
+        }));
+    };
 
     const handleChange = (
         e: React.ChangeEvent<
@@ -210,10 +224,8 @@ export function OrderForm({ order, mode }: Props) {
     ) => {
         const { name, value, type } = e.target;
         if (name === "customerId") {
-            const customer = customers.find((c) => c.id === value);
-            console.log(customer.billing.postcode);
-            setPostcode(customer?.billing?.postcode || "");
-            console.log("postcode>>>", postcode);
+            handleSelectCustomer(value);
+            return;
         }
 
         setForm((prev) => ({
@@ -272,7 +284,7 @@ export function OrderForm({ order, mode }: Props) {
             if (!res.ok) throw new Error(data.error);
 
             setSuccess(
-                mode === "edit" ? "Compra actualizada" : "Compra creada",
+                mode === "edit" ? "Venta actualizada" : "Venta creada",
             );
             if (mode === "create")
                 router.push(`/admin/orders/${data.data._id}`);
@@ -287,7 +299,7 @@ export function OrderForm({ order, mode }: Props) {
     const handleDelete = async () => {
         if (
             !confirm(
-                "¿Estás seguro que querés eliminar este producto? Esta acción no se puede deshacer.",
+                "¿Estás seguro que querés eliminar esta venta? Esta acción no se puede deshacer.",
             )
         )
             return;
@@ -336,13 +348,6 @@ export function OrderForm({ order, mode }: Props) {
         });
     };
 
-    const removePayment = (index: number) => {
-        setForm((prev) => ({
-            ...prev,
-            payments: prev.payments.filter((_, i) => i !== index),
-        }));
-    };
-
     useEffect(() => {
         if (
             postcode != "" &&
@@ -369,34 +374,27 @@ export function OrderForm({ order, mode }: Props) {
                             <div>
                                 <label className={labelClass}>Cliente</label>
                                 <div className="flex gap-2">
-                                    <select
-                                        name="customerId"
+                                    <SearchableEntitySelect
+                                        className="flex-1"
+                                        options={customerOptions}
                                         value={form.customerId}
-                                        onChange={handleChange}
-                                        className={`${inputClass} flex-1`}
-                                        disabled={loadingSuppliers}
-                                    >
-                                        <option value="">
-                                            {loadingSuppliers
-                                                ? "Cargando..."
-                                                : "Seleccionar cliente"}
-                                        </option>
-
-                                        {customers.map((s) => (
-                                            <option key={s.id} value={s.id}>
-                                                {s.firstName} {s.lastName}{" "}
-                                                {s.document?.number
-                                                    ? `(${s.document.number})`
-                                                    : ""}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={handleSelectCustomer}
+                                        disabled={loadingCustomers}
+                                        placeholder={
+                                            loadingCustomers
+                                                ? "Cargando clientes..."
+                                                : "Seleccionar cliente"
+                                        }
+                                        searchPlaceholder="Buscar por nombre, apellido o documento..."
+                                        emptyText="No se encontraron clientes"
+                                    />
                                     <button
                                         type="button"
                                         onClick={() =>
                                             setShowCustomerModal(true)
                                         }
-                                        className="px-4 py-3 rounded-lg bg-brand text-white text-sm hover:brightness-110 transition"
+                                        title="Crear nuevo cliente"
+                                        className="px-4 py-3 rounded-lg bg-brand text-white text-sm font-medium hover:brightness-110 transition shrink-0"
                                     >
                                         +
                                     </button>
@@ -418,7 +416,7 @@ export function OrderForm({ order, mode }: Props) {
                                         })
                                     }
                                     type="date"
-                                ></input>
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>
@@ -438,7 +436,7 @@ export function OrderForm({ order, mode }: Props) {
                                     }
                                 >
                                     <option value="generic">
-                                        Comprobante Generico
+                                        Comprobante Genérico
                                     </option>
                                     <option value="invoice">Factura</option>
                                 </select>
@@ -507,7 +505,12 @@ export function OrderForm({ order, mode }: Props) {
                             </div>
                             <div>
                                 <label className={labelClass}>
-                                    Costo de envío
+                                    Costo de envío{" "}
+                                    {quotingShipping && (
+                                        <span className="text-xs text-brand">
+                                            (Cotizando...)
+                                        </span>
+                                    )}
                                 </label>
 
                                 <input
@@ -532,28 +535,52 @@ export function OrderForm({ order, mode }: Props) {
                         <h2 className="text-base font-bold text-white mb-4">
                             Productos
                         </h2>
+                        {form.items.length > 0 && (
+                            <div className="grid grid-cols-12 gap-2 mb-2 text-xs font-medium text-gray-400 px-1">
+                                <div className="col-span-6">Producto</div>
+                                <div className="col-span-2">Cantidad</div>
+                                <div className="col-span-3">Precio unitario</div>
+                                <div className="col-span-1 text-center">
+                                    Quitar
+                                </div>
+                            </div>
+                        )}
                         {form.items.map((item, i) => (
-                            <div key={i} className="grid grid-cols-6 gap-2">
-                                <div className="col-span-3">
+                            <div
+                                key={i}
+                                className="grid grid-cols-12 gap-2 items-center mb-2"
+                            >
+                                <div className="col-span-6">
                                     <ProductSelector
                                         value={
                                             item.productId
                                                 ? {
                                                       id: item.productId,
                                                       name: item.name || "",
+                                                      sku: item.sku,
+                                                      availableStock:
+                                                          item.availableStock,
+                                                      regularPrice:
+                                                          item.unitPrice,
                                                       taxRate: item.taxRate,
-                                                      weight: item.weight,
-                                                      dimensions:
-                                                          item.dimensions,
                                                       image: item.image || "",
                                                   }
                                                 : null
                                         }
-                                        onChange={(product) => {
-                                            console.log(
-                                                "en select>>>",
-                                                product,
-                                            );
+                                        onChange={(product: any) => {
+                                            const effPrice =
+                                                typeof product?.effectivePrice ===
+                                                    "number" &&
+                                                product.effectivePrice > 0
+                                                    ? product.effectivePrice
+                                                    : typeof product?.salePrice ===
+                                                            "number" &&
+                                                        product.salePrice > 0
+                                                      ? product.salePrice
+                                                      : Number(
+                                                            product?.regularPrice,
+                                                        ) || 0;
+
                                             updateItem(
                                                 i,
                                                 "productId",
@@ -566,12 +593,28 @@ export function OrderForm({ order, mode }: Props) {
                                             );
                                             updateItem(
                                                 i,
+                                                "sku",
+                                                product?.sku || "",
+                                            );
+                                            updateItem(
+                                                i,
+                                                "availableStock",
+                                                product?.availableStock,
+                                            );
+                                            updateItem(
+                                                i,
                                                 "unitPrice",
-                                                product?.regularPrice
-                                                    ? Number(
-                                                          product.regularPrice,
-                                                      )
-                                                    : 0,
+                                                effPrice,
+                                            );
+                                            updateItem(
+                                                i,
+                                                "taxRate",
+                                                product?.taxRate ?? 10.5,
+                                            );
+                                            updateItem(
+                                                i,
+                                                "image",
+                                                product?.image || "",
                                             );
                                             updateItem(
                                                 i,
@@ -595,59 +638,92 @@ export function OrderForm({ order, mode }: Props) {
                                     />
                                 </div>
 
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={item.quantity}
-                                    onChange={(e) =>
-                                        updateItem(
-                                            i,
-                                            "quantity",
-                                            e.target.value,
-                                        )
-                                    }
-                                    className={inputClass}
-                                />
+                                <div className="col-span-2">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={item.quantity}
+                                        onChange={(e) =>
+                                            updateItem(
+                                                i,
+                                                "quantity",
+                                                e.target.value,
+                                            )
+                                        }
+                                        className={inputClass}
+                                    />
+                                </div>
 
-                                <input
-                                    min="0"
-                                    type="number"
-                                    value={item.unitPrice}
-                                    onChange={(e) =>
-                                        updateItem(
-                                            i,
-                                            "unitPrice",
-                                            e.target.value,
-                                        )
-                                    }
-                                    className={inputClass}
-                                />
+                                <div className="col-span-3">
+                                    <input
+                                        min="0"
+                                        type="number"
+                                        value={item.unitPrice}
+                                        onChange={(e) =>
+                                            updateItem(
+                                                i,
+                                                "unitPrice",
+                                                e.target.value,
+                                            )
+                                        }
+                                        className={inputClass}
+                                    />
+                                </div>
 
-                                <button onClick={() => removeItem(i)}>✕</button>
+                                <div className="col-span-1 flex justify-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => removeItem(i)}
+                                        className="w-8 h-8 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors flex items-center justify-center text-sm"
+                                        title="Quitar producto"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
                             </div>
                         ))}
 
-                        <button type="button" onClick={addItem}>
-                            + Agregar producto
+                        <button
+                            type="button"
+                            onClick={addItem}
+                            className="mt-3 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 rounded-lg transition-colors border border-gray-700 flex items-center gap-2"
+                        >
+                            <span>+</span>
+                            <span>Agregar producto</span>
                         </button>
                     </section>
 
                     {/* Precios */}
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
-                            Precios
+                            Resumen de importes
                         </h2>
-                        <span>Subtotal: </span>
-                        <span>${subtotal} </span>
+                        <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
+                            <div>Subtotal:</div>
+                            <div className="text-right font-mono">
+                                ${subtotal.toLocaleString("es-AR")}
+                            </div>
 
-                        <span>IVA: </span>
-                        <span>${tax} </span>
+                            <div>IVA estimado:</div>
+                            <div className="text-right font-mono">
+                                ${Math.round(tax).toLocaleString("es-AR")}
+                            </div>
 
-                        <span>Envío: </span>
-                        <span>${form.shippingMethod.cost} </span>
+                            <div>Envío:</div>
+                            <div className="text-right font-mono">
+                                $
+                                {Number(
+                                    form.shippingMethod.cost || 0,
+                                ).toLocaleString("es-AR")}
+                            </div>
 
-                        <span className="font-bold">Total:</span>
-                        <span className="font-bold">${total}</span>
+                            <div className="font-bold text-white text-base border-t border-gray-700 pt-2 mt-1">
+                                Total:
+                            </div>
+                            <div className="font-bold text-brand text-base text-right border-t border-gray-700 pt-2 mt-1 font-mono">
+                                ${total.toLocaleString("es-AR")}
+                            </div>
+                        </div>
                     </section>
                 </div>
                 {/* Columna lateral */}
@@ -667,13 +743,13 @@ export function OrderForm({ order, mode }: Props) {
                                     className={inputClass}
                                 >
                                     <option value="pending">Pendiente</option>
-                                    <option value="on_old">En espera</option>
+                                    <option value="on_hold">En espera</option>
                                     <option value="completed">
                                         Completada
                                     </option>
                                     <option value="cancelled">Cancelada</option>
                                     <option value="refunded">Devuelta</option>
-                                    <option value="failed">Fallo</option>
+                                    <option value="failed">Fallida</option>
                                 </select>
                             </div>
 
@@ -695,7 +771,7 @@ export function OrderForm({ order, mode }: Props) {
                                     ? "Guardando..."
                                     : mode === "edit"
                                       ? "Guardar cambios"
-                                      : "Guardar compra"}
+                                      : "Guardar venta"}
                             </button>
 
                             {mode === "edit" && (
@@ -707,7 +783,7 @@ export function OrderForm({ order, mode }: Props) {
                                 >
                                     {deleting
                                         ? "Eliminando..."
-                                        : "Eliminar compra"}
+                                        : "Eliminar venta"}
                                 </button>
                             )}
                         </div>
@@ -897,9 +973,22 @@ export function OrderForm({ order, mode }: Props) {
                 </div>
             </form>
             {showCustomerModal && (
-                <FormModal title="Cliente">
+                <FormModal title="Nuevo Cliente">
                     <CustomerForm
                         onCancel={() => setShowCustomerModal(false)}
+                        onSuccess={(created) => {
+                            if (created?.id) {
+                                setCustomers((prev) => [...prev, created]);
+                                setForm((prev) => ({
+                                    ...prev,
+                                    customerId: created.id,
+                                }));
+                                setPostcode(
+                                    created?.billing?.postcode || "",
+                                );
+                            }
+                            setShowCustomerModal(false);
+                        }}
                         mode="create"
                         modal
                     />

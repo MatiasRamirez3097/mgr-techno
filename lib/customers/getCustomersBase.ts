@@ -12,7 +12,7 @@ type BaseOptions = {
 export async function getCustomersBase({
     limit = undefined,
     query = {},
-    sort = { createdAt: -1 },
+    sort = { firstName: 1, lastName: 1 },
 }: BaseOptions): Promise<CustomerDTO[]> {
     await connectDB();
 
@@ -21,6 +21,15 @@ export async function getCustomersBase({
     if (limit) customerQuery = customerQuery.limit(limit);
 
     const customers = await customerQuery.lean();
+    const mapped = customers.map(mapCustomerToDTO);
 
-    return customers.map(mapCustomerToDTO);
+    if (sort && (sort.firstName === 1 || sort.lastName === 1)) {
+        mapped.sort((a, b) => {
+            const nameA = `${a.firstName || ""} ${a.lastName || ""}`.trim();
+            const nameB = `${b.firstName || ""} ${b.lastName || ""}`.trim();
+            return nameA.localeCompare(nameB, "es", { sensitivity: "base" });
+        });
+    }
+
+    return mapped;
 }

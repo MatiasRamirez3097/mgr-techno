@@ -316,10 +316,10 @@ export function ProductForm({
                     if (Array.isArray(data.error)) {
                         const errors = Object.fromEntries(
                             data.error.map(
-                                (e: { path: (string | number)[]; message: string }) => [
-                                    e.path.join("."),
-                                    e.message,
-                                ],
+                                (e: {
+                                    path: (string | number)[];
+                                    message: string;
+                                }) => [e.path.join("."), e.message],
                             ),
                         );
                         setFieldErrors(errors);
@@ -345,7 +345,11 @@ export function ProductForm({
                     (Array.isArray(data.data) &&
                         (data.data[0]?.id || data.data[0]?._id));
 
-                if (createdId && typeof createdId === "string" && createdId !== "undefined") {
+                if (
+                    createdId &&
+                    typeof createdId === "string" &&
+                    createdId !== "undefined"
+                ) {
                     router.push(`/admin/products/${createdId}`);
                 } else {
                     router.push("/admin/products");
@@ -510,6 +514,7 @@ export function ProductForm({
                                     </label>
                                     <ProductSelector
                                         statusAll
+                                        excludeBundles
                                         value={selectedBundleCandidate}
                                         onChange={(prod) =>
                                             setSelectedBundleCandidate(prod)
@@ -773,34 +778,46 @@ export function ProductForm({
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                             <div>
                                 <h2 className="text-base font-bold text-white flex items-center gap-2">
-                                    <span>Atributos / Especificaciones por Categoría</span>
+                                    <span>
+                                        Atributos / Especificaciones por
+                                        Categoría
+                                    </span>
                                     {effectiveAttributeDefs.length > 0 && (
                                         <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-brand/15 text-brand border border-brand/30">
-                                            {effectiveAttributeDefs.length} disponibles
+                                            {effectiveAttributeDefs.length}{" "}
+                                            disponibles
                                         </span>
                                     )}
                                 </h2>
                                 <p className="text-xs text-gray-400 mt-0.5">
-                                    Estos atributos dependen de las categorías asignadas al producto y se utilizan en la ficha técnica y el sistema &ldquo;Armá tu PC&rdquo;.
+                                    Estos atributos dependen de las categorías
+                                    asignadas al producto y se utilizan en la
+                                    ficha técnica y el sistema &ldquo;Armá tu
+                                    PC&rdquo;.
                                 </p>
                             </div>
                         </div>
 
                         {form.categories.length === 0 ? (
                             <div className="rounded-xl border border-dashed border-gray-700 p-5 text-center text-sm text-gray-400">
-                                Seleccioná al menos una categoría en el panel derecho para desplegar sus atributos técnicos (ej. Socket, Chipset, Slots de RAM, Watts, etc.).
+                                Seleccioná al menos una categoría en el panel
+                                derecho para desplegar sus atributos técnicos
+                                (ej. Socket, Chipset, Slots de RAM, Watts,
+                                etc.).
                             </div>
                         ) : effectiveAttributeDefs.length === 0 ? (
                             <div className="rounded-xl border border-dashed border-gray-700 p-5 text-center text-sm text-gray-400">
                                 <p>
-                                    Las categorías seleccionadas aún no tienen atributos configurados.
+                                    Las categorías seleccionadas aún no tienen
+                                    atributos configurados.
                                 </p>
                                 <Link
                                     href={`/admin/categories/${form.categories[0]}`}
                                     target="_blank"
                                     className="inline-block mt-2 text-xs font-semibold text-brand hover:underline"
                                 >
-                                    Configurar atributos o cargar plantilla en la categoría →
+                                    Configurar atributos o cargar plantilla en
+                                    la categoría →
                                 </Link>
                             </div>
                         ) : (
@@ -934,7 +951,8 @@ export function ProductForm({
                                                             }
                                                         >
                                                             <option value="">
-                                                                — Sin especificar —
+                                                                — Sin
+                                                                especificar —
                                                             </option>
                                                             {selectOptions.map(
                                                                 (opt) => (
@@ -951,7 +969,8 @@ export function ProductForm({
                                                                 ),
                                                             )}
                                                             <option value="__custom__">
-                                                                + Escribir otro valor...
+                                                                + Escribir otro
+                                                                valor...
                                                             </option>
                                                         </select>
                                                     )}
@@ -1122,7 +1141,8 @@ export function ProductForm({
                                                                         }
                                                                         className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs text-white font-medium shrink-0"
                                                                     >
-                                                                        + Agregar
+                                                                        +
+                                                                        Agregar
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -1323,11 +1343,12 @@ export function ProductForm({
                         </h2>
                         {isBundle ? (
                             <div className="rounded-xl bg-gray-800/50 border border-gray-700 p-4 text-xs text-gray-300 leading-relaxed">
-                                El stock de este combo es <strong>virtual</strong>{" "}
-                                y se calcula automáticamente según el stock
-                                disponible de los productos que lo componen. Si
-                                el combo se queda sin stock y luego sus
-                                componentes recuperan stock, el combo pasará a{" "}
+                                El stock de este combo es{" "}
+                                <strong>virtual</strong> y se calcula
+                                automáticamente según el stock disponible de los
+                                productos que lo componen. Si el combo se queda
+                                sin stock y luego sus componentes recuperan
+                                stock, el combo pasará a{" "}
                                 <strong>Pendiente de revisión</strong> para
                                 verificar su precio de oferta.
                             </div>

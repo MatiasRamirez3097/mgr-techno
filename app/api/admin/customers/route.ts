@@ -3,14 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { CustomerModel } from "@/models/Customer";
 import { mapCustomerToDTO } from "@/lib/mappers/customerMapper";
 import { getCustomersBase } from "@/lib/customers/getCustomersBase";
-import { IVA_CONDITIONS } from "@/lib/afip/constants";
-import { IvaConditionCode } from "@/lib/afip/constants";
-import { email } from "zod";
-// 🧼 helpers
-function normalizeCUIT(cuit?: string) {
-    if (!cuit) return undefined;
-    return cuit.replace(/[^0-9]/g, "");
-}
+import { IVA_CONDITIONS, IvaConditionCode } from "@/lib/afip/constants";
 
 function cleanString(v?: string) {
     return v?.trim() || undefined;
@@ -18,7 +11,6 @@ function cleanString(v?: string) {
 
 export async function GET() {
     const customers = await getCustomersBase({ query: {} });
-    console.log(">>>", customers);
     return Response.json({ customers });
 }
 
@@ -28,19 +20,17 @@ export async function POST(req: NextRequest) {
 
         const body = await req.json();
 
-        // 🧠 1. Normalizar
-        //const taxId = normalizeCUIT(body.taxId);
-        console.log(body);
-
-        const ivaCode = cleanString(body.ivaCondition) as IvaConditionCode;
+        const ivaCode = (cleanString(body.ivaCondition) ||
+            "CF") as IvaConditionCode;
+        const ivaMeta = IVA_CONDITIONS[ivaCode] || IVA_CONDITIONS.CF;
 
         const prepareData = {
             firstName: cleanString(body.firstName),
             lastName: cleanString(body.lastName),
             phone: cleanString(body.phone),
             ivaCondition: {
-                code: cleanString(body.ivaCondition),
-                afipId: IVA_CONDITIONS[ivaCode].afipId,
+                code: ivaCode,
+                afipId: ivaMeta.afipId,
             },
             billing: {
                 firstName: cleanString(body.firstName),
@@ -58,37 +48,40 @@ export async function POST(req: NextRequest) {
             },
         };
 
-        const customerData =
-            body.email && body.email != null && body.email != ""
-                ? {
-                      ...prepareData,
-                      email: email,
-                  }
-                : prepareData;
+        const cleanedEmail = cleanString(body.email);
+
+        const customerData = cleanedEmail
+            ? {
+                  ...prepareData,
+                  email: cleanedEmail,
+              }
+            : prepareData;
 
         // 🛑 2. Validaciones básicas
-        if (!customerData.lastName) {
+        if (!customerData.lastName && !customerData.firstName) {
             return Response.json(
-                { success: false, error: "Nombre requerido" },
+                { success: false, error: "Nombre o apellido requerido" },
                 { status: 400 },
             );
         }
 
-        // 🛑 3. Evitar duplicado por CUIT
-        const existing = await CustomerModel.findOne({
-            "document.number": customerData.document.number,
-        });
+        // 🛑 3. Evitar duplicado por documento/CUIT
+        if (customerData.document.number) {
+            const existing = await CustomerModel.findOne({
+                "document.number": customerData.document.number,
+            });
 
-        if (existing) {
-            return Response.json(
-                {
-                    success: false,
-                    error: "Ya existe un proveedor con ese CUIT",
-                },
-                { status: 409 },
-            );
+            if (existing) {
+                return Response.json(
+                    {
+                        success: false,
+                        error: "Ya existe un cliente con ese documento/CUIT",
+                    },
+                    { status: 409 },
+                );
+            }
         }
-        console.log("customerData>>>", customerData);
+
         // 💾 4. Crear
         const customer = await CustomerModel.create(customerData);
 
@@ -97,21 +90,21 @@ export async function POST(req: NextRequest) {
 
         return Response.json({
             success: true,
+            id: dto.id,
             data: dto,
         });
     } catch (error: any) {
         console.error(error);
 
-        // 💥 error de índice único (por si se escapó)
         if (error.code === 11000) {
             return Response.json(
-                { success: false, error: "CUIT duplicado" },
+                { success: false, error: "Documento o email duplicado" },
                 { status: 409 },
             );
         }
 
         return Response.json(
-            { success: false, error: "Error creando proveedor" },
+            { success: false, error: "Error creando cliente" },
             { status: 500 },
         );
     }

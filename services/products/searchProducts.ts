@@ -1,14 +1,18 @@
 import { connectDB } from "@/lib/mongodb";
-
 import { ProductModel } from "@/models";
-
 import { normalizeSearch } from "@/lib/search/normalize";
+import {
+    buildAdminProductSearchMatch,
+    buildAdminProductSearchScoreStage,
+} from "@/lib/search/adminProductSearch";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
 
 export async function searchProducts(
     search: string,
     options?: {
         allStatus?: boolean;
+        adminMode?: boolean;
+        excludeBundles?: boolean;
     },
 ) {
     await connectDB();
@@ -17,27 +21,82 @@ export async function searchProducts(
         return [];
     }
 
-    // Normalizamos el string (quitar acentos, caracteres raros, etc.)
-    // pero NO lo dividimos en un array, le pasamos la frase entera a Atlas.
+    // ==========================================
+    // MODO ADMIN: Búsqueda precisa Multi-Palabra (AND) + Relevancia por SKU/Nombre
+    // ==========================================
+    if (options?.adminMode) {
+        const searchMatch = buildAdminProductSearchMatch(search);
+        if (!searchMatch) return [];
+
+        const matchConditions: any[] = [searchMatch];
+
+        if (!options?.allStatus) {
+            matchConditions.push({ status: "publish" });
+        }
+
+        if (options?.excludeBundles) {
+            matchConditions.push({ type: { $ne: "bundle" } });
+        }
+
+        const finalMatch =
+            matchConditions.length === 1
+                ? matchConditions[0]
+                : { $and: matchConditions };
+
+        const adminPipeline: any[] = [
+            { $match: finalMatch },
+            buildAdminProductSearchScoreStage(search),
+            {
+                $sort: {
+                    _adminSearchScore: -1,
+                    availableStock: -1,
+                    name: 1,
+                },
+            },
+            { $limit: 20 },
+            {
+                $project: {
+                    name: 1,
+                    slug: 1,
+                    type: 1,
+                    status: 1,
+                    bundleItemsCount: 1,
+                    regularPrice: 1,
+                    salePrice: 1,
+                    effectivePrice: 1,
+                    image: 1,
+                    images: 1,
+                    availableStock: 1,
+                    sku: 1,
+                    taxRate: 1,
+                    gtin: 1,
+                    mpn: 1,
+                    isAvailable: 1,
+                },
+            },
+        ];
+
+        const adminProducts = await ProductModel.aggregate(adminPipeline);
+        return adminProducts.map(mapProductToDTO);
+    }
+
+    // ==========================================
+    // MODO TIENDA PÚBLICA: Atlas Search Autocomplete
+    // ==========================================
     const normalizedSearch = normalizeSearch(search).trim();
 
     if (!normalizedSearch) {
         return [];
     }
 
-    // Construimos el Pipeline de Agregación paso a paso
     const pipeline: any[] = [];
 
-    // =========================
-    // 1. ATLAS SEARCH
-    // =========================
     pipeline.push({
         $search: {
             index: "search_products",
             compound: {
                 should: [
                     {
-                        // 1. Buscamos en el nombre (Acepta errores de tipeo)
                         autocomplete: {
                             query: normalizedSearch,
                             path: "name",
@@ -48,49 +107,46 @@ export async function searchProducts(
                         },
                     },
                     {
-                        // 2. Buscamos en el SKU (Exacto, sin fuzzy)
                         autocomplete: {
                             query: normalizedSearch,
                             path: "sku",
                         },
                     },
                     {
-                        // 3. Buscamos en el MPN (Exacto, sin fuzzy)
                         autocomplete: {
                             query: normalizedSearch,
                             path: "mpn",
                         },
                     },
                     {
-                        // 4. Buscamos en el GTIN (Exacto, sin fuzzy)
                         autocomplete: {
                             query: normalizedSearch,
                             path: "gtin",
                         },
                     },
                 ],
-                minimumShouldMatch: 1, // Con que coincida EN UNO de los 4 campos, devuelve el producto
+                minimumShouldMatch: 1,
             },
         },
     });
 
-    // =========================
-    // 2. FILTROS (Equivalente al query.status = "publish")
-    // =========================
+    const matchStage: Record<string, any> = {
+        isAvailable: true,
+    };
+
     if (!options?.allStatus) {
-        pipeline.push({
-            $match: {
-                status: "publish",
-            },
-        });
+        matchStage.status = "publish";
     }
 
-    // =========================
-    // 3. ORDENAMIENTO Y LÍMITE
-    // =========================
+    if (options?.excludeBundles) {
+        matchStage.type = { $ne: "bundle" };
+    }
+
+    pipeline.push({ $match: matchStage });
+
     pipeline.push({
         $sort: {
-            availableStock: -1, // Mantenemos tu lógica de poner los que tienen stock arriba
+            availableStock: -1,
         },
     });
 
@@ -98,14 +154,12 @@ export async function searchProducts(
         $limit: 8,
     });
 
-    // =========================
-    // 4. SELECCIÓN DE CAMPOS (Equivalente al .select())
-    // =========================
     pipeline.push({
         $project: {
             name: 1,
             slug: 1,
             type: 1,
+            status: 1,
             bundleItemsCount: 1,
             regularPrice: 1,
             salePrice: 1,
@@ -121,9 +175,7 @@ export async function searchProducts(
         },
     });
 
-    // Ejecutamos el pipeline usando aggregate en lugar de find
     const products = await ProductModel.aggregate(pipeline);
 
-    // Retornamos mapeando los datos tal cual los espera tu frontend
     return products.map(mapProductToDTO);
 }

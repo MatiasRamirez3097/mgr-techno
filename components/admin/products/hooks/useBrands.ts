@@ -1,14 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { BrandDTO } from "@/types/shared/brand";
 
+function sortBrandsAlphabetically(list: BrandDTO[]): BrandDTO[] {
+    return [...list].sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "", "es", {
+            sensitivity: "base",
+        }),
+    );
+}
+
 export const useBrands = (initialBrands?: BrandDTO[]) => {
-    const [brands, setBrands] = useState<BrandDTO[]>(initialBrands || []);
+    const [brands, setBrandsState] = useState<BrandDTO[]>(() =>
+        sortBrandsAlphabetically(initialBrands || []),
+    );
     const [loading, setLoading] = useState(
         !initialBrands || initialBrands.length === 0,
     );
     const [error, setError] = useState<string | null>(null);
+
+    const setBrands = useCallback(
+        (updater: BrandDTO[] | ((prev: BrandDTO[]) => BrandDTO[])) => {
+            setBrandsState((prev) => {
+                const next =
+                    typeof updater === "function" ? updater(prev) : updater;
+                return sortBrandsAlphabetically(next);
+            });
+        },
+        [],
+    );
 
     const loadBrands = async () => {
         try {
@@ -22,7 +43,7 @@ export const useBrands = (initialBrands?: BrandDTO[]) => {
                 throw new Error(data.error || "Error al cargar marcas");
             }
 
-            setBrands(data.brands || []);
+            setBrandsState(sortBrandsAlphabetically(data.brands || []));
         } catch (err) {
             console.error(err);
             setError(
@@ -38,6 +59,8 @@ export const useBrands = (initialBrands?: BrandDTO[]) => {
     useEffect(() => {
         if (!initialBrands || initialBrands.length === 0) {
             loadBrands();
+        } else {
+            setBrandsState(sortBrandsAlphabetically(initialBrands));
         }
     }, [initialBrands]);
 

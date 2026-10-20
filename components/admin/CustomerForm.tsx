@@ -5,16 +5,26 @@ interface Props {
     customer?: any;
     mode: "create" | "edit";
     onCancel: () => void;
+    onSuccess?: (customer: any) => void;
     modal?: boolean;
 }
 
-export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
+export function CustomerForm({
+    onCancel,
+    onSuccess,
+    mode,
+    customer,
+    modal,
+}: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [cuitLoading, setCuitLoading] = useState(false);
-    const [cuitFeedback, setCuitFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+    const [cuitFeedback, setCuitFeedback] = useState<{
+        type: "success" | "error";
+        message: string;
+    } | null>(null);
 
     const [form, setForm] = useState({
         documentType:
@@ -102,7 +112,6 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
         documentNumber: form.documentNumber,
         phone: form.phone != "" ? form.phone : null,
         ivaCondition: form.ivaCondition,
-        //notes: form.notes != "" ? form.notes : null,
         email: form.email != "" ? form.email : null,
         address: form.address,
         state: form.state,
@@ -132,12 +141,28 @@ export function CustomerForm({ onCancel, mode, customer, modal }: Props) {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
 
+            const createdOrUpdated = data.data || data;
+
             setSuccess(
-                mode === "edit" ? "Producto actualizado" : "Producto creado",
+                mode === "edit"
+                    ? "Cliente actualizado correctamente"
+                    : "Cliente creado con éxito",
             );
-            if (mode === "create" && !modal)
-                router.push(`/admin/customers/${data.id}`);
-            else router.refresh();
+
+            if (onSuccess) {
+                onSuccess(createdOrUpdated);
+            }
+
+            if (mode === "create" && !modal) {
+                const targetId = createdOrUpdated?.id || data.id;
+                if (targetId) {
+                    router.push(`/admin/customers/${targetId}`);
+                } else {
+                    router.push("/admin/customers");
+                }
+            } else {
+                router.refresh();
+            }
         } catch (e: any) {
             setError(e.message || "Error al guardar");
         } finally {

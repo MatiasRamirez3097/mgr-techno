@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ProductSelector } from "./ProductSelector";
+import { SearchableEntitySelect } from "./SearchableEntitySelect";
 import { FormModal } from "./FormModal";
 import { SupplierForm } from "./SupplierForm";
 import type { PurchaseDTO } from "@/types/shared/purchase";
@@ -22,6 +23,8 @@ type Document = {
 type PurchaseItem = {
     productId: string;
     name?: string;
+    sku?: string;
+    availableStock?: number;
     quantity: number;
     unitCost: number;
     taxRate: number;
@@ -38,6 +41,14 @@ type PurchaseFormState = {
     exchangeRate: number;
 };
 
+interface SupplierOption {
+    id: string;
+    name: string;
+    taxId?: string;
+    contactName?: string;
+    email?: string;
+}
+
 export function PurchaseForm({ purchase, mode }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -45,11 +56,6 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [showSupplierModal, setShowSupplierModal] = useState(false);
-    interface SupplierOption {
-        id: string;
-        name: string;
-        taxId?: string;
-    }
     const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
     const [loadingSuppliers, setLoadingSuppliers] = useState(true);
 
@@ -71,6 +77,22 @@ export function PurchaseForm({ purchase, mode }: Props) {
             .finally(() => setLoadingSuppliers(false));
     }, []);
 
+    const supplierOptions = useMemo(() => {
+        return [...suppliers]
+            .sort((a, b) =>
+                (a.name || "").localeCompare(b.name || "", "es", {
+                    sensitivity: "base",
+                }),
+            )
+            .map((s) => ({
+                value: s.id,
+                label: s.name || "Proveedor sin nombre",
+                badge: s.taxId ? `CUIT: ${s.taxId}` : undefined,
+                sublabel: s.contactName || s.email || undefined,
+                searchText: `${s.name || ""} ${s.taxId || ""} ${s.contactName || ""} ${s.email || ""}`,
+            }));
+    }, [suppliers]);
+
     const [form, setForm] = useState<PurchaseFormState>({
         supplierId: purchase?.supplierId || "",
         status: purchase?.status || "draft",
@@ -79,7 +101,9 @@ export function PurchaseForm({ purchase, mode }: Props) {
         items:
             purchase?.items?.map((item) => ({
                 productId:
-                    typeof item.productId === "object" && item.productId !== null && "id" in item.productId
+                    typeof item.productId === "object" &&
+                    item.productId !== null &&
+                    "id" in item.productId
                         ? (item.productId as { id?: string }).id || ""
                         : String(item.productId || ""),
                 name: item.name,
@@ -111,7 +135,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
         }));
     };
 
-    const updateItem = (index: number, field: string, value: string | number) => {
+    const updateItem = (index: number, field: string, value: any) => {
         if (isReadOnly) return;
         setForm((prev) => {
             const items = [...prev.items];
@@ -135,17 +159,16 @@ export function PurchaseForm({ purchase, mode }: Props) {
         }).format(value);
     };
 
-    // Subtotal en la moneda seleccionada
     const subtotal =
         Math.round(
             form.items.reduce(
                 (acc, item) =>
-                    acc + Number(item.quantity || 0) * Number(item.unitCost || 0),
+                    acc +
+                    Number(item.quantity || 0) * Number(item.unitCost || 0),
                 0,
             ) * 100,
         ) / 100;
 
-    // IVA en la moneda seleccionada
     const tax =
         Math.round(
             form.items.reduce((acc, item) => {
@@ -205,11 +228,15 @@ export function PurchaseForm({ purchase, mode }: Props) {
                 throw new Error("Debe seleccionar un proveedor");
             }
             if (form.items.length === 0) {
-                throw new Error("Debe agregar al menos un producto a la compra");
+                throw new Error(
+                    "Debe agregar al menos un producto a la compra",
+                );
             }
             for (const it of form.items) {
                 if (!it.productId) {
-                    throw new Error("Todos los renglones deben tener un producto seleccionado");
+                    throw new Error(
+                        "Todos los renglones deben tener un producto seleccionado",
+                    );
                 }
                 if (Number(it.quantity) < 1) {
                     throw new Error("La cantidad debe ser de al menos 1");
@@ -229,10 +256,15 @@ export function PurchaseForm({ purchase, mode }: Props) {
             );
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Error al procesar la solicitud");
+            if (!res.ok)
+                throw new Error(
+                    data.error || "Error al procesar la solicitud",
+                );
 
             setSuccess(
-                mode === "edit" ? "Compra actualizada con éxito" : "Compra creada con éxito",
+                mode === "edit"
+                    ? "Compra actualizada con éxito"
+                    : "Compra creada con éxito",
             );
             if (mode === "create") {
                 const targetId = data.data?._id || data.data?.id;
@@ -270,7 +302,11 @@ export function PurchaseForm({ purchase, mode }: Props) {
             }
             router.push("/admin/purchases");
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : "Error al eliminar la compra");
+            setError(
+                e instanceof Error
+                    ? e.message
+                    : "Error al eliminar la compra",
+            );
         } finally {
             setDeleting(false);
         }
@@ -285,8 +321,12 @@ export function PurchaseForm({ purchase, mode }: Props) {
             {isReadOnly && (
                 <div className="mb-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 text-sm flex items-center justify-between">
                     <div>
-                        <strong>Modo sólo lectura:</strong> Esta compra está en estado{" "}
-                        <span className="font-semibold uppercase">{purchase?.status}</span>.
+                        <strong>Modo sólo lectura:</strong> Esta compra está en
+                        estado{" "}
+                        <span className="font-semibold uppercase">
+                            {purchase?.status}
+                        </span>
+                        .
                         {purchase?.status === "received"
                             ? " Ya ha sido recibida completamente y no admite modificaciones."
                             : purchase?.status === "partially_received"
@@ -319,33 +359,35 @@ export function PurchaseForm({ purchase, mode }: Props) {
                             <div>
                                 <label className={labelClass}>Proveedor</label>
                                 <div className="flex gap-2">
-                                    <select
-                                        name="supplierId"
+                                    <SearchableEntitySelect
+                                        className="flex-1"
+                                        options={supplierOptions}
                                         value={form.supplierId}
-                                        onChange={handleChange}
-                                        className={`${inputClass} flex-1`}
-                                        disabled={loadingSuppliers || isReadOnly}
-                                    >
-                                        <option value="">
-                                            {loadingSuppliers
-                                                ? "Cargando..."
-                                                : "Seleccionar proveedor"}
-                                        </option>
-
-                                        {suppliers.map((s) => (
-                                            <option key={s.id} value={s.id}>
-                                                {s.name}{" "}
-                                                {s.taxId ? `(${s.taxId})` : ""}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(val) =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                supplierId: val,
+                                            }))
+                                        }
+                                        disabled={
+                                            loadingSuppliers || isReadOnly
+                                        }
+                                        placeholder={
+                                            loadingSuppliers
+                                                ? "Cargando proveedores..."
+                                                : "Seleccionar proveedor"
+                                        }
+                                        searchPlaceholder="Buscar por nombre, contacto o CUIT..."
+                                        emptyText="No se encontraron proveedores"
+                                    />
                                     {!isReadOnly && (
                                         <button
                                             type="button"
                                             onClick={() =>
                                                 setShowSupplierModal(true)
                                             }
-                                            className="px-4 py-3 rounded-lg bg-brand text-white text-sm hover:brightness-110 transition"
+                                            title="Crear nuevo proveedor"
+                                            className="px-4 py-3 rounded-lg bg-brand text-white text-sm font-medium hover:brightness-110 transition shrink-0"
                                         >
                                             +
                                         </button>
@@ -493,7 +535,11 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                     : "Costo ARS"}
                             </div>
                             <div className="col-span-1 text-center">IVA %</div>
-                            {!isReadOnly && <div className="col-span-1 text-center">Quitar</div>}
+                            {!isReadOnly && (
+                                <div className="col-span-1 text-center">
+                                    Quitar
+                                </div>
+                            )}
                         </div>
 
                         {form.items.map((item, i) => (
@@ -501,7 +547,11 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                 key={i}
                                 className="grid grid-cols-12 gap-2 items-center mb-2"
                             >
-                                <div className={isReadOnly ? "col-span-7" : "col-span-6"}>
+                                <div
+                                    className={
+                                        isReadOnly ? "col-span-7" : "col-span-6"
+                                    }
+                                >
                                     {isReadOnly ? (
                                         <div className="bg-gray-800/60 border border-gray-700/60 rounded-lg px-3 py-2 text-sm text-gray-200">
                                             {item.name || "Producto"}
@@ -509,13 +559,20 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                     ) : (
                                         <ProductSelector
                                             statusAll
+                                            excludeBundles
                                             value={
                                                 item.productId
                                                     ? {
                                                           id: item.productId,
                                                           name: item.name || "",
+                                                          sku: item.sku,
+                                                          availableStock:
+                                                              item.availableStock,
+                                                          regularPrice:
+                                                              item.unitCost,
                                                           taxRate: item.taxRate,
-                                                          image: item.image || "",
+                                                          image:
+                                                              item.image || "",
                                                       }
                                                     : null
                                             }
@@ -529,6 +586,16 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                                     i,
                                                     "name",
                                                     product?.name || "",
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "sku",
+                                                    product?.sku || "",
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "availableStock",
+                                                    product?.availableStock,
                                                 );
                                                 updateItem(
                                                     i,
@@ -636,16 +703,21 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                 {formatCurrency(total)}
                             </div>
 
-                            {form.currency === "USD" && form.exchangeRate > 0 && (
-                                <>
-                                    <div className="text-xs text-gray-400 pt-1">
-                                        Equivalente en ARS (tipo de cambio {form.exchangeRate}):
-                                    </div>
-                                    <div className="text-xs text-right text-gray-400 pt-1 font-mono">
-                                        {formatCurrency(total * form.exchangeRate, "ARS")}
-                                    </div>
-                                </>
-                            )}
+                            {form.currency === "USD" &&
+                                form.exchangeRate > 0 && (
+                                    <>
+                                        <div className="text-xs text-gray-400 pt-1">
+                                            Equivalente en ARS (tipo de cambio{" "}
+                                            {form.exchangeRate}):
+                                        </div>
+                                        <div className="text-xs text-right text-gray-400 pt-1 font-mono">
+                                            {formatCurrency(
+                                                total * form.exchangeRate,
+                                                "ARS",
+                                            )}
+                                        </div>
+                                    </>
+                                )}
                         </div>
                     </section>
                 </div>
@@ -677,18 +749,22 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                         className={inputClass}
                                     >
                                         <option value="draft">Borrador</option>
-                                        <option value="confirmed">Confirmada</option>
+                                        <option value="confirmed">
+                                            Confirmada
+                                        </option>
                                         {mode === "edit" && (
-                                            <option value="cancelled">Cancelada</option>
+                                            <option value="cancelled">
+                                                Cancelada
+                                            </option>
                                         )}
                                     </select>
                                 )}
                             </div>
 
-                            {/* Acceso directo a recepcionar si la compra está confirmada */}
                             {mode === "edit" &&
                                 (purchase?.status === "confirmed" ||
-                                    purchase?.status === "partially_received") && (
+                                    purchase?.status ===
+                                        "partially_received") && (
                                     <Link
                                         href={`/admin/purchases/${purchase.id}/receive`}
                                         className="w-full py-3 rounded-xl text-center text-white font-medium bg-emerald-600 hover:bg-emerald-500 transition-all flex items-center justify-center gap-2"
@@ -746,7 +822,18 @@ export function PurchaseForm({ purchase, mode }: Props) {
                 <FormModal title="Nuevo Proveedor">
                     <SupplierForm
                         onCancel={() => setShowSupplierModal(false)}
+                        onSuccess={(created) => {
+                            if (created?.id) {
+                                setSuppliers((prev) => [...prev, created]);
+                                setForm((prev) => ({
+                                    ...prev,
+                                    supplierId: created.id,
+                                }));
+                            }
+                            setShowSupplierModal(false);
+                        }}
                         mode="create"
+                        modal
                     />
                 </FormModal>
             )}

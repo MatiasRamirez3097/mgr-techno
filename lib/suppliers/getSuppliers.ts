@@ -14,9 +14,16 @@ export async function getSuppliers() {
     const suppliers = await SupplierModel.find({
         isActive: true,
     })
-        .select("_id name taxId")
+        .select("_id name taxId contactName phone email")
         .sort({ name: 1 })
         .lean();
 
-    return suppliers.map(mapSupplierToDTO);
+    const mapped = suppliers.map(mapSupplierToDTO);
+    mapped.sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "", "es", {
+            sensitivity: "base",
+        }),
+    );
+
+    return mapped;
 }

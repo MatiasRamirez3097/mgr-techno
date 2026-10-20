@@ -1,4 +1,4 @@
-// /lib/products/getProductsBase.ts
+// /lib/brands/getBrandsBase.ts
 import { BrandModel } from "@/models";
 import { mapBrandToDTO } from "@/lib/mappers/brandMapper";
 import { connectDB } from "@/lib/mongodb";
@@ -13,7 +13,7 @@ type BaseOptions = {
 export async function getBrandsBase({
     limit = 8,
     query = {},
-    sort = { createdAt: -1 },
+    sort = { name: 1 },
 }: BaseOptions): Promise<BrandDTO[]> {
     await connectDB();
 
@@ -23,5 +23,16 @@ export async function getBrandsBase({
         .sort(sort)
         .limit(limit)
         .lean();
-    return brands.map(mapBrandToDTO);
+
+    const mapped = brands.map(mapBrandToDTO);
+
+    if (sort && sort.name === 1) {
+        mapped.sort((a, b) =>
+            (a.name || "").localeCompare(b.name || "", "es", {
+                sensitivity: "base",
+            }),
+        );
+    }
+
+    return mapped;
 }

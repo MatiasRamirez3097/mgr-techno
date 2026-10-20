@@ -1,11 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import { CategoryTree } from "@/components/admin/products/components/CategoryTree";
-
 import { ImageUploader } from "@/components/admin/products/components/ImageUploader";
+import { SearchableEntitySelect } from "@/components/admin/SearchableEntitySelect";
 
 import type { CategoryDTO } from "@/types/shared/category";
-
 import type { BrandDTO } from "@/types/shared/brand";
 
 interface Props {
@@ -103,6 +103,31 @@ export const ProductFormSidebar = ({
         mb-1
         block
     `;
+
+    const brandOptions = useMemo(
+        () =>
+            [...brands]
+                .sort((a, b) =>
+                    (a.name || "").localeCompare(b.name || "", "es", {
+                        sensitivity: "base",
+                    }),
+                )
+                .map((b) => ({
+                    value: b.id,
+                    label: b.name,
+                })),
+        [brands],
+    );
+
+    const handleBrandSelect = (brandId: string) => {
+        onChange({
+            target: {
+                name: "brand",
+                value: brandId,
+                type: "select-one",
+            },
+        } as unknown as React.ChangeEvent<HTMLSelectElement>);
+    };
 
     return (
         <div className="flex flex-col gap-4">
@@ -276,20 +301,14 @@ export const ProductFormSidebar = ({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <select
-                        name="brand"
-                        value={form.brand}
-                        onChange={onChange}
-                        className={inputClass}
-                    >
-                        <option value="">Seleccionar marca</option>
-
-                        {brands.map((brand) => (
-                            <option key={brand.id} value={brand.id}>
-                                {brand.name}
-                            </option>
-                        ))}
-                    </select>
+                    <SearchableEntitySelect
+                        options={brandOptions}
+                        value={form.brand || ""}
+                        onChange={handleBrandSelect}
+                        placeholder="Seleccionar marca"
+                        searchPlaceholder="Buscar marca..."
+                        emptyText="No se encontraron marcas"
+                    />
                 </div>
 
                 {fieldErrors.brand && (

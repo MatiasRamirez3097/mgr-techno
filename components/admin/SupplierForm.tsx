@@ -5,15 +5,26 @@ interface Props {
     supplier?: any;
     mode: "create" | "edit";
     onCancel: () => void;
+    onSuccess?: (supplier: any) => void;
+    modal?: boolean;
 }
 
-export function SupplierForm({ onCancel, mode, supplier }: Props) {
+export function SupplierForm({
+    onCancel,
+    onSuccess,
+    mode,
+    supplier,
+    modal,
+}: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [cuitLoading, setCuitLoading] = useState(false);
-    const [cuitFeedback, setCuitFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+    const [cuitFeedback, setCuitFeedback] = useState<{
+        type: "success" | "error";
+        message: string;
+    } | null>(null);
 
     const [form, setForm] = useState({
         name: supplier?.name || "",
@@ -60,7 +71,8 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                 name: result.name || prev.name,
                 address: {
                     ...prev.address,
-                    street: result.address?.street || prev.address?.street || "",
+                    street:
+                        result.address?.street || prev.address?.street || "",
                     city: result.address?.city || prev.address?.city || "",
                     zip: result.address?.zip || prev.address?.zip || "",
                     state: result.address?.state || prev.address?.state || "",
@@ -92,7 +104,6 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
                 ? (e.target as HTMLInputElement).checked
                 : value;
 
-        // soporte para campos anidados
         if (name.includes(".")) {
             const [parent, child] = name.split(".");
 
@@ -163,11 +174,28 @@ export function SupplierForm({ onCancel, mode, supplier }: Props) {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
 
+            const createdOrUpdated = data.data || data;
+
             setSuccess(
-                mode === "edit" ? "Proveedor actualizado correctamente" : "Proveedor creado con éxito",
+                mode === "edit"
+                    ? "Proveedor actualizado correctamente"
+                    : "Proveedor creado con éxito",
             );
-            if (mode === "create") router.push(`/admin/suppliers/${data.id}`);
-            else router.refresh();
+
+            if (onSuccess) {
+                onSuccess(createdOrUpdated);
+            }
+
+            if (mode === "create" && !modal) {
+                const targetId = createdOrUpdated?.id || data.id;
+                if (targetId) {
+                    router.push(`/admin/suppliers/${targetId}`);
+                } else {
+                    router.push("/admin/suppliers");
+                }
+            } else {
+                router.refresh();
+            }
         } catch (e: any) {
             setError(e.message || "Error al guardar el proveedor");
         } finally {
