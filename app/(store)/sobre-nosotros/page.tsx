@@ -4,9 +4,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-    title: "Sobre nosotros",
+    title: "Sobre Nosotros",
     description:
-        "Somos una tienda de tecnología especializada en el armado e instalación de PC en Rosario.",
+        "Conocé MGR Techno: especialistas en armado e instalación de PC, hardware gamer y tecnología en Rosario y Argentina.",
+    alternates: {
+        canonical: "/sobre-nosotros",
+    },
 };
 
 export default function AboutUsPage() {

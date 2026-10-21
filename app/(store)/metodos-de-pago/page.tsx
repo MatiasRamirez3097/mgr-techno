@@ -2,6 +2,15 @@ export const revalidate = 86400;
 
 import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+    title: "Métodos de Pago y Financiación",
+    description:
+        "Conocé las opciones de pago en MGR Techno: transferencia bancaria con descuento especial, efectivo y cuotas. Compras 100% seguras.",
+    alternates: {
+        canonical: "/metodos-de-pago",
+    },
+};
 import {
     Banknote,
     Landmark,
@@ -51,12 +60,6 @@ const PRESENTIAL_METHODS = [
         title: "Tarjeta de débito",
     },
 ];
-
-export const metadata: Metadata = {
-    title: "Métodos de pago",
-    description:
-        "Conocé los métodos de pago disponibles en MGR Techno para compras online y presenciales.",
-};
 
 export default function PaymentMethodsPage() {
     return (

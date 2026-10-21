@@ -3,9 +3,12 @@ export const revalidate = 86400;
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Términos y condiciones",
+    title: "Términos y Condiciones",
     description:
-        "Conocé nuestras políticas de garantía, devoluciones y condiciones de servicio.",
+        "Términos y condiciones de compra, validez de garantía, devoluciones y condiciones del servicio en MGR Techno.",
+    alternates: {
+        canonical: "/terminos-y-condiciones",
+    },
 };
 
 const sections = [

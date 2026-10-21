@@ -2,6 +2,15 @@ export const revalidate = 86400;
 
 import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+    title: "Guía de Compra Paso a Paso",
+    description:
+        "Aprendé cómo comprar componentes y PCs armadas en MGR Techno: selección de productos, medios de pago y seguimiento del envío.",
+    alternates: {
+        canonical: "/como-comprar",
+    },
+};
 import {
     ShoppingCart,
     CreditCard,
@@ -43,12 +52,6 @@ const STEPS = [
             "Realizamos envíos a todo el país o podés coordinar retiro personalmente.",
     },
 ];
-
-export const metadata: Metadata = {
-    title: "Cómo comprar",
-    description:
-        "Conocé el proceso de compra en MGR Techno y cómo realizamos envíos, pagos y asesoramiento personalizado.",
-};
 
 export default function HowToBuyPage() {
     return (

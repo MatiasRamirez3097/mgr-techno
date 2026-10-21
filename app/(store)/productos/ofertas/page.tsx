@@ -8,8 +8,12 @@ import { extractAttributeFiltersFromSearchParams } from "@/services/products/ext
 import type { ProductOrderBy } from "@/types/shared/product";
 
 export const metadata: Metadata = {
-    title: "Productos en oferta | MGR Techno",
-    description: "Encontrá los mejores productos en oferta de MGR Techno.",
+    title: "Ofertas y Descuentos en Hardware",
+    description:
+        "Aprovechá las mejores ofertas en placas de video, procesadores, combos de actualización y periféricos gamer en MGR Techno con cuotas y envíos a todo el país.",
+    alternates: {
+        canonical: "/productos/ofertas",
+    },
 };
 
 interface Props {

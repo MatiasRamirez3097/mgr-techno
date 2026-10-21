@@ -7,6 +7,8 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { ProductSchema } from "@/components/products/ProductSchema";
+import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { smartTitleCase, cleanMetaDescription } from "@/lib/utils/seoUtils";
 import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { ProductGallery } from "@/components/products/ProductGallery";
 import MetaProductView from "@/components/MetaProductView";
@@ -470,6 +472,16 @@ export default async function ProductPage({ params }: Props) {
                 </section>
             )}
 
+            <BreadcrumbSchema
+                items={[
+                    { name: "Inicio", url: "https://mgrtechno.com.ar" },
+                    { name: "Productos", url: "https://mgrtechno.com.ar/productos" },
+                    {
+                        name: smartTitleCase(product.name),
+                        url: `https://mgrtechno.com.ar/productos/${product.slug}`,
+                    },
+                ]}
+            />
             <ProductSchema product={product} />
         </main>
     );
@@ -485,32 +497,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         };
     }
 
-    const cleanDescription = product.shortDescription
-        ?.replace(/<[^>]*>/g, "")
-        .slice(0, 160);
+    const formattedTitle = smartTitleCase(product.name);
+    const cleanDescription = cleanMetaDescription(
+        product.shortDescription || product.description,
+        `Comprá ${formattedTitle} al mejor precio en MGR Techno. Envíos a todo el país y garantía oficial.`,
+    );
 
     const fallbackBundleImg =
         product.bundleItems?.find((bi) => hasOwnProductImage(bi.image))
             ?.image || "";
     const metaImageUrl =
-        getOptimizedImageUrl(product.image) ||
-        getOptimizedImageUrl(product.images?.[0] || "") ||
-        getOptimizedImageUrl(fallbackBundleImg);
+        getOptimizedImageUrl(product.image, 1000) ||
+        getOptimizedImageUrl(product.images?.[0] || "", 1000) ||
+        getOptimizedImageUrl(fallbackBundleImg, 1000);
 
     return {
         metadataBase: new URL("https://mgrtechno.com.ar"),
-        title: product.name,
-        description:
-            cleanDescription ||
-            `Comprá ${product.name} al mejor precio en MGR Techno`,
+        title: formattedTitle,
+        description: cleanDescription,
         alternates: {
             canonical: `/productos/${product.slug}`,
         },
         openGraph: {
-            title: product.name,
-            description:
-                cleanDescription ||
-                `Comprá ${product.name} al mejor precio en MGR Techno`,
+            title: formattedTitle,
+            description: cleanDescription,
             url: `https://mgrtechno.com.ar/productos/${product.slug}`,
             siteName: "MGR Techno",
             type: "website",
@@ -520,17 +530,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                           url: metaImageUrl,
                           width: 800,
                           height: 800,
-                          alt: product.name,
+                          alt: formattedTitle,
                       },
                   ]
                 : [],
         },
         twitter: {
             card: "summary_large_image",
-            title: product.name,
-            description:
-                cleanDescription ||
-                `Comprá ${product.name} al mejor precio en MGR Techno`,
+            title: formattedTitle,
+            description: cleanDescription,
             images: metaImageUrl ? [metaImageUrl] : [],
         },
         robots: {

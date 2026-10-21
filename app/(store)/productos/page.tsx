@@ -10,8 +10,12 @@ import { extractAttributeFiltersFromSearchParams } from "@/services/products/ext
 import type { ProductOrderBy } from "@/types/shared/product";
 
 export const metadata: Metadata = {
-    title: "MGR Techno | Productos",
-    description: "Catálogo completo de productos",
+    title: "Catálogo de Productos y Hardware",
+    description:
+        "Explorá nuestro catálogo completo de placas de video, procesadores, memorias RAM, fuentes, gabinetes y periféricos en MGR Techno. Filtrá por marca, categoría y especificaciones.",
+    alternates: {
+        canonical: "/productos",
+    },
 };
 
 interface Props {

@@ -2,6 +2,15 @@ export const revalidate = 86400;
 
 import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+    title: "Envíos y Entregas a todo el País",
+    description:
+        "Información sobre métodos de envío de MGR Techno: cadetería en Rosario y envíos a toda Argentina por Andreani y Vía Cargo con seguro.",
+    alternates: {
+        canonical: "/envios",
+    },
+};
 import {
     MapPin,
     Map,
@@ -34,12 +43,6 @@ const NATIONAL_SHIPPING = [
             "Envíos a toda la Argentina a través de Correo Andreani con código de seguimiento.",
     },
 ];
-
-export const metadata: Metadata = {
-    title: "Envíos y Entregas",
-    description:
-        "Conocé nuestras zonas de cobertura, métodos de envío por cadetería en Rosario y envíos a todo el país por Andreani.",
-};
 
 export default function ShippingMethodsPage() {
     return (

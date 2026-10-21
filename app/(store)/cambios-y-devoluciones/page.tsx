@@ -2,6 +2,15 @@ export const revalidate = 86400;
 
 import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+    title: "Garantía, Cambios y Devoluciones",
+    description:
+        "Políticas de garantía oficial, cambio y devolución de componentes en MGR Techno. Comprá con tranquilidad y respaldo técnico.",
+    alternates: {
+        canonical: "/cambios-y-devoluciones",
+    },
+};
 import {
     RefreshCcw,
     Box,
@@ -30,12 +39,6 @@ const POLICIES = [
             "La garantía no cubre daños físicos, pines doblados en procesadores/motherboards, golpes, quemaduras o modificaciones (ej. minería o overclock extremo).",
     },
 ];
-
-export const metadata: Metadata = {
-    title: "Cambios y Devoluciones",
-    description:
-        "Información sobre garantías, proceso de RMA y políticas de cambio en MGR Techno.",
-};
 
 export default function ReturnsPage() {
     return (

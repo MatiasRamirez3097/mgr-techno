@@ -5,6 +5,15 @@ import { Shield, Eye, Lock, Cookie, UserCheck, FileText } from "lucide-react";
 // Cacheamos la página por 30 días (en segundos) ya que su contenido es estático
 export const revalidate = 432000;
 
+export const metadata: Metadata = {
+    title: "Política de Privacidad y Seguridad",
+    description:
+        "Información sobre cómo protegemos y gestionamos tus datos personales al navegar y comprar en MGR Techno.",
+    alternates: {
+        canonical: "/privacidad",
+    },
+};
+
 const SECTIONS = [
     {
         icon: Eye,
@@ -25,12 +34,6 @@ const SECTIONS = [
             "Utilizamos cookies técnicas para mantener tu carrito de compras activo y herramientas de análisis (como el Píxel de Meta) para optimizar la experiencia en nuestra web.",
     },
 ];
-
-export const metadata: Metadata = {
-    title: "Política de Privacidad",
-    description:
-        "Conocé cómo protegemos y tratamos tus datos personales en MGR Techno de acuerdo con las normativas vigentes.",
-};
 
 export default function PrivacyPolicyPage() {
     return (

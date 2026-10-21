@@ -3,6 +3,15 @@ export const revalidate = 86400;
 import type { Metadata } from "next";
 import Link from "next/link";
 
+export const metadata: Metadata = {
+    title: "Preguntas Frecuentes",
+    description:
+        "Respuestas a las dudas más comunes sobre envíos, garantía, factura A y B, armados de PC y formas de pago en MGR Techno.",
+    alternates: {
+        canonical: "/preguntas-frecuentes",
+    },
+};
+
 const FAQS = [
     {
         question: "¿Hacen envíos a todo el país?",
@@ -38,15 +47,26 @@ const FAQS = [
     },
 ];
 
-export const metadata: Metadata = {
-    title: "Preguntas frecuentes",
-    description:
-        "Resolvé tus dudas sobre envíos, garantías, pagos, armado de PC y más.",
-};
-
 export default function FAQPage() {
+    const faqSchema = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: FAQS.map((faq) => ({
+            "@type": "Question",
+            name: faq.question,
+            acceptedAnswer: {
+                "@type": "Answer",
+                text: faq.answer,
+            },
+        })),
+    };
+
     return (
         <main className="max-w-4xl mx-auto px-4 py-16">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
             {/* Hero */}
             <div className="text-center mb-16">
                 <h1 className="text-4xl font-bold text-white mb-4">
