@@ -28,7 +28,10 @@ export async function searchProducts(
         const searchMatch = buildAdminProductSearchMatch(search);
         if (!searchMatch) return [];
 
-        const matchConditions: any[] = [searchMatch];
+        const matchConditions: any[] = [
+            searchMatch,
+            { slug: { $ne: "pc-armada-sistema" } },
+        ];
 
         if (!options?.allStatus) {
             matchConditions.push({ status: "publish" });

@@ -13,6 +13,7 @@ type Suggestion = {
 
 type AllocationSuggestion = {
     allocationKey?: string;
+    orderItemIndex?: number;
     productId: string;
     componentProductId?: string;
     parentBundleName?: string;
@@ -69,11 +70,14 @@ export function InventoryAllocationSection({
                 itemSuggestion.allocationKey || itemSuggestion.productId;
 
             // 1. Buscamos si el ítem ya trae asignaciones guardadas desde la Orden
-            const orderItem = items.find(
-                (i) =>
-                    i.productId.toString() ===
-                    itemSuggestion.productId.toString(),
-            );
+            const orderItem =
+                typeof itemSuggestion.orderItemIndex === "number"
+                    ? items[itemSuggestion.orderItemIndex]
+                    : items.find(
+                          (i) =>
+                              i.productId.toString() ===
+                              itemSuggestion.productId.toString(),
+                      );
             const allOrderItemAllocations = orderItem?.allocations || [];
 
             const existingAllocations = itemSuggestion.componentProductId
@@ -95,6 +99,7 @@ export function InventoryAllocationSection({
             if (existingAllocations.length > 0) {
                 return {
                     allocationKey: key,
+                    orderItemIndex: itemSuggestion.orderItemIndex,
                     productId: itemSuggestion.productId,
                     componentProductId: itemSuggestion.componentProductId,
                     componentName: itemSuggestion.componentProductId
@@ -128,6 +133,7 @@ export function InventoryAllocationSection({
                       );
                 return {
                     allocationKey: key,
+                    orderItemIndex: itemSuggestion.orderItemIndex,
                     productId: itemSuggestion.productId,
                     componentProductId: itemSuggestion.componentProductId,
                     componentName: itemSuggestion.componentProductId
@@ -141,6 +147,7 @@ export function InventoryAllocationSection({
             } else {
                 return {
                     allocationKey: key,
+                    orderItemIndex: itemSuggestion.orderItemIndex,
                     productId: itemSuggestion.productId,
                     componentProductId: itemSuggestion.componentProductId,
                     componentName: itemSuggestion.componentProductId
@@ -319,11 +326,14 @@ export function InventoryAllocationSection({
                         (a) => a.allocationKey === key,
                     );
 
-                    const orderItem = items.find(
-                        (i) =>
-                            i.productId.toString() ===
-                            itemSuggestion.productId.toString(),
-                    );
+                    const orderItem =
+                        typeof itemSuggestion.orderItemIndex === "number"
+                            ? items[itemSuggestion.orderItemIndex]
+                            : items.find(
+                                  (i) =>
+                                      i.productId.toString() ===
+                                      itemSuggestion.productId.toString(),
+                              );
 
                     const existingAllocationsForItem =
                         itemSuggestion.componentProductId
@@ -360,8 +370,7 @@ export function InventoryAllocationSection({
                                 <div>
                                     {itemSuggestion.parentBundleName && (
                                         <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-300 border border-blue-500/20 mb-1.5">
-                                            📦 Combo:{" "}
-                                            {itemSuggestion.parentBundleName}
+                                            📦 {itemSuggestion.parentBundleName}
                                         </span>
                                     )}
                                     <h3 className="text-sm font-semibold text-white">

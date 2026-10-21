@@ -58,7 +58,34 @@ export async function updateProductStock(
     availableDelta: number,
     reservedDelta: number,
     session: any,
+    customComponents?: {
+        productId: any;
+        quantityPerBundle?: number;
+        quantity?: number;
+    }[],
 ) {
+    // 1. Si el ítem de la orden trae componentes explícitos (PC Armada o Combo con snapshot)
+    if (Array.isArray(customComponents) && customComponents.length > 0) {
+        const affectedComponentIds: string[] = [];
+
+        for (const comp of customComponents) {
+            const qty = Math.max(
+                1,
+                Number(comp.quantityPerBundle ?? comp.quantity) || 1,
+            );
+            await applySingleProductStockDelta(
+                comp.productId,
+                availableDelta * qty,
+                reservedDelta * qty,
+                session,
+            );
+            affectedComponentIds.push(comp.productId.toString());
+        }
+
+        await recalculateBundlesForProducts(affectedComponentIds, session);
+        return;
+    }
+
     const product = await ProductModel.findById(productId)
         .select("name type bundleItems")
         .session(session)
@@ -98,4 +125,3 @@ export async function updateProductStock(
         await recalculateBundlesForProducts([productId], session);
     }
 }
-

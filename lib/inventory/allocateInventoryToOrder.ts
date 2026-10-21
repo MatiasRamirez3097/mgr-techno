@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import { OrderModel, ProductModel, InventoryItemModel } from "@/models";
 
 type AllocationInput = {
+    orderItemIndex?: number;
     productId: string;
     componentProductId?: string;
     componentName?: string;
@@ -42,10 +43,14 @@ export async function allocateInventoryToOrder(
             const clearedBundleOrderItemIds = new Set<string>();
 
             for (const item of items) {
-                const orderItem = order.items.find(
-                    (i: any) =>
-                        i.productId.toString() === item.productId.toString(),
-                );
+                const orderItem =
+                    typeof item.orderItemIndex === "number"
+                        ? order.items[item.orderItemIndex]
+                        : order.items.find(
+                              (i: any) =>
+                                  i.productId.toString() ===
+                                  item.productId.toString(),
+                          );
 
                 if (!orderItem) {
                     throw new Error("Producto no encontrado en la orden");
@@ -55,7 +60,11 @@ export async function allocateInventoryToOrder(
                 const isBundleComponent = Boolean(item.componentProductId);
 
                 if (isBundleComponent) {
-                    const parentKey = orderItem.productId.toString();
+                    const parentKey =
+                        typeof item.orderItemIndex === "number"
+                            ? `${item.orderItemIndex}::${orderItem.productId.toString()}`
+                            : orderItem.productId.toString();
+
                     if (!clearedBundleOrderItemIds.has(parentKey)) {
                         orderItem.allocations = [];
                         clearedBundleOrderItemIds.add(parentKey);
@@ -342,4 +351,3 @@ export async function allocateInventoryToOrder(
         session.endSession();
     }
 }
-

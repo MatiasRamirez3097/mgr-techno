@@ -27,7 +27,11 @@ interface Params {
 }
 
 export async function generateVoucher(params: Params) {
-    const order = await OrderModel.findById(params.orderId);
+    const order = await OrderModel.findById(params.orderId).populate({
+        path: "items.allocations.inventoryItemId",
+        model: "InventoryItem",
+        select: "serialNumber productId",
+    });
     const date = params.date;
     if (!order) {
         throw new Error("Order not found");

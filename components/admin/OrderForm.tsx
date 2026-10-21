@@ -18,6 +18,16 @@ type Document = {
     fileUrl: string | undefined;
 };
 
+type CustomComponentItem = {
+    productId: string;
+    name: string;
+    sku?: string;
+    availableStock?: number;
+    referencePrice?: number;
+    image?: string;
+    quantity: number;
+};
+
 type OrderItem = {
     productId: string;
     name?: string;
@@ -33,6 +43,8 @@ type OrderItem = {
         length: number;
     };
     image: string;
+    isCustomPc?: boolean;
+    customComponents?: CustomComponentItem[];
 };
 
 type Payment = {
@@ -124,8 +136,38 @@ export function OrderForm({ order, mode }: Props) {
         notes: order?.notes || "",
     });
 
+    const hasValidItemsForShipping = useMemo(() => {
+        return form.items.some((i) =>
+            i.isCustomPc
+                ? (i.customComponents?.length || 0) > 0
+                : Boolean(i.productId),
+        );
+    }, [form.items]);
+
     const quoteOrderShipping = async () => {
         try {
+            const shippingItems = form.items.flatMap((i) => {
+                if (i.isCustomPc) {
+                    return (i.customComponents || [])
+                        .filter((c) => Boolean(c.productId))
+                        .map((c) => ({
+                            id: c.productId,
+                            quantity:
+                                Math.max(1, Number(c.quantity) || 1) *
+                                Math.max(1, Number(i.quantity) || 1),
+                        }));
+                }
+                if (!i.productId) return [];
+                return [
+                    {
+                        id: i.productId,
+                        quantity: Math.max(1, Number(i.quantity) || 1),
+                    },
+                ];
+            });
+
+            if (shippingItems.length === 0) return;
+
             setQuotingShipping(true);
             const res = await fetch("/api/shipping", {
                 method: "POST",
@@ -134,10 +176,7 @@ export function OrderForm({ order, mode }: Props) {
                 },
                 body: JSON.stringify({
                     postcode,
-                    items: form.items.map((i) => ({
-                        id: i.productId,
-                        quantity: i.quantity,
-                    })),
+                    items: shippingItems,
                 }),
             });
 
@@ -177,6 +216,32 @@ export function OrderForm({ order, mode }: Props) {
                     },
                     weight: 0,
                     image: "",
+                    isCustomPc: false,
+                },
+            ],
+        }));
+    };
+
+    const addCustomPcItem = () => {
+        setForm((prev) => ({
+            ...prev,
+            items: [
+                ...prev.items,
+                {
+                    productId: "",
+                    name: "PC Armada",
+                    quantity: 1,
+                    unitPrice: 0,
+                    taxRate: 10.5,
+                    dimensions: {
+                        width: 0,
+                        height: 0,
+                        length: 0,
+                    },
+                    weight: 0,
+                    image: "",
+                    isCustomPc: true,
+                    customComponents: [],
                 },
             ],
         }));
@@ -190,6 +255,88 @@ export function OrderForm({ order, mode }: Props) {
         });
     };
 
+    const addComponentToCustomPc = (itemIndex: number, product: any) => {
+        if (!product?.id) return;
+
+        const effPrice =
+            typeof product?.effectivePrice === "number" &&
+            product.effectivePrice > 0
+                ? product.effectivePrice
+                : typeof product?.salePrice === "number" &&
+                    product.salePrice > 0
+                  ? product.salePrice
+                  : Number(product?.regularPrice) || 0;
+
+        setForm((prev) => {
+            const items = [...prev.items];
+            const currentItem = items[itemIndex];
+            const currentComps = [...(currentItem.customComponents || [])];
+            const existingIdx = currentComps.findIndex(
+                (c) => c.productId === product.id,
+            );
+
+            if (existingIdx >= 0) {
+                currentComps[existingIdx] = {
+                    ...currentComps[existingIdx],
+                    quantity: Number(currentComps[existingIdx].quantity || 1) + 1,
+                };
+            } else {
+                currentComps.push({
+                    productId: product.id,
+                    name: product.name || "",
+                    sku: product.sku || "",
+                    availableStock: product.availableStock,
+                    referencePrice: effPrice,
+                    image: product.image || "",
+                    quantity: 1,
+                });
+            }
+
+            items[itemIndex] = {
+                ...currentItem,
+                customComponents: currentComps,
+            };
+            return { ...prev, items };
+        });
+    };
+
+    const updateCustomPcComponentQty = (
+        itemIndex: number,
+        compIndex: number,
+        qty: number,
+    ) => {
+        setForm((prev) => {
+            const items = [...prev.items];
+            const currentItem = items[itemIndex];
+            const currentComps = [...(currentItem.customComponents || [])];
+            if (!currentComps[compIndex]) return prev;
+            currentComps[compIndex] = {
+                ...currentComps[compIndex],
+                quantity: Math.max(1, Number(qty) || 1),
+            };
+            items[itemIndex] = {
+                ...currentItem,
+                customComponents: currentComps,
+            };
+            return { ...prev, items };
+        });
+    };
+
+    const removeCustomPcComponent = (itemIndex: number, compIndex: number) => {
+        setForm((prev) => {
+            const items = [...prev.items];
+            const currentItem = items[itemIndex];
+            const currentComps = (currentItem.customComponents || []).filter(
+                (_, idx) => idx !== compIndex,
+            );
+            items[itemIndex] = {
+                ...currentItem,
+                customComponents: currentComps,
+            };
+            return { ...prev, items };
+        });
+    };
+
     const removeItem = (index: number) => {
         setForm((prev) => ({
             ...prev,
@@ -198,12 +345,14 @@ export function OrderForm({ order, mode }: Props) {
     };
 
     const subtotal = form.items.reduce(
-        (acc, item) => acc + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+        (acc, item) =>
+            acc + Number(item.quantity || 0) * Number(item.unitPrice || 0),
         0,
     );
 
     const tax = form.items.reduce((acc, item) => {
-        const lineSubtotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
+        const lineSubtotal =
+            Number(item.quantity || 0) * Number(item.unitPrice || 0);
         return acc + lineSubtotal * (Number(item.taxRate || 0) / 100);
     }, 0);
     const total = subtotal + Number(form.shippingMethod.cost || 0);
@@ -244,9 +393,17 @@ export function OrderForm({ order, mode }: Props) {
         items: form.items.map((item) => ({
             productId: item.productId,
             name: item.name,
-            taxRate: item.taxRate,
+            taxRate: Number(item.taxRate),
             quantity: Number(item.quantity),
             unitPrice: Number(item.unitPrice),
+            isCustomPc: Boolean(item.isCustomPc),
+            customComponents: item.isCustomPc
+                ? (item.customComponents || []).map((c) => ({
+                      productId: c.productId,
+                      name: c.name,
+                      quantity: Number(c.quantity),
+                  }))
+                : undefined,
         })),
         payments: form.payments.map((payment) => ({
             method: payment.method,
@@ -350,12 +507,12 @@ export function OrderForm({ order, mode }: Props) {
 
     useEffect(() => {
         if (
-            postcode != "" &&
-            form.items[0]?.productId &&
+            postcode !== "" &&
+            hasValidItemsForShipping &&
             form.shippingMethod.method === "andreani"
         )
             quoteOrderShipping();
-    }, [postcode, form.items]);
+    }, [postcode, form.items, hasValidItemsForShipping]);
 
     return (
         <>
@@ -469,7 +626,7 @@ export function OrderForm({ order, mode }: Props) {
                                 <select
                                     disabled={
                                         form.customerId &&
-                                        form.items[0]?.productId
+                                        hasValidItemsForShipping
                                             ? false
                                             : true
                                     }
@@ -532,10 +689,13 @@ export function OrderForm({ order, mode }: Props) {
                         </div>
                     </section>
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Productos
-                        </h2>
-                        {form.items.length > 0 && (
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-bold text-white">
+                                Productos
+                            </h2>
+                        </div>
+
+                        {form.items.some((it) => !it.isCustomPc) && (
                             <div className="grid grid-cols-12 gap-2 mb-2 text-xs font-medium text-gray-400 px-1">
                                 <div className="col-span-6">Producto</div>
                                 <div className="col-span-2">Cantidad</div>
@@ -545,152 +705,462 @@ export function OrderForm({ order, mode }: Props) {
                                 </div>
                             </div>
                         )}
-                        {form.items.map((item, i) => (
-                            <div
-                                key={i}
-                                className="grid grid-cols-12 gap-2 items-center mb-2"
-                            >
-                                <div className="col-span-6">
-                                    <ProductSelector
-                                        value={
-                                            item.productId
-                                                ? {
-                                                      id: item.productId,
-                                                      name: item.name || "",
-                                                      sku: item.sku,
-                                                      availableStock:
-                                                          item.availableStock,
-                                                      regularPrice:
-                                                          item.unitPrice,
-                                                      taxRate: item.taxRate,
-                                                      image: item.image || "",
-                                                  }
-                                                : null
-                                        }
-                                        onChange={(product: any) => {
-                                            const effPrice =
-                                                typeof product?.effectivePrice ===
-                                                    "number" &&
-                                                product.effectivePrice > 0
-                                                    ? product.effectivePrice
-                                                    : typeof product?.salePrice ===
-                                                            "number" &&
-                                                        product.salePrice > 0
-                                                      ? product.salePrice
-                                                      : Number(
-                                                            product?.regularPrice,
-                                                        ) || 0;
 
-                                            updateItem(
-                                                i,
-                                                "productId",
-                                                product?.id || "",
-                                            );
-                                            updateItem(
-                                                i,
-                                                "name",
-                                                product?.name || "",
-                                            );
-                                            updateItem(
-                                                i,
-                                                "sku",
-                                                product?.sku || "",
-                                            );
-                                            updateItem(
-                                                i,
-                                                "availableStock",
-                                                product?.availableStock,
-                                            );
-                                            updateItem(
-                                                i,
-                                                "unitPrice",
-                                                effPrice,
-                                            );
-                                            updateItem(
-                                                i,
-                                                "taxRate",
-                                                product?.taxRate ?? 10.5,
-                                            );
-                                            updateItem(
-                                                i,
-                                                "image",
-                                                product?.image || "",
-                                            );
-                                            updateItem(
-                                                i,
-                                                "dimensions",
-                                                product?.dimensions
-                                                    ? product.dimensions
-                                                    : {
-                                                          width: 0,
-                                                          length: 0,
-                                                          height: 0,
-                                                      },
-                                            );
-                                            updateItem(
-                                                i,
-                                                "weight",
-                                                product?.weight
-                                                    ? Number(product.weight)
-                                                    : 0,
-                                            );
-                                        }}
-                                    />
-                                </div>
+                        {form.items.map((item, i) => {
+                            if (item.isCustomPc) {
+                                const referenceSum = (
+                                    item.customComponents || []
+                                ).reduce(
+                                    (acc, c) =>
+                                        acc +
+                                        Number(c.referencePrice || 0) *
+                                            Number(c.quantity || 1),
+                                    0,
+                                );
 
-                                <div className="col-span-2">
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={item.quantity}
-                                        onChange={(e) =>
-                                            updateItem(
-                                                i,
-                                                "quantity",
-                                                e.target.value,
-                                            )
-                                        }
-                                        className={inputClass}
-                                    />
-                                </div>
-
-                                <div className="col-span-3">
-                                    <input
-                                        min="0"
-                                        type="number"
-                                        value={item.unitPrice}
-                                        onChange={(e) =>
-                                            updateItem(
-                                                i,
-                                                "unitPrice",
-                                                e.target.value,
-                                            )
-                                        }
-                                        className={inputClass}
-                                    />
-                                </div>
-
-                                <div className="col-span-1 flex justify-center">
-                                    <button
-                                        type="button"
-                                        onClick={() => removeItem(i)}
-                                        className="w-8 h-8 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors flex items-center justify-center text-sm"
-                                        title="Quitar producto"
+                                return (
+                                    <div
+                                        key={i}
+                                        className="mb-4 rounded-2xl border border-brand/30 bg-brand/5 p-4 space-y-4"
                                     >
-                                        ✕
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                                        <div className="flex items-center justify-between gap-2 border-b border-gray-800 pb-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-brand/20 text-brand border border-brand/30">
+                                                    🖥️ PC Armada
+                                                </span>
+                                                <span className="text-xs text-gray-400">
+                                                    Ítem único en factura con desglose de componentes (sin precios individuales)
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeItem(i)}
+                                                className="w-8 h-8 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors flex items-center justify-center text-sm shrink-0"
+                                                title="Quitar PC Armada"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
 
-                        <button
-                            type="button"
-                            onClick={addItem}
-                            className="mt-3 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 rounded-lg transition-colors border border-gray-700 flex items-center gap-2"
-                        >
-                            <span>+</span>
-                            <span>Agregar producto</span>
-                        </button>
+                                        {/* Configuración general de la PC Armada */}
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                                            <div className="md:col-span-5">
+                                                <label className="text-xs text-gray-400 mb-1 block">
+                                                    Título en Factura / Orden
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={item.name || ""}
+                                                    onChange={(e) =>
+                                                        updateItem(
+                                                            i,
+                                                            "name",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="Ej: PC Armada / CPU Completo"
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <label className="text-xs text-gray-400 mb-1 block">
+                                                    Cant. PCs
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={item.quantity}
+                                                    onChange={(e) =>
+                                                        updateItem(
+                                                            i,
+                                                            "quantity",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <label className="text-xs text-gray-400 mb-1 block">
+                                                    IVA
+                                                </label>
+                                                <select
+                                                    value={item.taxRate ?? 10.5}
+                                                    onChange={(e) =>
+                                                        updateItem(
+                                                            i,
+                                                            "taxRate",
+                                                            Number(
+                                                                e.target.value,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                >
+                                                    <option value={10.5}>
+                                                        10.5%
+                                                    </option>
+                                                    <option value={21}>
+                                                        21%
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div className="md:col-span-3">
+                                                <label className="text-xs text-gray-400 mb-1 block">
+                                                    Precio Total Unitario ($)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={item.unitPrice}
+                                                    onChange={(e) =>
+                                                        updateItem(
+                                                            i,
+                                                            "unitPrice",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Buscador para agregar componentes */}
+                                        <div className="bg-gray-900/90 rounded-xl p-3.5 border border-gray-800 space-y-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <label className="text-xs font-semibold text-gray-300">
+                                                    Componentes del armado (por cada PC)
+                                                </label>
+                                                {referenceSum > 0 && (
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <span className="text-gray-400">
+                                                            Suma ref. componentes:{" "}
+                                                            <strong className="text-gray-200 font-mono">
+                                                                $
+                                                                {referenceSum.toLocaleString(
+                                                                    "es-AR",
+                                                                )}
+                                                            </strong>
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                updateItem(
+                                                                    i,
+                                                                    "unitPrice",
+                                                                    referenceSum,
+                                                                )
+                                                            }
+                                                            className="px-2 py-0.5 rounded bg-brand/20 hover:bg-brand/30 text-brand border border-brand/30 font-medium transition-colors"
+                                                        >
+                                                            Usar suma como precio
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <ProductSelector
+                                                value={null}
+                                                excludeBundles
+                                                onChange={(product: any) =>
+                                                    addComponentToCustomPc(
+                                                        i,
+                                                        product,
+                                                    )
+                                                }
+                                            />
+
+                                            {/* Lista de componentes agregados */}
+                                            {(item.customComponents || [])
+                                                .length === 0 ? (
+                                                <p className="text-xs text-gray-500 text-center py-2">
+                                                    Buscá y seleccioná los componentes (procesador, mother, RAM, gabinete, etc.) que integran esta PC.
+                                                </p>
+                                            ) : (
+                                                <div className="divide-y divide-gray-800/80 border border-gray-800 rounded-xl overflow-hidden bg-gray-950/40">
+                                                    {(
+                                                        item.customComponents ||
+                                                        []
+                                                    ).map((comp, compIdx) => {
+                                                        const totalRequired =
+                                                            Number(
+                                                                comp.quantity ||
+                                                                    1,
+                                                            ) *
+                                                            Math.max(
+                                                                1,
+                                                                Number(
+                                                                    item.quantity,
+                                                                ) || 1,
+                                                            );
+                                                        const hasStockWarning =
+                                                            typeof comp.availableStock ===
+                                                                "number" &&
+                                                            comp.availableStock <
+                                                                totalRequired;
+
+                                                        return (
+                                                            <div
+                                                                key={`${comp.productId}-${compIdx}`}
+                                                                className="flex items-center justify-between gap-3 px-3 py-2 text-xs"
+                                                            >
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="text-gray-200 font-medium truncate">
+                                                                        {
+                                                                            comp.name
+                                                                        }
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-400">
+                                                                        {comp.sku && (
+                                                                            <span className="font-mono text-gray-500">
+                                                                                SKU:{" "}
+                                                                                {
+                                                                                    comp.sku
+                                                                                }
+                                                                            </span>
+                                                                        )}
+                                                                        {typeof comp.availableStock ===
+                                                                            "number" && (
+                                                                            <span
+                                                                                className={
+                                                                                    hasStockWarning
+                                                                                        ? "text-red-400 font-medium"
+                                                                                        : "text-emerald-400"
+                                                                                }
+                                                                            >
+                                                                                Stock disp.:{" "}
+                                                                                {
+                                                                                    comp.availableStock
+                                                                                }
+                                                                            </span>
+                                                                        )}
+                                                                        {Number(
+                                                                            item.quantity,
+                                                                        ) >
+                                                                            1 && (
+                                                                            <span className="text-blue-300">
+                                                                                (Total orden:{" "}
+                                                                                {
+                                                                                    totalRequired
+                                                                                }{" "}
+                                                                                u.)
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2 shrink-0">
+                                                                    <label className="text-[11px] text-gray-400">
+                                                                        Cant/PC:
+                                                                    </label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min={1}
+                                                                        value={
+                                                                            comp.quantity
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            updateCustomPcComponentQty(
+                                                                                i,
+                                                                                compIdx,
+                                                                                Number(
+                                                                                    e
+                                                                                        .target
+                                                                                        .value,
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                        className="w-16 bg-gray-800 text-white text-xs rounded-lg px-2 py-1.5 border border-gray-700 focus:border-brand outline-none text-center"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            removeCustomPcComponent(
+                                                                                i,
+                                                                                compIdx,
+                                                                            )
+                                                                        }
+                                                                        className="w-7 h-7 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center justify-center transition-colors"
+                                                                        title="Quitar componente"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div
+                                    key={i}
+                                    className="grid grid-cols-12 gap-2 items-center mb-2"
+                                >
+                                    <div className="col-span-6">
+                                        <ProductSelector
+                                            value={
+                                                item.productId
+                                                    ? {
+                                                          id: item.productId,
+                                                          name: item.name || "",
+                                                          sku: item.sku,
+                                                          availableStock:
+                                                              item.availableStock,
+                                                          regularPrice:
+                                                              item.unitPrice,
+                                                          taxRate: item.taxRate,
+                                                          image:
+                                                              item.image || "",
+                                                      }
+                                                    : null
+                                            }
+                                            onChange={(product: any) => {
+                                                const effPrice =
+                                                    typeof product?.effectivePrice ===
+                                                        "number" &&
+                                                    product.effectivePrice > 0
+                                                        ? product.effectivePrice
+                                                        : typeof product?.salePrice ===
+                                                                "number" &&
+                                                            product.salePrice >
+                                                                0
+                                                          ? product.salePrice
+                                                          : Number(
+                                                                product?.regularPrice,
+                                                            ) || 0;
+
+                                                updateItem(
+                                                    i,
+                                                    "productId",
+                                                    product?.id || "",
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "name",
+                                                    product?.name || "",
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "sku",
+                                                    product?.sku || "",
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "availableStock",
+                                                    product?.availableStock,
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "unitPrice",
+                                                    effPrice,
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "taxRate",
+                                                    product?.taxRate ?? 10.5,
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "image",
+                                                    product?.image || "",
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "dimensions",
+                                                    product?.dimensions
+                                                        ? product.dimensions
+                                                        : {
+                                                              width: 0,
+                                                              length: 0,
+                                                              height: 0,
+                                                          },
+                                                );
+                                                updateItem(
+                                                    i,
+                                                    "weight",
+                                                    product?.weight
+                                                        ? Number(product.weight)
+                                                        : 0,
+                                                );
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className="col-span-2">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={item.quantity}
+                                            onChange={(e) =>
+                                                updateItem(
+                                                    i,
+                                                    "quantity",
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className={inputClass}
+                                        />
+                                    </div>
+
+                                    <div className="col-span-3">
+                                        <input
+                                            min="0"
+                                            type="number"
+                                            value={item.unitPrice}
+                                            onChange={(e) =>
+                                                updateItem(
+                                                    i,
+                                                    "unitPrice",
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className={inputClass}
+                                        />
+                                    </div>
+
+                                    <div className="col-span-1 flex justify-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => removeItem(i)}
+                                            className="w-8 h-8 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors flex items-center justify-center text-sm"
+                                            title="Quitar producto"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={addItem}
+                                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 rounded-lg transition-colors border border-gray-700 flex items-center gap-2"
+                            >
+                                <span>+</span>
+                                <span>Agregar producto</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={addCustomPcItem}
+                                className="px-4 py-2 bg-brand/15 hover:bg-brand/25 text-sm text-brand font-medium rounded-lg transition-colors border border-brand/30 flex items-center gap-2"
+                            >
+                                <span>🖥️</span>
+                                <span>+ Agregar PC Armada</span>
+                            </button>
+                        </div>
                     </section>
 
                     {/* Precios */}

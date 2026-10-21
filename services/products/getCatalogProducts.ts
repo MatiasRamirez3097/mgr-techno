@@ -251,7 +251,9 @@ async function fetchCatalogProducts(
     }
 
     // FILTRADO BASE
-    const baseMatchStage: any = {};
+    const baseMatchStage: any = {
+        slug: { $ne: "pc-armada-sistema" },
+    };
 
     if (filters.status) {
         baseMatchStage.status = filters.status;

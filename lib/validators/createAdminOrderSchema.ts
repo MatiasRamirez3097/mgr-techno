@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+const customPcComponentSchema = z.object({
+    productId: z.string().min(1),
+    name: z.string().optional(),
+    quantity: z.number().int().min(1),
+});
+
 export const createAdminOrderSchema = z.object({
     customerId: z.string().min(1),
     customerEmail: z.string(),
@@ -17,45 +23,61 @@ export const createAdminOrderSchema = z.object({
 
     items: z
         .array(
-            z.object({
-                productId: z.string().min(1),
-
-                name: z.string().optional(),
-
-                quantity: z.number().int().min(1),
-
-                unitPrice: z.number().min(0),
-
-                taxRate: z.number().min(0).max(100),
-            }),
+            z
+                .object({
+                    productId: z.string().optional().default(""),
+                    name: z.string().optional(),
+                    quantity: z.number().int().min(1),
+                    unitPrice: z.number().min(0),
+                    taxRate: z.number().min(0).max(100),
+                    isCustomPc: z.boolean().optional().default(false),
+                    customComponents: z
+                        .array(customPcComponentSchema)
+                        .optional()
+                        .default([]),
+                })
+                .superRefine((item, ctx) => {
+                    if (item.isCustomPc) {
+                        if (
+                            !item.customComponents ||
+                            item.customComponents.length === 0
+                        ) {
+                            ctx.addIssue({
+                                code: z.ZodIssueCode.custom,
+                                message:
+                                    "La PC Armada debe tener al menos un componente asignado",
+                                path: ["customComponents"],
+                            });
+                        }
+                    } else if (!item.productId || !item.productId.trim()) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: "Debe seleccionar un producto",
+                            path: ["productId"],
+                        });
+                    }
+                }),
         )
         .min(1),
 
     payments: z.array(
         z.object({
             method: z.enum(["cash", "bank_transfer", "mercadopago"]),
-
             amount: z.number().min(0),
-
             status: z.enum(["pending", "paid", "failed", "refunded"]),
-
             reference: z.string().optional(),
         }),
     ),
 
     shippingMethod: z.object({
         method: z.enum(["local_pickup", "delivery", "andreani", "other"]),
-
         cost: z.number().min(0),
     }),
 
     document: z.object({
         date: z.string(),
-
         type: z.enum(["generic", "invoice"]),
-
         number: z.string().optional(),
-
         fileUrl: z.string().optional(),
     }),
     billing: z.object({

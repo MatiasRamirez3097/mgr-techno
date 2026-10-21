@@ -4,6 +4,7 @@ async function buildProductSuggestion(
     targetProduct: any,
     requiredQuantity: number,
     orderProductId: string,
+    orderItemIndex: number,
     usedSerialIds: Set<string>,
     usedLotQuantities: Map<string, number>,
     bundleMeta?: {
@@ -11,10 +12,9 @@ async function buildProductSuggestion(
         parentBundleName: string;
     },
 ) {
-    const targetIdStr = targetProduct._id.toString();
     const allocationKey = bundleMeta
-        ? `${orderProductId}::${bundleMeta.componentProductId}`
-        : orderProductId;
+        ? `${orderItemIndex}::${orderProductId}::${bundleMeta.componentProductId}`
+        : `${orderItemIndex}::${orderProductId}`;
 
     if (targetProduct.hasSerialNumber) {
         const inventoryItems = await InventoryItemModel.find({
@@ -43,6 +43,7 @@ async function buildProductSuggestion(
 
         return {
             allocationKey,
+            orderItemIndex,
             productId: orderProductId,
             componentProductId: bundleMeta?.componentProductId,
             parentBundleName: bundleMeta?.parentBundleName,
@@ -89,6 +90,7 @@ async function buildProductSuggestion(
 
     return {
         allocationKey,
+        orderItemIndex,
         productId: orderProductId,
         componentProductId: bundleMeta?.componentProductId,
         parentBundleName: bundleMeta?.parentBundleName,
@@ -111,7 +113,10 @@ export async function getAllocationSuggestions(orderId: string) {
     const usedLotQuantities = new Map<string, number>();
     const results: any[] = [];
 
-    for (const item of order.items as any[]) {
+    const orderItems = (order.items as any[]) || [];
+
+    for (let idx = 0; idx < orderItems.length; idx++) {
+        const item = orderItems[idx];
         const product = await ProductModel.findById(item.productId).lean();
 
         if (!product) {
@@ -142,7 +147,7 @@ export async function getAllocationSuggestions(orderId: string) {
                 ).lean();
                 if (!compProduct) {
                     throw new Error(
-                        `Producto componente no encontrado en el combo "${item.name}"`,
+                        `Producto componente no encontrado en "${item.name}"`,
                     );
                 }
 
@@ -154,6 +159,7 @@ export async function getAllocationSuggestions(orderId: string) {
                     compProduct,
                     requiredQty,
                     item.productId.toString(),
+                    idx,
                     usedSerialIds,
                     usedLotQuantities,
                     {
@@ -168,6 +174,7 @@ export async function getAllocationSuggestions(orderId: string) {
                 product,
                 Number(item.quantity),
                 item.productId.toString(),
+                idx,
                 usedSerialIds,
                 usedLotQuantities,
             );
@@ -177,4 +184,3 @@ export async function getAllocationSuggestions(orderId: string) {
 
     return results;
 }
-

@@ -164,45 +164,141 @@ export default async function AdminOrderDetailPage({
                             Productos
                         </h2>
                         <div className="flex flex-col gap-3">
-                            {order.items.map((item: any, i: number) => (
-                                <div
-                                    key={i}
-                                    className="flex justify-between text-sm"
-                                >
-                                    <div className="flex flex-col">
-                                        <span className="text-gray-300">
-                                            {item.name} x{item.quantity}
-                                        </span>
+                            {order.items.map((item: any, i: number) => {
+                                const hasBundleComponents =
+                                    item.isBundle &&
+                                    Array.isArray(item.bundleComponents) &&
+                                    item.bundleComponents.length > 0;
 
-                                        {/* Renderizamos la falla directamente desde la asignación mapeada */}
-                                        {item.allocations?.map(
-                                            (alloc: any, idx: number) => {
-                                                if (
-                                                    alloc.defectDescription &&
-                                                    alloc.defectDescription !==
-                                                        "Sin detalle de falla especificado"
-                                                ) {
-                                                    return (
-                                                        <span
-                                                            key={idx}
-                                                            className="text-xs text-amber-400/90 mt-0.5"
-                                                        >
-                                                            ⚠️ Falla:{" "}
-                                                            {
-                                                                alloc.defectDescription
-                                                            }
-                                                        </span>
-                                                    );
-                                                }
-                                                return null;
-                                            },
-                                        )}
+                                const simpleSerials = !hasBundleComponents
+                                    ? (item.allocations || [])
+                                          .map((a: any) => a.serialNumber)
+                                          .filter(Boolean)
+                                    : [];
+
+                                return (
+                                    <div
+                                        key={i}
+                                        className="flex justify-between items-start text-sm gap-4 py-1.5 border-b border-gray-800/60 last:border-b-0"
+                                    >
+                                        <div className="flex flex-col min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="text-gray-200 font-medium">
+                                                    {item.name} x{item.quantity}
+                                                </span>
+                                                {simpleSerials.length > 0 && (
+                                                    <span className="text-xs font-mono text-gray-400">
+                                                        (S/N:{" "}
+                                                        {simpleSerials.join(
+                                                            ", ",
+                                                        )}
+                                                        )
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {hasBundleComponents && (
+                                                <ul className="mt-1.5 ml-3 pl-2.5 border-l-2 border-gray-800 flex flex-col gap-1">
+                                                    {item.bundleComponents.map(
+                                                        (
+                                                            comp: any,
+                                                            compIdx: number,
+                                                        ) => {
+                                                            const totalCompQty =
+                                                                Number(
+                                                                    comp.totalQuantity,
+                                                                ) ||
+                                                                Number(
+                                                                    item.quantity,
+                                                                ) *
+                                                                    Math.max(
+                                                                        1,
+                                                                        Number(
+                                                                            comp.quantityPerBundle,
+                                                                        ) || 1,
+                                                                    );
+                                                            const compSerials =
+                                                                (
+                                                                    item.allocations ||
+                                                                    []
+                                                                )
+                                                                    .filter(
+                                                                        (
+                                                                            a: any,
+                                                                        ) =>
+                                                                            a.componentProductId?.toString() ===
+                                                                                comp.productId?.toString() &&
+                                                                            a.serialNumber,
+                                                                    )
+                                                                    .map(
+                                                                        (
+                                                                            a: any,
+                                                                        ) =>
+                                                                            a.serialNumber,
+                                                                    );
+
+                                                            return (
+                                                                <li
+                                                                    key={
+                                                                        compIdx
+                                                                    }
+                                                                    className="text-xs text-gray-400 leading-relaxed"
+                                                                >
+                                                                    •{" "}
+                                                                    <span className="text-gray-300 font-medium">
+                                                                        {
+                                                                            totalCompQty
+                                                                        }
+                                                                        x
+                                                                    </span>{" "}
+                                                                    {comp.name}
+                                                                    {compSerials.length >
+                                                                        0 && (
+                                                                        <span className="text-gray-500 font-mono ml-1.5">
+                                                                            (S/N:{" "}
+                                                                            {compSerials.join(
+                                                                                ", ",
+                                                                            )}
+                                                                            )
+                                                                        </span>
+                                                                    )}
+                                                                </li>
+                                                            );
+                                                        },
+                                                    )}
+                                                </ul>
+                                            )}
+
+                                            {/* Renderizamos la falla directamente desde la asignación mapeada */}
+                                            {item.allocations?.map(
+                                                (alloc: any, idx: number) => {
+                                                    if (
+                                                        alloc.defectDescription &&
+                                                        alloc.defectDescription !==
+                                                            "Sin detalle de falla especificado"
+                                                    ) {
+                                                        return (
+                                                            <span
+                                                                key={idx}
+                                                                className="text-xs text-amber-400/90 mt-0.5"
+                                                            >
+                                                                ⚠️ Falla:{" "}
+                                                                {
+                                                                    alloc.defectDescription
+                                                                }
+                                                            </span>
+                                                        );
+                                                    }
+                                                    return null;
+                                                },
+                                            )}
+                                        </div>
+                                        <span className="text-white font-medium shrink-0">
+                                            ${item.total.toLocaleString("es-AR")}
+                                        </span>
                                     </div>
-                                    <span className="text-white">
-                                        ${item.total.toLocaleString("es-AR")}
-                                    </span>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                         <div className="border-t border-gray-700 mt-4 pt-4 flex flex-col gap-2">
                             <div className="flex justify-between text-sm text-gray-400">

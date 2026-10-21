@@ -3,7 +3,6 @@ import { OrderModel } from "@/models/Order";
 import { NextRequest } from "next/server";
 import { startSession } from "mongoose";
 
-// 1. IMPORTAMOS TODAS LAS FUNCIONES DE EMAIL
 import {
     sendPaymentConfirmedEmail,
     sendOrderShippedEmail,
@@ -49,13 +48,9 @@ export async function PUT(
             | "cancelled"
             | null = null;
 
-        // ==========================================
-        // EVALUAR NUEVOS ESTADOS OBJETIVO
-        // ==========================================
         const targetPaymentStatus = body.paymentStatus || order.paymentStatus;
         const targetStatus = body.status || order.status;
 
-        // REGLA DE NEGOCIO: Bloqueo por falta de pago
         const advancedStates = [
             "processing",
             "shipped",
@@ -79,9 +74,6 @@ export async function PUT(
             );
         }
 
-        // ==========================================
-        // ACTUALIZAR PAGO
-        // ==========================================
         if (body.paymentStatus && body.paymentStatus !== order.paymentStatus) {
             order.paymentStatus = body.paymentStatus;
 
@@ -94,9 +86,6 @@ export async function PUT(
             }
         }
 
-        // ==========================================
-        // ACTUALIZAR ESTADO GENERAL (STOCK Y EVENTOS)
-        // ==========================================
         const finalStatus = body.status || order.status;
 
         if (finalStatus !== oldStatus) {
@@ -112,6 +101,11 @@ export async function PUT(
                             item.quantity,
                             -item.quantity,
                             session,
+                            item.isBundle &&
+                                Array.isArray(item.bundleComponents) &&
+                                item.bundleComponents.length > 0
+                                ? item.bundleComponents
+                                : undefined,
                         );
                     }
                 }
@@ -124,11 +118,15 @@ export async function PUT(
                         -item.quantity,
                         item.quantity,
                         session,
+                        item.isBundle &&
+                            Array.isArray(item.bundleComponents) &&
+                            item.bundleComponents.length > 0
+                            ? item.bundleComponents
+                            : undefined,
                     );
                 }
             }
 
-            // Marcamos qué correo hay que enviar al finalizar
             if (finalStatus === "shipped") emailToSend = "shipped";
             if (finalStatus === "ready_for_pickup") emailToSend = "ready";
             if (finalStatus === "completed") emailToSend = "completed";
@@ -139,11 +137,6 @@ export async function PUT(
         await order.save({ session });
         await session.commitTransaction();
 
-        // ==========================================
-        // POST-TRANSACCIÓN: ENVÍO DE EMAILS
-        // ==========================================
-        // Lo ponemos en un try/catch independiente. Si el mail falla (ej. Resend está caído),
-        // no le tiramos un error 500 al administrador porque la BD ya se actualizó bien.
         try {
             if (justBecamePaid) {
                 await sendPaymentConfirmedEmail(order);
@@ -156,7 +149,6 @@ export async function PUT(
             } else if (emailToSend === "completed") {
                 await sendOrderCompletedEmail(order);
             } else if (emailToSend === "cancelled") {
-                // 🔥 AGREGADO: Ejecuta la función de enviar correo de cancelación
                 await sendOrderCancelledEmail(order);
             }
         } catch (emailError) {
