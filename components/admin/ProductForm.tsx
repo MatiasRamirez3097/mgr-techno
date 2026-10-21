@@ -420,6 +420,18 @@ export function ProductForm({
                 onSubmit={handleSubmit}
                 className="grid grid-cols-1 lg:grid-cols-3 gap-6"
             >
+                {form.status === "pending_review" && (
+                    <div className="lg:col-span-3 p-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 text-yellow-200 flex items-start gap-3">
+                        <span className="text-xl shrink-0">⚠️</span>
+                        <div className="text-sm">
+                            <strong className="font-semibold block text-yellow-300 mb-0.5">
+                                Producto en estado &ldquo;Pendiente de revisión&rdquo;
+                            </strong>
+                            Este producto fue ingresado como una <strong>carga rápida de compras</strong> o aún no fue completado. Se encuentra oculto de la tienda pública. Antes de cambiar su estado a <strong>Publicado</strong>, asegurate de cargar sus imágenes, descripción detallada y atributos.
+                        </div>
+                    </div>
+                )}
+
                 {/* Columna principal */}
                 <div className="lg:col-span-2 flex flex-col gap-6">
                     {/* Selector de Tipo de Producto */}

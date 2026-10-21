@@ -6,6 +6,7 @@ import { ProductSelector } from "./ProductSelector";
 import { SearchableEntitySelect } from "./SearchableEntitySelect";
 import { FormModal } from "./FormModal";
 import { SupplierForm } from "./SupplierForm";
+import { QuickProductModal } from "./QuickProductModal";
 import type { PurchaseDTO } from "@/types/shared/purchase";
 
 interface Props {
@@ -58,6 +59,11 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const [showSupplierModal, setShowSupplierModal] = useState(false);
     const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
     const [loadingSuppliers, setLoadingSuppliers] = useState(true);
+
+    // Carga rápida de productos
+    const [showQuickProductModal, setShowQuickProductModal] = useState(false);
+    const [quickProductTargetIndex, setQuickProductTargetIndex] = useState<number | null>(null);
+    const [quickProductInitialName, setQuickProductInitialName] = useState("");
 
     const isReadOnly =
         mode === "edit" &&
@@ -150,6 +156,44 @@ export function PurchaseForm({ purchase, mode }: Props) {
             ...prev,
             items: prev.items.filter((_, i) => i !== index),
         }));
+    };
+
+    const handleQuickProductCreated = (product: any, costPrice: number) => {
+        const newItem: PurchaseItem = {
+            productId: product.id,
+            name: product.name,
+            sku: product.sku || "",
+            availableStock: product.availableStock ?? 0,
+            quantity: 1,
+            unitCost: costPrice || 0,
+            taxRate: product.taxRate ?? 10.5,
+            image: product.image || "",
+        };
+
+        setForm((prev) => {
+            if (
+                quickProductTargetIndex !== null &&
+                prev.items[quickProductTargetIndex] !== undefined
+            ) {
+                const nextItems = [...prev.items];
+                nextItems[quickProductTargetIndex] = {
+                    ...nextItems[quickProductTargetIndex],
+                    ...newItem,
+                    quantity:
+                        nextItems[quickProductTargetIndex].quantity || 1,
+                };
+                return { ...prev, items: nextItems };
+            } else {
+                return {
+                    ...prev,
+                    items: [...prev.items, newItem],
+                };
+            }
+        });
+
+        setShowQuickProductModal(false);
+        setQuickProductTargetIndex(null);
+        setQuickProductInitialName("");
     };
 
     const formatCurrency = (value: number, curr = form.currency) => {
@@ -560,6 +604,13 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                         <ProductSelector
                                             statusAll
                                             excludeBundles
+                                            onQuickCreate={(searchedName) => {
+                                                setQuickProductInitialName(
+                                                    searchedName,
+                                                );
+                                                setQuickProductTargetIndex(i);
+                                                setShowQuickProductModal(true);
+                                            }}
                                             value={
                                                 item.productId
                                                     ? {
@@ -669,14 +720,29 @@ export function PurchaseForm({ purchase, mode }: Props) {
                         ))}
 
                         {!isReadOnly && (
-                            <button
-                                type="button"
-                                onClick={addItem}
-                                className="mt-3 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 rounded-lg transition-colors border border-gray-700 flex items-center gap-2"
-                            >
-                                <span>+</span>
-                                <span>Agregar producto</span>
-                            </button>
+                            <div className="mt-3 flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={addItem}
+                                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 rounded-lg transition-colors border border-gray-700 flex items-center gap-2"
+                                >
+                                    <span>+</span>
+                                    <span>Agregar producto</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setQuickProductInitialName("");
+                                        setQuickProductTargetIndex(null);
+                                        setShowQuickProductModal(true);
+                                    }}
+                                    className="px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-sm text-yellow-300 rounded-lg transition-colors border border-yellow-500/30 flex items-center gap-2"
+                                    title="Crear un producto básico y seleccionarlo automáticamente"
+                                >
+                                    <span>⚡</span>
+                                    <span>Carga rápida</span>
+                                </button>
+                            </div>
                         )}
                     </section>
 
@@ -837,6 +903,17 @@ export function PurchaseForm({ purchase, mode }: Props) {
                     />
                 </FormModal>
             )}
+
+            <QuickProductModal
+                isOpen={showQuickProductModal}
+                initialName={quickProductInitialName}
+                onClose={() => {
+                    setShowQuickProductModal(false);
+                    setQuickProductTargetIndex(null);
+                    setQuickProductInitialName("");
+                }}
+                onSuccess={handleQuickProductCreated}
+            />
         </>
     );
 }

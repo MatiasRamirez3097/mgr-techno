@@ -52,40 +52,42 @@ export const createProductSchema = z.object({
     mpn: z.string().optional().nullable(),
     gtin: z.string().optional().nullable(),
 
-    bundleItemsCount: z.number().int().min(0).optional().nullable(),
     bundleItems: z
         .array(
             z.object({
-                productId: z.string().min(1, "Producto requerido"),
-                quantity: z.number().int().min(1, "La cantidad debe ser al menos 1"),
+                productId: z.string(),
+                quantity: z.number().min(1),
             }),
         )
-        .optional()
-        .default([]),
+        .optional(),
+
     attributes: z
         .array(
             z.object({
-                key: z.string().min(1, "Clave de atributo requerida"),
-                label: z.string().min(1, "Etiqueta de atributo requerida"),
-                value: z.union([
-                    z.string(),
-                    z.number(),
-                    z.boolean(),
-                    z.array(z.string()),
-                ]),
-                unit: z.string().optional().default(""),
+                key: z.string(),
+                label: z.string(),
+                value: z.any(),
+                unit: z.string().optional(),
             }),
         )
+        .optional(),
+
+    hasFreeShipping: z.boolean().optional().default(false),
+    shippingSize: z
+        .enum(["small", "standard", "bulky"])
         .optional()
-        .default([]),
-    hasFreeShipping: z.boolean().optional().nullable(),
-    shippingSize: z.enum(["small", "standard", "bulky"]).optional().nullable(),
+        .default("standard"),
 });
 
-export const createProductSchemaRefined = createProductSchema.superRefine(
+export const productSchema = createProductSchema.superRefine(
     (data, ctx) => {
-        // 🔴 salePrice < regularPrice
-        if (data.salePrice != null && data.salePrice >= data.regularPrice) {
+        // 🔴 simple
+        if (
+            data.type === "simple" &&
+            data.salePrice &&
+            data.regularPrice &&
+            data.salePrice >= data.regularPrice
+        ) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 message: "El precio de oferta debe ser menor al precio regular",
@@ -113,4 +115,19 @@ export const createProductSchemaRefined = createProductSchema.superRefine(
     },
 );
 
+export const createProductSchemaRefined = productSchema;
+
 export type CreateProductDTO = z.infer<typeof createProductSchema>;
+
+export const createQuickProductSchema = z.object({
+    name: z.string().trim().min(1, "El nombre del producto es obligatorio"),
+    sku: z.string().trim().optional().nullable(),
+    brand: z.string().trim().optional().nullable(),
+    categoryId: z.string().trim().optional().nullable(),
+    hasSerialNumber: z.boolean().default(false),
+    taxRate: z.number().default(10.5),
+    costPrice: z.number().min(0).default(0),
+    regularPrice: z.number().min(0).optional(),
+});
+
+export type CreateQuickProductDTO = z.infer<typeof createQuickProductSchema>;

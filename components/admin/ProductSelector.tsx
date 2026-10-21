@@ -23,6 +23,7 @@ interface Props {
     excludeBundles?: boolean;
     disabled?: boolean;
     placeholder?: string;
+    onQuickCreate?: (name: string) => void;
     onChange: (product: ProductOption | null) => void;
 }
 
@@ -33,6 +34,7 @@ export function ProductSelector({
     statusAll = false,
     excludeBundles = false,
     placeholder = "Buscar producto por nombre, palabras clave o SKU...",
+    onQuickCreate,
 }: Props) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<ProductOption[]>([]);
@@ -98,16 +100,34 @@ export function ProductSelector({
                 if (!res.ok) throw new Error();
 
                 const data = await res.json();
-                setResults(Array.isArray(data) ? data : []);
+                const items: ProductOption[] = (data.products || []).map(
+                    (p: any) => ({
+                        id: p.id || p._id,
+                        name: p.name,
+                        sku: p.sku,
+                        type: p.type,
+                        status: p.status,
+                        regularPrice: p.regularPrice,
+                        salePrice: p.salePrice,
+                        effectivePrice: p.effectivePrice,
+                        availableStock: p.availableStock,
+                        taxRate: p.taxRate ?? 10.5,
+                        image: p.image || null,
+                    }),
+                );
+
+                setResults(items);
                 setOpen(true);
-            } catch (e: any) {
-                if (e.name !== "AbortError") {
+            } catch {
+                if (!controller.signal.aborted) {
                     setResults([]);
                 }
             } finally {
-                setLoading(false);
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
             }
-        }, 220);
+        }, 250);
 
         return () => {
             controller.abort();
@@ -115,78 +135,80 @@ export function ProductSelector({
         };
     }, [query, statusAll, excludeBundles]);
 
-    useEffect(() => {
-        if (!open || !listRef.current) return;
-        const activeEl = listRef.current.querySelector(
-            `[data-idx="${highlightedIndex}"]`,
-        ) as HTMLElement | null;
-        if (activeEl) {
-            activeEl.scrollIntoView({ block: "nearest" });
-        }
-    }, [highlightedIndex, open]);
-
     const handleSelect = (product: ProductOption) => {
         onChange(product);
         setQuery("");
+        setResults([]);
         setOpen(false);
         setIsSearching(false);
     };
 
     const handleStartEditing = () => {
-        if (disabled) return;
         setIsSearching(true);
         setQuery("");
-        setTimeout(() => {
-            inputRef.current?.focus();
-        }, 10);
+        setTimeout(() => inputRef.current?.focus(), 50);
     };
 
+    // Keyboard navigation
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Escape") {
-            e.preventDefault();
-            setOpen(false);
-            setIsSearching(false);
-            setQuery("");
+        if (!open || results.length === 0) {
+            if (e.key === "ArrowDown" && results.length > 0) {
+                setOpen(true);
+            }
             return;
         }
 
-        if (!open || results.length === 0) return;
-
         if (e.key === "ArrowDown") {
             e.preventDefault();
-            setHighlightedIndex((prev) =>
-                Math.min(prev + 1, results.length - 1),
-            );
+            setHighlightedIndex((prev) => {
+                const next = prev + 1 >= results.length ? 0 : prev + 1;
+                scrollIntoView(next);
+                return next;
+            });
         } else if (e.key === "ArrowUp") {
             e.preventDefault();
-            setHighlightedIndex((prev) => Math.max(prev - 1, 0));
+            setHighlightedIndex((prev) => {
+                const next = prev - 1 < 0 ? results.length - 1 : prev - 1;
+                scrollIntoView(next);
+                return next;
+            });
         } else if (e.key === "Enter") {
             e.preventDefault();
-            const chosen = results[highlightedIndex];
-            if (chosen) {
-                handleSelect(chosen);
+            if (results[highlightedIndex]) {
+                handleSelect(results[highlightedIndex]);
             }
+        } else if (e.key === "Escape") {
+            e.preventDefault();
+            setOpen(false);
+            setIsSearching(false);
+        }
+    };
+
+    const scrollIntoView = (index: number) => {
+        if (!listRef.current) return;
+        const el = listRef.current.querySelector(
+            `[data-idx="${index}"]`,
+        ) as HTMLElement;
+        if (el) {
+            el.scrollIntoView({ block: "nearest" });
         }
     };
 
     const getEffectivePrice = (p: ProductOption) => {
-        if (typeof p.effectivePrice === "number" && p.effectivePrice > 0) {
+        if (typeof p.effectivePrice === "number" && p.effectivePrice > 0)
             return p.effectivePrice;
-        }
-        if (typeof p.salePrice === "number" && p.salePrice > 0) {
+        if (typeof p.salePrice === "number" && p.salePrice > 0)
             return p.salePrice;
-        }
         return Number(p.regularPrice) || 0;
     };
 
-    const showSelectedCard = Boolean(value && value.id && !isSearching);
-
     return (
         <div ref={containerRef} className="relative w-full">
-            {showSelectedCard && value ? (
+            {value && !isSearching ? (
+                // Selected product display card
                 <div
-                    onClick={handleStartEditing}
-                    className={`w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-700 flex items-center justify-between gap-2 transition-colors ${
+                    onClick={disabled ? undefined : handleStartEditing}
+                    className={`flex items-center justify-between gap-3 p-2.5 rounded-xl border border-gray-700 bg-gray-800 text-sm transition-all ${
                         disabled
                             ? "opacity-60 cursor-not-allowed"
                             : "hover:border-brand cursor-pointer"
@@ -270,13 +292,14 @@ export function ProductSelector({
                                 : placeholder
                         }
                         onChange={(e) => setQuery(e.target.value)}
-                        onKeyDown={handleKeyDown}
                         onFocus={() => {
                             if (results.length > 0) setOpen(true);
                         }}
-                        className="w-full bg-gray-800 text-white text-sm rounded-lg pl-3 pr-9 py-2.5 border border-gray-700 focus:border-brand outline-none transition-colors"
+                        onKeyDown={handleKeyDown}
+                        className="w-full bg-gray-800 text-white text-sm rounded-xl px-4 py-2.5 pr-10 border border-gray-700 focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-colors"
                     />
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                         {loading ? (
                             <span className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin inline-block" />
                         ) : query ? (
@@ -361,27 +384,23 @@ export function ProductSelector({
                                                     SKU: {p.sku}
                                                 </span>
                                             )}
-                                            {p.type === "bundle" && (
-                                                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                                                    📦 Combo
+                                            {p.status && p.status !== "publish" && (
+                                                <span
+                                                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                                                        p.status === "pending_review"
+                                                            ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
+                                                            : "bg-gray-700 text-gray-300"
+                                                    }`}
+                                                >
+                                                    {p.status === "pending_review"
+                                                        ? "Revisión"
+                                                        : p.status}
                                                 </span>
                                             )}
-                                            {p.status &&
-                                                p.status !== "publish" && (
-                                                    <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                                                        {p.status ===
-                                                        "pending_review"
-                                                            ? "En revisión"
-                                                            : p.status ===
-                                                                "draft"
-                                                              ? "Borrador"
-                                                              : "Privado"}
-                                                    </span>
-                                                )}
                                         </div>
                                     </div>
 
-                                    <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                                    <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
                                         {effPrice > 0 && (
                                             <span className="text-xs font-semibold text-white">
                                                 $
@@ -406,9 +425,24 @@ export function ProductSelector({
                             );
                         })
                     ) : !loading && query.trim().length >= 2 ? (
-                        <div className="px-4 py-4 text-sm text-gray-400 text-center">
-                            No se encontraron productos que coincidan con &ldquo;
-                            {query.trim()}&rdquo;
+                        <div className="px-4 py-4 text-sm text-gray-400 text-center flex flex-col items-center gap-2">
+                            <span>
+                                No se encontraron productos que coincidan con &ldquo;
+                                {query.trim()}&rdquo;
+                            </span>
+                            {onQuickCreate && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setOpen(false);
+                                        onQuickCreate(query.trim());
+                                    }}
+                                    className="mt-1 px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500/30 text-xs font-semibold transition-colors flex items-center gap-1.5"
+                                >
+                                    <span>⚡</span>
+                                    <span>Crear &ldquo;{query.trim()}&rdquo; con carga rápida</span>
+                                </button>
+                            )}
                         </div>
                     ) : null}
                 </div>

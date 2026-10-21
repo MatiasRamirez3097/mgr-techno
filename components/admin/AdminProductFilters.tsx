@@ -74,6 +74,7 @@ export function AdminProductFilters({ categories }: Props) {
     const currentCategory = searchParams.get("category") || "";
     const currentStock = searchParams.get("stock") || "";
     const currentQuality = searchParams.get("quality") || "";
+    const currentStatus = searchParams.get("status") || "";
 
     const hierarchicalCategories = useMemo(
         () => buildCategoryHierarchy(categories),
@@ -98,12 +99,13 @@ export function AdminProductFilters({ categories }: Props) {
         params.delete("category");
         params.delete("stock");
         params.delete("quality");
+        params.delete("status");
         params.delete("page");
         router.replace(`${pathname}?${params.toString()}`);
     };
 
     const hasActiveFilters = Boolean(
-        currentCategory || currentStock || currentQuality,
+        currentCategory || currentStock || currentQuality || currentStatus,
     );
 
     return (
@@ -179,6 +181,34 @@ export function AdminProductFilters({ categories }: Props) {
                     <option value="missing_attributes">
                         Sin atributos de categoría
                     </option>
+                </select>
+            </div>
+
+            {/* Filtro por Estado */}
+            <div className="flex items-center gap-2">
+                <label
+                    htmlFor="status-filter"
+                    className="text-xs text-gray-400 shrink-0 font-medium"
+                >
+                    Estado:
+                </label>
+                <select
+                    id="status-filter"
+                    value={currentStatus}
+                    onChange={(e) => updateFilter("status", e.target.value)}
+                    className={`border text-xs rounded-xl px-3 py-2 outline-none transition-colors ${
+                        currentStatus === "pending_review"
+                            ? "bg-yellow-500/10 border-yellow-500/40 text-yellow-300 font-semibold"
+                            : "bg-gray-900 border-gray-800 text-gray-200 focus:border-brand focus:ring-1 focus:ring-brand"
+                    }`}
+                >
+                    <option value="">Todos los estados</option>
+                    <option value="publish">Publicados</option>
+                    <option value="pending_review">
+                        ⚠️ Pendientes de revisión
+                    </option>
+                    <option value="draft">Borradores</option>
+                    <option value="private">Privados</option>
                 </select>
             </div>
 
