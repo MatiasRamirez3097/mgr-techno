@@ -1,7 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
-import { getProductsById } from "@/lib/products/getProductsById";
-import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
-import { getBrandsBase } from "@/lib/brands/getBrandsBase";
+import { getProductsById } from "@/services/products/getProductsById";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
+import { getBrandsBase } from "@/services/brands/getBrandsBase";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";

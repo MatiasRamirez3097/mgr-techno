@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { CustomerModel } from "@/models/Customer";
 import { mapCustomerToDTO } from "@/lib/mappers/customerMapper";
-import { getCustomersBase } from "@/lib/customers/getCustomersBase";
+import { getCustomersBase } from "@/services/customers/getCustomersBase";
 import { IVA_CONDITIONS, IvaConditionCode } from "@/lib/afip/constants";
 
 function cleanString(v?: string) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createProduct } from "@/services/products/createProduct";
 import { createProductSchemaRefined } from "@/lib/validators/productSchema";
-import { generateUniqueProductSlug } from "@/lib/products/generateUniqueSlug";
+import { generateUniqueProductSlug } from "@/services/products/generateUniqueSlug";
 import { connectDB } from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {

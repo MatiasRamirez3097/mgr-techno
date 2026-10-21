@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
-import { getProductsBase } from "@/lib/products/getProductsBase";
-import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { getProductsBase } from "@/services/products/getProductsBase";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 
 // Eliminamos "force-dynamic" y lo reemplazamos por revalidación diaria
 export const revalidate = 86400;

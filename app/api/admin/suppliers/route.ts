@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { SupplierModel } from "@/models/Supplier";
 import { mapSupplierToDTO } from "@/lib/mappers/supplierMapper";
-import { getSuppliers } from "@/lib/suppliers/getSuppliers";
+import { getSuppliers } from "@/services/suppliers/getSuppliers";
 
 // 🧼 helpers
 function normalizeCUIT(cuit?: string) {

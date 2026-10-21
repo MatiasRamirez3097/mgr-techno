@@ -3,7 +3,7 @@ import { PurchaseForm } from "@/components/admin/PurchaseForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { PurchaseDTO } from "@/types/shared/purchase";
-import { getPurchasesById } from "@/lib/purchases/getPurchasesById";
+import { getPurchasesById } from "@/services/purchases/getPurchasesById";
 
 export const dynamic = "force-dynamic";
 

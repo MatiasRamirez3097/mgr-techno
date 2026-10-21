@@ -6,11 +6,11 @@ import { ProductModel } from "@/models";
 
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
 
-import { generateUniqueProductSlug } from "@/lib/products/generateUniqueSlug";
+import { generateUniqueProductSlug } from "@/services/products/generateUniqueSlug";
 import {
     calculateBundleMetrics,
     recalculateBundlesForProducts,
-} from "@/lib/products/recalculateBundlesStock";
+} from "@/services/products/recalculateBundlesStock";
 import { buildProductDerivedFields } from "./utils";
 import { revalidateProductsCache } from "./getCatalogProducts";
 

@@ -1,4 +1,4 @@
-import { updatePurchase } from "@/lib/purchases/updatePurchase";
+import { updatePurchase } from "@/services/purchases/updatePurchase";
 import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { z } from "zod";

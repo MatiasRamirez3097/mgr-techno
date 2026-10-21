@@ -7,7 +7,7 @@ import Image from "next/image";
 
 import { QuickEditProduct } from "./QuickEditProduct";
 import { getPricing } from "@/lib/pricing";
-import { getProductHealth } from "@/lib/products/getProductHealth";
+import { getProductHealth } from "@/services/products/getProductHealth";
 import type { ProductDTO } from "@/types/shared/product";
 import type { CategoryDTO } from "@/types/shared/category";
 import { getOptimizedImageUrl } from "@/lib/utils/imageUtils";

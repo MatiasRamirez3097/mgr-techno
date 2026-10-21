@@ -9,7 +9,7 @@ import type {
     CategoryDTO,
 } from "@/types/shared/category";
 import { HARDWARE_ATTRIBUTE_PRESETS } from "@/constants/hardwareAttributePresets";
-import { getEffectiveCategoryAttributeDefinitions } from "@/lib/categories/getEffectiveCategoryAttributes";
+import { getEffectiveCategoryAttributeDefinitions } from "@/services/categories/getEffectiveCategoryAttributes";
 
 interface Props {
     category?: any;

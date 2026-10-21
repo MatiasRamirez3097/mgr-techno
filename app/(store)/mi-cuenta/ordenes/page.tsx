@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models/Order";
-import { getOrders } from "@/lib/orders/getOrders";
+import { getOrders } from "@/services/orders/getOrders";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: { label: "Pendiente", color: "text-yellow-400 bg-yellow-400/10" },

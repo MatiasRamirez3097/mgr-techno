@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
-import { getCustomersWithOrders } from "@/lib/customers/getCustomers";
+import { getCustomersWithOrders } from "@/services/customers/getCustomers";
 
 interface Props {
     searchParams: Promise<{

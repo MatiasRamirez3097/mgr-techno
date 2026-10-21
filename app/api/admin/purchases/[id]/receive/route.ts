@@ -1,6 +1,6 @@
 // app/api/purchases/[id]/receive/route.ts
 
-import { receivePurchase } from "@/lib/purchases/receivePurchase";
+import { receivePurchase } from "@/services/purchases/receivePurchase";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 

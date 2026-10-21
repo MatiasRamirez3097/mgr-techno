@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
-import { getPurchases } from "@/lib/purchases/getPurchases";
+import { getPurchases } from "@/services/purchases/getPurchases";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     draft: {

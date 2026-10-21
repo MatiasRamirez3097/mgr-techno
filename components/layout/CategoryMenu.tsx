@@ -7,14 +7,14 @@ import type { CategoryDTO } from "@/types/shared/category";
 // Categorías que se agrupan bajo "Ofertas"
 
 //CONSTANTS
-import { MEGA_MENU_SLUGS, OFERTAS_SLUGS } from "@/lib/categories/constants";
+import { MEGA_MENU_SLUGS, OFERTAS_SLUGS } from "@/constants/categories";
 
 //HELPERS
 import {
     getChildren,
     getOfertaCategories,
     getRootCategories,
-} from "@/lib/categories/helpers";
+} from "@/services/categories/helpers";
 
 export function CategoryMenu({ categories }: { categories: CategoryDTO[] }) {
     const [openId, setOpenId] = useState<string | null>(null);

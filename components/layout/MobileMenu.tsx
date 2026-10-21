@@ -8,14 +8,14 @@ import type { CategoryDTO } from "@/types/shared/category";
 import { SearchBar } from "./SearchBar";
 
 //CONSTANTS
-import { MEGA_MENU_SLUGS, OFERTAS_SLUGS } from "@/lib/categories/constants";
+import { MEGA_MENU_SLUGS, OFERTAS_SLUGS } from "@/constants/categories";
 
 //HELPERS
 import {
     getChildren,
     getOfertaCategories,
     getRootCategories,
-} from "@/lib/categories/helpers";
+} from "@/services/categories/helpers";
 
 export function MobileMenu({ categories }: { categories: CategoryDTO[] }) {
     const [open, setOpen] = useState(false);

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { ProductsView } from "@/components/products/ProductsView";
-import { extractAttributeFiltersFromSearchParams } from "@/lib/products/extractAttributeFilters";
+import { extractAttributeFiltersFromSearchParams } from "@/services/products/extractAttributeFilters";
 
 import type { ProductOrderBy } from "@/types/shared/product";
 

@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 import { ProductsView } from "@/components/products/ProductsView";
 import { ProductsLoading } from "@/components/products/ProductsLoading";
-import { extractAttributeFiltersFromSearchParams } from "@/lib/products/extractAttributeFilters";
+import { extractAttributeFiltersFromSearchParams } from "@/services/products/extractAttributeFilters";
 
 import type { ProductOrderBy } from "@/types/shared/product";
 

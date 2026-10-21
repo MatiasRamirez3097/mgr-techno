@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import {
     getCustomersById,
     getCustomersByIdWIthOrders,
-} from "@/lib/customers/getCustomersById";
+} from "@/services/customers/getCustomersById";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {

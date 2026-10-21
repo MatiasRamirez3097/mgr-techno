@@ -7,7 +7,7 @@ import { connectDB } from "@/lib/mongodb";
 import { BrandModel } from "@/models/Brand";
 
 import { slugify } from "@/lib/utils/slugify";
-import { getBrandsBase } from "@/lib/brands/getBrandsBase";
+import { getBrandsBase } from "@/services/brands/getBrandsBase";
 import { mapBrandToDTO } from "@/lib/mappers/brandMapper";
 
 export const runtime = "nodejs";

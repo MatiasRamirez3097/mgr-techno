@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { allocateInventoryToOrder } from "@/lib/inventory/allocateInventoryToOrder";
+import { allocateInventoryToOrder } from "@/services/inventory/allocateInventoryToOrder";
 
 export async function POST(
     req: NextRequest,

@@ -1,4 +1,4 @@
-import { getPurchasesById } from "@/lib/purchases/getPurchasesById";
+import { getPurchasesById } from "@/services/purchases/getPurchasesById";
 import { ReceivePurchaseForm } from "@/components/admin/ReceivePurchaseForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";

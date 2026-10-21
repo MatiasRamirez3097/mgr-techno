@@ -1,4 +1,4 @@
-import { getOrdersById } from "@/lib/orders/getOrdersById";
+import { getOrdersById } from "@/services/orders/getOrdersById";
 import MetaPurchaseTracker from "@/components/MetaPurchaseTracker";
 import Link from "next/link";
 

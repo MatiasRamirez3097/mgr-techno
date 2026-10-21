@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { SearchBar } from "./SearchBar";
 import { CartButton } from "./CartButton";
 import { UserMenu } from "./UserMenu";

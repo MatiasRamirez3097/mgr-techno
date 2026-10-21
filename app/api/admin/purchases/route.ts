@@ -1,6 +1,6 @@
 // app/api/purchases/route.ts (Next.js) o similar
 
-import { createPurchase } from "@/lib/purchases/createPurchase";
+import { createPurchase } from "@/services/purchases/createPurchase";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 

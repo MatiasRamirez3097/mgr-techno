@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextRequest, NextResponse } from "next/server";
 import { createOrderSchema } from "@/lib/validators/createOrderSchema";
-import { createOrder } from "@/lib/orders/createOrder";
+import { createOrder } from "@/services/orders/createOrder";
 import bcrypt from "bcryptjs";
 // Importá tus modelos
 import { CustomerModel, UserModel } from "@/models";

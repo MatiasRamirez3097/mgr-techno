@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
-import { getCategoriesById } from "@/lib/categories/getCategoriesById";
-import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { getCategoriesById } from "@/services/categories/getCategoriesById";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { CategoryForm } from "@/components/admin/CategoryForm";
 import type { CategoryDTO } from "@/types/shared/category";
 import Link from "next/link";

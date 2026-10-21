@@ -11,8 +11,8 @@ import {
     sendOrderCancelledEmail,
 } from "@/lib/email";
 
-import { reverseInventoryAllocation } from "@/lib/inventory/reverseInventoryAllocation";
-import { updateProductStock } from "@/lib/products/updateProductStock";
+import { reverseInventoryAllocation } from "@/services/inventory/reverseInventoryAllocation";
+import { updateProductStock } from "@/services/products/updateProductStock";
 
 export async function PUT(
     req: NextRequest,

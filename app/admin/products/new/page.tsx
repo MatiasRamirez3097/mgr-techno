@@ -1,8 +1,8 @@
 import { connectDB } from "@/lib/mongodb";
 import { ProductForm } from "@/components/admin/ProductForm";
 import Link from "next/link";
-import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
-import { getBrandsBase } from "@/lib/brands/getBrandsBase";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
+import { getBrandsBase } from "@/services/brands/getBrandsBase";
 import type { CategoryDTO } from "@/types/shared/category";
 import type { BrandDTO } from "@/types/shared/brand";
 

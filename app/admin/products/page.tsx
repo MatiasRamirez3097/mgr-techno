@@ -7,7 +7,7 @@ import { AdminSearch } from "@/components/admin/AdminSearch";
 import { ProductsTable } from "@/components/admin/ProductsTable";
 
 import { getCatalogProducts } from "@/services/products/getCatalogProducts";
-import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { AdminProductFilters } from "@/components/admin/AdminProductFilters";
 
 interface Props {

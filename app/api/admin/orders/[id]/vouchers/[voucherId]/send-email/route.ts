@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import { sendFiscalInvoiceEmail } from "@/lib/email";
-import { getOrdersById } from "@/lib/orders/getOrdersById";
+import { getOrdersById } from "@/services/orders/getOrdersById";
 
 export async function POST(req: Request, context: any) {
     try {

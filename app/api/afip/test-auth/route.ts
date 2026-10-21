@@ -1,8 +1,8 @@
-import { getToken } from "@/lib/afip";
+import { getAuth } from "@/lib/afip/auth/getAuth";
 
 export async function GET() {
     try {
-        const data = await getToken();
+        const data = await getAuth("wsfe");
 
         return Response.json({
             success: true,

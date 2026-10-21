@@ -5,8 +5,8 @@ import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models";
 
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
-import { generateUniqueProductSlug } from "@/lib/products/generateUniqueSlug";
-import { calculateBundleMetrics } from "@/lib/products/recalculateBundlesStock";
+import { generateUniqueProductSlug } from "@/services/products/generateUniqueSlug";
+import { calculateBundleMetrics } from "@/services/products/recalculateBundlesStock";
 import { revalidateProductsCache } from "./getCatalogProducts";
 
 import type { CreateProductDTO } from "@/lib/validators/productSchema";

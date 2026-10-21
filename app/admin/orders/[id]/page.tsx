@@ -2,13 +2,13 @@ export const dynamic = "force-dynamic";
 
 import { connectDB } from "@/lib/mongodb";
 import { StatusSelector } from "@/components/admin/StatusSelector";
-import { ORDER_STATUSES, ORDER_PAYMENT_STATUSES } from "@/lib/constants/status";
+import { ORDER_STATUSES, ORDER_PAYMENT_STATUSES } from "@/constants/status";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getOrdersById } from "@/lib/orders/getOrdersById";
-import { getAllocationSuggestions } from "@/lib/inventory/getAllocationSuggestions";
+import { getOrdersById } from "@/services/orders/getOrdersById";
+import { getAllocationSuggestions } from "@/services/inventory/getAllocationSuggestions";
 import { InventoryAllocationSection } from "@/components/admin/InventoryAllocationSection";
-import { getOrderPaymentStatus } from "@/lib/orders/getOrderPaymentStatus";
+import { getOrderPaymentStatus } from "@/services/orders/getOrderPaymentStatus";
 import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
 import { GenerateVoucherButton } from "@/components/admin/documents/GenerateVoucherButton";
 import { VoucherCard } from "@/components/admin/VoucherCard";

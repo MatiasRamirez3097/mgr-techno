@@ -6,9 +6,9 @@ import {
     buildAdminProductSearchScoreStage,
 } from "@/lib/search/adminProductSearch";
 import { getCategoriesDescendants } from "@/services/categories/getCategoriesDescendants";
-import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { mapProductToDTO } from "@/lib/mappers/productMapper";
-import { getProductHealth } from "@/lib/products/getProductHealth";
+import { getProductHealth } from "@/services/products/getProductHealth";
 import type {
     AvailableAttributeFacet,
     ProductFilters,

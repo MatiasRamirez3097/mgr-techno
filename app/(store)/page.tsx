@@ -1,8 +1,8 @@
 export const revalidate = 43200;
 
-import { getProductsNew } from "@/lib/products/getProductsNew";
-import { getProductsOnSale } from "@/lib/products/getProductsOnSale";
-import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { getProductsNew } from "@/services/products/getProductsNew";
+import { getProductsOnSale } from "@/services/products/getProductsOnSale";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { ProductRow } from "@/components/home/ProductRow";

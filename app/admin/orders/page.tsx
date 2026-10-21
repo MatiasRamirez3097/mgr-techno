@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { OrderStatusFilter } from "@/components/admin/OrderStatusFilter";
-import { getOrders } from "@/lib/orders/getOrders";
+import { getOrders } from "@/services/orders/getOrders";
 import type { OrderDTO } from "@/types/shared/order";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { createAdminOrder } from "@/lib/orders/createAdminOrder";
-import { getCustomersById } from "@/lib/customers/getCustomersById";
+import { createAdminOrder } from "@/services/orders/createAdminOrder";
+import { getCustomersById } from "@/services/customers/getCustomersById";
 
 export async function POST(req: Request) {
     try {

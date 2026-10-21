@@ -1,5 +1,5 @@
 import { connectDB } from "@/lib/mongodb";
-import { getCategoriesBase } from "@/lib/categories/getCategoriesBase";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { CategoryForm } from "@/components/admin/CategoryForm";
 import Link from "next/link";
 
