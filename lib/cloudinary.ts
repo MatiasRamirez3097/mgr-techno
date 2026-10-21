@@ -108,3 +108,22 @@ export function getAuthenticatedPdfUrl(publicId: string) {
         },
     );
 }
+
+export function signUploadRequest(paramsToSign: Record<string, any>) {
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+
+    if (!apiSecret || !apiKey || !cloudName) {
+        throw new Error("Missing Cloudinary environment configuration");
+    }
+
+    const signature = cloudinary.utils.api_sign_request(paramsToSign, apiSecret);
+
+    return {
+        signature,
+        apiKey,
+        cloudName,
+        timestamp: paramsToSign.timestamp,
+    };
+}
