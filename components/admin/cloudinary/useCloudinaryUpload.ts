@@ -178,13 +178,18 @@ export function useCloudinaryUpload({
             setError(null);
 
             try {
-                const configRes = await fetch("/api/admin/cloudinary/sign", {
-                    method: "GET",
+                // Solicitar timestamp firmado para la Media Library
+                const timestamp = Math.floor(Date.now() / 1000);
+                const signRes = await fetch("/api/admin/cloudinary/sign", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ paramsToSign: { timestamp } }),
                 });
-                if (!configRes.ok) {
-                    throw new Error("No se pudo obtener la configuración de Cloudinary");
+
+                if (!signRes.ok) {
+                    throw new Error("No se pudo autenticar la Biblioteca de Cloudinary");
                 }
-                const { cloudName, apiKey } = await configRes.json();
+                const { signature, apiKey, cloudName } = await signRes.json();
 
                 const cld = await loadCloudinaryMediaLibrary();
 
@@ -192,6 +197,8 @@ export function useCloudinaryUpload({
                     {
                         cloud_name: cloudName,
                         api_key: apiKey,
+                        timestamp,
+                        signature,
                         multiple: customOptions.multiple ?? true,
                         remove_header: false,
                         max_files: 20,
