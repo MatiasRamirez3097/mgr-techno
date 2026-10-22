@@ -103,6 +103,8 @@ export async function POST(req: NextRequest) {
         let finalCustomerId = session?.customerId || null;
 
         // LÓGICA PARA INVITADOS O USUARIOS SIN SESIÓN
+        // Decisión de negocio: si el email ya tiene cuenta, el pedido se asocia a
+        // ese cliente sin pedir login (no se modifican sus datos ni se exponen).
         if (!session) {
             // 1. Buscar o Crear el CUSTOMER (Perfil de facturación)
             let customer = await CustomerModel.findOne({ email: emailToUse });
