@@ -105,7 +105,6 @@ export async function soapRequest({
                         </${env ? env + ":" : ""}${operation}>
                     </soapenv:Body>
                 </soapenv:Envelope>`;
-    console.log("soap>>>", soap);
     const headers = { "Content-Type": "text/xml; charset=utf-8" };
     const xml = useLegacySSL
         ? await httpsPost(url, soap, headers) // https nativo con agente legacy

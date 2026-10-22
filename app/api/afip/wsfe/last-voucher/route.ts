@@ -4,6 +4,8 @@ import { getAuth } from "@/lib/afip/auth/getAuth";
 
 import { soapRequest } from "@/lib/afip/client";
 
+import { AFIP_POINT_OF_SALE } from "@/lib/afip/constants";
+
 //const WSFE_URL =
 //    process.env.AFIP_ENV === "production"
 //        ? "https://servicios1.afip.gov.ar/wsfev1/service.asmx"
@@ -25,7 +27,7 @@ export async function GET() {
                     sign: sign,
                     cuit: process.env.AFIP_CUIT,
                 },
-                payload: `<PtoVta>5</PtoVta>
+                payload: `<PtoVta>${AFIP_POINT_OF_SALE}</PtoVta>
                 <CbteTipo>6</CbteTipo>`,
             },
         });
