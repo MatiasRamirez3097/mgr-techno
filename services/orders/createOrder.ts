@@ -20,6 +20,7 @@ import {
     sumPaidPayments,
 } from "./recalculateOrderPaymentStatus";
 import { applyPaymentSurcharge } from "@/lib/pricing";
+import { BusinessError } from "@/lib/errors/BusinessError";
 import {
     getShippingModifier,
     LOCAL_SHIPPING_COST,
@@ -100,11 +101,11 @@ export async function createOrder(data: unknown) {
                 const product = products.find((p) => p.id === item.productId);
 
                 if (!product) {
-                    throw new Error("Producto no encontrado");
+                    throw new BusinessError("Producto no encontrado");
                 }
 
                 if (product.status !== "publish") {
-                    throw new Error(
+                    throw new BusinessError(
                         `El producto ${product.name} no está disponible para la venta`,
                     );
                 }
@@ -113,7 +114,7 @@ export async function createOrder(data: unknown) {
                     product.availableStock == null ||
                     product.availableStock < item.quantity
                 ) {
-                    throw new Error(`Sin stock para ${product.name}`);
+                    throw new BusinessError(`Sin stock para ${product.name}`);
                 }
 
                 // Misma función que usa el checkout para mostrar el precio
@@ -297,7 +298,11 @@ export async function createOrder(data: unknown) {
         // EMAIL
         // =====================================
 
-        await sendOrderConfirmationEmail(mapOrderToDTO(createdOrder));
+        // El pedido ya está confirmado: si falla el email no se corta el
+        // checkout (si no, el cliente reintentaría y se duplicaría el pedido)
+        sendOrderConfirmationEmail(mapOrderToDTO(createdOrder)).catch((err) => {
+            console.error("Order confirmation email failed", err);
+        });
 
         // =====================================
         // DISCORD

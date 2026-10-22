@@ -1,3 +1,4 @@
+import { BusinessError } from "@/lib/errors/BusinessError";
 import { ProductModel } from "@/models";
 import { recalculateBundlesForProducts } from "./recalculateBundlesStock";
 
@@ -19,7 +20,7 @@ async function applySingleProductStockDelta(
 
         const currentAvailable = Number(current.availableStock) || 0;
         if (currentAvailable + availableDelta < 0) {
-            throw new Error(
+            throw new BusinessError(
                 `Stock insuficiente para "${current.name}" (disponible: ${currentAvailable}, requerido: ${Math.abs(availableDelta)})`,
             );
         }
