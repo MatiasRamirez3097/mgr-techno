@@ -115,7 +115,6 @@ export async function convertQuoteToOrder(quoteId: string): Promise<{
             items: orderItems,
             payments: [],
             shippingMethod: { method: "local_pickup", cost: 0 },
-            document: { date: new Date().toISOString(), type: "generic" },
             billing: {
                 firstName: billing.firstName || customer.firstName || "",
                 lastName: billing.lastName || customer.lastName || "",

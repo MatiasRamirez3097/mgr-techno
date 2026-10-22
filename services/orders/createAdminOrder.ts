@@ -10,6 +10,7 @@ import {
     computePaymentStatus,
     sumPaidPayments,
 } from "./recalculateOrderPaymentStatus";
+import { parseOrderDate } from "@/lib/utils/orderDate";
 
 // IVA de ventas por defecto (mismo criterio que createOrder y OrderItem)
 const DEFAULT_TAX_RATE = 10.5;
@@ -31,6 +32,9 @@ export async function createAdminOrder(
     if (!result.success) {
         throw new Error(result.error.message);
     }
+
+    // Undefined = hoy (Mongoose completa createdAt con la hora actual)
+    const createdAt = parseOrderDate(result.data.orderDate);
 
     const session = await mongoose.startSession();
 
@@ -223,7 +227,11 @@ export async function createAdminOrder(
                     total,
                     paidAmount,
                     remainingAmount: Math.max(0, total - paidAmount),
-                    datePaid: paymentStatus === "paid" ? new Date() : null,
+                    datePaid:
+                        paymentStatus === "paid"
+                            ? (createdAt ?? new Date())
+                            : null,
+                    ...(createdAt && { createdAt }),
                 },
             ],
             { session },

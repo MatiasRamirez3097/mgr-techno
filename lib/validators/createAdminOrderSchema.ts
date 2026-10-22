@@ -80,12 +80,8 @@ export const createAdminOrderSchema = z.object({
         cost: z.number().min(0),
     }),
 
-    document: z.object({
-        date: z.string(),
-        type: z.enum(["generic", "invoice"]),
-        number: z.string().optional(),
-        fileUrl: z.string().optional(),
-    }),
+    // Fecha del pedido (YYYY-MM-DD) para cargar ventas pasadas; ver parseOrderDate
+    orderDate: z.string().optional(),
     billing: z.object({
         firstName: z.string(),
         lastName: z.string(),
