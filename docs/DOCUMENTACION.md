@@ -1,7 +1,7 @@
 # MGR Techno — Documentación técnica y funcional
 
 > Documento base para entender el sistema y ampliar funcionalidades.
-> Verificado contra el código de la rama `main` el 2026-10-22. Donde el código tiene una incoherencia o un defecto, se indica como **⚠ Observación** y se concentra en la sección 12.
+> Verificado contra el código el 2026-10-22 (incluye las correcciones de la rama `fix/deuda-tecnica-12`). Donde el código tiene una incoherencia o un defecto, se indica como **⚠ Observación** y se concentra en la sección 12.
 > Convenciones del código: nombres de variables y módulos en inglés; mensajes, comentarios y UI en español (Argentina).
 
 ## Índice
@@ -83,6 +83,7 @@ Más: feeds XML para comparadores de precios, webhooks de Mercado Pago y emisió
 - RF-27 Comparador de precios y stock en distribuidores (Elit y NewBytes activos; Invid implementado pero deshabilitado).
 - RF-28 Dashboard de ventas e ingresos.
 - RF-29 Gestión de clientes y proveedores (autocompletado de proveedor desde el padrón AFIP).
+- RF-31 Configurar desde el panel el recargo por pago con Mercado Pago (`/admin/settings`).
 
 **Marketing / SEO**
 - RF-30 Feeds XML (Google Merchant, HardGamers, BuscaHard, BestGaming), sitemap, robots, Schema.org, Meta Pixel.
@@ -140,12 +141,14 @@ Orden de evaluación:
 - El JWT/sesión lleva `customerId`, `billing`, `tipoDocumento`, `numeroDocumento`, `role`.
 - Modelo: `User` (login) 1:1 `Customer` (datos de facturación). El rol por defecto es `customer`; los administradores se asignan manualmente en DB.
 
-### 3.3 Convenciones de código
+### 3.4 Convenciones de código
 - Cada handler/servicio llama a `connectDB()` (conexión cacheada en `global.mongoose`).
 - Operaciones multi-documento: `mongoose.startSession()` + `withTransaction` (o `startTransaction` manual). Pasar `session` a **todas** las consultas internas.
 - Los modelos se registran con `models.X || model("X", Schema)` (compatible con HMR). `models/index.ts` reexporta Brand, Category, Customer, InventoryItem, Order, Product, User, Quote, Purchase, Supplier.
 - Alias `@/*` → raíz del repo.
 - Después de mutar productos: `revalidateProductsCache()` (`services/products/getCatalogProducts.ts`).
+- Configuración editable de la tienda: `getStoreSettings()` en servidor (lectura directa, sin caché) y `useStoreSettings()` en componentes cliente (contexto `StoreSettingsProvider`, montado en los layouts de tienda y admin).
+- Reglas de negocio puras compartidas entre front y back viven en `lib/` (`pricing.ts`, `shipping/shippingRules.ts`) y tienen tests en `tests/`.
 
 ---
 
@@ -192,7 +195,7 @@ erDiagram
 | `isAvailable` | Boolean | `availableStock > 0` (se recalcula en cada movimiento) |
 | `bundleItems[]` | `{productId, quantity≥1}` | Sólo combos; no se permite anidar combos |
 | `bundleItemsCount` | Number | Suma de cantidades de componentes |
-| `isOutlet` | Boolean | Versión con falla/usado; se excluye de feeds XML |
+| `isOutlet` | Boolean | Versión con falla/usado; en los feeds XML sale como `refurbished` |
 | `hasFreeShipping` | Boolean | Participa de la regla de envío gratis (5.4) |
 | `shippingSize` | `small` \| `standard` \| `bulky` | Regla de envío gratis mixto |
 | `weight`, `dimensions{length,width,height}` | Number | Base para cotizar envío; en combos se derivan de componentes si faltan |
@@ -205,7 +208,7 @@ erDiagram
 | `featured` | Boolean | |
 
 Índices: texto en `name`+`sku`; `attributes.key+value`; `bundleItems.productId`; compuesto `status+isAvailable+categories+createdAt`.
-**⚠** Los campos `searchKey`/`searchTerms` usados por `lib/search/*` y `scripts/generateSearchTerms.ts` **no existen** en este esquema.
+La búsqueda de la tienda (`searchProducts`, `getCatalogProducts`) usa **Atlas Search** con el índice `search_products` (debe existir en el cluster) y `lib/search/normalize.ts`; la del admin usa regex (`lib/search/adminProductSearch.ts`).
 
 ### 4.3 Category, Brand
 - **Category**: `name`, `slug`, `parentId` (árbol), `image`, `count`, `menuOrder` (default 999), `wooId` (legado), `syncedAt`, `attributeDefinitions[]` `{key,label,type: select|multiselect|number|boolean|text, options[], unit, required, filterable}`. Los atributos se **heredan** por la jerarquía (`services/categories/getEffectiveCategoryAttributes.ts`).
@@ -236,8 +239,7 @@ erDiagram
 
 **OrderItem** (embebido): `productId`, `name`, `quantity`, `unitPrice` (con IVA, snapshot), `subtotal`, `taxRate` (def. 10,5), `total`, `isBundle`, `bundleComponents[]{productId,name,quantityPerBundle,totalQuantity}` (snapshot de componentes), `allocations[]`.
 **OrderItemAllocation**: `inventoryItemId`, `quantity`, `componentProductId`/`componentName` (si el ítem es combo/PC armada).
-**Payment** (embebido, con `_id`): `method` (`cash|bank_transfer|debit_card|credit_card|mercadopago|other`), `status` (`pending|paid|failed|refunded`, def. `paid`), `amount`, `reference`, `paidAt`, `notes`.
-**⚠** `createOrderSchema` acepta además el método `cod`, que no existe en el enum de `Payment`.
+**Payment** (embebido, con `_id`): `method` (`cash|bank_transfer|debit_card|credit_card|mercadopago|other`), `status` (`pending|paid|failed|refunded`, def. `paid`), `amount`, `reference`, `paidAt`, `notes`. Validación de entrada: `lib/validators/orderPaymentSchema.ts`.
 
 **Voucher** (embebido): `type` (`non_fiscal_receipt|fiscal_invoice|credit_note|debit_note`), `number`, `status` (`draft|issued|cancelled|replaced`), `generatedAt`, `url`, `publicId` (Cloudinary), `fiscalData`, `relatedVoucherId`, `relatedVoucherType`, `cancelledAt`, `cancelReason`. `fiscalData` es obligatorio si el tipo no es recibo y el estado es `issued`.
 **FiscalData**: `cae`, `caeExpirationDate`, `fiscalNumber`, `fiscalPointOfSale`, `fiscalType` (`A|B`), `afipAuthorizedAt`, `qrData`.
@@ -247,7 +249,7 @@ Unidad física de stock. Dos modos:
 - **Serializado** (`product.hasSerialNumber`): 1 documento = 1 unidad con `serialNumber` (único, sparse, obligatorio por validador). `quantity = remainingQuantity = 1`.
 - **Por lote**: 1 documento con `quantity` y `remainingQuantity` (se decrementa al vender).
 
-Campos: `productId`, `status` (`available|reserved|sold|defective`), `purchaseId`, `saleId` (apunta al pedido; el `ref` dice `"Sale"` pero el id guardado es el de la orden), `location` (def. `main`), `unitCost` (costo de compra), `defectDescription` (Outlet).
+Campos: `productId`, `status` (`available|reserved|sold|defective`), `purchaseId`, `saleId` (ref `Order`: pedido al que se vendió), `location` (def. `main`), `unitCost` (costo de compra), `defectDescription` (Outlet).
 Índices por `productId+status` y `productId+status+createdAt` (para FIFO).
 
 ### 4.7 Purchase y Supplier
@@ -259,14 +261,15 @@ Campos: `productId`, `status` (`available|reserved|sold|defective`), `purchaseId
 
 ### 4.9 Auxiliares
 - **AfipToken**: `ws` (único), `token`, `sign`, `expirationTime` — caché del Ticket de Acceso.
-- **Counter**: `_id` string + `seq`. Hoy sólo numera documentos genéricos de compras.
+- **Counter**: `_id` string + `seq`. Secuencias atómicas (`lib/counters/getNextGenericNumber.ts` → `getNextSequence`): `purchase_generic`, `quote_1`, `voucher_REC|FAC|NC|ND`.
+- **StoreSettings**: documento único `_id: "store"` con `mercadoPagoSurchargePercent` (def. 25, 0–100). Se edita en `/admin/settings`.
 
 ---
 
 ## 5. Reglas de negocio transversales
 
 ### 5.1 Precios e IVA
-- `lib/pricing.ts` centraliza: `getFinalPrice` (oferta vs regular), `getListPrice(price, markup=0.25)` (precio "lista" = +25 %), `getPriceNoTax(price, 1.21)`, `getPricing`.
+- `lib/pricing.ts` centraliza: `getFinalPrice` (oferta vs regular), `applyPaymentSurcharge(price, surchargePercent)` (precio "de lista" / con tarjeta, redondeado a entero), `getPriceNoTax(price, 1.21)`, `getPricing(p, surchargePercent)`. El porcentaje vigente sale de `StoreSettings` (por defecto 25 %).
 - Todos los precios de venta **incluyen IVA**. El IVA de un ítem es `subtotal − subtotal/(1+taxRate/100)`.
 - Tasas habituales: 10,5 % (default de pedidos, compras y presupuestos) y 21 % (factura fiscal, envío).
 
@@ -293,8 +296,8 @@ Campos: `productId`, `status` (`available|reserved|sold|defective`), `purchaseId
 
 ### 5.4 Envío
 - `quoteShipping` (`POST /api/shipping`): arma bultos con peso/dimensiones/valor y cotiza en Andreani o Vía Cargo; retiro local = 0.
-- En `createOrder` el backend **fuerza** `local_pickup = 0` y `local_shipping = 5000`, y para Andreani/Vía Cargo acepta el costo del front (⚠ 12.2).
-- **Regla de envío gratis** (sobre productos reales de la DB):
+- El front envía el **costo base**. `app/api/checkout` **recotiza** Andreani/Vía Cargo en el servidor (si la cotización falla responde 503 y no crea el pedido) y `createOrder` fuerza `local_pickup = 0` y `local_shipping = LOCAL_SHIPPING_COST (5000)`.
+- **Regla de envío gratis** (`lib/shipping/getShippingModifier`, usada por el checkout y por `createOrder` sobre productos reales de la DB):
   - Algún producto con `hasFreeShipping`:
     - todos gratis → costo × 0;
     - entre los no gratis hay alguno `bulky` → × 1;
@@ -303,20 +306,21 @@ Campos: `productId`, `status` (`available|reserved|sold|defective`), `purchaseId
   - Ninguno con envío gratis → × 1.
 
 ### 5.5 Recargo de Mercado Pago
-`createOrder`: si algún pago es `mercadopago`, `unitPrice = effectivePrice × 1,10`. (El front muestra ×1,25 — ver 12.1.)
+Si algún pago es `mercadopago`, `createOrder` cobra `unitPrice = applyPaymentSurcharge(effectivePrice, mercadoPagoSurchargePercent)`: la misma función y el mismo porcentaje que usa el checkout para mostrar el precio, así que lo que ve el cliente coincide con lo que se cobra.
 
 ### 5.6 Pagos
-- En pedidos `ecommerce` todo pago se fuerza a `pending`; sólo el webhook de MP o el admin lo confirman.
-- `paymentStatus`: `paidAmount = Σ pagos pagados`; `0 → pending`, `< total → partial`, `≥ total → paid` (`recalculateOrderPaymentStatus`, `getOrderPaymentStatus`).
+- En pedidos `ecommerce` todo pago se fuerza a `pending` y, si es un único pago, su monto se reemplaza por el total calculado en el servidor; sólo el webhook de MP o el admin lo confirman.
+- `services/orders/recalculateOrderPaymentStatus.ts` es la regla única: `computePaymentStatus(total, paidAmount)` (`0 → pending`, `< total → partial`, `≥ total → paid`) y `recalculateOrderPaymentStatus(order)`, que además actualiza `paidAmount`, `remainingAmount` y `datePaid`. La usan `createOrder`, `createAdminOrder`, el webhook y los endpoints de pagos.
+- ⚠ La ficha de pedido del admin muestra el estado derivado de los pagos (`getOrderPaymentStatus`), que puede diferir de `order.paymentStatus` si se marcó "pagado" a mano sin registrar un pago (ver 12.2.1).
 
 ### 5.7 Identificadores y numeración
 
 | Documento | Formato | Origen |
 |---|---|---|
 | Pedido | `_id` de Mongo (se muestra el id completo) | `createOrder` |
-| Presupuesto | `PRE-0001-00000001` | último número existente + 1 (`generateQuoteNumber`) |
-| Comprobante interno | `REC-` / `FAC-` / `NC-` / `ND-` + `Date.now()` | `generateVoucherNumber` |
-| Factura fiscal | `00005-0000NNNN` (punto de venta 5) | último autorizado en AFIP + 1 |
+| Presupuesto | `PRE-0001-00000001` | `Counter` `quote_1` (la primera vez continúa desde el último número existente) |
+| Comprobante interno | `REC-` / `FAC-` / `NC-` / `ND-` + 8 dígitos | `Counter` `voucher_<prefijo>` (los anteriores conservan el formato `PREFIJO-timestamp`) |
+| Factura fiscal | `PPPPP-NNNNNNNN` (punto de venta `AFIP_POINT_OF_SALE`, def. 5) | último autorizado en AFIP + 1 |
 | Documento genérico de compra | `CMP-00000001` | `Counter` |
 
 ---
@@ -325,14 +329,18 @@ Campos: `productId`, `status` (`available|reserved|sold|defective`), `purchaseId
 
 ### 6.1 Compra en la tienda
 1. Carrito (Zustand `mgr-cart`) con tope en `availableStock`.
-2. Checkout: datos de facturación/envío → `POST /api/shipping` para cotizar.
+2. Checkout: datos de facturación/envío → `POST /api/shipping` para cotizar (sólo para mostrar).
 3. `POST /api/checkout`:
-   1. Sin sesión: busca/crea `Customer` y `User` (contraseña aleatoria) por email.
-   2. Valida con `createOrderSchema`.
-   3. `createOrder` (transacción): relee productos → verifica `status = publish` y stock → aplica reglas 5.4 y 5.5 → crea `Order` (`status: pending`) → reserva stock (5.2).
-   4. Fuera de la transacción: email de confirmación (`sendOrderConfirmationEmail`) y notificación a Discord (no bloqueante).
-4. Si el pago es Mercado Pago: crea una `Preference` con `external_reference = orderId`; el front redirige al `init_point`. Si es transferencia: se muestran datos bancarios (`BANK_*`) en `/checkout/success` y por email.
-5. **Webhook** (`POST /api/webhooks/mercadopago`): para `topic = payment` consulta `Payment.get(id)` a MP; si `approved`, marca `paymentStatus = paid`, `paidAmount = total` y envía "pago confirmado". Responde 200 siempre.
+   1. Si el envío es Andreani/Vía Cargo, lo **recotiza en el servidor**; si falla → 503.
+   2. Sin sesión: busca/crea `Customer` y `User` (contraseña aleatoria) por email. Si el email ya tiene cuenta, el pedido se asocia a ese cliente sin pedir login (decisión de negocio; no se modifican sus datos).
+   3. Valida con `createOrderSchema`.
+   4. `createOrder` (transacción): relee productos → verifica `status = publish` y stock → aplica reglas 5.4 y 5.5 → crea `Order` (`status: pending`) → reserva stock (5.2).
+   5. Fuera de la transacción: email de confirmación (`sendOrderConfirmationEmail`) y notificación a Discord (no bloqueante).
+4. Si el pago es Mercado Pago: crea una `Preference` con `external_reference = orderId` y `unit_price = total`; el front redirige al `init_point`. Si es transferencia: se muestran datos bancarios (`BANK_*`) en `/checkout/success` y por email.
+5. **Webhook** (`POST /api/webhooks/mercadopago`):
+   1. Valida `x-signature` con `MP_WEBHOOK_SECRET` (`lib/mercadopago/verifyWebhookSignature.ts`); firma inválida → 401. Sin la variable, procesa igual y registra una advertencia.
+   2. Para `topic = payment` consulta `Payment.get(id)` a MP; si `approved` y `transaction_amount ≥ total` (tolerancia $1), marca el pago MP como `paid` (`paidAt`, `reference`), recalcula el estado del pedido y lo pasa de `pending` a `processing`.
+   3. Envía "pago confirmado". Ante errores responde 200 para evitar reintentos infinitos.
 
 ### 6.2 Ciclo de vida del pedido (`PUT /api/admin/orders/[id]`)
 
@@ -345,11 +353,11 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
 - Marcar pagado un pedido `pending` lo pasa a `processing`.
 - **Cancelar**: con `inventoryAllocatedAt` → `reverseInventoryAllocation`; sin asignación → libera reserva (usa `bundleComponents` del snapshot). **Descancelar** vuelve a reservar.
 - Emails por transición: pago confirmado, enviado, listo para retirar, completado, cancelado (fallos de email se registran y no abortan).
-- Pagos parciales: `POST /payments`, `PATCH|DELETE /payments/[paymentId]`.
-- ⚠ El panel usa `constants/status.ts`, cuya lista de estados de pago omite `partial`.
+- Pagos parciales: `POST /payments`, `PATCH|DELETE /payments/[paymentId]`. Los tres validan y recalculan el estado; POST y PATCH envían "pago confirmado" si el pedido queda pagado.
+- Etiquetas de estados en `constants/status.ts`.
 
 ### 6.3 Alta manual de pedido (admin)
-`POST /api/admin/orders` toma `customerId`, completa email y facturación desde el cliente y llama `createAdminOrder` (admite "PC Armada" con `ensureCustomPcProduct`, pagos ya cobrados y componentes custom). Ver defectos en 12.4.
+`POST /api/admin/orders` toma `customerId`, completa email y facturación desde el cliente y llama `createAdminOrder` (transacción): admite "PC Armada" con `ensureCustomPcProduct`, pagos ya cobrados y componentes custom; IVA por ítem (el ingresado, o el del producto, o 10,5 %); calcula `subtotal`, `taxTotal`, `total`, `paidAmount`, `remainingAmount`, `datePaid`; reserva stock salvo que se cree cancelado. Acepta un hook `afterCreate(order, session)` que corre dentro de la transacción (lo usa la conversión de presupuestos). Métodos de envío: los del modelo (`local_pickup`, `local_shipping`, `andreani`, `viacargo`).
 
 ### 6.4 Asignación de inventario (`POST /api/admin/orders/[id]/allocate`)
 - Precondiciones: `paymentStatus = paid` y `inventoryAllocatedAt` vacío.
@@ -379,7 +387,10 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
 - Alta/edición (`createQuote`/`updateQuote`): el admin ingresa el precio **con IVA**; `calculateQuoteTotals` discrimina neto (`subtotal`), `ivaTotal`, `discountTotal` y `total` (redondeo a 2 decimales).
 - Ítems de tres orígenes: `internal` (catálogo), `distributor` (resultado del comparador, con `costPrice`), `manual`.
 - PDF vía Puppeteer (`generateQuotePdf`, `GET /quotes/[id]/pdf`).
-- `POST /quotes/[id]/convert` (`convertQuoteToOrder`) → `status = converted`, guarda `orderId`. ⚠ 12.4.
+- `POST /quotes/[id]/convert` (`convertQuoteToOrder`):
+  - Requisitos: estado distinto de `rejected`/`expired`, todos los ítems con `productId` (los de distribuidor o manuales deben darse de alta antes con alta rápida), cliente registrado (`customerId` o email existente) con número de documento.
+  - Arma un pedido manual (retiro en local, sin pagos, precios con IVA y descuento por línea; USD × `exchangeRate`) y lo crea con `createAdminOrder`, que reserva stock.
+  - En la misma transacción marca el presupuesto `converted` con su `orderId`. Si ya tenía `orderId`, devuelve ese pedido (idempotente).
 
 ### 6.7 Comprobantes y facturación AFIP
 `POST /api/admin/orders/[id]/vouchers/generate` → `generateVoucher`:
@@ -387,7 +398,8 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
 2. Crea el voucher `draft` dentro del pedido.
 3. **Fiscal** (`generateFiscalVoucher`, tipo A o B):
    - `getAuth()` obtiene el Ticket de Acceso desde `AfipToken` (renueva ~5 min antes de vencer); si no hay, firma un TRA (PKCS#7) con el certificado y llama a WSAA.
-   - `getLastVoucher` → siguiente número; `buildInvoiceRequest` + `buildIvaBreakdown` agrupan IVA por alícuota (el envío entra como ítem al 21 %); `createVoucher` ejecuta `FECAESolicitar` (punto de venta **5**).
+   - `getLastVoucher` → siguiente número; `buildInvoiceRequest` + `buildIvaBreakdown` agrupan IVA por alícuota (el envío entra como ítem al 21 %); `createVoucher` ejecuta `FECAESolicitar` con el punto de venta del request (`AFIP_POINT_OF_SALE`, def. 5).
+   - El documento del cliente se convierte con `getAfipDocument` (`lib/afip/utils/mapDocumentType.ts`): DNI 96, CUIT 80, CUIL 86; sin número o tipo desconocido → Consumidor Final 99 con DocNro 0. La factura y el QR usan el mismo resultado.
    - Genera QR (`lib/afip/qr`) y guarda `fiscalData`.
 4. Renderiza PDF (template HTML + Puppeteer), lo sube a Cloudinary (`uploadVoucherPdf`) y pasa el voucher a `issued`.
 5. Si falla tras obtener CAE → queda `issued` (se puede regenerar el PDF con `.../regenerate`); si falla antes → `cancelled`.
@@ -397,7 +409,7 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
 `GET /api/admin/distributors/search` → `getDistributorProducts` consulta Elit y NewBytes en paralelo (Invid está implementado en el servicio pero el endpoint lo excluye a propósito), normaliza a `{id, distributor, sku, name, price, stock, image, link}` usando `CATEGORY_MAP` (mapa categoría interna → categoría de cada distribuidor). Los resultados se pueden agregar como ítems de presupuesto.
 
 ### 6.9 Feeds y SEO
-`app/{google-merchant-feed,hardgamers,buscahard,bestgaming}.xml/route.ts` generan RSS con `g:*` (id, gtin, título, descripción, imagen optimizada, condición `new`/`refurbished`, disponibilidad, precio y precio de oferta, marca, mpn) para productos `publish` + `isAvailable`. `revalidate = 3600`. `sitemap.ts` cubre productos y categorías.
+`app/{hardgamers,buscahard,bestgaming}.xml/route.ts` delegan en `lib/feeds/buildProductFeed.ts` (`buildProductFeedResponse(descripción)`); `google-merchant-feed.xml` es propio (precio final, imagen de 1000 px, `quantity_to_sell_on_facebook`). Generan RSS con `g:*` (id, gtin, título, descripción, imagen optimizada, condición, disponibilidad, precio y precio de oferta, marca, mpn) para productos `publish` + `isAvailable`. **Incluyen los productos Outlet** con `g:condition = refurbished`. `revalidate = 3600`. `sitemap.ts` cubre productos y categorías.
 
 ---
 
@@ -447,6 +459,7 @@ Todas las rutas `/api/admin/*` y `/api/afip/*` requieren `role = administrator` 
 | POST | `/api/admin/quotes/[id]/convert` | Convertir a pedido |
 | GET | `/api/admin/quotes/[id]/pdf` | PDF |
 | GET | `/api/admin/distributors/search` | Comparador |
+| GET / PUT | `/api/admin/settings` | Leer / guardar configuración de la tienda (`{ mercadoPagoSurchargePercent }`) |
 | POST/GET | `/api/admin/cloudinary/sign` | Firma de subida directa a Cloudinary |
 | POST | `/api/admin/upload` | Subida de archivos |
 | GET | `/api/afip/auth`, `/api/afip/test-auth` | Diagnóstico de autenticación AFIP |
@@ -461,7 +474,7 @@ Todas las rutas `/api/admin/*` y `/api/afip/*` requieren `role = administrator` 
 Home (carrusel, categorías, ofertas, novedades — ISR 12 h) · `/productos` y `/productos/categoria/[category]` y `/productos/ofertas` · `/productos/[slug]` · `/checkout` (+ `/checkout/success`) · `/mi-cuenta` · `/login`, `/register`, `/forgot-password`, `/reset-password`, `/auth/verify` · páginas informativas. Componentes en `components/{home,products,productCard,checkout,account,layout,seo,skeletons,ui}`. Estado de carrito en `store/cart.ts`.
 
 ### Panel (`app/admin`)
-`dashboard` (ventas/ingresos por mes, KPIs; `services/graphs`) · `orders` · `quotes` · `products` (+ pendientes de revisión) · `categories` · `customers` · `purchases` · `comparator`. Componentes en `components/admin`, gráficos en `components/graphs`.
+`dashboard` (ventas/ingresos por mes, KPIs; `services/graphs`) · `orders` · `quotes` · `products` (+ pendientes de revisión) · `categories` · `customers` · `purchases` · `comparator` · `settings` (recargo de Mercado Pago). Componentes en `components/admin`, gráficos en `components/graphs`.
 
 ---
 
@@ -469,10 +482,10 @@ Home (carrusel, categorías, ofertas, novedades — ISR 12 h) · `/productos` y 
 
 | Servicio | Uso | Código | Variables |
 |---|---|---|---|
-| Mercado Pago | Preferencia + webhook | `app/api/checkout`, `app/api/webhooks/mercadopago` | `MP_ACCESS_TOKEN` |
+| Mercado Pago | Preferencia + webhook firmado | `app/api/checkout`, `app/api/webhooks/mercadopago`, `lib/mercadopago` | `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` |
 | Andreani | Cotización por CP/peso/volumen/valor | `lib/andreani.ts` | `ANDREANI_CONTRATO`, `ANDREANI_CLIENTE` |
 | Vía Cargo | Cotización en vivo | `lib/viaCargoLive.ts` | — |
-| AFIP | WSAA, WSFEv1, Padrón | `lib/afip/**` | `AFIP_CUIT`, `AFIP_CERT_BASE64`, `AFIP_KEY_BASE64`, `AFIP_ENV` |
+| AFIP | WSAA, WSFEv1, Padrón | `lib/afip/**` | `AFIP_CUIT`, `AFIP_CERT_BASE64`, `AFIP_KEY_BASE64`, `AFIP_POINT_OF_SALE` (opcional, def. 5) |
 | Cloudinary | Imágenes y PDFs | `lib/cloudinary.ts` | `CLOUDINARY_CLOUD_NAME`, `_API_KEY`, `_API_SECRET` |
 | Resend | Emails (`lib/email.ts`) | | `RESEND_API_KEY` |
 | Discord | Aviso de venta nueva | `lib/notifications/discord` | `DISCORD_WEBHOOK_URL` |
@@ -486,9 +499,9 @@ Emails existentes (`lib/email.ts`): confirmación de pedido, pago confirmado, en
 ## 10. Configuración y despliegue
 
 **Variables de entorno** (sólo nombres; los valores no deben versionarse):
-`MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, `MP_ACCESS_TOKEN`, `AFIP_CUIT`, `AFIP_CERT_BASE64`, `AFIP_KEY_BASE64`, `AFIP_ENV`, `ANDREANI_CONTRATO`, `ANDREANI_CLIENTE`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL`, `BANK_NAME`, `BANK_OWNER`, `BANK_OWNER_CUIT`, `BANK_ALIAS`, `BANK_CBU`, `ELIT_USER_ID`, `ELIT_TOKEN`, `NEWBYTES_USER`, `NEWBYTES_PASSWORD`, `INVID_USER`, `INVID_PASSWORD`, `NEXT_PUBLIC_META_PIXEL`, `GOOGLE_VERIFICATION`, `MAINTENANCE_MODE`, `PROXY_URL`, `PROXY_USER`, `PROXY_PASS`, `CHROME_EXECUTABLE_PATH`, `VERCEL` (la define la plataforma).
+`MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` (clave secreta de webhooks del panel de MP), `AFIP_CUIT`, `AFIP_CERT_BASE64`, `AFIP_KEY_BASE64`, `AFIP_POINT_OF_SALE` (opcional, def. 5), `ANDREANI_CONTRATO`, `ANDREANI_CLIENTE`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL`, `BANK_NAME`, `BANK_OWNER`, `BANK_OWNER_CUIT`, `BANK_ALIAS`, `BANK_CBU`, `ELIT_USER_ID`, `ELIT_TOKEN`, `NEWBYTES_USER`, `NEWBYTES_PASSWORD`, `INVID_USER`, `INVID_PASSWORD`, `NEXT_PUBLIC_META_PIXEL`, `GOOGLE_VERIFICATION`, `MAINTENANCE_MODE`, `PROXY_URL`, `PROXY_USER`, `PROXY_PASS`, `CHROME_EXECUTABLE_PATH`, `VERCEL` (la define la plataforma).
 
-**Comandos**: `npm run dev | build | start | lint`; scripts sueltos con `npx tsx scripts/<archivo>.ts`. No hay tests automatizados.
+**Comandos**: `npm run dev | build | start | lint`; `npm test` (Vitest, tests unitarios en `tests/`, sin base de datos; un archivo: `npx vitest run tests/pricing.test.ts`; por nombre: `npx vitest run -t "getShippingModifier"`). Scripts sueltos con `npx tsx scripts/<archivo>.ts` (la carpeta `scripts/` está en `.gitignore`).
 
 **Despliegue en Vercel**: `next.config.ts` declara `serverExternalPackages: ["@sparticuz/chromium","puppeteer-core"]` y `outputFileTracingIncludes` para empaquetar el binario de Chromium; sin esto fallan los PDFs. `images.remotePatterns` autoriza los dominios de imágenes (propio, Cloudinary, AFIP, Elit, NewBytes, Invid).
 **Salida a internet con IP fija**: si `PROXY_URL` está definido, `instrumentation.ts` instala un `ProxyAgent` global de undici (necesario para servicios que exigen IP autorizada, p. ej. AFIP/Andreani).
@@ -501,58 +514,65 @@ Emails existentes (`lib/email.ts`): confirmación de pedido, pago confirmado, en
 
 **Nuevo estado de pedido**: agregarlo en `models/Order.ts` (enum), `constants/status.ts` (etiquetas), la lógica de transición en `app/api/admin/orders/[id]/route.ts` y, si dispara email, en `lib/email.ts`. Revisar el efecto sobre stock (cancelaciones).
 
-**Nuevo método de pago**: enum en `models/Payment.ts` **y** en `lib/validators/createOrderSchema.ts` (hoy desalineados), recargo en `createOrder` si corresponde, instrucciones en `checkout/success` y emails.
+**Nuevo método de pago**: enum en `models/Payment.ts` y en los esquemas Zod (`createOrderSchema`, `createAdminOrderSchema`, `orderPaymentSchema`), recargo en `createOrder` si corresponde, instrucciones en `checkout/success` y emails.
 
-**Nuevo método de envío**: enum en `Order.shippingMethod`, esquema Zod, `services/shipping/quoteShipping.ts`, y la regla de costo forzado/validado en `createOrder`.
+**Nuevo método de envío**: enum en `Order.shippingMethod`, esquemas Zod (ecommerce y admin), opciones de `OrderForm`, `services/shipping/quoteShipping.ts`; si es cotizable, agregarlo a `QUOTABLE_SHIPPING_METHODS` en `app/api/checkout/route.ts`, y si tiene costo fijo, forzarlo en `createOrder`.
+
+**Nuevo parámetro configurable desde el panel**: campo en `models/StoreSettings.ts`, `types/shared/settings.ts`, `lib/validators/storeSettingsSchema.ts`, `getStoreSettings` (valor por defecto) y `StoreSettingsForm`. En servidor leerlo con `getStoreSettings()`; en cliente con `useStoreSettings()`.
 
 **Nuevo atributo de producto filtrable**: definirlo en `Category.attributeDefinitions` (o presets en `constants/hardwareAttributePresets.ts`); el filtrado lo resuelve `extractAttributeFilters` + `getCatalogProducts`.
 
 **Nuevo distribuidor**: agregar su cliente y normalización a `getDistributorProducts.ts`, ampliar `CATEGORY_MAP`, y su host a `images.remotePatterns` si trae imágenes.
 
-**Nuevo feed**: copiar el patrón de `app/buscahard.xml/route.ts` (hoy hay tres casi idénticos: conviene extraer una función compartida).
+**Nuevo feed**: `app/<nombre>.xml/route.ts` con `revalidate = 3600` que devuelva `buildProductFeedResponse("…")`; si el destino pide campos distintos, extender `lib/feeds/buildProductFeed.ts` con opciones.
+
+**Nueva numeración correlativa**: `getNextSequence("<clave>", valorInicialOpcional)` + `formatSequence(prefijo, seq)` de `lib/counters/getNextGenericNumber.ts`.
 
 **Nuevo tipo de comprobante**: `Voucher.type`, prefijo en `generateVoucherNumber`, reglas en `validateVoucherGeneration`, template en `lib/pdf/templates` y, si es fiscal, `buildInvoiceRequest` (códigos de comprobante AFIP).
 
 **Mover stock**: siempre vía `updateProductStock` dentro de una transacción, y llamar a `revalidateProductsCache()` después de commitear cambios visibles en el catálogo.
 
-**Ideas naturales de extensión** (no implementadas): reporte de margen usando `InventoryItem.unitCost`, múltiples depósitos (`InventoryItem.location` ya existe), garantías por serie, notas de crédito automáticas al reembolsar, tests de integración sobre `createOrder`/`receivePurchase`, panel de usuarios/roles.
+**Ideas naturales de extensión** (no implementadas): reporte de margen usando `InventoryItem.unitCost`, múltiples depósitos (`InventoryItem.location` ya existe), garantías por serie, notas de crédito automáticas al reembolsar, tests de integración sobre `createOrder`/`receivePurchase` (con `mongodb-memory-server` en replica set), panel de usuarios/roles.
 
 ---
 
 ## 12. Deuda técnica y defectos conocidos
-Detectados leyendo el código; ninguno fue modificado.
 
-### 12.1 Pagos y precios
-1. **Recargo de Mercado Pago inconsistente**: el front muestra ×1,25 (`getListPriceFinal`, `markup = 0.25`), el backend cobra ×1,10 (`createOrder`). El cliente ve un total y paga otro.
-2. **Webhook MP**: no valida `x-signature` (aunque reconsulta el pago) y no completa `datePaid`.
-3. **`POST /orders/[id]/payments`** no recalcula `paymentStatus` (PATCH/DELETE sí).
-4. `createOrderSchema` acepta `cod`; `Payment.method` no lo tiene.
+### 12.1 Resueltos (rama `fix/deuda-tecnica-12`, 2026-10-22)
 
-### 12.2 Envíos
-5. El costo de Andreani/Vía Cargo viene del front y el backend no recotiza (comentario explícito en `createOrder`).
+| # | Problema | Solución |
+|---|---|---|
+| 1 | Recargo MP: el front mostraba ×1,25 y el back cobraba ×1,10 | `applyPaymentSurcharge` única, porcentaje configurable en `/admin/settings` (def. 25 %) |
+| 2 | Costo de Andreani/Vía Cargo tomado del front | Recotización en `app/api/checkout`; 503 si falla |
+| 3 | El descuento de envío gratis se aplicaba dos veces (front y back) | El front envía el costo base; regla única `getShippingModifier` |
+| 4 | Webhook MP sin validar firma ni `datePaid` | `x-signature` con `MP_WEBHOOK_SECRET`, control de monto, `paidAt`/`datePaid`, `pending → processing` |
+| 5 | `POST /payments` no recalculaba el estado | Validación Zod + `recalculateOrderPaymentStatus` + email |
+| 6 | `recalculateOrderPaymentStatus` no actualizaba `paidAmount`/`remainingAmount` | Ahora los actualiza; regla única `computePaymentStatus` |
+| 7 | Enums desalineados (`cod`; envíos `delivery`/`other` del pedido manual hacían fallar el alta) | Alineados con los modelos; el form ofrece Envío local y Vía Cargo |
+| 8 | QR AFIP leía `document.type` (siempre DNI) y CUIL se facturaba como 99 | `getAfipDocument` compartido por factura y QR (CUIL = 86) |
+| 9 | Punto de venta 5 fijo en el XML y en el diagnóstico | `AFIP_POINT_OF_SALE` |
+| 10 | Logs del sobre SOAP (token/sign) y de la URL de magic link | Eliminados |
+| 11 | Número de comprobante interno `PREFIJO-Date.now()` | Correlativo por tipo con `Counter` |
+| 12 | `convertQuoteToOrder` creaba pedidos inválidos y no reservaba stock | Delegado en `createAdminOrder`, en una transacción con la marca del presupuesto |
+| 13 | `createAdminOrder`: IVA 21 %, sin `taxTotal`/`paidAmount`/`remainingAmount`, campos fuera del esquema | Corregido |
+| 14 | Número de presupuesto no atómico | `Counter` `quote_1`, continúa desde el último existente |
+| 15 | Faltaban `partial` y `failed` en `constants/status.ts` | Agregados |
+| 16 | `SyncButton` llamaba a `/api/sync/*` inexistente | Eliminado |
+| 17 | `generateProductSearch` escribía campos inexistentes | Eliminado (la búsqueda usa Atlas Search) |
+| 18 | `InventoryItem.saleId` con `ref: "Sale"` | `ref: "Order"` |
+| 19 | Tres feeds duplicados (y BuscaHard con la descripción de BestGaming) | `lib/feeds/buildProductFeed.ts`, con escape XML |
+| 20 | Redirect duplicado y comentarios con mojibake en `next.config.ts` | Corregido |
+| 21 | Sin tests | Vitest + 22 tests unitarios (`npm test`) |
 
-### 12.3 Fiscal
-6. `generateFiscalVoucher` lee `order.billing.document.type`, pero el campo es `documentType` → el QR usa siempre DNI (96).
-7. El punto de venta `5` está hardcodeado (`createVoucher`, XML).
-8. `lib/afip/client.ts` hace `console.log` del sobre SOAP completo (incluye token y sign); `magic-link` loguea la URL mágica.
-9. Número interno de comprobante `PREFIJO-Date.now()`: no correlativo.
+Decisión de negocio documentada (sin cambio de comportamiento): en el checkout de invitado, si el email ya tiene cuenta, el pedido se asocia a ese cliente sin pedir login.
 
-### 12.4 Pedidos y presupuestos
-10. **`convertQuoteToOrder`** crea un `Order` sin `shippingMethod`, `source` ni `subtotal` (requeridos) y con ítems sin `productId`/`unitPrice` → la validación de Mongoose probablemente falla; tampoco reserva stock.
-11. **`createAdminOrder`**: IVA por defecto 21 % (el resto usa 10,5 %), no calcula `taxTotal`/`paidAmount`/`remainingAmount` y guarda `shippingCost` (no existe en el esquema).
-12. `generateQuoteNumber` toma el último por `createdAt` (no atómico → posible duplicado bajo concurrencia; el campo es `unique`, por lo que fallaría).
-13. `ORDER_PAYMENT_STATUSES` no incluye `partial`.
-
-### 12.5 Legado y consistencia
-14. `SyncButton` llama a `/api/sync/*`, que ya no existe (herencia de WooCommerce).
-15. `scripts/generateSearchTerms.ts` y `lib/search/*` escriben `searchKey`/`searchTerms`, ausentes del modelo `Product` (Mongoose los ignora en modo estricto).
-16. `InventoryItem.saleId` referencia `"Sale"` (modelo inexistente) pero guarda ids de `Order`; `populate` sobre ese campo no funcionaría.
-17. Feeds `hardgamers`, `buscahard`, `bestgaming` casi idénticos.
-18. Checkout de invitado: si el email ya tiene `User`, el pedido se asocia a ese cliente sin autenticar.
-19. `next.config.ts` tiene reglas de redirect duplicadas y comentarios con codificación rota (mojibake).
-20. Sin tests automatizados.
-
----
+### 12.2 Pendientes (detectados durante la corrección)
+1. **Estado de pago en la ficha del admin**: `app/admin/orders/[id]/page.tsx` muestra el estado derivado de los pagos (`getOrderPaymentStatus`), mientras que `PUT /api/admin/orders/[id]` permite fijar `paymentStatus = paid` sin registrar un pago. En ese caso la ficha muestra "Pendiente" y oculta la asignación de inventario.
+2. **Errores del checkout**: `app/api/checkout` responde 500 "Error interno" también para errores de negocio de `createOrder` (sin stock, producto no publicado), por lo que el cliente no ve el motivo.
+3. **`document` del pedido manual**: el formulario envía un documento (tipo/número/archivo) pero `Order` no tiene ese campo, así que se descarta.
+4. **Notificaciones IPN sin firma**: con `MP_WEBHOOK_SECRET` configurado, las notificaciones con formato IPN (sin `x-signature`) se rechazan con 401. Las de webhook firmadas siguen llegando; verificar en el panel de MP que esté configurado el webhook y no sólo IPN.
+5. **Feeds con Outlet**: los productos Outlet se publican en los feeds como `refurbished`. Confirmar si los comparadores lo aceptan.
+6. **`npm audit`** reporta vulnerabilidades en dependencias (previas a estos cambios).
 
 ## 13. Glosario
 - **Combo / bundle**: producto compuesto de otros productos simples con precio de oferta propio.
