@@ -39,3 +39,13 @@ export function recalculateOrderPaymentStatus(order: any) {
         order.datePaid = null;
     }
 }
+
+/**
+ * Un pedido que queda pagado pasa de "pending" a "processing".
+ * Mismo criterio en el webhook de MP y en los endpoints de pagos del admin.
+ */
+export function advanceOrderStatusIfPaid(order: any) {
+    if (order.paymentStatus === "paid" && order.status === "pending") {
+        order.status = "processing";
+    }
+}

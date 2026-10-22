@@ -2,6 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+    computePaymentStatus,
+    sumPaidPayments,
+} from "@/services/orders/recalculateOrderPaymentStatus";
 
 type Payment = {
     id?: string;
@@ -31,6 +35,9 @@ type Props = {
     total: number;
 
     payments: Payment[];
+
+    /** Estado persistido del pedido (modo "persisted") */
+    paymentStatus?: string;
 
     editable?: boolean;
 
@@ -81,6 +88,7 @@ export function OrderPaymentsSection({
     orderId,
     total,
     payments,
+    paymentStatus: persistedPaymentStatus,
     editable = true,
     onChange,
 }: Props) {
@@ -88,31 +96,13 @@ export function OrderPaymentsSection({
 
     const [loading, setLoading] = useState(false);
 
-    const paidAmount = useMemo(() => {
-        return payments
-            .filter((p) => p.status === "paid")
-            .reduce((acc, p) => acc + p.amount, 0);
-    }, [payments]);
+    const paidAmount = useMemo(() => sumPaidPayments(payments), [payments]);
 
     const remaining = Math.max(total - paidAmount, 0);
 
-    const paymentStatus = useMemo(() => {
-        if (!payments.length) return "pending";
-
-        if (paidAmount >= total) {
-            return "paid";
-        }
-
-        if (paidAmount > 0) {
-            return "partial";
-        }
-
-        if (payments.some((p) => p.status === "failed")) {
-            return "failed";
-        }
-
-        return "pending";
-    }, [payments, paidAmount, total]);
+    // Misma regla que el backend; en un pedido guardado manda el estado persistido
+    const paymentStatus =
+        persistedPaymentStatus || computePaymentStatus(total, paidAmount);
 
     const paymentStatusMeta =
         PAYMENT_STATUS_LABELS[paymentStatus] || PAYMENT_STATUS_LABELS.pending;

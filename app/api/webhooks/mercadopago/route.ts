@@ -5,7 +5,10 @@ import { OrderModel } from "@/models";
 import { sendPaymentConfirmedEmail } from "@/lib/email";
 import { mapOrderToDTO } from "@/lib/mappers/orderMapper";
 import { verifyMercadoPagoSignature } from "@/lib/mercadopago/verifyWebhookSignature";
-import { recalculateOrderPaymentStatus } from "@/services/orders/recalculateOrderPaymentStatus";
+import {
+    advanceOrderStatusIfPaid,
+    recalculateOrderPaymentStatus,
+} from "@/services/orders/recalculateOrderPaymentStatus";
 
 // INICIALIZAMOS EL CLIENTE DE MP
 const client = new MercadoPagoConfig({
@@ -96,14 +99,7 @@ export async function POST(req: NextRequest) {
                     }
 
                     recalculateOrderPaymentStatus(order);
-
-                    // Mismo criterio que el panel: un pedido pagado pasa a "en proceso"
-                    if (
-                        order.paymentStatus === "paid" &&
-                        order.status === "pending"
-                    ) {
-                        order.status = "processing";
-                    }
+                    advanceOrderStatusIfPaid(order);
 
                     await order.save();
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    advanceOrderStatusIfPaid,
     computePaymentStatus,
     recalculateOrderPaymentStatus,
     sumPaidPayments,
@@ -58,5 +59,21 @@ describe("recalculateOrderPaymentStatus", () => {
         };
         recalculateOrderPaymentStatus(order);
         expect(order.datePaid).toBe(datePaid);
+    });
+});
+
+describe("advanceOrderStatusIfPaid", () => {
+    it("pasa a processing sólo un pedido pendiente y pagado", () => {
+        const paid = { paymentStatus: "paid", status: "pending" };
+        advanceOrderStatusIfPaid(paid);
+        expect(paid.status).toBe("processing");
+
+        const partial = { paymentStatus: "partial", status: "pending" };
+        advanceOrderStatusIfPaid(partial);
+        expect(partial.status).toBe("pending");
+
+        const shipped = { paymentStatus: "paid", status: "shipped" };
+        advanceOrderStatusIfPaid(shipped);
+        expect(shipped.status).toBe("shipped");
     });
 });

@@ -8,7 +8,10 @@ import { notFound } from "next/navigation";
 import { getOrdersById } from "@/services/orders/getOrdersById";
 import { getAllocationSuggestions } from "@/services/inventory/getAllocationSuggestions";
 import { InventoryAllocationSection } from "@/components/admin/InventoryAllocationSection";
-import { getOrderPaymentStatus } from "@/services/orders/getOrderPaymentStatus";
+import {
+    computePaymentStatus,
+    sumPaidPayments,
+} from "@/services/orders/recalculateOrderPaymentStatus";
 import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
 import { GenerateVoucherButton } from "@/components/admin/documents/GenerateVoucherButton";
 import { VoucherCard } from "@/components/admin/VoucherCard";
@@ -18,30 +21,6 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
     bank_transfer: "Transferencia bancaria",
     cash: "Efectivo",
 };
-
-const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> =
-    {
-        pending: {
-            label: "Pendiente",
-            color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
-        },
-        paid: {
-            label: "Pagado",
-            color: "text-green-400 bg-green-400/10 border-green-400/20",
-        },
-        failed: {
-            label: "Fallido",
-            color: "text-red-400 bg-red-400/10 border-red-400/20",
-        },
-        refunded: {
-            label: "Reembolsado",
-            color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-        },
-        partial: {
-            label: "Pago parcial",
-            color: "text-blue-400 bg-blue-400/10 border-blue-400/20",
-        },
-    };
 
 // ACTUALIZADO: Agregamos cadetería
 const SHIPPING_METHOD_LABELS: Record<string, string> = {
@@ -108,15 +87,13 @@ export default async function AdminOrderDetailPage({
     const orderId = order.id.toString().slice(-6).toUpperCase();
 
     const payments = order.payments || [];
-    const paymentStatus = getOrderPaymentStatus(order.payments || []);
+    // Estado persistido (recalculateOrderPaymentStatus): el mismo que controla
+    // allocateInventoryToOrder. Fallback para pedidos sin el campo.
+    const paymentStatus =
+        order.paymentStatus ||
+        computePaymentStatus(order.total, sumPaidPayments(payments));
     const paymentMethodType = payments[0]?.method || "bank_transfer"; // Sacamos el método de pago
 
-    const paymentStatusMeta = PAYMENT_STATUS_LABELS[paymentStatus];
-    const paidAmount = payments
-        .filter((p) => p.status === "paid")
-        .reduce((acc, p) => acc + p.amount, 0);
-
-    const remaining = order.total - paidAmount;
     const allocationSuggestions =
         paymentStatus === "paid"
             ? await getAllocationSuggestions(order.id)
@@ -429,6 +406,7 @@ export default async function AdminOrderDetailPage({
                         orderId={order.id}
                         total={order.total}
                         payments={order.payments || []}
+                        paymentStatus={paymentStatus}
                     />
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
                         <div className="flex items-center justify-between mb-4">
