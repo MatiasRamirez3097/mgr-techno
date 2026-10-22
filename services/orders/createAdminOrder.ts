@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { type ClientSession } from "mongoose";
 
 import { OrderModel } from "@/models/Order";
 import { findProductsById } from "../products/getProductsById";
@@ -6,8 +6,26 @@ import { createAdminOrderSchema } from "@/lib/validators/createAdminOrderSchema"
 import { updateProductStock } from "../products/updateProductStock";
 import { buildOrderBundleComponentsMap } from "../products/recalculateBundlesStock";
 import { ensureCustomPcProduct } from "../products/ensureCustomPcProduct";
+import {
+    computePaymentStatus,
+    sumPaidPayments,
+} from "./recalculateOrderPaymentStatus";
 
-export async function createAdminOrder(data: unknown) {
+// IVA de ventas por defecto (mismo criterio que createOrder y OrderItem)
+const DEFAULT_TAX_RATE = 10.5;
+
+type CreateAdminOrderOptions = {
+    // Se ejecuta dentro de la transacción, antes del commit
+    afterCreate?: (
+        order: { _id: mongoose.Types.ObjectId },
+        session: ClientSession,
+    ) => Promise<void>;
+};
+
+export async function createAdminOrder(
+    data: unknown,
+    options: CreateAdminOrderOptions = {},
+) {
     const result = createAdminOrderSchema.safeParse(data);
 
     if (!result.success) {
@@ -26,7 +44,6 @@ export async function createAdminOrder(data: unknown) {
             items,
             payments,
             shippingMethod,
-            document,
             notes,
             status,
         } = result.data;
@@ -62,10 +79,11 @@ export async function createAdminOrder(data: unknown) {
             const quantity = Number(item.quantity);
             const unitPrice = Number(item.unitPrice);
             const subtotal = quantity * unitPrice;
-            const taxRate = item.taxRate ?? 21;
-            const taxAmount = subtotal - subtotal / (1 + taxRate / 100);
 
             if (item.isCustomPc) {
+                const taxRate = item.taxRate ?? DEFAULT_TAX_RATE;
+                const taxAmount = subtotal - subtotal / (1 + taxRate / 100);
+
                 if (!customPcSystemProduct) {
                     throw new Error(
                         "No se pudo inicializar el producto base de PC Armada",
@@ -122,7 +140,6 @@ export async function createAdminOrder(data: unknown) {
                 return {
                     productId: customPcSystemProduct._id.toString(),
                     name: item.name?.trim() || "PC Armada",
-                    billing,
                     quantity,
                     unitPrice,
                     subtotal,
@@ -140,6 +157,10 @@ export async function createAdminOrder(data: unknown) {
                 throw new Error("Producto no encontrado");
             }
 
+            const taxRate =
+                item.taxRate ?? product.taxRate ?? DEFAULT_TAX_RATE;
+            const taxAmount = subtotal - subtotal / (1 + taxRate / 100);
+
             const isBundle = (product as any).type === "bundle";
             const rawComps = isBundle
                 ? bundleComponentsMap.get(product.id.toString()) || []
@@ -154,7 +175,6 @@ export async function createAdminOrder(data: unknown) {
             return {
                 productId: product.id,
                 name: product.name,
-                billing,
                 quantity,
                 unitPrice,
                 subtotal,
@@ -171,24 +191,18 @@ export async function createAdminOrder(data: unknown) {
             0,
         );
 
+        const taxTotal = orderItems.reduce(
+            (acc, item) => acc + item.taxAmount,
+            0,
+        );
+
         const shippingCost = shippingMethod?.cost || 0;
 
         const total = subtotal + shippingCost;
 
         // payment status automático
-        const paidAmount = payments
-            .filter((p) => p.status === "paid")
-            .reduce((acc, p) => acc + p.amount, 0);
-
-        let paymentStatus: "pending" | "partial" | "paid" = "pending";
-
-        if (paidAmount > 0 && paidAmount < total) {
-            paymentStatus = "partial";
-        }
-
-        if (paidAmount >= total) {
-            paymentStatus = "paid";
-        }
+        const paidAmount = sumPaidPayments(payments);
+        const paymentStatus = computePaymentStatus(total, paidAmount);
 
         // crear orden
         const [order] = await OrderModel.create(
@@ -201,13 +215,15 @@ export async function createAdminOrder(data: unknown) {
                     billing,
                     payments,
                     shippingMethod,
-                    document,
                     notes,
                     status,
                     paymentStatus,
                     subtotal,
-                    shippingCost,
+                    taxTotal,
                     total,
+                    paidAmount,
+                    remainingAmount: Math.max(0, total - paidAmount),
+                    datePaid: paymentStatus === "paid" ? new Date() : null,
                 },
             ],
             { session },
@@ -224,6 +240,10 @@ export async function createAdminOrder(data: unknown) {
                     item.isBundle ? item.bundleComponents : undefined,
                 );
             }
+        }
+
+        if (options.afterCreate) {
+            await options.afterCreate(order, session);
         }
 
         await session.commitTransaction();

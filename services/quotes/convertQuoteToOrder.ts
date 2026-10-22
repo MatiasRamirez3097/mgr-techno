@@ -1,8 +1,25 @@
 import { connectDB } from "@/lib/mongodb";
 import { QuoteModel } from "@/models/Quote";
-import { OrderModel } from "@/models/Order";
 import { CustomerModel } from "@/models/Customer";
+import { createAdminOrder } from "@/services/orders/createAdminOrder";
 
+const NON_CONVERTIBLE_STATUSES = ["rejected", "expired"];
+
+type QuoteItemDoc = {
+    origin?: string;
+    productId?: { toString(): string } | null;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    taxRate?: number;
+    subtotal: number;
+};
+
+/**
+ * Convierte un presupuesto en un pedido manual reutilizando createAdminOrder
+ * (transacción, reserva de stock, totales e IVA). El pedido y la marca del
+ * presupuesto como "converted" se guardan en la misma transacción.
+ */
 export async function convertQuoteToOrder(quoteId: string): Promise<{
     orderId: string;
     quoteNumber: string;
@@ -21,66 +38,118 @@ export async function convertQuoteToOrder(quoteId: string): Promise<{
         };
     }
 
-    // Asegurar o buscar cliente
-    let customerId = quote.customerId;
-    if (!customerId && quote.customer?.email) {
-        const existingCust = await CustomerModel.findOne({
-            email: quote.customer.email.toLowerCase(),
-        }).select("_id");
-        if (existingCust) {
-            customerId = existingCust._id;
-        }
+    if (NON_CONVERTIBLE_STATUSES.includes(quote.status)) {
+        throw new Error(
+            "No se puede convertir un presupuesto rechazado o vencido",
+        );
     }
 
-    // Mapear items a formato OrderItem
-    const orderItems = quote.items.map((it: any) => ({
-        productId: it.productId || null,
-        name: it.name,
-        price: it.unitPrice,
-        regularPrice: it.unitPrice,
-        quantity: it.quantity,
-        sku: it.sku || "",
-        taxRate: it.taxRate ?? 10.5,
-        discount: it.discount || 0,
-        subtotal: it.subtotal,
-    }));
+    const items: QuoteItemDoc[] = quote.items || [];
 
-    const newOrder = new OrderModel({
-        customerId: customerId || undefined,
-        billing: {
-            firstName: quote.customer?.name || "Cliente",
-            lastName: "",
-            email: quote.customer?.email || "",
-            phone: quote.customer?.phone || "",
-            document: {
-                documentType: quote.customer?.documentType || "DNI",
-                number: quote.customer?.documentNumber || "",
-            },
-            ivaCondition: quote.customer?.ivaCondition || "Consumidor Final",
-            address_1: quote.customer?.address?.street
-                ? `${quote.customer.address.street} ${quote.customer.address.number || ""}`.trim()
-                : "",
-            city: quote.customer?.address?.city || "",
-            state: quote.customer?.address?.state || "",
-            postcode: quote.customer?.address?.zip || "",
-        },
-        items: orderItems,
-        status: "pending",
-        currency: quote.currency || "ARS",
-        exchangeRate: quote.exchangeRate || 1,
-        total: quote.total,
-        notes: `Convertido desde Presupuesto Nº ${quote.number}. ${quote.notes || ""}`.trim(),
+    if (items.length === 0) {
+        throw new Error("El presupuesto no tiene ítems");
+    }
+
+    // Un pedido necesita productos del catálogo para reservar stock y facturar
+    const itemsWithoutProduct = items.filter((it) => !it.productId);
+    if (itemsWithoutProduct.length > 0) {
+        const names = itemsWithoutProduct.map((it) => `"${it.name}"`).join(", ");
+        throw new Error(
+            `Antes de convertir, dá de alta en el catálogo estos ítems (alta rápida) y reemplazalos en el presupuesto: ${names}`,
+        );
+    }
+
+    // Cliente: el del presupuesto o, si no tiene, el registrado con su email
+    let customer = quote.customerId
+        ? await CustomerModel.findById(quote.customerId)
+        : null;
+
+    if (!customer && quote.customer?.email) {
+        customer = await CustomerModel.findOne({
+            email: quote.customer.email.toLowerCase(),
+        });
+    }
+
+    if (!customer) {
+        throw new Error(
+            "El presupuesto no tiene un cliente registrado. Asigná un cliente existente antes de convertirlo.",
+        );
+    }
+
+    // Los precios del presupuesto ya incluyen IVA; en USD se pasan a pesos
+    const rate =
+        quote.currency === "USD" ? Number(quote.exchangeRate) || 1 : 1;
+
+    const orderItems = items.map((it) => {
+        const quantity = Math.max(1, Number(it.quantity) || 1);
+        // subtotal = total de la línea con IVA y descuento aplicado
+        const lineTotal = (Number(it.subtotal) || 0) * rate;
+        return {
+            productId: it.productId!.toString(),
+            name: it.name,
+            quantity,
+            unitPrice: Math.round((lineTotal / quantity) * 100) / 100,
+            taxRate: it.taxRate ?? 10.5,
+            isCustomPc: false,
+            customComponents: [],
+        };
     });
 
-    const savedOrder = await newOrder.save();
+    const quoteAddress = quote.customer?.address;
+    const billing = customer.billing || {};
+    const documentNumber =
+        customer.document?.number || quote.customer?.documentNumber || "";
 
-    // Actualizar presupuesto
-    quote.status = "converted";
-    quote.orderId = savedOrder._id;
-    await quote.save();
+    if (!documentNumber) {
+        throw new Error(
+            "El cliente no tiene número de documento cargado (requerido en el pedido).",
+        );
+    }
+
+    const order = await createAdminOrder(
+        {
+            source: "admin",
+            customerId: customer._id.toString(),
+            customerEmail: customer.email || quote.customer?.email || "",
+            status: "pending",
+            items: orderItems,
+            payments: [],
+            shippingMethod: { method: "local_pickup", cost: 0 },
+            document: { date: new Date().toISOString(), type: "generic" },
+            billing: {
+                firstName: billing.firstName || customer.firstName || "",
+                lastName: billing.lastName || customer.lastName || "",
+                address:
+                    billing.address ||
+                    [quoteAddress?.street, quoteAddress?.number]
+                        .filter(Boolean)
+                        .join(" "),
+                city: billing.city || quoteAddress?.city || "",
+                state: billing.state || quoteAddress?.state || "",
+                postcode: billing.postcode || quoteAddress?.zip || "",
+                phone: billing.phone || customer.phone || "",
+                country: billing.country || "AR",
+                document: {
+                    documentType:
+                        customer.document?.documentType ||
+                        quote.customer?.documentType ||
+                        "DNI",
+                    number: documentNumber,
+                },
+            },
+            notes: `Convertido desde Presupuesto Nº ${quote.number}. ${quote.notes || ""}`.trim(),
+        },
+        {
+            afterCreate: async (createdOrder, session) => {
+                quote.status = "converted";
+                quote.orderId = createdOrder._id;
+                await quote.save({ session });
+            },
+        },
+    );
 
     return {
-        orderId: savedOrder._id.toString(),
+        orderId: order._id.toString(),
         quoteNumber: quote.number,
     };
 }
