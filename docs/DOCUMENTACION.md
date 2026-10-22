@@ -195,7 +195,7 @@ erDiagram
 | `isAvailable` | Boolean | `availableStock > 0` (se recalcula en cada movimiento) |
 | `bundleItems[]` | `{productId, quantity≥1}` | Sólo combos; no se permite anidar combos |
 | `bundleItemsCount` | Number | Suma de cantidades de componentes |
-| `isOutlet` | Boolean | Versión con falla/usado; en los feeds XML sale como `refurbished` |
+| `isOutlet` | Boolean | Versión con falla/usado; en los feeds de comparadores sale como `refurbished` y se excluye de Google Merchant |
 | `hasFreeShipping` | Boolean | Participa de la regla de envío gratis (5.4) |
 | `shippingSize` | `small` \| `standard` \| `bulky` | Regla de envío gratis mixto |
 | `weight`, `dimensions{length,width,height}` | Number | Base para cotizar envío; en combos se derivan de componentes si faltan |
@@ -310,8 +310,8 @@ Si algún pago es `mercadopago`, `createOrder` cobra `unitPrice = applyPaymentSu
 
 ### 5.6 Pagos
 - En pedidos `ecommerce` todo pago se fuerza a `pending` y, si es un único pago, su monto se reemplaza por el total calculado en el servidor; sólo el webhook de MP o el admin lo confirman.
-- `services/orders/recalculateOrderPaymentStatus.ts` es la regla única: `computePaymentStatus(total, paidAmount)` (`0 → pending`, `< total → partial`, `≥ total → paid`) y `recalculateOrderPaymentStatus(order)`, que además actualiza `paidAmount`, `remainingAmount` y `datePaid`. La usan `createOrder`, `createAdminOrder`, el webhook y los endpoints de pagos.
-- ⚠ La ficha de pedido del admin muestra el estado derivado de los pagos (`getOrderPaymentStatus`), que puede diferir de `order.paymentStatus` si se marcó "pagado" a mano sin registrar un pago (ver 12.2.1).
+- `services/orders/recalculateOrderPaymentStatus.ts` es la regla única: `computePaymentStatus(total, paidAmount)` (`0 → pending`, `< total → partial`, `≥ total → paid`) y `recalculateOrderPaymentStatus(order)`, que además actualiza `paidAmount`, `remainingAmount` y `datePaid`. La usan `createOrder`, `createAdminOrder`, el webhook y los endpoints de pagos. `advanceOrderStatusIfPaid(order)` pasa un pedido pagado de `pending` a `processing` (webhook y endpoints de pagos).
+- El estado de pago **sólo cambia registrando pagos**; `PUT /api/admin/orders/[id]` rechaza `paymentStatus` (400). La ficha del admin y `OrderPaymentsSection` muestran `order.paymentStatus`, el mismo que exige la asignación de inventario.
 
 ### 5.7 Identificadores y numeración
 
@@ -334,11 +334,11 @@ Si algún pago es `mercadopago`, `createOrder` cobra `unitPrice = applyPaymentSu
    1. Si el envío es Andreani/Vía Cargo, lo **recotiza en el servidor**; si falla → 503.
    2. Sin sesión: busca/crea `Customer` y `User` (contraseña aleatoria) por email. Si el email ya tiene cuenta, el pedido se asocia a ese cliente sin pedir login (decisión de negocio; no se modifican sus datos).
    3. Valida con `createOrderSchema`.
-   4. `createOrder` (transacción): relee productos → verifica `status = publish` y stock → aplica reglas 5.4 y 5.5 → crea `Order` (`status: pending`) → reserva stock (5.2).
-   5. Fuera de la transacción: email de confirmación (`sendOrderConfirmationEmail`) y notificación a Discord (no bloqueante).
+   4. `createOrder` (transacción): relee productos → verifica `status = publish` y stock → aplica reglas 5.4 y 5.5 → crea `Order` (`status: pending`) → reserva stock (5.2). Producto inexistente, no publicado o sin stock lanzan `BusinessError` (`lib/errors/BusinessError.ts`) y el checkout responde 409 con el motivo, que el front muestra.
+   5. Fuera de la transacción: email de confirmación (`sendOrderConfirmationEmail`) y notificación a Discord, ambos no bloqueantes (un fallo del email no deja el pedido creado sin preferencia de MP).
 4. Si el pago es Mercado Pago: crea una `Preference` con `external_reference = orderId` y `unit_price = total`; el front redirige al `init_point`. Si es transferencia: se muestran datos bancarios (`BANK_*`) en `/checkout/success` y por email.
 5. **Webhook** (`POST /api/webhooks/mercadopago`):
-   1. Valida `x-signature` con `MP_WEBHOOK_SECRET` (`lib/mercadopago/verifyWebhookSignature.ts`); firma inválida → 401. Sin la variable, procesa igual y registra una advertencia.
+   1. Valida `x-signature` con `MP_WEBHOOK_SECRET` (`lib/mercadopago/verifyWebhookSignature.ts`); firma presente e inválida → 401. Las notificaciones IPN (sin firma; `topic`/`id` pueden venir sólo en la query string) se procesan igual: la seguridad la da la re-consulta del pago a MP con nuestro token. Sin la variable, procesa igual y registra una advertencia.
    2. Para `topic = payment` consulta `Payment.get(id)` a MP; si `approved` y `transaction_amount ≥ total` (tolerancia $1), marca el pago MP como `paid` (`paidAt`, `reference`), recalcula el estado del pedido y lo pasa de `pending` a `processing`.
    3. Envía "pago confirmado". Ante errores responde 200 para evitar reintentos infinitos.
 
@@ -350,14 +350,14 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
    └────────────► cancelled / refunded / on_hold / failed
 ```
 - No se puede pasar a `processing`, `shipped`, `ready_for_pickup` ni `completed` si el pago no está `paid` (salvo que haya un pago `cash`).
-- Marcar pagado un pedido `pending` lo pasa a `processing`.
+- El estado de pago no se edita acá (400 si viene `paymentStatus`): se registra un pago y, si el pedido queda pagado estando `pending`, pasa a `processing`.
 - **Cancelar**: con `inventoryAllocatedAt` → `reverseInventoryAllocation`; sin asignación → libera reserva (usa `bundleComponents` del snapshot). **Descancelar** vuelve a reservar.
 - Emails por transición: pago confirmado, enviado, listo para retirar, completado, cancelado (fallos de email se registran y no abortan).
 - Pagos parciales: `POST /payments`, `PATCH|DELETE /payments/[paymentId]`. Los tres validan y recalculan el estado; POST y PATCH envían "pago confirmado" si el pedido queda pagado.
 - Etiquetas de estados en `constants/status.ts`.
 
 ### 6.3 Alta manual de pedido (admin)
-`POST /api/admin/orders` toma `customerId`, completa email y facturación desde el cliente y llama `createAdminOrder` (transacción): admite "PC Armada" con `ensureCustomPcProduct`, pagos ya cobrados y componentes custom; IVA por ítem (el ingresado, o el del producto, o 10,5 %); calcula `subtotal`, `taxTotal`, `total`, `paidAmount`, `remainingAmount`, `datePaid`; reserva stock salvo que se cree cancelado. Acepta un hook `afterCreate(order, session)` que corre dentro de la transacción (lo usa la conversión de presupuestos). Métodos de envío: los del modelo (`local_pickup`, `local_shipping`, `andreani`, `viacargo`).
+`POST /api/admin/orders` toma `customerId`, completa email y facturación desde el cliente y llama `createAdminOrder` (transacción): admite "PC Armada" con `ensureCustomPcProduct`, pagos ya cobrados y componentes custom; IVA por ítem (el ingresado, o el del producto, o 10,5 %); calcula `subtotal`, `taxTotal`, `total`, `paidAmount`, `remainingAmount`, `datePaid`; reserva stock salvo que se cree cancelado. Acepta un hook `afterCreate(order, session)` que corre dentro de la transacción (lo usa la conversión de presupuestos). Métodos de envío: los del modelo (`local_pickup`, `local_shipping`, `andreani`, `viacargo`). `orderDate` opcional (YYYY-MM-DD, por defecto hoy en Argentina) permite cargar ventas pasadas: se guarda como `createdAt` al mediodía de ese día (`lib/utils/orderDate.ts`); no admite fechas futuras.
 
 ### 6.4 Asignación de inventario (`POST /api/admin/orders/[id]/allocate`)
 - Precondiciones: `paymentStatus = paid` y `inventoryAllocatedAt` vacío.
@@ -409,7 +409,7 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
 `GET /api/admin/distributors/search` → `getDistributorProducts` consulta Elit y NewBytes en paralelo (Invid está implementado en el servicio pero el endpoint lo excluye a propósito), normaliza a `{id, distributor, sku, name, price, stock, image, link}` usando `CATEGORY_MAP` (mapa categoría interna → categoría de cada distribuidor). Los resultados se pueden agregar como ítems de presupuesto.
 
 ### 6.9 Feeds y SEO
-`app/{hardgamers,buscahard,bestgaming}.xml/route.ts` delegan en `lib/feeds/buildProductFeed.ts` (`buildProductFeedResponse(descripción)`); `google-merchant-feed.xml` es propio (precio final, imagen de 1000 px, `quantity_to_sell_on_facebook`). Generan RSS con `g:*` (id, gtin, título, descripción, imagen optimizada, condición, disponibilidad, precio y precio de oferta, marca, mpn) para productos `publish` + `isAvailable`. **Incluyen los productos Outlet** con `g:condition = refurbished`. `revalidate = 3600`. `sitemap.ts` cubre productos y categorías.
+`app/{hardgamers,buscahard,bestgaming}.xml/route.ts` delegan en `lib/feeds/buildProductFeed.ts` (`buildProductFeedResponse(descripción)`); `google-merchant-feed.xml` es propio (precio final, imagen de 1000 px, `quantity_to_sell_on_facebook`). Generan RSS con `g:*` (id, gtin, título, descripción, imagen optimizada, condición, disponibilidad, precio y precio de oferta, marca, mpn) para productos `publish` + `isAvailable`. Los feeds de comparadores incluyen los productos Outlet con `g:condition = refurbished`; Google Merchant los excluye (para Google `refurbished` es sólo restaurado profesionalmente). `revalidate = 3600`. `sitemap.ts` cubre productos y categorías.
 
 ---
 
@@ -566,13 +566,21 @@ Emails existentes (`lib/email.ts`): confirmación de pedido, pago confirmado, en
 
 Decisión de negocio documentada (sin cambio de comportamiento): en el checkout de invitado, si el email ya tiene cuenta, el pedido se asocia a ese cliente sin pedir login.
 
-### 12.2 Pendientes (detectados durante la corrección)
-1. **Estado de pago en la ficha del admin**: `app/admin/orders/[id]/page.tsx` muestra el estado derivado de los pagos (`getOrderPaymentStatus`), mientras que `PUT /api/admin/orders/[id]` permite fijar `paymentStatus = paid` sin registrar un pago. En ese caso la ficha muestra "Pendiente" y oculta la asignación de inventario.
-2. **Errores del checkout**: `app/api/checkout` responde 500 "Error interno" también para errores de negocio de `createOrder` (sin stock, producto no publicado), por lo que el cliente no ve el motivo.
-3. **`document` del pedido manual**: el formulario envía un documento (tipo/número/archivo) pero `Order` no tiene ese campo, así que se descarta.
-4. **Notificaciones IPN sin firma**: con `MP_WEBHOOK_SECRET` configurado, las notificaciones con formato IPN (sin `x-signature`) se rechazan con 401. Las de webhook firmadas siguen llegando; verificar en el panel de MP que esté configurado el webhook y no sólo IPN.
-5. **Feeds con Outlet**: los productos Outlet se publican en los feeds como `refurbished`. Confirmar si los comparadores lo aceptan.
-6. **`npm audit`** reporta vulnerabilidades en dependencias (previas a estos cambios).
+### 12.2 Resueltos (rama `fix/deuda-tecnica-12-2`, 2026-10-22)
+
+| # | Problema | Solución |
+|---|---|---|
+| 1 | La ficha del admin derivaba el estado de pago con otra regla (`getOrderPaymentStatus`) y `PUT /orders/[id]` permitía fijar `paid` sin pago | La ficha usa `order.paymentStatus`; el `PUT` rechaza `paymentStatus`; `advanceOrderStatusIfPaid` compartido |
+| 2 | El checkout respondía 500 "Error interno" ante sin stock / producto no disponible | `BusinessError` → 409 con el motivo |
+| 3 | Si fallaba el email de confirmación, el checkout respondía 500 con el pedido ya creado (y sin preferencia de MP) | Email no bloqueante |
+| 4 | El pedido manual enviaba un `document` que `Order` no guarda | Se quitan tipo/número; la fecha se guarda como `createdAt` (`orderDate`) |
+| 5 | Las IPN de MP (sin firma) se rechazaban con 401 | Se procesan re-consultando el pago; también se leen `topic`/`id` de la query |
+| 6 | Outlet publicado en Google Merchant como `refurbished` | Excluido de Google; los comparadores siguen igual |
+| 7 | `npm audit`: 38 vulnerabilidades (2 críticas) | next 16.4.2, next-auth 4.24.15, tiptap 3.32, `npm audit fix` |
+
+### 12.3 Pendientes
+1. **`node-forge`** (high, sin parche): la falla está en *verificar* firmas RSA PKCS#1; el proyecto sólo la usa para *firmar* el TRA de AFIP (`lib/afip/auth/wsaa.ts`), así que no aplica. Revisar cuando haya versión corregida.
+2. **`braces`** (high) en dependencias de desarrollo de `eslint-config-next`; no llega a producción. `npm audit fix --force` propone bajar a `eslint-config-next@14`: no aplicar.
 
 ## 13. Glosario
 - **Combo / bundle**: producto compuesto de otros productos simples con precio de oferta propio.
