@@ -36,6 +36,7 @@ export function mapQuoteToDTO(quote: any): QuoteDTO {
             distributorSku: it.distributorSku || undefined,
             name: it.name || "",
             sku: it.sku || "",
+            image: it.image || undefined,
             quantity: Number(it.quantity) || 1,
             costPrice: Number(it.costPrice) || 0,
             unitPrice: Number(it.unitPrice) || 0,

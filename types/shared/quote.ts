@@ -16,6 +16,7 @@ export interface QuoteItemDTO {
     distributorSku?: string;
     name: string;
     sku?: string;
+    image?: string;
     quantity: number;
     costPrice?: number;
     unitPrice: number;

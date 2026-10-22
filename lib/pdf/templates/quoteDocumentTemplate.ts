@@ -359,7 +359,7 @@ export function quoteDocumentTemplate(quote: QuoteDTO): string {
                         <th class="text-left" style="width: 45%;">Descripción / Producto</th>
                         <th class="text-center" style="width: 15%;">Código / SKU</th>
                         <th class="text-center" style="width: 8%;">Cant.</th>
-                        <th class="text-right" style="width: 16%;">Precio Unit.</th>
+                        <th class="text-right" style="width: 16%;">Precio Unit. (c/IVA)</th>
                         <th class="text-right" style="width: 16%;">Subtotal</th>
                     </tr>
                 </thead>
@@ -415,7 +415,7 @@ export function quoteDocumentTemplate(quote: QuoteDTO): string {
                     ${
                         quote.ivaTotal > 0
                             ? `<div class="total-row">
-                                <span>IVA ESTIMADO:</span>
+                                <span>IVA DISCRIMINADO:</span>
                                 <span class="font-mono">${formatCurrency(quote.ivaTotal)}</span>
                                </div>`
                             : ""

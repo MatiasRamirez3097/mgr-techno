@@ -128,10 +128,7 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                                     <div className="w-12 h-12 shrink-0 bg-gray-900 rounded-lg border border-gray-700 flex items-center justify-center overflow-hidden">
                                                         {prod.image ? (
                                                             <img
-                                                                src={prod.image}
-                                                                alt={prod.name}
-                                                                loading="lazy"
-                                                                className="w-full h-full object-contain p-1"
+                                                                src={prod.image} alt={prod.name} loading="lazy" referrerPolicy="no-referrer" className="w-full h-full object-contain p-1"
                                                             />
                                                         ) : (
                                                             <svg
@@ -242,10 +239,7 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                         </div>
                                         {prod.image ? (
                                             <img
-                                                src={prod.image}
-                                                alt={prod.name}
-                                                loading="lazy"
-                                                className="w-full h-full object-contain"
+                                                src={prod.image} alt={prod.name} loading="lazy" referrerPolicy="no-referrer" className="w-full h-full object-contain"
                                             />
                                         ) : (
                                             <svg

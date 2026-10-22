@@ -131,27 +131,30 @@ export function QuoteForm({ quote, mode }: Props) {
         }
     };
 
-    // Cálculos de totales
+    // Cálculos de totales (Precio ingresado CON IVA incluido)
     const { subtotal, ivaTotal, total } = useMemo(() => {
         let sub = 0;
         let iva = 0;
+        let tot = 0;
         form.items.forEach((it) => {
             const qty = Math.max(1, Number(it.quantity) || 1);
             const unit = Math.max(0, Number(it.unitPrice) || 0);
             const disc = Math.max(0, Number(it.discount) || 0);
             const tax = Number(it.taxRate) ?? 10.5;
 
-            const lineNet = unit * qty - disc;
-            const lineTax = lineNet * (tax / 100);
+            const lineGross = Math.max(0, unit * qty - disc);
+            const lineNet = tax > 0 ? lineGross / (1 + tax / 100) : lineGross;
+            const lineTax = lineGross - lineNet;
 
             sub += lineNet;
             iva += lineTax;
+            tot += lineGross;
         });
 
         return {
             subtotal: Math.round(sub * 100) / 100,
             ivaTotal: Math.round(iva * 100) / 100,
-            total: Math.round((sub + iva) * 100) / 100,
+            total: Math.round(tot * 100) / 100,
         };
     }, [form.items]);
 
@@ -163,7 +166,7 @@ export function QuoteForm({ quote, mode }: Props) {
             const qty = Math.max(1, Number(updated.quantity) || 1);
             const unit = Math.max(0, Number(updated.unitPrice) || 0);
             const disc = Math.max(0, Number(updated.discount) || 0);
-            updated.subtotal = unit * qty - disc;
+            updated.subtotal = Math.max(0, unit * qty - disc);
             items[index] = updated;
             return { ...prev, items };
         });
@@ -183,6 +186,7 @@ export function QuoteForm({ quote, mode }: Props) {
             productId: prod.id,
             name: prod.name,
             sku: prod.sku || "",
+            image: prod.image || undefined,
             quantity: 1,
             costPrice: 0,
             unitPrice: unit,
@@ -201,6 +205,7 @@ export function QuoteForm({ quote, mode }: Props) {
     const addDistributorItem = (distItem: {
         name: string;
         sku: string;
+        image?: string;
         distributor: string;
         distributorSku: string;
         costPrice: number;
@@ -212,6 +217,7 @@ export function QuoteForm({ quote, mode }: Props) {
             origin: "distributor",
             name: distItem.name,
             sku: distItem.sku,
+            image: distItem.image,
             distributor: distItem.distributor,
             distributorSku: distItem.distributorSku,
             costPrice: distItem.costPrice,
@@ -609,18 +615,40 @@ export function QuoteForm({ quote, mode }: Props) {
                                             </span>
                                         );
 
+                                    const lineGross = Math.max(0, (item.unitPrice || 0) * (item.quantity || 1) - (item.discount || 0));
+                                    const lineTaxRate = Number(item.taxRate) || 0;
+                                    const lineNet = lineTaxRate > 0 ? lineGross / (1 + lineTaxRate / 100) : lineGross;
+                                    const lineIva = lineGross - lineNet;
+
                                     return (
                                         <div
                                             key={idx}
                                             className="bg-gray-800/40 border border-gray-800 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-3"
                                         >
+                                            {/* Imagen del producto si existe */}
+                                            <div className="w-10 h-10 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-center shrink-0 overflow-hidden p-1 self-start md:self-center">
+                                                {item.image ? (
+                                                    <img
+                                                        src={item.image}
+                                                        alt={item.name}
+                                                        referrerPolicy="no-referrer"
+                                                        className="w-full h-full object-contain"
+                                                        onError={(e) => {
+                                                            (e.currentTarget as HTMLElement).style.display = "none";
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <span className="text-base text-gray-600">📦</span>
+                                                )}
+                                            </div>
+
                                             {/* Descripción y SKU */}
                                             <div className="flex-1 min-w-0 w-full md:w-auto">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     {originBadge}
                                                     {item.sku && (
                                                         <span className="text-[11px] font-mono text-gray-400">
-                                                            SKU: {item.sku}
+                                                             SKU: {item.sku}
                                                         </span>
                                                     )}
                                                 </div>
@@ -649,7 +677,7 @@ export function QuoteForm({ quote, mode }: Props) {
 
                                             {/* Precio Unitario */}
                                             <div className="w-32 shrink-0">
-                                                <label className="text-[11px] text-gray-400 block mb-1">Precio Unit. ($)</label>
+                                                <label className="text-[11px] text-gray-400 block mb-1">Precio Unit. c/IVA ($)</label>
                                                 <input
                                                     type="number"
                                                     min="0"
@@ -681,9 +709,14 @@ export function QuoteForm({ quote, mode }: Props) {
                                             {/* Subtotal calculado */}
                                             <div className="w-28 shrink-0 text-right">
                                                 <span className="text-[11px] text-gray-400 block mb-1">Subtotal</span>
-                                                <span className="text-sm font-bold text-white font-mono block py-1.5">
+                                                <span className="text-sm font-bold text-white font-mono block py-0.5">
                                                     ${(item.subtotal || 0).toLocaleString("es-AR")}
                                                 </span>
+                                                {lineTaxRate > 0 && (
+                                                    <span className="text-[10px] text-gray-400 font-mono block">
+                                                        IVA: ${Math.round(lineIva).toLocaleString("es-AR")}
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {/* Quitar */}
@@ -841,15 +874,15 @@ export function QuoteForm({ quote, mode }: Props) {
 
                         <div className="border-t border-gray-800 pt-3 space-y-2 text-sm text-gray-300">
                             <div className="flex justify-between">
-                                <span>Subtotal neto:</span>
+                                <span>Subtotal neto (sin IVA):</span>
                                 <span className="font-mono">${subtotal.toLocaleString("es-AR")}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span>IVA estimado:</span>
-                                <span className="font-mono">${ivaTotal.toLocaleString("es-AR")}</span>
+                                <span>IVA discriminado:</span>
+                                <span className="font-mono text-blue-400 font-semibold">${ivaTotal.toLocaleString("es-AR")}</span>
                             </div>
                             <div className="flex justify-between text-base font-bold text-white border-t border-gray-700 pt-2">
-                                <span>Total ({form.currency}):</span>
+                                <span>Total final ({form.currency}):</span>
                                 <span className="font-mono text-brand text-lg">
                                     ${total.toLocaleString("es-AR")}
                                 </span>

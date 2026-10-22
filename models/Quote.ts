@@ -30,6 +30,10 @@ const QuoteItemSchema = new Schema(
             default: "",
             trim: true,
         },
+        image: {
+            type: String,
+            default: null,
+        },
         quantity: {
             type: Number,
             required: true,

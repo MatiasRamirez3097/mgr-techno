@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 
 interface DistributorProduct {
     id: number | string;
@@ -21,6 +20,7 @@ interface Props {
     onSelect: (item: {
         name: string;
         sku: string;
+        image?: string;
         distributor: string;
         distributorSku: string;
         costPrice: number;
@@ -48,6 +48,17 @@ export function DistributorProductSelectorModal({
     const [quantity, setQuantity] = useState<number>(1);
     const [taxRate, setTaxRate] = useState<number>(10.5);
 
+    // Cuando cambia el producto seleccionado o el markup, recalcular el unitPrice
+    useEffect(() => {
+        if (selectedProduct) {
+            const cost = Number(selectedProduct.price) || 0;
+            const markup = Number(markupPercentage) || 0;
+            const calculated = Math.round(cost * (1 + markup / 100));
+            setUnitPrice(calculated);
+        }
+    }, [selectedProduct, markupPercentage]);
+
+    // Limpiar al abrir/cerrar
     useEffect(() => {
         if (!isOpen) {
             setQuery("");
@@ -57,20 +68,10 @@ export function DistributorProductSelectorModal({
         }
     }, [isOpen]);
 
-    useEffect(() => {
-        if (!selectedProduct) return;
-        const baseCost = selectedProduct.price || 0;
-        const calculated = Math.round(baseCost * (1 + markupPercentage / 100));
-        setUnitPrice(calculated);
-    }, [selectedProduct, markupPercentage]);
-
-    async function handleSearch(e: React.FormEvent) {
-        e.preventDefault();
-        const trimmed = query.trim();
-        if (trimmed.length < 2) {
-            setError("Ingresá al menos 2 caracteres para buscar");
-            return;
-        }
+    async function handleSearch(e?: React.FormEvent) {
+        if (e) e.preventDefault();
+        const term = query.trim();
+        if (!term) return;
 
         setLoading(true);
         setError("");
@@ -78,19 +79,26 @@ export function DistributorProductSelectorModal({
 
         try {
             const res = await fetch(
-                `/api/admin/distributors/search?q=${encodeURIComponent(trimmed)}`,
+                `/api/admin/distributors/search?q=${encodeURIComponent(term)}`
             );
             const data = await res.json();
+
             if (!res.ok) {
                 throw new Error(data.error || "Error al consultar distribuidores");
             }
 
-            setResults(data.products || []);
-            if (!data.products || data.products.length === 0) {
-                setError("No se encontraron productos en Elit ni NewBytes con ese término");
+            const products: DistributorProduct[] = data.products || [];
+            // Filtro de seguridad adicional: excluir INVID explícitamente
+            const filtered = products.filter(
+                (p) => p.distributor.toLowerCase() !== "invid"
+            );
+            setResults(filtered);
+
+            if (filtered.length === 0) {
+                setError("No se encontraron productos con ese término en Elit ni NewBytes.");
             }
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Error al buscar");
+        } catch (err: any) {
+            setError(err.message || "Error al conectar con los distribuidores.");
         } finally {
             setLoading(false);
         }
@@ -101,6 +109,7 @@ export function DistributorProductSelectorModal({
         onSelect({
             name: selectedProduct.name,
             sku: selectedProduct.sku,
+            image: selectedProduct.image || undefined,
             distributor: selectedProduct.distributor.toLowerCase(),
             distributorSku: selectedProduct.sku,
             costPrice: selectedProduct.price,
@@ -180,21 +189,38 @@ export function DistributorProductSelectorModal({
                     {selectedProduct ? (
                         <div className="bg-gray-800/60 border border-brand/50 rounded-xl p-5 space-y-4">
                             <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                                        {selectedProduct.distributor}
-                                    </span>
-                                    <h3 className="text-base font-bold text-white mt-1.5">
-                                        {selectedProduct.name}
-                                    </h3>
-                                    <p className="text-xs text-gray-400 font-mono mt-0.5">
-                                        SKU Distribuidor: {selectedProduct.sku} • Stock mayorista: {selectedProduct.stock} u.
-                                    </p>
+                                <div className="flex items-center gap-4 min-w-0">
+                                    <div className="w-16 h-16 rounded-xl bg-gray-900 border border-gray-700 flex items-center justify-center shrink-0 overflow-hidden p-1.5">
+                                        {selectedProduct.image ? (
+                                            <img
+                                                src={selectedProduct.image}
+                                                alt={selectedProduct.name}
+                                                referrerPolicy="no-referrer"
+                                                className="w-full h-full object-contain"
+                                                onError={(e) => {
+                                                    (e.currentTarget as HTMLElement).style.display = "none";
+                                                }}
+                                            />
+                                        ) : (
+                                            <span className="text-2xl text-gray-600">📦</span>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                            {selectedProduct.distributor}
+                                        </span>
+                                        <h3 className="text-base font-bold text-white mt-1">
+                                            {selectedProduct.name}
+                                        </h3>
+                                        <p className="text-xs text-gray-400 font-mono mt-0.5">
+                                            SKU Distribuidor: {selectedProduct.sku} • Stock mayorista: {selectedProduct.stock} u.
+                                        </p>
+                                    </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setSelectedProduct(null)}
-                                    className="text-xs text-gray-400 hover:text-white underline"
+                                    className="text-xs text-gray-400 hover:text-white underline shrink-0"
                                 >
                                     Elegir otro
                                 </button>
@@ -227,7 +253,7 @@ export function DistributorProductSelectorModal({
 
                                 <div>
                                     <label className="text-xs text-gray-400 block mb-1">
-                                        Precio Presupuesto ($)
+                                        Precio Presupuesto c/IVA ($)
                                     </label>
                                     <input
                                         type="number"
@@ -239,33 +265,46 @@ export function DistributorProductSelectorModal({
 
                                 <div>
                                     <label className="text-xs text-gray-400 block mb-1">
-                                        Cantidad
+                                        Alícuota IVA
                                     </label>
+                                    <select
+                                        value={taxRate}
+                                        onChange={(e) => setTaxRate(Number(e.target.value))}
+                                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                                    >
+                                        <option value={10.5}>10.5% (Computación)</option>
+                                        <option value={21}>21% (General)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center pt-2">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-gray-400">Cantidad:</label>
                                     <input
                                         type="number"
                                         min="1"
                                         value={quantity}
                                         onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-                                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white font-mono outline-none focus:border-brand"
+                                        className="w-20 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white font-mono outline-none focus:border-brand"
                                     />
                                 </div>
-                            </div>
-
-                            <div className="flex justify-end gap-2 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedProduct(null)}
-                                    className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 text-xs font-semibold hover:bg-gray-700 transition"
-                                >
-                                    Volver
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleConfirmAdd}
-                                    className="px-5 py-2 rounded-lg bg-brand text-white text-xs font-bold hover:brightness-110 transition shadow-lg shadow-brand/20"
-                                >
-                                    + Agregar al Presupuesto
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedProduct(null)}
+                                        className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 text-xs font-semibold hover:bg-gray-700 transition"
+                                    >
+                                        Volver
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmAdd}
+                                        className="px-5 py-2 rounded-lg bg-brand text-white text-xs font-bold hover:brightness-110 transition shadow-lg shadow-brand/20"
+                                    >
+                                        + Agregar al Presupuesto
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ) : results.length > 0 ? (
@@ -281,13 +320,17 @@ export function DistributorProductSelectorModal({
                                     className="w-full text-left bg-gray-800/40 hover:bg-gray-800 border border-gray-700/60 hover:border-gray-600 rounded-xl p-3.5 flex items-center justify-between gap-4 transition group"
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center shrink-0 border border-gray-700 overflow-hidden relative">
+                                        <div className="w-12 h-12 rounded-lg bg-gray-900 flex items-center justify-center shrink-0 border border-gray-700 overflow-hidden relative p-1">
                                             {p.image ? (
-                                                <Image
+                                                <img
                                                     src={p.image}
                                                     alt={p.name}
-                                                    fill
-                                                    className="object-cover"
+                                                    referrerPolicy="no-referrer"
+                                                    loading="lazy"
+                                                    className="w-full h-full object-contain"
+                                                    onError={(e) => {
+                                                        (e.currentTarget as HTMLElement).style.display = "none";
+                                                    }}
                                                 />
                                             ) : (
                                                 <span className="text-xs text-gray-600">📦</span>
