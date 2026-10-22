@@ -5,3 +5,6 @@ export { InventoryItemModel } from "./InventoryItem";
 export { OrderModel } from "./Order";
 export { ProductModel } from "./Product";
 export { UserModel } from "./User";
+export { QuoteModel } from "./Quote";
+export { PurchaseModel } from "./Purchase";
+export { SupplierModel } from "./Supplier";
