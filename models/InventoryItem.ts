@@ -58,7 +58,7 @@ export const InventoryItemSchema = new Schema(
 
         saleId: {
             type: Schema.Types.ObjectId,
-            ref: "Sale",
+            ref: "Order",
             required: false,
             index: true,
         },

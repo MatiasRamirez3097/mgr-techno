@@ -3,14 +3,18 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Analytics } from "@vercel/analytics/next";
 import MetaPixel from "@/components/MetaPixel";
+import { StoreSettingsProvider } from "@/components/providers/StoreSettingsProvider";
+import { getStoreSettings } from "@/services/settings/getStoreSettings";
 
-export default function StoreLayout({
+export default async function StoreLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const settings = await getStoreSettings();
+
     return (
-        <>
+        <StoreSettingsProvider settings={settings}>
             <div className="flex flex-col min-h-screen">
                 <Navbar />
                 <main className="flex-1">{children}</main>
@@ -18,7 +22,7 @@ export default function StoreLayout({
             </div>
             <MetaPixel />
             <Analytics />
-        </>
+        </StoreSettingsProvider>
     );
 }
 

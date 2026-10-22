@@ -41,8 +41,6 @@ export async function POST(req: NextRequest) {
             url: magicUrl,
         });
 
-        console.log("Link mágico generado (Borrar en prod):", magicUrl);
-
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error(error);

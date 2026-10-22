@@ -1,5 +1,6 @@
 import { buildIvaBreakdown } from "./buildIvaBreakdown";
 import { AFIP_IVA_IDS } from "../constants";
+import { getAfipDocument } from "../utils/mapDocumentType";
 
 interface Params {
     order: any;
@@ -16,6 +17,8 @@ export function buildInvoiceRequest({
     voucherType,
     date,
 }: Params) {
+    const customerDocument = getAfipDocument(order.billing?.document);
+
     // 1. Mapeamos los ítems físicos de la orden
     const items = order.items.map((item: any) => {
         const quantity = item.quantity;
@@ -125,16 +128,9 @@ export function buildInvoiceRequest({
                     {
                         Concepto: 1, // 1: Productos (Si vendieras servicios usarías 2)
 
-                        DocTipo:
-                            order.billing?.document?.documentType?.toLowerCase() ===
-                            "dni"
-                                ? 96
-                                : order.billing?.document?.documentType?.toLowerCase() ===
-                                    "cuit"
-                                  ? 80
-                                  : 99, // 96 DNI, 99 Consumidor Final / Sin Especificar
+                        DocTipo: customerDocument.type,
 
-                        DocNro: Number(order.billing?.document?.number || 0),
+                        DocNro: customerDocument.number,
 
                         CbteDesde: voucherNumber,
                         CbteHasta: voucherNumber,

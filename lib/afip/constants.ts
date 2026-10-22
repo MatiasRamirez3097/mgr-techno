@@ -30,8 +30,14 @@ export const AFIP_INVOICE_TYPES = {
     NOTA_CREDITO_B: 8,
 } as const;
 
+// Punto de venta habilitado en AFIP para facturación electrónica
+export const AFIP_POINT_OF_SALE =
+    Number(process.env.AFIP_POINT_OF_SALE) || 5;
+
 export const AFIP_DOCUMENT_TYPES = {
     CUIT: 80,
+
+    CUIL: 86,
 
     DNI: 96,
 

@@ -1,3 +1,10 @@
+import {
+    formatSequence,
+    getNextSequence,
+} from "@/lib/counters/getNextGenericNumber";
+
+// Número interno correlativo por tipo (REC-00000001). Las facturas fiscales
+// lo reemplazan luego por el número de AFIP (00005-0000NNNN).
 export async function generateVoucherNumber(type: string) {
     const prefixMap: Record<string, string> = {
         non_fiscal_receipt: "REC",
@@ -8,5 +15,7 @@ export async function generateVoucherNumber(type: string) {
 
     const prefix = prefixMap[type] || "DOC";
 
-    return `${prefix}-${Date.now()}`;
+    const seq = await getNextSequence(`voucher_${prefix}`);
+
+    return formatSequence(prefix, seq);
 }

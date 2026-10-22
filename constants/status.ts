@@ -7,10 +7,12 @@ export const ORDER_STATUSES = [
     { value: "completed", label: "Completado" },
     { value: "cancelled", label: "Cancelado" },
     { value: "refunded", label: "Reembolsado" },
+    { value: "failed", label: "Fallido" },
 ];
 
 export const ORDER_PAYMENT_STATUSES = [
     { value: "pending", label: "Pendiente" },
+    { value: "partial", label: "Pago parcial" },
     { value: "paid", label: "Pagado" },
     { value: "failed", label: "Fallo" },
     { value: "refunded", label: "Devuelto" },

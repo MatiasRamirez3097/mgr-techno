@@ -8,9 +8,11 @@ import { createVoucher } from "@/lib/afip/wsfe/createVoucher";
 
 import { generateAfipQr } from "@/lib/afip/qr/generateAfipQr";
 
-import { AFIP_DOCUMENT_TYPES, AFIP_INVOICE_TYPES } from "@/lib/afip/constants";
+import { AFIP_INVOICE_TYPES, AFIP_POINT_OF_SALE } from "@/lib/afip/constants";
 
-const POINT_OF_SALE = 5;
+import { getAfipDocument } from "@/lib/afip/utils/mapDocumentType";
+
+const POINT_OF_SALE = AFIP_POINT_OF_SALE;
 
 interface Props {
     order: any;
@@ -139,10 +141,8 @@ export async function generateFiscalVoucher({
         |------------------------------------------------------------------
         */
 
-        const customerDocumentType =
-            order.billing?.document?.type || AFIP_DOCUMENT_TYPES.DNI;
-
-        const customerDocumentNumber = order.billing?.document?.number || "";
+        // Mismo mapeo que la factura enviada a AFIP (buildInvoiceRequest)
+        const customerDocument = getAfipDocument(order.billing?.document);
 
         /*
         |------------------------------------------------------------------
@@ -161,9 +161,9 @@ export async function generateFiscalVoucher({
 
             total: payload.FeCAEReq.FeDetReq.FECAEDetRequest[0].ImpTotal,
 
-            documentType: customerDocumentType,
+            documentType: customerDocument.type,
 
-            documentNumber: Number(customerDocumentNumber),
+            documentNumber: customerDocument.number,
 
             cae: detail.CAE,
 

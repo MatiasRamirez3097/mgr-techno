@@ -70,7 +70,13 @@ export const createAdminOrderSchema = z.object({
     ),
 
     shippingMethod: z.object({
-        method: z.enum(["local_pickup", "delivery", "andreani", "other"]),
+        // Alineado con Order.shippingMethod.method
+        method: z.enum([
+            "local_pickup",
+            "local_shipping",
+            "andreani",
+            "viacargo",
+        ]),
         cost: z.number().min(0),
     }),
 

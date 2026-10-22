@@ -5,7 +5,13 @@ import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
 // import { signIn } from "next-auth/react"; // (Lo comento si no lo usás directo acá)
-import { getFinalPrice, getListPriceFinal } from "@/lib/pricing";
+import { getFinalPrice, applyPaymentSurcharge } from "@/lib/pricing";
+import {
+    getShippingModifier,
+    LOCAL_SHIPPING_COST,
+    type ShippingModifierReason,
+} from "@/lib/shipping/shippingRules";
+import { useStoreSettings } from "@/components/providers/StoreSettingsProvider";
 import { LoginModal } from "../LoginModal";
 
 interface Props {
@@ -51,7 +57,14 @@ const SHIPPING_METHODS = [
     },
 ] as const;
 
-const LOCAL_SHIPPING_COST = 5000;
+const SHIPPING_MESSAGES: Record<ShippingModifierReason, string | null> = {
+    none: null,
+    all_free: "¡Tenés envío gratis en todos tus productos!",
+    bulky: "Se anuló el envío gratis porque agregaste productos voluminosos.",
+    all_small:
+        "¡Mantuviste el envío gratis por combinar con productos pequeños!",
+    mixed: "¡Tenés un 50% de descuento en el envío por combinar estos productos!",
+};
 
 const PROVINCIAS = [
     "Buenos Aires",
@@ -122,10 +135,14 @@ export function CheckoutForm({ session }: Props) {
     const [success, setSuccess] = useState("");
 
     const usesListPrice = paymentMethod === "mercadopago";
+    const { mercadoPagoSurchargePercent } = useStoreSettings();
 
     const subtotal = items.reduce((acc, i) => {
         const price = usesListPrice
-            ? getListPriceFinal(getFinalPrice(i))
+            ? applyPaymentSurcharge(
+                  getFinalPrice(i),
+                  mercadoPagoSurchargePercent,
+              )
             : getFinalPrice(i);
         return acc + price * i.quantity;
     }, 0);
@@ -133,41 +150,11 @@ export function CheckoutForm({ session }: Props) {
     // ========================================================
     // LÓGICA DE CÁLCULO DE ENVÍO GRATIS Y TAMAÑOS
     // ========================================================
-    const hasFreeShippingItem = items.some((i) => i.hasFreeShipping);
-    const nonFreeShippingItems = items.filter((i) => !i.hasFreeShipping);
-
-    let shippingModifier = 1; // 1 = 100% del costo
-    let shippingMessage: string | null = null;
-    let shippingMessageType: "success" | "warning" = "success";
-
-    if (hasFreeShippingItem) {
-        if (nonFreeShippingItems.length === 0) {
-            shippingModifier = 0;
-            shippingMessage = "¡Tenés envío gratis en todos tus productos!";
-        } else {
-            const hasBulky = nonFreeShippingItems.some(
-                (i) => i.shippingSize === "bulky",
-            );
-            const allSmall = nonFreeShippingItems.every(
-                (i) => i.shippingSize === "small",
-            );
-
-            if (hasBulky) {
-                shippingModifier = 1;
-                shippingMessage =
-                    "Se anuló el envío gratis porque agregaste productos voluminosos.";
-                shippingMessageType = "warning";
-            } else if (allSmall) {
-                shippingModifier = 0;
-                shippingMessage =
-                    "¡Mantuviste el envío gratis por combinar con productos pequeños!";
-            } else {
-                shippingModifier = 0.5; // 50% de descuento
-                shippingMessage =
-                    "¡Tenés un 50% de descuento en el envío por combinar estos productos!";
-            }
-        }
-    }
+    const { modifier: shippingModifier, reason: shippingReason } =
+        getShippingModifier(items);
+    const shippingMessage = SHIPPING_MESSAGES[shippingReason];
+    const shippingMessageType: "success" | "warning" =
+        shippingReason === "bulky" ? "warning" : "success";
 
     // Costo base devuelto por la API (o fijo)
     const baseShippingCost =
@@ -348,7 +335,8 @@ export function CheckoutForm({ session }: Props) {
                                   : shippingMethod === "viacargo"
                                     ? "Via Cargo"
                                     : "Andreani",
-                        cost: finalShippingCost, // <- Mandamos el costo con el descuento aplicado
+                        // Costo base: el servidor recotiza y aplica la regla de envío gratis
+                        cost: baseShippingCost,
                     },
                     notes: "",
                 }),
@@ -760,7 +748,10 @@ export function CheckoutForm({ session }: Props) {
                             {items.map((item) => {
                                 const localFinalPrice = getFinalPrice(item);
                                 const price = usesListPrice
-                                    ? getListPriceFinal(localFinalPrice)
+                                    ? applyPaymentSurcharge(
+                                          localFinalPrice,
+                                          mercadoPagoSurchargePercent,
+                                      )
                                     : localFinalPrice;
                                 return (
                                     <div
