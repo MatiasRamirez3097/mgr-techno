@@ -4,7 +4,6 @@ export const paymentSchema = z.object({
     method: z.enum([
         "mercadopago",
         "bank_transfer",
-        "cod",
         "cash",
         "debit_card",
         "credit_card",

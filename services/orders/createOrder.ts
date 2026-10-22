@@ -14,18 +14,16 @@ import { createOrderSchema } from "@/lib/validators/createOrderSchema";
 import { notifyNewOrder } from "@/lib/notifications/discord/notifyNewOrder";
 import { updateProductStock } from "../products/updateProductStock";
 import { buildOrderBundleComponentsMap } from "../products/recalculateBundlesStock";
-
-function getPaymentStatus(total: number, paidAmount: number) {
-    if (paidAmount <= 0) {
-        return "pending";
-    }
-
-    if (paidAmount < total) {
-        return "partial";
-    }
-
-    return "paid";
-}
+import { getStoreSettings } from "../settings/getStoreSettings";
+import {
+    computePaymentStatus,
+    sumPaidPayments,
+} from "./recalculateOrderPaymentStatus";
+import { applyPaymentSurcharge } from "@/lib/pricing";
+import {
+    getShippingModifier,
+    LOCAL_SHIPPING_COST,
+} from "@/lib/shipping/shippingRules";
 
 export async function createOrder(data: unknown) {
     const result = createOrderSchema.safeParse(data);
@@ -35,6 +33,8 @@ export async function createOrder(data: unknown) {
     }
 
     const { items, payments, source } = result.data;
+
+    const { mercadoPagoSurchargePercent } = await getStoreSettings();
 
     const session = await mongoose.startSession();
 
@@ -63,48 +63,19 @@ export async function createOrder(data: unknown) {
             // 🔒 REGLAS DE ENVÍO (BACKEND SAFE)
             // =====================================
             // Evaluamos la regla basándonos en los productos REALES de la base de datos
-            const hasFreeShippingItem = products.some((p) => p.hasFreeShipping);
-            const nonFreeShippingProducts = products.filter(
-                (p) => !p.hasFreeShipping,
-            );
+            const { modifier: shippingModifier } =
+                getShippingModifier(products);
 
-            let shippingModifier = 1; // 1 = 100% del costo
-
-            if (hasFreeShippingItem) {
-                if (nonFreeShippingProducts.length === 0) {
-                    shippingModifier = 0; // Todo es gratis
-                } else {
-                    const hasBulky = nonFreeShippingProducts.some(
-                        (p) => p.shippingSize === "bulky",
-                    );
-                    const allSmall = nonFreeShippingProducts.every(
-                        (p) => p.shippingSize === "small",
-                    );
-
-                    if (hasBulky) {
-                        shippingModifier = 1;
-                    } else if (allSmall) {
-                        shippingModifier = 0;
-                    } else {
-                        shippingModifier = 0.5; // 50% de descuento
-                    }
-                }
-            }
-
-            // Sanitizamos el costo base que nos mandó el Frontend
             let baseShippingCost = result.data.shippingMethod.cost;
             const methodId = result.data.shippingMethod.method;
 
-            // Seguridad extra: Forzamos los precios fijos del backend para que no los falseen
-            const LOCAL_SHIPPING_COST = 5000;
-
+            // Forzamos los precios fijos del backend para que no los falseen.
+            // Andreani/Vía Cargo llegan ya recotizados en el servidor (app/api/checkout).
             if (methodId === "local_pickup") {
                 baseShippingCost = 0;
             } else if (methodId === "local_shipping") {
                 baseShippingCost = LOCAL_SHIPPING_COST;
             }
-            // Si es Andreani/ViaCargo, por ahora confiamos en el costo base que mandó el front,
-            // (Para blindarlo al 100%, deberías recotizar con la API de Andreani acá adentro).
 
             // COSTO FINAL SEGURO
             const finalShippingCost = baseShippingCost * shippingModifier;
@@ -120,7 +91,6 @@ export async function createOrder(data: unknown) {
                 (p) => p.method === "mercadopago",
             );
 
-            const priceMultiplicator = hasMercadoPago ? 1.1 : 1;
 
             // =====================================
             // ORDER ITEMS
@@ -146,7 +116,13 @@ export async function createOrder(data: unknown) {
                     throw new Error(`Sin stock para ${product.name}`);
                 }
 
-                const unitPrice = product.effectivePrice * priceMultiplicator;
+                // Misma función que usa el checkout para mostrar el precio
+                const unitPrice = hasMercadoPago
+                    ? applyPaymentSurcharge(
+                          product.effectivePrice,
+                          mercadoPagoSurchargePercent,
+                      )
+                    : product.effectivePrice;
 
                 const quantity = item.quantity;
 
@@ -225,22 +201,22 @@ export async function createOrder(data: unknown) {
             // PAYMENTS
             // =====================================
 
-            // Para pedidos de ecommerce, ningún pago puede crearse como pagado
+            // Para pedidos de ecommerce, ningún pago puede crearse como pagado,
+            // y el monto del pago único es el total calculado en el servidor
             const sanitizedPayments =
                 source === "ecommerce"
                     ? payments.map((p) => ({
                           ...p,
                           status: "pending" as const,
+                          amount: payments.length === 1 ? total : p.amount,
                       }))
                     : payments;
 
-            const paidAmount = sanitizedPayments
-                .filter((p) => p.status === "paid")
-                .reduce((acc, payment) => acc + payment.amount, 0);
+            const paidAmount = sumPaidPayments(sanitizedPayments);
 
             const remainingAmount = total - paidAmount;
 
-            const paymentStatus = getPaymentStatus(total, paidAmount);
+            const paymentStatus = computePaymentStatus(total, paidAmount);
 
             // =====================================
             // CREATE ORDER

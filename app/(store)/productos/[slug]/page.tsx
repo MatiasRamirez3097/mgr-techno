@@ -16,6 +16,7 @@ import { OutletSelector } from "@/components/products/OutletSelector";
 import { ProductShippingCalculator } from "@/components/products/ProductShippingCalculator";
 
 import { getPricing } from "@/lib/pricing";
+import { getStoreSettings } from "@/services/settings/getStoreSettings";
 import { getProductBySlug as getProductBySlugService } from "@/services/products/getProductBySlug";
 
 import { connectDB } from "@/lib/mongodb";
@@ -43,10 +44,14 @@ export default async function ProductPage({ params }: Props) {
         notFound();
     }
 
-    const pricing = getPricing({
-        regularPrice: product.regularPrice,
-        salePrice: product.salePrice,
-    });
+    const { mercadoPagoSurchargePercent } = await getStoreSettings();
+    const pricing = getPricing(
+        {
+            regularPrice: product.regularPrice,
+            salePrice: product.salePrice,
+        },
+        mercadoPagoSurchargePercent,
+    );
 
     // 🔥 NUEVO: Calculamos el % de descuento que representa el precio especial
     const discountPercentage = Math.round(

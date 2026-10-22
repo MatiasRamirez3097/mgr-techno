@@ -3,6 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextRequest, NextResponse } from "next/server";
 import { createOrderSchema } from "@/lib/validators/createOrderSchema";
 import { createOrder } from "@/services/orders/createOrder";
+import { quoteShipping } from "@/services/shipping/quoteShipping";
 import bcrypt from "bcryptjs";
 // Importá tus modelos
 import { CustomerModel, UserModel } from "@/models";
@@ -15,6 +16,47 @@ import { MercadoPagoConfig, Preference } from "mercadopago";
 const client = new MercadoPagoConfig({
     accessToken: process.env.MP_ACCESS_TOKEN as string,
 });
+
+const QUOTABLE_SHIPPING_METHODS = ["andreani", "viacargo"];
+
+type CheckoutShippingInput = {
+    shipping?: { postcode?: string };
+    billing?: { postcode?: string };
+    items?: { productId?: unknown; quantity?: unknown }[];
+};
+
+async function getServerShippingCost(
+    body: CheckoutShippingInput,
+    shippingMethod: string,
+): Promise<number | null> {
+    const postcode = body?.shipping?.postcode || body?.billing?.postcode;
+    if (!postcode || !Array.isArray(body?.items)) return null;
+
+    try {
+        // Andreani devuelve { total, error? }; Vía Cargo { total } o "error"
+        const quote = (await quoteShipping({
+            postcode,
+            shippingMethod,
+            items: body.items.map((i) => ({
+                id: String(i.productId),
+                quantity: Number(i.quantity) || 1,
+            })),
+        })) as { total?: number; error?: string } | string | undefined;
+
+        if (!quote || typeof quote === "string" || quote.error) {
+            return null;
+        }
+
+        const total = Number(quote.total);
+        if (!Number.isFinite(total) || total <= 0) {
+            return null;
+        }
+        return total;
+    } catch (error) {
+        console.error("Error recotizando envío en checkout:", error);
+        return null;
+    }
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -33,6 +75,29 @@ export async function POST(req: NextRequest) {
                 },
                 { status: 400 },
             );
+        }
+
+        // RECOTIZACIÓN DEL ENVÍO EN EL SERVIDOR
+        // El costo de Andreani/Vía Cargo nunca se toma del front. Se guarda el
+        // costo base; createOrder aplica la regla de envío gratis.
+        const shippingMethodId = body?.shippingMethod?.method;
+        if (QUOTABLE_SHIPPING_METHODS.includes(shippingMethodId)) {
+            const quotedCost = await getServerShippingCost(
+                body,
+                shippingMethodId,
+            );
+
+            if (quotedCost === null) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: "No pudimos cotizar el envío en este momento. Por favor, reintentá en unos minutos.",
+                    },
+                    { status: 503 },
+                );
+            }
+
+            body.shippingMethod.cost = quotedCost;
         }
 
         let finalCustomerId = session?.customerId || null;

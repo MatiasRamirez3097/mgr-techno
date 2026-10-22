@@ -1,49 +1,41 @@
+export type OrderPaymentStatus = "pending" | "partial" | "paid";
+
+/**
+ * Estado de pago según el monto cobrado. Única regla usada por pedidos
+ * de ecommerce, pedidos manuales, el webhook de MP y los endpoints de pagos.
+ */
+export function computePaymentStatus(
+    total: number,
+    paidAmount: number,
+): OrderPaymentStatus {
+    if (paidAmount <= 0) return "pending";
+    if (paidAmount < total) return "partial";
+    return "paid";
+}
+
+export function sumPaidPayments(
+    payments: { status?: string; amount?: number }[] = [],
+) {
+    return payments
+        .filter((payment) => payment.status === "paid")
+        .reduce((acc, payment) => acc + (payment.amount || 0), 0);
+}
+
+/**
+ * Recalcula paymentStatus, paidAmount, remainingAmount y datePaid
+ * a partir de los pagos del pedido (muta el documento).
+ */
 export function recalculateOrderPaymentStatus(order: any) {
-    /*
-    |------------------------------------------------------------------
-    | PAID PAYMENTS
-    |------------------------------------------------------------------
-    */
+    const totalPaid = sumPaidPayments(order.payments);
 
-    const paidPayments = order.payments.filter(
-        (payment: any) => payment.status === "paid",
-    );
+    order.paymentStatus = computePaymentStatus(order.total, totalPaid);
+    order.paidAmount = totalPaid;
+    order.remainingAmount = Math.max(0, order.total - totalPaid);
 
-    /*
-    |------------------------------------------------------------------
-    | TOTAL PAID
-    |------------------------------------------------------------------
-    */
-
-    const totalPaid = paidPayments.reduce(
-        (acc: number, payment: any) => acc + (payment.amount || 0),
-
-        0,
-    );
-
-    /*
-    |------------------------------------------------------------------
-    | STATUS
-    |------------------------------------------------------------------
-    */
-
-    if (totalPaid <= 0) {
-        order.paymentStatus = "pending";
-
+    if (order.paymentStatus === "paid") {
+        // Conserva la fecha original si ya estaba pagado
+        order.datePaid = order.datePaid || new Date();
+    } else {
         order.datePaid = null;
-
-        return;
     }
-
-    if (totalPaid < order.total) {
-        order.paymentStatus = "partial";
-
-        order.datePaid = null;
-
-        return;
-    }
-
-    order.paymentStatus = "paid";
-
-    order.datePaid = new Date();
 }

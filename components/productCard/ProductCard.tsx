@@ -7,6 +7,7 @@ import { ProductDTO } from "@/types/shared/product";
 import { useCart } from "@/store/cart";
 import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
 import { getPricing } from "@/lib/pricing";
+import { useStoreSettings } from "@/components/providers/StoreSettingsProvider";
 import {
     getOptimizedImageUrl,
     hasOwnProductImage,
@@ -30,7 +31,8 @@ export function ProductCard({
     const maxStock = product.availableStock ?? Infinity;
     const reachedMax = itemInCart ? itemInCart.quantity >= maxStock : false;
     const disabled = product.availableStock === 0 || reachedMax;
-    const pricing = getPricing(product);
+    const { mercadoPagoSurchargePercent } = useStoreSettings();
+    const pricing = getPricing(product, mercadoPagoSurchargePercent);
 
     const hasMainImage = hasOwnProductImage(product.image);
     const hasBundleCollage =

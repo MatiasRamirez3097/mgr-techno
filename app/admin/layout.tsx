@@ -3,6 +3,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { getPendingReviewCount } from "@/services/products/getPendingReviewCount";
+import { getStoreSettings } from "@/services/settings/getStoreSettings";
+import { StoreSettingsProvider } from "@/components/providers/StoreSettingsProvider";
 
 export default async function AdminLayout({
     children,
@@ -16,13 +18,18 @@ export default async function AdminLayout({
     // Solo administradores
     if ((session as any).role !== "administrator") redirect("/");
 
-    const pendingReviewCount = await getPendingReviewCount();
+    const [pendingReviewCount, settings] = await Promise.all([
+        getPendingReviewCount(),
+        getStoreSettings(),
+    ]);
 
     return (
-        <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
-            <AdminSidebar pendingReviewCount={pendingReviewCount} />
-            <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto pt-20 md:pt-8">{children}</main>
-        </div>
+        <StoreSettingsProvider settings={settings}>
+            <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
+                <AdminSidebar pendingReviewCount={pendingReviewCount} />
+                <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto pt-20 md:pt-8">{children}</main>
+            </div>
+        </StoreSettingsProvider>
     );
 }
 

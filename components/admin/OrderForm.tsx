@@ -651,13 +651,13 @@ export function OrderForm({ order, mode }: Props) {
                                         Retiro en local
                                     </option>
 
-                                    <option value="delivery">
+                                    <option value="local_shipping">
                                         Envío local
                                     </option>
 
                                     <option value="andreani">Andreani</option>
 
-                                    <option value="other">Otro</option>
+                                    <option value="viacargo">Vía Cargo</option>
                                 </select>
                             </div>
                             <div>
