@@ -36,7 +36,7 @@ describe("verifyMercadoPagoSignature", () => {
         ).toBe("valid");
     });
 
-    it("rechaza firma alterada o ausente", () => {
+    it("rechaza firma alterada o mal formada", () => {
         vi.stubEnv("MP_WEBHOOK_SECRET", SECRET);
         const v1 = sign("id:123;request-id:req-1;ts:1700000000;");
         expect(
@@ -48,10 +48,21 @@ describe("verifyMercadoPagoSignature", () => {
         ).toBe("invalid");
         expect(
             verifyMercadoPagoSignature({
-                xSignature: null,
+                xSignature: "ts=1700000000",
                 xRequestId: "req-1",
                 dataId: "123",
             }),
         ).toBe("invalid");
+    });
+
+    it("marca como unsigned una notificación sin firma (IPN)", () => {
+        vi.stubEnv("MP_WEBHOOK_SECRET", SECRET);
+        expect(
+            verifyMercadoPagoSignature({
+                xSignature: null,
+                xRequestId: null,
+                dataId: "123",
+            }),
+        ).toBe("unsigned");
     });
 });

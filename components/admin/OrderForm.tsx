@@ -5,18 +5,12 @@ import { ProductSelector } from "./ProductSelector";
 import { SearchableEntitySelect } from "./SearchableEntitySelect";
 import { FormModal } from "./FormModal";
 import { CustomerForm } from "./CustomerForm";
+import { todayInStoreTimeZone } from "@/lib/utils/orderDate";
 
 interface Props {
     order?: any;
     mode: "create" | "edit";
 }
-
-type Document = {
-    date: string;
-    type: string;
-    number: string;
-    fileUrl: string | undefined;
-};
 
 type CustomComponentItem = {
     productId: string;
@@ -59,7 +53,7 @@ type OrderFormState = {
     customerId: string;
     status: string;
     items: OrderItem[];
-    document: Document;
+    orderDate: string;
     notes: string;
     shippingMethod: {
         method: string;
@@ -121,14 +115,8 @@ export function OrderForm({ order, mode }: Props) {
         payments: order?.payments || [],
         status: order?.status || "pending",
         items: order?.items || [],
-        document: {
-            date: order?.document?.date
-                ? order.document.date.split("T")[0]
-                : new Date().toISOString().split("T")[0],
-            type: order?.document?.type || "generic",
-            number: order?.document?.number || "",
-            fileUrl: order?.document?.fileUrl || undefined,
-        },
+        // Fecha del pedido: hoy por defecto, o una pasada para cargar ventas anteriores
+        orderDate: todayInStoreTimeZone(),
         shippingMethod: {
             method: order?.shippingMethod?.method || "local_pickup",
             cost: order?.shippingMethod?.cost || 0,
@@ -412,7 +400,7 @@ export function OrderForm({ order, mode }: Props) {
             reference: payment.reference,
         })),
         shippingMethod: form.shippingMethod,
-        document: form.document,
+        orderDate: form.orderDate,
 
         notes: form.notes,
         source: "admin",
@@ -558,64 +546,19 @@ export function OrderForm({ order, mode }: Props) {
                                 </div>
                             </div>
                             <div>
-                                <label className={labelClass}>Fecha</label>
+                                <label className={labelClass}>Fecha del pedido</label>
                                 <input
                                     name="date"
-                                    value={form.document.date}
+                                    value={form.orderDate}
+                                    max={todayInStoreTimeZone()}
                                     className={inputClass}
                                     onChange={(e) =>
                                         setForm({
                                             ...form,
-                                            document: {
-                                                ...form.document,
-                                                date: e.target.value,
-                                            },
+                                            orderDate: e.target.value,
                                         })
                                     }
                                     type="date"
-                                />
-                            </div>
-                            <div>
-                                <label className={labelClass}>
-                                    Tipo de Comprobante
-                                </label>
-                                <select
-                                    className={inputClass}
-                                    value={form.document.type}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            document: {
-                                                ...form.document,
-                                                type: e.target.value,
-                                            },
-                                        })
-                                    }
-                                >
-                                    <option value="generic">
-                                        Comprobante Genérico
-                                    </option>
-                                    <option value="invoice">Factura</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className={labelClass}>
-                                    Nro de Comprobante{" "}
-                                </label>
-                                <input
-                                    className={inputClass}
-                                    placeholder="Número"
-                                    value={form.document.number}
-                                    disabled={form.document.type === "generic"}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            document: {
-                                                ...form.document,
-                                                number: e.target.value,
-                                            },
-                                        })
-                                    }
                                 />
                             </div>
                             <div>

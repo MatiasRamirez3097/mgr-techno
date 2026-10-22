@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 // Importá tus modelos
 import { CustomerModel, UserModel } from "@/models";
 import { connectDB } from "@/lib/mongodb";
+import { isBusinessError } from "@/lib/errors/BusinessError";
 
 // IMPORTAMOS MERCADOPAGO
 import { MercadoPagoConfig, Preference } from "mercadopago";
@@ -225,6 +226,12 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         if (error.name === "ZodError") {
             return NextResponse.json({ error: error.errors }, { status: 400 });
+        }
+        if (isBusinessError(error)) {
+            return NextResponse.json(
+                { success: false, error: error.message },
+                { status: error.status },
+            );
         }
         console.log(error);
         return NextResponse.json({ error: "Error interno" }, { status: 500 });

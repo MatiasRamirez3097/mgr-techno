@@ -5,31 +5,51 @@ import { OrderModel } from "@/models";
 import { sendPaymentConfirmedEmail } from "@/lib/email";
 import { mapOrderToDTO } from "@/lib/mappers/orderMapper";
 import { verifyMercadoPagoSignature } from "@/lib/mercadopago/verifyWebhookSignature";
-import { recalculateOrderPaymentStatus } from "@/services/orders/recalculateOrderPaymentStatus";
+import {
+    advanceOrderStatusIfPaid,
+    recalculateOrderPaymentStatus,
+} from "@/services/orders/recalculateOrderPaymentStatus";
 
 // INICIALIZAMOS EL CLIENTE DE MP
 const client = new MercadoPagoConfig({
     accessToken: process.env.MP_ACCESS_TOKEN as string,
 });
 
+// Formato webhook ({ type, data: { id } }) o IPN ({ topic, id })
+type MercadoPagoNotification = {
+    type?: string;
+    topic?: string;
+    id?: string | number;
+    data?: { id?: string | number };
+};
+
 // Tolerancia por redondeos entre el total del pedido y lo cobrado por MP
 const AMOUNT_TOLERANCE = 1;
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
+        // Las IPN pueden llegar sin body (datos sólo en la query string)
+        const rawBody = await req.text();
+        let body: MercadoPagoNotification = {};
+        try {
+            body = rawBody ? JSON.parse(rawBody) : {};
+        } catch {
+            body = {};
+        }
+        const query = req.nextUrl.searchParams;
 
         // 1. Identificar si es una notificación de pago (vía Webhook o IPN)
-        const paymentId = body?.data?.id || body?.id;
-        const topic = body?.type || body?.topic;
+        const paymentId =
+            body?.data?.id || body?.id || query.get("data.id") || query.get("id");
+        const topic =
+            body?.type || body?.topic || query.get("type") || query.get("topic");
 
         // 2. VALIDAR FIRMA (x-signature)
         const signature = verifyMercadoPagoSignature({
             xSignature: req.headers.get("x-signature"),
             xRequestId: req.headers.get("x-request-id"),
             dataId:
-                req.nextUrl.searchParams.get("data.id") ||
-                (paymentId ? String(paymentId) : null),
+                query.get("data.id") || (paymentId ? String(paymentId) : null),
         });
 
         if (signature === "invalid") {
@@ -38,6 +58,13 @@ export async function POST(req: NextRequest) {
                 { error: "Firma inválida" },
                 { status: 401 },
             );
+        }
+
+        // Sin firma (IPN) se procesa igual: el pago nunca se toma del body,
+        // se consulta a MP con nuestro token y se controlan estado,
+        // external_reference y monto. Una notificación falsa no marca nada.
+        if (signature === "unsigned") {
+            console.info("Notificación de Mercado Pago sin firma (IPN)");
         }
 
         if (signature === "not_configured") {
@@ -96,14 +123,7 @@ export async function POST(req: NextRequest) {
                     }
 
                     recalculateOrderPaymentStatus(order);
-
-                    // Mismo criterio que el panel: un pedido pagado pasa a "en proceso"
-                    if (
-                        order.paymentStatus === "paid" &&
-                        order.status === "pending"
-                    ) {
-                        order.status = "processing";
-                    }
+                    advanceOrderStatusIfPaid(order);
 
                     await order.save();
 

@@ -10,6 +10,8 @@ export async function GET() {
     const products = await ProductModel.find({
         status: "publish",
         isAvailable: true,
+        // Los Outlet (usados o con falla) no se publican en Google Merchant
+        isOutlet: { $ne: true },
     }).populate("brand");
 
     const items = products
@@ -31,7 +33,7 @@ export async function GET() {
     <description><![CDATA[${desc}]]></description>
     <link>https://mgrtechno.com.ar/productos/${product.slug}</link>
     <g:image_link>${imageUrl}</g:image_link>
-    <g:condition>${product.isOutlet ? "refurbished" : "new"}</g:condition>
+    <g:condition>new</g:condition>
     <g:availability>${product.availableStock && product.availableStock > 0 ? "in_stock" : "out_of_stock"}</g:availability>
     <g:quantity_to_sell_on_facebook>${product.availableStock || 0}</g:quantity_to_sell_on_facebook>
     <g:price>${price.toFixed(2)} ARS</g:price>

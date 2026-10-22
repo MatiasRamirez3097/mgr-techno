@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models/Order";
 import { orderPaymentSchema } from "@/lib/validators/orderPaymentSchema";
-import { recalculateOrderPaymentStatus } from "@/services/orders/recalculateOrderPaymentStatus";
+import {
+    advanceOrderStatusIfPaid,
+    recalculateOrderPaymentStatus,
+} from "@/services/orders/recalculateOrderPaymentStatus";
 import { sendPaymentConfirmedEmail } from "@/lib/email";
 import { mapOrderToDTO } from "@/lib/mappers/orderMapper";
 
@@ -40,6 +43,7 @@ export async function POST(
     });
 
     recalculateOrderPaymentStatus(order);
+    advanceOrderStatusIfPaid(order);
 
     await order.save();
 

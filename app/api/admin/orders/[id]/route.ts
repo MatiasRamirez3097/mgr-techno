@@ -4,7 +4,6 @@ import { NextRequest } from "next/server";
 import { startSession } from "mongoose";
 
 import {
-    sendPaymentConfirmedEmail,
     sendOrderShippedEmail,
     sendReadyForPickupEmail,
     sendOrderCompletedEmail,
@@ -20,6 +19,17 @@ export async function PUT(
 ) {
     const { id } = await params;
     const body = await req.json();
+
+    // El estado de pago sólo cambia registrando un pago
+    // (POST /api/admin/orders/[id]/payments → recalculateOrderPaymentStatus)
+    if (body.paymentStatus !== undefined) {
+        return Response.json(
+            {
+                error: "El estado de pago no se edita directamente: registrá un pago.",
+            },
+            { status: 400 },
+        );
+    }
 
     await connectDB();
 
@@ -37,10 +47,8 @@ export async function PUT(
         }
 
         const wasCancelled = order.status === "cancelled";
-        const wasPaid = order.paymentStatus === "paid";
         const oldStatus = order.status;
 
-        let justBecamePaid = false;
         let emailToSend:
             | "shipped"
             | "ready"
@@ -48,7 +56,6 @@ export async function PUT(
             | "cancelled"
             | null = null;
 
-        const targetPaymentStatus = body.paymentStatus || order.paymentStatus;
         const targetStatus = body.status || order.status;
 
         const advancedStates = [
@@ -62,7 +69,7 @@ export async function PUT(
         );
         if (
             advancedStates.includes(targetStatus) &&
-            targetPaymentStatus !== "paid" &&
+            order.paymentStatus !== "paid" &&
             !isCash
         ) {
             await session.abortTransaction();
@@ -74,19 +81,7 @@ export async function PUT(
             );
         }
 
-        if (body.paymentStatus && body.paymentStatus !== order.paymentStatus) {
-            order.paymentStatus = body.paymentStatus;
-
-            if (body.paymentStatus === "paid" && !wasPaid) {
-                justBecamePaid = true;
-
-                if (order.status === "pending" && targetStatus === "pending") {
-                    order.status = "processing";
-                }
-            }
-        }
-
-        const finalStatus = body.status || order.status;
+        const finalStatus = targetStatus;
 
         if (finalStatus !== oldStatus) {
             const willBeCancelled = finalStatus === "cancelled";
@@ -138,10 +133,6 @@ export async function PUT(
         await session.commitTransaction();
 
         try {
-            if (justBecamePaid) {
-                await sendPaymentConfirmedEmail(order);
-            }
-
             if (emailToSend === "shipped") {
                 await sendOrderShippedEmail(order);
             } else if (emailToSend === "ready") {

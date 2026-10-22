@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { OrderModel } from "@/models/Order";
-import { recalculateOrderPaymentStatus } from "@/services/orders/recalculateOrderPaymentStatus";
+import {
+    advanceOrderStatusIfPaid,
+    recalculateOrderPaymentStatus,
+} from "@/services/orders/recalculateOrderPaymentStatus";
 
 // 🔥 AGREGAMOS LOS IMPORTS PARA EL EMAIL
 import { sendPaymentConfirmedEmail } from "@/lib/email";
@@ -54,6 +57,7 @@ export async function PATCH(
 
     // 3. Recalculamos el estado general de la orden (esto muta 'order')
     recalculateOrderPaymentStatus(order);
+    advanceOrderStatusIfPaid(order);
 
     // 4. Capturamos el nuevo estado general
     const newOrderPaymentStatus = order.paymentStatus;

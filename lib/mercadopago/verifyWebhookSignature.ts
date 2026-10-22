@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-export type SignatureCheck = "valid" | "invalid" | "not_configured";
+export type SignatureCheck = "valid" | "invalid" | "unsigned" | "not_configured";
 
 /**
  * Valida el header x-signature de los webhooks de Mercado Pago.
@@ -16,7 +16,8 @@ export function verifyMercadoPagoSignature(params: {
     if (!secret) return "not_configured";
 
     const { xSignature, xRequestId, dataId } = params;
-    if (!xSignature) return "invalid";
+    // Las notificaciones IPN no traen firma
+    if (!xSignature) return "unsigned";
 
     let ts: string | undefined;
     let v1: string | undefined;
