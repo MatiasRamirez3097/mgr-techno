@@ -22,7 +22,8 @@ export async function GET(request: Request) {
         });
 
         return Response.json(products);
-    } catch {
+    } catch (error) {
+        console.error("Error in /api/products/search:", error);
         return Response.json(
             {
                 error: "Error buscando productos",

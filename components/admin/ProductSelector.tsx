@@ -97,10 +97,19 @@ export function ProductSelector({
                     },
                 );
 
-                if (!res.ok) throw new Error();
+                if (!res.ok) {
+                    console.error("ProductSelector search failed with status:", res.status);
+                    throw new Error("Error fetching products");
+                }
 
                 const data = await res.json();
-                const items: ProductOption[] = (data.products || []).map(
+                const rawList: any[] = Array.isArray(data)
+                    ? data
+                    : Array.isArray(data?.products)
+                      ? data.products
+                      : [];
+
+                const items: ProductOption[] = rawList.map(
                     (p: any) => ({
                         id: p.id || p._id,
                         name: p.name,
