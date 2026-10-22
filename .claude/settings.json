@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(.env*)",
+      "Read(**/.env*)",
+      "Read(*.env)",
+      "Read(**/*.env)",
+      "Read(*.pem)",
+      "Read(*.key)",
+      "Read(*.pfx)",
+      "Read(*.crt)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.pfx)",
+      "Read(**/*.crt)",
+      "Read(certs/**)",
+      "Read(secrets/**)",
+      "Edit(.env*)",
+      "Edit(**/.env*)",
+      "Edit(*.env)",
+      "Edit(**/*.env)",
+      "Edit(*.pem)",
+      "Edit(*.key)",
+      "Edit(**/*.pem)",
+      "Edit(**/*.key)",
+      "Edit(certs/**)",
+      "Edit(secrets/**)",
+      "Bash(*.env*)",
+      "Bash(*.pem*)",
+      "Bash(*.key*)",
+      "Bash(*.pfx*)",
+      "Bash(*certs*)"
+    ]
+  }
+}
