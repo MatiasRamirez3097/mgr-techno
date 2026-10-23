@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    buildCategoryNamePattern,
     convertToArs,
     hasSignificantPriceChange,
     isUsdCurrency,
@@ -136,5 +137,30 @@ describe("convertToArs", () => {
     it("convierte sólo los precios en dólares", () => {
         expect(convertToArs(363, "USD", 1550)).toBe(562650);
         expect(convertToArs(1000, "ARS", 1550)).toBe(1000);
+    });
+});
+
+describe("buildCategoryNamePattern", () => {
+    const matches = (name: string, category: string) =>
+        new RegExp(buildCategoryNamePattern(name)!).test(category);
+
+    it("ignora plurales, mayúsculas y conectores", () => {
+        expect(matches("Procesadores", "procesador")).toBe(true);
+        expect(matches("Procesador", "procesadores amd")).toBe(true);
+        expect(matches("Placas de Video", "placa video")).toBe(true);
+        expect(matches("Mother", "motherboards")).toBe(true);
+        expect(matches("SSD", "discos ssd")).toBe(true);
+        expect(matches("GABINETES", "gabinete")).toBe(true);
+    });
+
+    it("exige todas las palabras al comienzo de una palabra", () => {
+        expect(matches("Placas de Video", "placas madre")).toBe(false);
+        expect(matches("SSD", "hdd")).toBe(false);
+        expect(matches("Memorias", "inmemorias")).toBe(false);
+    });
+
+    it("devuelve null si no hay palabras útiles", () => {
+        expect(buildCategoryNamePattern("de")).toBeNull();
+        expect(buildCategoryNamePattern("")).toBeNull();
     });
 });

@@ -31,3 +31,10 @@ export interface InvidSyncStatusDTO {
     usdRate: number | null;
     usdRateUpdatedAt: string | null;
 }
+
+export interface InvidCategorySummary {
+    id: string;
+    name: string;
+    parentName: string | null;
+    count: number;
+}

@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { InvidSyncStatusDTO } from "@/types/shared/distributor";
+import type {
+    InvidCategorySummary,
+    InvidSyncStatusDTO,
+} from "@/types/shared/distributor";
 
 function timeAgo(iso: string | null): string {
     if (!iso) return "nunca";
@@ -14,7 +17,12 @@ function timeAgo(iso: string | null): string {
     return `hace ${Math.round(hours / 24)} días`;
 }
 
-export const InvidSyncStatus = ({ status }: { status: InvidSyncStatusDTO }) => {
+interface Props {
+    status: InvidSyncStatusDTO;
+    categories: InvidCategorySummary[];
+}
+
+export const InvidSyncStatus = ({ status, categories }: Props) => {
     const router = useRouter();
     const [syncing, setSyncing] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
@@ -81,6 +89,27 @@ export const InvidSyncStatus = ({ status }: { status: InvidSyncStatusDTO }) => {
             >
                 {syncing || status.syncing ? "Sincronizando..." : "Sincronizar ahora"}
             </button>
+
+            {/* Categorías tal como las nombra Invid, para revisar el mapeo de CATEGORY_MAP */}
+            {categories.length > 0 && (
+                <details className="w-full">
+                    <summary className="cursor-pointer text-gray-400 hover:text-gray-200">
+                        Ver categorías de Invid ({categories.length})
+                    </summary>
+                    <ul className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1">
+                        {categories.map((cat) => (
+                            <li key={cat.id} className="truncate">
+                                <span className="font-mono text-gray-500">{cat.id}</span>{" "}
+                                <span className="text-gray-200">{cat.name}</span>
+                                {cat.parentName && (
+                                    <span className="text-gray-500"> · {cat.parentName}</span>
+                                )}{" "}
+                                <span className="text-gray-500">({cat.count})</span>
+                            </li>
+                        ))}
+                    </ul>
+                </details>
+            )}
         </div>
     );
 };

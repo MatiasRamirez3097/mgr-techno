@@ -1,12 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import { InvidCatalogItemModel } from "@/models/InvidCatalogItem";
-
-export interface InvidCategorySummary {
-    id: string;
-    name: string;
-    parentName: string | null;
-    count: number;
-}
+import type { InvidCategorySummary } from "@/types/shared/distributor";
 
 /**
  * Categorías presentes en el catálogo local de Invid, para completar `CATEGORY_MAP`.

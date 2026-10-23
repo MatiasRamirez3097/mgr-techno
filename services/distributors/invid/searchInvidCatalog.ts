@@ -1,7 +1,11 @@
 import { connectDB } from "@/lib/mongodb";
 import { normalizeSearch } from "@/lib/search/normalize";
 import { InvidCatalogItemModel } from "@/models/InvidCatalogItem";
-import { convertToArs } from "@/lib/distributors/invidMapper";
+import {
+    buildCategoryNamePattern,
+    convertToArs,
+    isInvidCategoryId,
+} from "@/lib/distributors/invidMapper";
 import { getUsdExchangeRate } from "@/services/exchangeRates/getUsdExchangeRate";
 import type { NormalizedProduct } from "@/types/shared/distributor";
 
@@ -21,8 +25,8 @@ interface CatalogItemLean {
 }
 
 /**
- * Busca en la copia local del catálogo de Invid. `categories` acepta IDs o nombres
- * de categoría de Invid (los nombres se comparan normalizados y completos).
+ * Busca en la copia local del catálogo de Invid. `categories` acepta IDs numéricos
+ * o nombres de categoría (comparados sin plurales ni mayúsculas, ver buildCategoryNamePattern).
  */
 export async function searchInvidCatalog(
     searchQuery: string,
@@ -46,12 +50,20 @@ export async function searchInvidCatalog(
     }
 
     if (categories.length > 0) {
-        and.push({
-            $or: [
-                { categoryIds: { $in: categories } },
-                { categoryNames: { $in: categories.map(normalizeSearch) } },
-            ],
-        });
+        const ids = categories.filter(isInvidCategoryId);
+        const namePatterns = categories
+            .filter((c) => !isInvidCategoryId(c))
+            .map(buildCategoryNamePattern)
+            .filter((p): p is string => p !== null);
+
+        const or: Record<string, unknown>[] = [];
+        if (ids.length > 0) or.push({ categoryIds: { $in: ids } });
+        for (const pattern of namePatterns) {
+            or.push({ categoryNames: { $regex: pattern } });
+        }
+        // Una categoría sin nada comparable no debe devolver todo el catálogo
+        if (or.length === 0) return [];
+        and.push({ $or: or });
     }
 
     if (and.length > 0) filter.$and = and;

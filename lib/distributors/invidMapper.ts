@@ -188,6 +188,32 @@ export function mapInvidArticle(
     };
 }
 
+const CATEGORY_STOPWORDS = new Set(["de", "del", "y", "e", "para", "con", "la", "el", "las", "los"]);
+
+/**
+ * Patrón para comparar un nombre de categoría contra `categoryNames` sin conocer
+ * el nombre exacto que usa Invid: cada palabra (sin plural) debe aparecer como
+ * comienzo de palabra. Ej: "Placas de Video" → coincide con "placa video" o "placas de video".
+ * Devuelve null si el nombre no tiene palabras útiles.
+ */
+export function buildCategoryNamePattern(name: string): string | null {
+    const stems = normalizeSearch(name)
+        .split(/\s+/)
+        .filter((word) => word && !CATEGORY_STOPWORDS.has(word))
+        .map((word) => {
+            if (word.length > 5 && word.endsWith("es")) return word.slice(0, -2);
+            if (word.length > 3 && word.endsWith("s")) return word.slice(0, -1);
+            return word;
+        });
+
+    if (stems.length === 0) return null;
+    // normalizeSearch sólo deja letras, números y espacios: no hace falta escapar
+    return `^${stems.map((stem) => `(?=.*\\b${stem})`).join("")}`;
+}
+
+// Los IDs de categoría de Invid son numéricos; el resto se trata como nombre
+export const isInvidCategoryId = (value: string) => /^\d+$/.test(value.trim());
+
 export function hasSignificantPriceChange(
     previous: number | null | undefined,
     current: number,

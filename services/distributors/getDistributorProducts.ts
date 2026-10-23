@@ -5,7 +5,8 @@ import { scheduleInvidSyncIfStale } from "./invid/scheduleInvidSyncIfStale";
 type CategoryConfig = {
     elit: { paramType: "categoria" | "sub_categoria"; value: string };
     newbytes: string | string[]; // <--- Ahora puede ser un array
-    // IDs o nombres exactos de categoría de Invid (ver getInvidCategories)
+    // IDs numéricos o nombres de categoría de Invid; los nombres se comparan por palabras
+    // sin plurales (buildCategoryNamePattern), así no hace falta el nombre exacto
     invid: string | string[];
 };
 
@@ -18,13 +19,13 @@ const CATEGORY_MAP: Record<string, CategoryConfig> = {
     PROCESADORES: {
         elit: { paramType: "sub_categoria", value: "Procesadores" },
         newbytes: "PROCESADORES",
-        invid: "Procesador",
+        invid: "Procesadores",
     },
     MOTHERBOARDS: {
         elit: { paramType: "sub_categoria", value: "Motherboards" },
         // Pasamos un array con todas las subdivisiones de NewBytes
         newbytes: ["MOTHER-ASUS", "MOTHER-ASROCK", "MOTHER-GIGABYTE"],
-        invid: "Motherboards",
+        invid: ["Mother", "Placas Madre"],
     },
     CONECTIVIDAD: {
         elit: { paramType: "categoria", value: "CONECTIVIDAD" },
@@ -34,17 +35,17 @@ const CATEGORY_MAP: Record<string, CategoryConfig> = {
     "CASA-INTELIGENTE": {
         elit: { paramType: "categoria", value: "SMART HOME" }, // Example: if Elit calls it differently
         newbytes: "CASA-INTELIGENTE",
-        invid: "Smart Home",
+        invid: ["Smart Home", "Casa Inteligente", "Domotica"],
     },
     "SSD-INTERNOS": {
         elit: { paramType: "sub_categoria", value: "Discos Internos SSD" },
         newbytes: "DISCOS-SSD",
-        invid: "Discos Ssd",
+        invid: "SSD",
     },
     VIDEO: {
         elit: { paramType: "sub_categoria", value: "Placas de Video" },
         newbytes: "PLACA-DE-VIDEO",
-        invid: ["120", "172"],
+        invid: ["120", "172", "Placas de Video"],
     },
     // Add all your categories from CategorySelect.tsx here...
 };

@@ -5,6 +5,7 @@ import { DistributorsTable } from "@/components/admin/distributors/DistributorsT
 import { InvidSyncStatus } from "@/components/admin/distributors/InvidSyncStatus";
 import { getDistributorProducts } from "@/services/distributors/getDistributorProducts";
 import { getInvidSyncStatus } from "@/services/distributors/invid/getInvidSyncStatus";
+import { getInvidCategories } from "@/services/distributors/invid/getInvidCategories";
 
 // Si el catálogo de Invid quedó viejo se sincroniza con `after` al terminar el render
 export const maxDuration = 300;
@@ -32,7 +33,7 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
     const [products, invidStatus] = await Promise.all([
         getDistributorProducts(search, category, enabledDistributors),
         enabledDistributors.includes("invid")
-            ? getInvidSyncStatus().catch((e) => {
+            ? Promise.all([getInvidSyncStatus(), getInvidCategories()]).catch((e) => {
                   console.error("Error obteniendo el estado de Invid:", e);
                   return null;
               })
@@ -57,7 +58,9 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
                 </div>
             </div>
 
-            {invidStatus && <InvidSyncStatus status={invidStatus} />}
+            {invidStatus && (
+                <InvidSyncStatus status={invidStatus[0]} categories={invidStatus[1]} />
+            )}
 
             {/* TABLE */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
