@@ -32,6 +32,29 @@ export interface AirCatalogDownload {
     names: AirRubrosData;
 }
 
+// "fetch failed" no dice nada: el motivo real (DNS, conexión rechazada, timeout, TLS) está en `cause`
+function describeFetchError(error: unknown): string {
+    if (!(error instanceof Error)) return String(error);
+    if (error.name === "TimeoutError") return `sin respuesta en ${TIMEOUT_MS / 1000} s`;
+    const cause = error.cause as { code?: string; message?: string } | undefined;
+    const detail = [cause?.code, cause?.message].filter(Boolean).join(": ");
+    return detail ? `${error.message} (${detail})` : error.message;
+}
+
+// fetch que, si falla la conexión, informa en qué paso y por qué
+async function airFetch(step: string, url: string, init: RequestInit): Promise<Response> {
+    try {
+        return await fetch(url, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(TIMEOUT_MS),
+            ...init,
+            headers: { "User-Agent": USER_AGENT, ...init.headers },
+        });
+    } catch (error) {
+        throw new Error(`No se pudo conectar con AIR (${step}): ${describeFetchError(error)}`);
+    }
+}
+
 // Cookies "nombre=valor" de una respuesta, para reenviarlas en los requests siguientes
 function readCookies(res: Response): string[] {
     return res.headers.getSetCookie().map((c) => c.split(";")[0]);
@@ -47,25 +70,18 @@ async function loginToAir(): Promise<string> {
         throw new Error("Faltan las variables de entorno AIR_USER y AIR_PASSWORD");
     }
 
-    const loginPage = await fetch(`${AIR_BASE_URL}/ar/`, {
-        headers: { "User-Agent": USER_AGENT },
-        cache: "no-store",
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
+    const loginPage = await airFetch("página de login", `${AIR_BASE_URL}/ar/`, {});
     let cookies = readCookies(loginPage);
 
-    const login = await fetch(`${AIR_BASE_URL}/ar/`, {
+    const login = await airFetch("login", `${AIR_BASE_URL}/ar/`, {
         method: "POST",
         redirect: "manual",
         headers: {
-            "User-Agent": USER_AGENT,
             "Content-Type": "application/x-www-form-urlencoded",
             Cookie: cookies.join("; "),
             Referer: `${AIR_BASE_URL}/ar/`,
         },
         body: new URLSearchParams({ p: "", urbid: user, urbpass: password, from: "", submit: "" }),
-        cache: "no-store",
-        signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     const newCookies = readCookies(login);
     if (newCookies.length > 0) cookies = newCookies;
@@ -79,11 +95,9 @@ async function loginToAir(): Promise<string> {
     return cookies.join("; ");
 }
 
-async function fetchWithSession(path: string, cookie: string): Promise<Response> {
-    return fetch(`${AIR_BASE_URL}${path}`, {
-        headers: { "User-Agent": USER_AGENT, Cookie: cookie, Referer: `${AIR_BASE_URL}/ar/` },
-        cache: "no-store",
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+async function fetchWithSession(step: string, path: string, cookie: string): Promise<Response> {
+    return airFetch(step, `${AIR_BASE_URL}${path}`, {
+        headers: { Cookie: cookie, Referer: `${AIR_BASE_URL}/ar/` },
     });
 }
 
@@ -94,7 +108,7 @@ export async function fetchAirCatalog(): Promise<AirCatalogDownload> {
     const cookie = await loginToAir();
 
     const query = encodeURIComponent(JSON.stringify(DEFAULT_FILTER));
-    const csvRes = await fetchWithSession(`/consultas/descargas.php?type=csv&q=${query}`, cookie);
+    const csvRes = await fetchWithSession("descarga de la lista", `/consultas/descargas.php?type=csv&q=${query}`, cookie);
     if (!csvRes.ok) {
         throw new Error(`AIR respondió HTTP ${csvRes.status} al descargar la lista`);
     }
@@ -110,7 +124,7 @@ export async function fetchAirCatalog(): Promise<AirCatalogDownload> {
     // Los nombres son opcionales: sin ellos se muestran los códigos de rubro
     let names: AirRubrosData = { rubros: new Map(), grupos: new Map() };
     try {
-        const rubrosRes = await fetchWithSession("/cache/rubros.txt", cookie);
+        const rubrosRes = await fetchWithSession("rubros", "/cache/rubros.txt", cookie);
         if (rubrosRes.ok) {
             names = parseAirRubros(decodeAirText(await rubrosRes.arrayBuffer()));
         }
