@@ -3,6 +3,7 @@ import { normalizeSearch } from "@/lib/search/normalize";
 import { InvidCatalogItemModel } from "@/models/InvidCatalogItem";
 import {
     buildCategoryNamePattern,
+    buildInvidProductUrl,
     convertToArs,
     isInvidCategoryId,
 } from "@/lib/distributors/invidMapper";
@@ -84,7 +85,7 @@ export async function searchInvidCatalog(
             ? { stockLabel: item.stockStatus }
             : {}),
         image: item.imageUrl,
-        link: null,
+        link: buildInvidProductUrl(item.title, item.invidId),
         originalCategory: item.category,
         originalPrice: item.finalPrice,
         originalCurrency: item.currency,
