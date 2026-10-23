@@ -13,11 +13,23 @@ export interface QuoteItemPriceAlert {
     change: number;
 }
 
-// Precio actual en USD por código de Invid y cotización vigente
+// Distribuidores en dólares con catálogo local, cuyos ítems pueden tener alertas
+export const USD_CATALOG_DISTRIBUTORS = ["invid", "air"] as const;
+
+// Clave de `prices`: distribuidor y su código (distributorSku), ej: "air:39580"
+export const quotePriceKey = (distributor: string, sku: string) =>
+    `${distributor.toLowerCase()}:${sku}`;
+
+// Precio actual en USD por distribuidor y código, y cotización vigente
 export interface QuotePriceContext {
-    invidPrices: Record<string, number>;
+    prices: Record<string, number>;
     usdRate: number | null;
 }
+
+const currentPriceFor = (item: QuoteItemDTO, context: QuotePriceContext) =>
+    item.distributor && item.distributorSku
+        ? context.prices[quotePriceKey(item.distributor, item.distributorSku)]
+        : undefined;
 
 const OPEN_STATUSES = new Set(["draft", "sent", "accepted"]);
 
@@ -43,9 +55,10 @@ export function getQuoteItemPriceAlerts(
 
     const alerts: QuoteItemPriceAlert[] = [];
     const previousCost = item.costPriceUsd!;
-    const currentCost = context.invidPrices[item.distributorSku!];
+    const currentCost = currentPriceFor(item, context);
 
     if (
+        currentCost &&
         currentCost > 0 &&
         hasSignificantPriceChange(previousCost, currentCost, QUOTE_COST_CHANGE_THRESHOLD) &&
         !(
@@ -89,7 +102,7 @@ export function countQuotePriceAlerts(quote: QuoteDTO, context: QuotePriceContex
  * Actualiza el costo del ítem al vigente y mantiene el margen sobre el precio de venta.
  */
 export function refreshQuoteItemCost(item: QuoteItemDTO, context: QuotePriceContext): QuoteItemDTO {
-    const priceUsd = context.invidPrices[item.distributorSku || ""] || item.costPriceUsd || 0;
+    const priceUsd = currentPriceFor(item, context) || item.costPriceUsd || 0;
     const rate = context.usdRate || item.costExchangeRate || 0;
     const newCost = Math.round(priceUsd * rate * 100) / 100;
 
@@ -119,7 +132,7 @@ export function acknowledgeQuoteItemAlerts(
 ): QuoteItemDTO {
     return {
         ...item,
-        alertAckPriceUsd: context.invidPrices[item.distributorSku || ""] || item.alertAckPriceUsd,
+        alertAckPriceUsd: currentPriceFor(item, context) || item.alertAckPriceUsd,
         alertAckExchangeRate: context.usdRate || item.alertAckExchangeRate,
     };
 }

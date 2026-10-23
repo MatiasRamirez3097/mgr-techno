@@ -11,6 +11,8 @@ import { recordElitCategories } from "./categories/recordElitCategories";
 import { getNewBytesToken } from "./newbytes/getNewBytesToken";
 import { searchInvidCatalog } from "./invid/searchInvidCatalog";
 import { scheduleInvidSyncIfStale } from "./invid/scheduleInvidSyncIfStale";
+import { searchAirCatalog } from "./air/searchAirCatalog";
+import { scheduleAirSyncIfStale } from "./air/scheduleAirSyncIfStale";
 
 /**
  * Busca en los distribuidores habilitados. `category` es la clave de una categoría del
@@ -19,7 +21,7 @@ import { scheduleInvidSyncIfStale } from "./invid/scheduleInvidSyncIfStale";
 export async function getDistributorProducts(
     searchQuery: string,
     category: string = "",
-    enabledDistributors: string[] = ["elit", "newbytes", "invid"],
+    enabledDistributors: string[] = ["elit", "newbytes", "invid", "air"],
 ): Promise<NormalizedProduct[]> {
     if (!searchQuery && !category) return []; // Optional: return empty if neither is provided
 
@@ -58,6 +60,15 @@ export async function getDistributorProducts(
         fetchPromises.push(
             fetchInvid(searchQuery, mapping?.invid ?? []).catch((e) => {
                 console.error("Failed to fetch from INVID:", e);
+                return [];
+            }),
+        );
+    }
+
+    if (enabledDistributors.includes("air") && (!mapping || mapping.air.length > 0)) {
+        fetchPromises.push(
+            fetchAir(searchQuery, mapping?.air ?? []).catch((e) => {
+                console.error("Failed to fetch from AIR:", e);
                 return [];
             }),
         );
@@ -300,4 +311,20 @@ async function fetchInvid(
     );
 
     return searchInvidCatalog(searchQuery, categories);
+}
+
+// ==========================================
+// AIR: COPIA LOCAL DE LA LISTA DE PRECIOS
+// ==========================================
+// AIR no tiene API: la lista CSV se descarga de su intranet (services/distributors/air)
+// y acá sólo se consulta la DB.
+async function fetchAir(
+    searchQuery: string,
+    categories: string[],
+): Promise<NormalizedProduct[]> {
+    await scheduleAirSyncIfStale().catch((e) =>
+        console.error("No se pudo programar la sincronización de AIR:", e),
+    );
+
+    return searchAirCatalog(searchQuery, categories);
 }

@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ products: [] });
         }
 
-        const products = await getDistributorProducts(q, category, ["elit", "newbytes", "invid"]);
+        const products = await getDistributorProducts(q, category, ["elit", "newbytes", "invid", "air"]);
 
         return NextResponse.json({ products });
     } catch (err: unknown) {

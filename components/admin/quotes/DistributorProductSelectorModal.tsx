@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import type { NormalizedProduct as DistributorProduct } from "@/types/shared/distributor";
 import { isUsdCurrency } from "@/lib/distributors/invidMapper";
+import { USD_CATALOG_DISTRIBUTORS } from "@/lib/quotes/priceAlerts";
 
 const BADGE_STYLES: Record<string, string> = {
     elit: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
     newbytes: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
     invid: "bg-purple-500/10 text-purple-300 border border-purple-500/20",
+    air: "bg-orange-500/10 text-orange-300 border border-orange-500/20",
 };
 const badgeFor = (distributor: string) =>
     BADGE_STYLES[distributor.toLowerCase()] || BADGE_STYLES.newbytes;
@@ -31,7 +33,7 @@ interface Props {
         unitPrice: number;
         quantity: number;
         taxRate: number;
-        // Distribuidores en dólares (Invid): costo en USD y cotización usada
+        // Distribuidores en dólares (Invid, AIR): costo en USD y cotización usada
         costPriceUsd?: number;
         costExchangeRate?: number;
     }) => void;
@@ -104,7 +106,7 @@ export function DistributorProductSelectorModal({
             setResults(products);
 
             if (products.length === 0) {
-                setError("No se encontraron productos con ese término en Elit, NewBytes ni Invid.");
+                setError("No se encontraron productos con ese término en Elit, NewBytes, Invid ni AIR.");
             }
         } catch (err: any) {
             setError(err.message || "Error al conectar con los distribuidores.");
@@ -124,9 +126,11 @@ export function DistributorProductSelectorModal({
             sku: selectedProduct.sku,
             image: selectedProduct.image || undefined,
             distributor,
-            // En Invid el código propio es el ID (el SKU es el part number del fabricante);
+            // En Invid y AIR el código propio es el ID (el SKU es el part number del fabricante);
             // con él se buscan los cambios de precio en el catálogo local
-            distributorSku: distributor === "invid" ? String(selectedProduct.id) : selectedProduct.sku,
+            distributorSku: (USD_CATALOG_DISTRIBUTORS as readonly string[]).includes(distributor)
+                ? String(selectedProduct.id)
+                : selectedProduct.sku,
             costPrice: selectedProduct.price,
             ...(inUsd
                 ? {
@@ -155,7 +159,7 @@ export function DistributorProductSelectorModal({
                                 Buscar en Distribuidores Mayoristas
                             </h2>
                             <p className="text-xs text-gray-400">
-                                Catálogos de <strong>Elit</strong>, <strong>NewBytes</strong> e <strong>Invid</strong> (Invid se actualiza cada hora)
+                                Catálogos de <strong>Elit</strong>, <strong>NewBytes</strong>, <strong>Invid</strong> y <strong>AIR</strong> (Invid y AIR se actualizan cada hora)
                             </p>
                         </div>
                     </div>

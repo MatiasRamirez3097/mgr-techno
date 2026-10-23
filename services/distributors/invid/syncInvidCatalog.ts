@@ -7,6 +7,7 @@ import {
     mapInvidArticle,
     type InvidCatalogItemData,
 } from "@/lib/distributors/invidMapper";
+import { acquireSyncLock, releaseSyncLock } from "../syncLock";
 import { INVID_STATE_ID } from "./getInvidToken";
 import {
     fetchInvidArticlesPage,
@@ -24,28 +25,6 @@ export interface InvidSyncResult {
     requests: number;
     priceChanges: number;
     message?: string;
-}
-
-async function acquireLock(): Promise<boolean> {
-    const now = new Date();
-    await DistributorSyncStateModel.updateOne(
-        { _id: INVID_STATE_ID },
-        { $setOnInsert: { lockedUntil: null } },
-        { upsert: true },
-    );
-    const locked = await DistributorSyncStateModel.findOneAndUpdate(
-        {
-            _id: INVID_STATE_ID,
-            $or: [{ lockedUntil: null }, { lockedUntil: { $lt: now } }],
-        },
-        {
-            $set: {
-                lockedUntil: new Date(now.getTime() + LOCK_DURATION_MS),
-                lastSyncStartedAt: now,
-            },
-        },
-    );
-    return Boolean(locked);
 }
 
 // Verifica que el cupo informado por Invid alcance para recorrer todo el catálogo
@@ -75,7 +54,7 @@ async function hasEnoughQuota(): Promise<boolean> {
 export async function syncInvidCatalog(): Promise<InvidSyncResult> {
     await connectDB();
 
-    if (!(await acquireLock())) {
+    if (!(await acquireSyncLock(INVID_STATE_ID, LOCK_DURATION_MS))) {
         return {
             status: "skipped",
             items: 0,
@@ -231,9 +210,6 @@ export async function syncInvidCatalog(): Promise<InvidSyncResult> {
 
         return { status: "error", items: 0, requests, priceChanges: 0, message };
     } finally {
-        await DistributorSyncStateModel.updateOne(
-            { _id: INVID_STATE_ID },
-            { $set: { lockedUntil: null } },
-        );
+        await releaseSyncLock(INVID_STATE_ID);
     }
 }

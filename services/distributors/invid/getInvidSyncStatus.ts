@@ -2,12 +2,12 @@ import { connectDB } from "@/lib/mongodb";
 import { DistributorSyncStateModel } from "@/models/DistributorSyncState";
 import { InvidCatalogItemModel } from "@/models/InvidCatalogItem";
 import { getUsdExchangeRate } from "@/services/exchangeRates/getUsdExchangeRate";
-import type { InvidSyncStatusDTO } from "@/types/shared/distributor";
+import type { DistributorSyncStatusDTO } from "@/types/shared/distributor";
 import { INVID_STATE_ID } from "./getInvidToken";
 
 const toIso = (date?: Date | null) => (date ? new Date(date).toISOString() : null);
 
-export async function getInvidSyncStatus(): Promise<InvidSyncStatusDTO> {
+export async function getInvidSyncStatus(): Promise<DistributorSyncStatusDTO> {
     await connectDB();
 
     const [state, catalogCount, usd] = await Promise.all([
@@ -15,7 +15,7 @@ export async function getInvidSyncStatus(): Promise<InvidSyncStatusDTO> {
             .select("-accessToken")
             .lean<{
                 lastSuccessfulSyncAt?: Date | null;
-                lastSyncStatus?: InvidSyncStatusDTO["lastSyncStatus"];
+                lastSyncStatus?: DistributorSyncStatusDTO["lastSyncStatus"];
                 lastSyncError?: string | null;
                 lastSyncItems?: number;
                 lockedUntil?: Date | null;

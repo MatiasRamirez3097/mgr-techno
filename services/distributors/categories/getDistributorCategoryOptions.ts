@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import { DistributorCategorySeenModel } from "@/models/DistributorCategorySeen";
 import { getInvidCategories } from "@/services/distributors/invid/getInvidCategories";
+import { getAirCategories } from "@/services/distributors/air/getAirCategories";
 import { getNewBytesToken } from "@/services/distributors/newbytes/getNewBytesToken";
 import type {
     DistributorCategoryOption,
@@ -47,12 +48,12 @@ async function getElitSeenCategories(): Promise<DistributorCategoryOptions["elit
 
 /**
  * Listados de categorías de cada distribuidor para el formulario de mapeo:
- * NewBytes desde su API, Invid desde el catálogo local y Elit desde las vistas en búsquedas.
+ * NewBytes desde su API, Invid y AIR desde sus catálogos locales y Elit desde las vistas en búsquedas.
  */
 export async function getDistributorCategoryOptions(): Promise<DistributorCategoryOptions> {
     const errors: string[] = [];
 
-    const [elit, newbytes, invid] = await Promise.all([
+    const [elit, newbytes, invid, air] = await Promise.all([
         getElitSeenCategories().catch((e) => {
             console.error("Error leyendo categorías de Elit:", e);
             errors.push("Elit");
@@ -76,7 +77,20 @@ export async function getDistributorCategoryOptions(): Promise<DistributorCatego
                 errors.push("Invid");
                 return [];
             }),
+        getAirCategories()
+            .then((cats) =>
+                cats.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                    detail: `${c.id} · ${c.count} art.`,
+                })),
+            )
+            .catch((e) => {
+                console.error("Error leyendo categorías de AIR:", e);
+                errors.push("AIR");
+                return [];
+            }),
     ]);
 
-    return { elit, newbytes, invid, errors };
+    return { elit, newbytes, invid, air, errors };
 }

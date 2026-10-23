@@ -27,6 +27,7 @@ const EMPTY_FORM: FormState = {
     elit: [],
     newbytes: [],
     invid: [],
+    air: [],
 };
 
 // NewBytes usa guiones en lugar de espacios: "PLACA DE VIDEO" equivale a "PLACA-DE-VIDEO"
@@ -57,6 +58,7 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
                 elit: category.elit,
                 newbytes: category.newbytes,
                 invid: category.invid,
+                air: category.air,
             });
         } else {
             const nextOrder = Math.max(0, ...categories.map((c) => c.order)) + 10;
@@ -132,6 +134,7 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
             c.elit.length === 0 && "Elit",
             c.newbytes.length === 0 && "NewBytes",
             c.invid.length === 0 && "Invid",
+            c.air.length === 0 && "AIR",
         ].filter(Boolean);
 
     return (
@@ -162,6 +165,7 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
                             <th className="px-4 py-3 font-semibold">Elit</th>
                             <th className="px-4 py-3 font-semibold">NewBytes</th>
                             <th className="px-4 py-3 font-semibold">Invid</th>
+                            <th className="px-4 py-3 font-semibold">AIR</th>
                             <th className="px-4 py-3" />
                         </tr>
                     </thead>
@@ -189,6 +193,9 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
                                 </td>
                                 <td className="px-4 py-3 text-gray-300 text-xs">
                                     {summary(c.invid, options.invid) || "—"}
+                                </td>
+                                <td className="px-4 py-3 text-gray-300 text-xs">
+                                    {summary(c.air, options.air) || "—"}
                                 </td>
                                 <td className="px-4 py-3 text-right whitespace-nowrap">
                                     <button
@@ -351,6 +358,20 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
                             <p className="text-xs text-gray-500">
                                 Además de los IDs, se aceptan nombres: se comparan por palabras, sin
                                 plurales (ej: &quot;Mother&quot; incluye &quot;Motherboards&quot;).
+                            </p>
+                        </section>
+
+                        <section className="space-y-2">
+                            <h3 className="text-sm font-semibold text-orange-300">AIR</h3>
+                            <CategoryValuePicker
+                                options={options.air}
+                                selected={form.air}
+                                onChange={(air) => setForm({ ...form, air })}
+                                emptyMessage="Todavía no hay lista de AIR sincronizada."
+                            />
+                            <p className="text-xs text-gray-500">
+                                Se mapea por código de rubro (ej: 001-0331); AIR suele repetir un
+                                rubro con dos códigos, conviene elegir ambos.
                             </p>
                         </section>
                     </div>
