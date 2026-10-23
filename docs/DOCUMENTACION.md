@@ -80,7 +80,7 @@ Más: feeds XML para comparadores de precios, webhooks de Mercado Pago y emisió
 - RF-24 Compras a proveedores con recepción parcial/total, carga de series y fallas de Outlet.
 - RF-25 Presupuestos con ítems internos, de distribuidor o manuales; PDF; conversión a pedido.
 - RF-26 Comprobantes: recibo no fiscal, factura fiscal A/B con CAE de AFIP, notas de crédito/débito; PDF, descarga y envío por email.
-- RF-27 Comparador de precios y stock en distribuidores (Elit y NewBytes activos; Invid implementado pero deshabilitado).
+- RF-27 Comparador de precios y stock en distribuidores (Elit, NewBytes e Invid; en presupuestos todavía se excluye Invid).
 - RF-28 Dashboard de ventas e ingresos.
 - RF-29 Gestión de clientes y proveedores (autocompletado de proveedor desde el padrón AFIP).
 - RF-31 Configurar desde el panel el recargo por pago con Mercado Pago (`/admin/settings`).
@@ -407,6 +407,8 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
 
 ### 6.8 Distribuidores y comparador
 `GET /api/admin/distributors/search` → `getDistributorProducts` consulta Elit y NewBytes en paralelo (Invid está implementado en el servicio pero el endpoint lo excluye a propósito), normaliza a `{id, distributor, sku, name, price, stock, image, link}` usando `CATEGORY_MAP` (mapa categoría interna → categoría de cada distribuidor). Los resultados se pueden agregar como ítems de presupuesto.
+
+**Invid** no tiene búsqueda en su API y limita `articulo.php` a 50 requests/hora (100 artículos por página), así que se trabaja con una copia local: `syncInvidCatalog` recorre el catálogo completo (~15 requests) y lo guarda en `invid_catalog_items` (`InvidCatalogItem`); `searchInvidCatalog` busca ahí con `normalizeSearch` y convierte `FINAL_PRICE` (USD, con IVA) a pesos con el dólar oficial BNA (`getUsdExchangeRate`, colección `exchange_rates`, fuente dolarapi.com, se refresca cada hora). El token (24 h), el lock de sincronización y el cupo informado por `X-RateLimit-*` se guardan en `DistributorSyncState` (`_id: "invid"`). Si `STOCK` no viene (la cuenta no tiene permiso), se usa la leyenda `STOCK_STATUS` (`stockLabel`). La sincronización registra en `previousFinalPrice`/`priceChangedAt` variaciones de 2% o más. Se dispara desde el botón "Sincronizar ahora" del comparador (`POST /api/admin/distributors/invid/sync`; `GET` devuelve estado y categorías para completar `CATEGORY_MAP`) o, como respaldo, con `after()` si el catálogo tiene más de 3 horas.
 
 ### 6.9 Feeds y SEO
 `app/{hardgamers,buscahard,bestgaming}.xml/route.ts` delegan en `lib/feeds/buildProductFeed.ts` (`buildProductFeedResponse(descripción)`); `google-merchant-feed.xml` es propio (precio final, imagen de 1000 px, `quantity_to_sell_on_facebook`). Generan RSS con `g:*` (id, gtin, título, descripción, imagen optimizada, condición, disponibilidad, precio y precio de oferta, marca, mpn) para productos `publish` + `isAvailable`. Los feeds de comparadores incluyen los productos Outlet con `g:condition = refurbished`; Google Merchant los excluye (para Google `refurbished` es sólo restaurado profesionalmente). `revalidate = 3600`. `sitemap.ts` cubre productos y categorías.

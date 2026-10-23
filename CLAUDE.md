@@ -62,7 +62,7 @@ Checkout (`app/api/checkout`) recotiza en el servidor Andreani/Vía Cargo (el fr
 `lib/pdf/`: templates HTML (`templates/`) renderizados con Puppeteer; `browser.ts` usa `@sparticuz/chromium` en Vercel (por eso `serverExternalPackages` y `outputFileTracingIncludes` en `next.config.ts`).
 
 ### Distribuidores
-`services/distributors/getDistributorProducts.ts` consulta catálogos de mayoristas (Elit, NewBytes, Invid) y normaliza resultados para el comparador del admin (el endpoint `/api/admin/distributors/search` excluye Invid a propósito); el mapeo de categorías está en `CATEGORY_MAP`.
+`services/distributors/getDistributorProducts.ts` consulta catálogos de mayoristas (Elit, NewBytes, Invid) y normaliza resultados para el comparador del admin (el endpoint `/api/admin/distributors/search` todavía excluye Invid); el mapeo de categorías está en `CATEGORY_MAP`. Invid se consulta desde una copia local en Mongo (`services/distributors/invid/`, sincronizada por su límite de 50 requests/hora), con precios en USD convertidos al dólar oficial BNA (`services/exchangeRates/getUsdExchangeRate.ts`).
 
 ### Búsqueda
 La búsqueda de la tienda usa Atlas Search (`$search`, índice `search_products`) con el texto normalizado por `lib/search/normalize.ts`; la del admin usa regex (`lib/search/adminProductSearch.ts`).

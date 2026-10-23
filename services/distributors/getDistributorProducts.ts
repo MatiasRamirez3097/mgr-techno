@@ -1,18 +1,11 @@
-interface NormalizedProduct {
-    id: number | string;
-    distributor: string;
-    sku: string;
-    name: string;
-    price: number;
-    stock: number;
-    image: string | null;
-    link: string | null;
-    originalCategory?: string;
-}
+import type { NormalizedProduct } from "@/types/shared/distributor";
+import { searchInvidCatalog } from "./invid/searchInvidCatalog";
+import { scheduleInvidSyncIfStale } from "./invid/scheduleInvidSyncIfStale";
 
 type CategoryConfig = {
     elit: { paramType: "categoria" | "sub_categoria"; value: string };
     newbytes: string | string[]; // <--- Ahora puede ser un array
+    // IDs o nombres exactos de categoría de Invid (ver getInvidCategories)
     invid: string | string[];
 };
 
@@ -357,214 +350,26 @@ async function fetchNewBytes(
 }
 
 // ==========================================
-// INVID FETCH LOGIC & AUTHENTICATION
+// INVID: COPIA LOCAL DEL CATÁLOGO
 // ==========================================
-
-let cachedInvidToken: string | null = null;
-let invidTokenExpiration: number = 0;
-
-// Caché temporal para la respuesta de INVID y así evitar el límite de 50 req/hr
-let cachedInvidCatalog: NormalizedProduct[] | null = null;
-let invidCatalogExpiration: number = 0;
-
-async function getInvidToken(): Promise<string | null> {
-    if (cachedInvidToken && Date.now() < invidTokenExpiration) {
-        return cachedInvidToken;
-    }
-
-    const loginUrl = "https://invidcomputers.com/api/v1/auth.php";
-
-    const response = await fetch(loginUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            username: process.env.INVID_USER,
-            password: process.env.INVID_PASSWORD,
-        }),
-        cache: "no-store",
-    });
-
-    if (!response.ok) throw new Error(`INVID Auth failed: ${response.status}`);
-
-    const data = await response.json();
-
-    // Ajustar si la API devuelve el token bajo otra key (ej: data.data.token)
-    const token = data.token || data.access_token;
-
-    if (!token) throw new Error("INVID Auth successful but no token found.");
-
-    cachedInvidToken = token;
-    invidTokenExpiration = Date.now() + 55 * 60 * 1000; // 55 min
-
-    return cachedInvidToken;
-}
-
-// ==========================================
-// INVID FETCH LOGIC & PAGINATION
-// ==========================================
-
+// La API de Invid no tiene búsqueda y limita a 50 requests/hora, así que el catálogo
+// se sincroniza en segundo plano (services/distributors/invid) y acá sólo se consulta la DB.
 async function fetchInvid(
     searchQuery: string,
     category: string,
 ): Promise<NormalizedProduct[]> {
-    // 1. Usar el caché si aún es válido (ej. menos de 45 minutos desde la última recarga)
-    if (cachedInvidCatalog && Date.now() < invidCatalogExpiration) {
-        return filterInvidLocal(cachedInvidCatalog, searchQuery, category);
-    }
+    await scheduleInvidSyncIfStale().catch((e) =>
+        console.error("No se pudo programar la sincronización de Invid:", e),
+    );
 
-    const token = await getInvidToken();
-    const allInvidProducts: NormalizedProduct[] = [];
-
-    let offset = 0;
-    let hasMorePages = true;
-    let requestCount = 0;
-
-    try {
-        // Bucle para descargar todas las páginas de INVID
-        // Ponemos un límite de seguridad de 40 peticiones (4000 productos)
-        // para asegurarnos de NUNCA superar su límite de 50 requests/hora por un bug
-        while (hasMorePages && requestCount < 40) {
-            const invidUrl = new URL(
-                "https://invidcomputers.com/api/v1/articulo.php",
-            );
-
-            invidUrl.searchParams.append("offset", offset.toString());
-            invidUrl.searchParams.append("exclude_zero_stock", "1");
-            invidUrl.searchParams.append("exclude_zero_price", "1");
-            invidUrl.searchParams.append("published_only", "1");
-
-            const response = await fetch(invidUrl.toString(), {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                cache: "no-store",
-            });
-
-            // Si nos topamos con el límite, cortamos el bucle pero salvamos lo que ya descargamos
-            if (response.status === 429) {
-                console.warn("INVID Rate Limit Exceeded during pagination.");
-                break;
-            }
-
-            if (!response.ok) {
-                throw new Error(`INVID HTTP error: ${response.status}`);
-            }
-
-            const jsonResponse = await response.json();
-
-            if (
-                jsonResponse.status !== 1 ||
-                !Array.isArray(jsonResponse.data)
-            ) {
-                break;
-            }
-
-            // Mapeamos los 100 productos de la página actual
-            const mappedPage: NormalizedProduct[] = jsonResponse.data.map(
-                (prod: any) => {
-                    const stockValue =
-                        Number(prod.STOCK) ||
-                        (prod.STOCK_STATUS === "Disponible" ? 1 : 0);
-                    const priceValue = Number(prod.PRICE) || 0;
-
-                    return {
-                        id: prod.ID,
-                        distributor: "INVID",
-                        sku: prod.PART_NUMBER || prod.ID,
-                        name: prod.TITLE,
-                        price: priceValue,
-                        stock: stockValue,
-                        image: prod.IMAGE_URL || null,
-                        link: null,
-                        originalCategory: prod.CATEGORY_ID,
-                    };
-                },
-            );
-
-            // Sumamos esta página a nuestra lista total
-            allInvidProducts.push(...mappedPage);
-            requestCount++;
-
-            // Revisamos si la API nos dice que hay una página siguiente
-            if (jsonResponse.next_page_url) {
-                offset += 100; // Avanzamos 100 ítems para la próxima petición
-            } else {
-                hasMorePages = false; // Terminamos de descargar el catálogo
-            }
-        }
-
-        // 2. Guardar el catálogo COMPLETO en caché por 45 minutos
-        cachedInvidCatalog = allInvidProducts;
-        invidCatalogExpiration = Date.now() + 45 * 60 * 1000;
-        console.log(cachedInvidCatalog);
-        // 3. Aplicar el filtro a todo el catálogo recién descargado
-        return filterInvidLocal(allInvidProducts, searchQuery, category);
-    } catch (error) {
-        console.error("Error paginating INVID catalog:", error);
-
-        // Fallback: Si falla la actualización pero tenemos un caché viejo, lo usamos para no dejar vacía la tabla
-        if (cachedInvidCatalog) {
-            return filterInvidLocal(cachedInvidCatalog, searchQuery, category);
-        }
-
-        return [];
-    }
-}
-
-// Función auxiliar para filtrar localmente los resultados de INVID
-function filterInvidLocal(
-    catalog: NormalizedProduct[],
-    searchQuery: string,
-    category: string,
-): NormalizedProduct[] {
-    let filtered = catalog;
-
-    // 1. Filtrar por Categoría
+    let categories: string[] = [];
     if (category) {
         const mappedCategory = CATEGORY_MAP[category];
-        const invidCategoryValue = mappedCategory
-            ? mappedCategory.invid
-            : category;
-
-        if (invidCategoryValue) {
-            // Normalizamos: lo convertimos siempre en un array para manejarlo más fácil
-            const targetCategories = Array.isArray(invidCategoryValue)
-                ? invidCategoryValue
-                : [invidCategoryValue];
-
-            filtered = filtered.filter((prod) => {
-                if (!prod.originalCategory) return false;
-
-                // Lo pasamos a string por si acaso el ID viene como número
-                const prodCategoryStr = prod.originalCategory
-                    .toString()
-                    .toLowerCase();
-
-                // .some() devuelve true si AL MENOS UNA de las categorías del array coincide
-                return targetCategories.some((targetCat) =>
-                    prodCategoryStr.includes(
-                        targetCat.toString().toLowerCase(),
-                    ),
-                );
-            });
-        }
+        const invidCategoryValue = mappedCategory ? mappedCategory.invid : category;
+        categories = Array.isArray(invidCategoryValue)
+            ? invidCategoryValue
+            : [invidCategoryValue];
     }
 
-    // 2. Filtrar por Búsqueda (Nombre o SKU)
-    if (searchQuery) {
-        const queryTokens = searchQuery.toLowerCase().split(" ");
-        filtered = filtered.filter((prod) => {
-            const productName = prod.name.toLowerCase();
-            const productSku = prod.sku.toLowerCase();
-
-            return queryTokens.every(
-                (token) =>
-                    productName.includes(token) || productSku.includes(token),
-            );
-        });
-    }
-
-    return filtered;
+    return searchInvidCatalog(searchQuery, categories);
 }

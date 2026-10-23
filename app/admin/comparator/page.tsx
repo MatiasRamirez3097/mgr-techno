@@ -2,7 +2,12 @@ import { AdminSearch } from "@/components/admin/AdminSearch";
 import { CategorySelect } from "@/components/admin/distributors/CategorySelect";
 import { DistributorSelect } from "@/components/admin/distributors/DistributorSelect";
 import { DistributorsTable } from "@/components/admin/distributors/DistributorsTable";
+import { InvidSyncStatus } from "@/components/admin/distributors/InvidSyncStatus";
 import { getDistributorProducts } from "@/services/distributors/getDistributorProducts";
+import { getInvidSyncStatus } from "@/services/distributors/invid/getInvidSyncStatus";
+
+// Si el catálogo de Invid quedó viejo se sincroniza con `after` al terminar el render
+export const maxDuration = 300;
 
 interface Props {
     searchParams: Promise<{
@@ -24,11 +29,15 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
         : ["elit", "newbytes", "invid"];
 
     // Pasamos el array de distribuidores habilitados
-    const products = await getDistributorProducts(
-        search,
-        category,
-        enabledDistributors,
-    );
+    const [products, invidStatus] = await Promise.all([
+        getDistributorProducts(search, category, enabledDistributors),
+        enabledDistributors.includes("invid")
+            ? getInvidSyncStatus().catch((e) => {
+                  console.error("Error obteniendo el estado de Invid:", e);
+                  return null;
+              })
+            : null,
+    ]);
 
     return (
         <div>
@@ -47,6 +56,8 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
                     <AdminSearch placeholder="Buscar por nombre, SKU..." />
                 </div>
             </div>
+
+            {invidStatus && <InvidSyncStatus status={invidStatus} />}
 
             {/* TABLE */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
