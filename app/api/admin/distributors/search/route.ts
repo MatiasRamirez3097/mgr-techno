@@ -18,8 +18,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ products: [] });
         }
 
-        // Consultamos únicamente los distribuidores permitidos: Elit y NewBytes (excluyendo INVID)
-        const products = await getDistributorProducts(q, category, ["elit", "newbytes"]);
+        const products = await getDistributorProducts(q, category, ["elit", "newbytes", "invid"]);
 
         return NextResponse.json({ products });
     } catch (err: unknown) {

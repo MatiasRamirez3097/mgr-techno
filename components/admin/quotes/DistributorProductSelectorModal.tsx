@@ -1,18 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { NormalizedProduct as DistributorProduct } from "@/types/shared/distributor";
+import { isUsdCurrency } from "@/lib/distributors/invidMapper";
 
-interface DistributorProduct {
-    id: number | string;
-    distributor: string;
-    sku: string;
-    name: string;
-    price: number;
-    stock: number;
-    image: string | null;
-    link: string | null;
-    originalCategory?: string;
-}
+const BADGE_STYLES: Record<string, string> = {
+    elit: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+    newbytes: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+    invid: "bg-purple-500/10 text-purple-300 border border-purple-500/20",
+};
+const badgeFor = (distributor: string) =>
+    BADGE_STYLES[distributor.toLowerCase()] || BADGE_STYLES.newbytes;
+
+// Invid puede informar sólo una leyenda de stock ("Stock bajo") en lugar de cantidades
+const stockText = (p: DistributorProduct) =>
+    p.stockLabel || (p.stock > 0 ? `${p.stock} u.` : "Consultar");
+
+const TAX_RATES = [10.5, 21];
 
 interface Props {
     isOpen: boolean;
@@ -27,6 +31,9 @@ interface Props {
         unitPrice: number;
         quantity: number;
         taxRate: number;
+        // Distribuidores en dólares (Invid): costo en USD y cotización usada
+        costPriceUsd?: number;
+        costExchangeRate?: number;
     }) => void;
 }
 
@@ -68,6 +75,12 @@ export function DistributorProductSelectorModal({
         }
     }, [isOpen]);
 
+    // El IVA se precarga con la alícuota que informa el distribuidor, si es una de las habituales
+    function selectProduct(p: DistributorProduct) {
+        setSelectedProduct(p);
+        setTaxRate(p.taxRate && TAX_RATES.includes(p.taxRate) ? p.taxRate : 10.5);
+    }
+
     async function handleSearch(e?: React.FormEvent) {
         if (e) e.preventDefault();
         const term = query.trim();
@@ -88,14 +101,10 @@ export function DistributorProductSelectorModal({
             }
 
             const products: DistributorProduct[] = data.products || [];
-            // Filtro de seguridad adicional: excluir INVID explícitamente
-            const filtered = products.filter(
-                (p) => p.distributor.toLowerCase() !== "invid"
-            );
-            setResults(filtered);
+            setResults(products);
 
-            if (filtered.length === 0) {
-                setError("No se encontraron productos con ese término en Elit ni NewBytes.");
+            if (products.length === 0) {
+                setError("No se encontraron productos con ese término en Elit, NewBytes ni Invid.");
             }
         } catch (err: any) {
             setError(err.message || "Error al conectar con los distribuidores.");
@@ -106,13 +115,25 @@ export function DistributorProductSelectorModal({
 
     function handleConfirmAdd() {
         if (!selectedProduct) return;
+        const distributor = selectedProduct.distributor.toLowerCase();
+        const inUsd =
+            isUsdCurrency(selectedProduct.originalCurrency) &&
+            Boolean(selectedProduct.originalPrice && selectedProduct.exchangeRate);
         onSelect({
             name: selectedProduct.name,
             sku: selectedProduct.sku,
             image: selectedProduct.image || undefined,
-            distributor: selectedProduct.distributor.toLowerCase(),
-            distributorSku: selectedProduct.sku,
+            distributor,
+            // En Invid el código propio es el ID (el SKU es el part number del fabricante);
+            // con él se buscan los cambios de precio en el catálogo local
+            distributorSku: distributor === "invid" ? String(selectedProduct.id) : selectedProduct.sku,
             costPrice: selectedProduct.price,
+            ...(inUsd
+                ? {
+                      costPriceUsd: selectedProduct.originalPrice,
+                      costExchangeRate: selectedProduct.exchangeRate,
+                  }
+                : {}),
             unitPrice: Number(unitPrice) || 0,
             quantity: Math.max(1, Number(quantity) || 1),
             taxRate: Number(taxRate) || 10.5,
@@ -134,7 +155,7 @@ export function DistributorProductSelectorModal({
                                 Buscar en Distribuidores Mayoristas
                             </h2>
                             <p className="text-xs text-gray-400">
-                                Consultando en vivo catálogo de <strong>Elit</strong> y <strong>NewBytes</strong> (excluye INVID)
+                                Catálogos de <strong>Elit</strong>, <strong>NewBytes</strong> e <strong>Invid</strong> (Invid se actualiza cada hora)
                             </p>
                         </div>
                     </div>
@@ -206,14 +227,14 @@ export function DistributorProductSelectorModal({
                                         )}
                                     </div>
                                     <div className="min-w-0">
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${badgeFor(selectedProduct.distributor)}`}>
                                             {selectedProduct.distributor}
                                         </span>
                                         <h3 className="text-base font-bold text-white mt-1">
                                             {selectedProduct.name}
                                         </h3>
                                         <p className="text-xs text-gray-400 font-mono mt-0.5">
-                                            SKU Distribuidor: {selectedProduct.sku} • Stock mayorista: {selectedProduct.stock} u.
+                                            SKU Distribuidor: {selectedProduct.sku} • Stock mayorista: {stockText(selectedProduct)}
                                         </p>
                                     </div>
                                 </div>
@@ -234,6 +255,14 @@ export function DistributorProductSelectorModal({
                                     <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 font-mono">
                                         ${selectedProduct.price.toLocaleString("es-AR")}
                                     </div>
+                                    {isUsdCurrency(selectedProduct.originalCurrency) &&
+                                        selectedProduct.originalPrice !== undefined &&
+                                        selectedProduct.exchangeRate && (
+                                            <p className="text-[10px] text-gray-500 mt-1 font-mono">
+                                                USD {selectedProduct.originalPrice.toLocaleString("es-AR")} × $
+                                                {selectedProduct.exchangeRate.toLocaleString("es-AR")}
+                                            </p>
+                                        )}
                                 </div>
 
                                 <div>
@@ -316,7 +345,7 @@ export function DistributorProductSelectorModal({
                                 <button
                                     key={`${p.distributor}-${p.sku}`}
                                     type="button"
-                                    onClick={() => setSelectedProduct(p)}
+                                    onClick={() => selectProduct(p)}
                                     className="w-full text-left bg-gray-800/40 hover:bg-gray-800 border border-gray-700/60 hover:border-gray-600 rounded-xl p-3.5 flex items-center justify-between gap-4 transition group"
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
@@ -339,11 +368,7 @@ export function DistributorProductSelectorModal({
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <span
-                                                    className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
-                                                        p.distributor.toLowerCase() === "elit"
-                                                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                                            : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                                    }`}
+                                                    className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${badgeFor(p.distributor)}`}
                                                 >
                                                     {p.distributor}
                                                 </span>
@@ -362,7 +387,7 @@ export function DistributorProductSelectorModal({
                                             ${p.price.toLocaleString("es-AR")}
                                         </div>
                                         <div className="text-[11px] text-gray-400">
-                                            Stock: {p.stock > 0 ? `${p.stock} u.` : "Consultar"}
+                                            Stock: {stockText(p)}
                                         </div>
                                     </div>
                                 </button>

@@ -80,7 +80,7 @@ Más: feeds XML para comparadores de precios, webhooks de Mercado Pago y emisió
 - RF-24 Compras a proveedores con recepción parcial/total, carga de series y fallas de Outlet.
 - RF-25 Presupuestos con ítems internos, de distribuidor o manuales; PDF; conversión a pedido.
 - RF-26 Comprobantes: recibo no fiscal, factura fiscal A/B con CAE de AFIP, notas de crédito/débito; PDF, descarga y envío por email.
-- RF-27 Comparador de precios y stock en distribuidores (Elit, NewBytes e Invid; en presupuestos todavía se excluye Invid).
+- RF-27 Comparador de precios y stock en distribuidores (Elit, NewBytes e Invid), también usado para agregar ítems a presupuestos, con alertas de cambio de costo o de dólar en los ítems en USD.
 - RF-28 Dashboard de ventas e ingresos.
 - RF-29 Gestión de clientes y proveedores (autocompletado de proveedor desde el padrón AFIP).
 - RF-31 Configurar desde el panel el recargo por pago con Mercado Pago (`/admin/settings`).
@@ -407,6 +407,8 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
 
 ### 6.8 Distribuidores y comparador
 `GET /api/admin/distributors/search` → `getDistributorProducts` consulta Elit y NewBytes en paralelo (Invid está implementado en el servicio pero el endpoint lo excluye a propósito), normaliza a `{id, distributor, sku, name, price, stock, image, link}` filtrando por categoría según el mapeo de `ComparatorCategory` (colección `comparator_categories`, editable en `/admin/comparator/categories`; un distribuidor sin mapeo para la categoría elegida no se consulta).
+
+**Alertas de precio en presupuestos**: los ítems de distribuidores en dólares (Invid) guardan `costPriceUsd` y `costExchangeRate` (cotización usada), y `distributorSku` es el ID de Invid. Las alertas no se persisten: se calculan al mostrar el presupuesto (`getQuotePriceContext` + `lib/quotes/priceAlerts.ts`) comparando contra el catálogo local y el dólar vigente, sólo en presupuestos abiertos (`draft`/`sent`/`accepted` no vencidos). Avisan si el costo USD varió 2% o más, o si el dólar subió 10% o más. En el detalle, "Actualizar costo y precio" toma el costo y el dólar actuales y mantiene el margen; "Ignorar" guarda los valores vigentes en `alertAckPriceUsd`/`alertAckExchangeRate` y sólo se vuelve a avisar si cambian otra vez por encima del umbral. Ambas acciones se aplican al guardar. El listado muestra un badge con la cantidad de ítems con alerta. (Se calculan en lectura porque `updateQuote` reemplaza los ítems y les cambia el `_id` en cada guardado.)
 
 **Categorías del comparador**: cada `ComparatorCategory` tiene `key` (valor de `?category=`), nombre, orden, activa y su equivalente por distribuidor: Elit `[{paramType: categoria|sub_categoria, value}]`, NewBytes `[description]` (se envía con guiones en vez de espacios, `toNewBytesCategoryParam`) e Invid `[ID o nombre]`. Si la colección está vacía se carga con `DEFAULT_COMPARATOR_CATEGORIES` (el mapeo que antes estaba hardcodeado). El formulario ofrece los listados reales: NewBytes desde `GET /v1/categories`, Invid desde el catálogo local y Elit (sin endpoint de categorías) desde `distributor_categories_seen`, donde cada búsqueda registra los `categoria`/`sub_categoria` de los productos. API: `GET/POST /api/admin/distributors/categories`, `PUT/DELETE /api/admin/distributors/categories/[id]`. Los resultados se pueden agregar como ítems de presupuesto.
 

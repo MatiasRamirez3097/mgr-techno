@@ -45,6 +45,25 @@ const QuoteItemSchema = new Schema(
             default: 0,
             min: 0,
         },
+        // Ítems de distribuidores en dólares (Invid): costo en USD y cotización usada
+        // para convertirlo, para detectar cambios de costo o de dólar
+        costPriceUsd: {
+            type: Number,
+            default: null,
+        },
+        costExchangeRate: {
+            type: Number,
+            default: null,
+        },
+        // Valores vigentes cuando se ignoró la última alerta de precio
+        alertAckPriceUsd: {
+            type: Number,
+            default: null,
+        },
+        alertAckExchangeRate: {
+            type: Number,
+            default: null,
+        },
         unitPrice: {
             type: Number,
             required: true,

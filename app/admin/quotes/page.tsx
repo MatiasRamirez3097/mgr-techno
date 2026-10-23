@@ -5,6 +5,8 @@ import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { QuotesTable } from "@/components/admin/quotes/QuotesTable";
 import { getQuotes } from "@/services/quotes/getQuotes";
+import { getQuotePriceContext } from "@/services/quotes/getQuotePriceContext";
+import { countQuotePriceAlerts } from "@/lib/quotes/priceAlerts";
 import type { QuoteStatus } from "@/types/shared/quote";
 
 const STATUS_TABS: { id: QuoteStatus | "all"; label: string }[] = [
@@ -38,6 +40,12 @@ export default async function AdminQuotesPage({ searchParams }: Props) {
         page: currentPage,
         limit: perPage,
     });
+
+    // Ítems en dólares cuyo costo o cotización cambió desde que se cargaron
+    const priceContext = await getQuotePriceContext(quotes);
+    const priceAlerts = Object.fromEntries(
+        quotes.map((q) => [q.id, countQuotePriceAlerts(q, priceContext)]),
+    );
 
     return (
         <div className="space-y-6">
@@ -85,7 +93,12 @@ export default async function AdminQuotesPage({ searchParams }: Props) {
                 })}
             </div>
 
-            <QuotesTable quotes={quotes} search={search} status={activeStatus} />
+            <QuotesTable
+                quotes={quotes}
+                search={search}
+                status={activeStatus}
+                priceAlerts={priceAlerts}
+            />
 
             <AdminPagination
                 currentPage={pagination.page}
