@@ -39,7 +39,7 @@ Next.js 16 (App Router) + React 19, TypeScript, Tailwind 4, MongoDB con Mongoose
 
 ### Rutas
 - `app/(store)/` — tienda pública; `app/admin/` — panel de admin; `app/*.xml/route.ts` — feeds de productos (Google Merchant, HardGamers, BuscaHard, BestGaming) con `revalidate`.
-- `proxy.ts` reemplaza a `middleware.ts` (convención de Next 16). Hace tres cosas: devuelve 410 en rutas viejas de WordPress, reescribe a `/mantenimiento` si `MAINTENANCE_MODE=true`, y exige `role === "administrator"` (token next-auth) en `/admin`, `/api/admin/*` y `/api/afip/*`. `/api/webhooks/*` queda excluido del matcher.
+- `proxy.ts` reemplaza a `middleware.ts` (convención de Next 16). Hace tres cosas: devuelve 410 en rutas viejas de WordPress, reescribe a `/mantenimiento` si `MAINTENANCE_MODE=true`, y exige `role === "administrator"` (token next-auth) en `/admin`, `/api/admin/*` y `/api/afip/*`. `/api/webhooks/*` y `/api/cron/*` quedan excluidos del matcher (el cron se autentica con `CRON_SECRET`).
 - Los redirects SEO desde URLs de WooCommerce (`/product-category/...`, `/product/...`, `/shop/...`) están en `next.config.ts`.
 - `instrumentation.ts` setea un proxy HTTP global de undici si existe `PROXY_URL` (lo usa AFIP).
 
@@ -62,7 +62,7 @@ Checkout (`app/api/checkout`) recotiza en el servidor Andreani/Vía Cargo (el fr
 `lib/pdf/`: templates HTML (`templates/`) renderizados con Puppeteer; `browser.ts` usa `@sparticuz/chromium` en Vercel (por eso `serverExternalPackages` y `outputFileTracingIncludes` en `next.config.ts`).
 
 ### Distribuidores
-`services/distributors/getDistributorProducts.ts` consulta catálogos de mayoristas (Elit, NewBytes, Invid) y normaliza resultados para el comparador del admin (el endpoint `/api/admin/distributors/search` excluye Invid a propósito); el mapeo de categorías está en `CATEGORY_MAP`.
+`services/distributors/getDistributorProducts.ts` consulta catálogos de mayoristas (Elit, NewBytes, Invid) y normaliza resultados para el comparador del admin (el endpoint `/api/admin/distributors/search` todavía excluye Invid); el mapeo de categorías está en `CATEGORY_MAP`. Invid se consulta desde una copia local en Mongo (`services/distributors/invid/`, sincronizada por su límite de 50 requests/hora), con precios en USD convertidos al dólar oficial BNA (`services/exchangeRates/getUsdExchangeRate.ts`).
 
 ### Búsqueda
 La búsqueda de la tienda usa Atlas Search (`$search`, índice `search_products`) con el texto normalizado por `lib/search/normalize.ts`; la del admin usa regex (`lib/search/adminProductSearch.ts`).

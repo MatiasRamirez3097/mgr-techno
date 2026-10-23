@@ -1,16 +1,29 @@
 "use client";
 import React, { useState } from "react";
-interface NormalizedProduct {
-    id: number | string;
-    distributor: string;
-    sku: string;
-    name: string;
-    price: number;
-    stock: number;
-    image: string | null;
-    link: string | null;
-    originalCategory?: string;
-}
+import type { NormalizedProduct } from "@/types/shared/distributor";
+
+const BADGE_STYLES: Record<string, { pill: string; solid: string }> = {
+    Elit: {
+        pill: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+        solid: "bg-blue-600 text-white",
+    },
+    INVID: {
+        pill: "bg-purple-500/20 text-purple-300 border border-purple-500/30",
+        solid: "bg-purple-600 text-white",
+    },
+};
+const DEFAULT_BADGE = {
+    pill: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    solid: "bg-emerald-600 text-white",
+};
+const badgeFor = (distributor: string) =>
+    BADGE_STYLES[distributor] || DEFAULT_BADGE;
+
+// Invid puede informar sólo una leyenda ("Stock bajo") en lugar de cantidades
+const stockText = (prod: NormalizedProduct) =>
+    prod.stockLabel || (prod.stock > 0 ? `${prod.stock} un.` : "Sin stock");
+const hasStock = (prod: NormalizedProduct) =>
+    Boolean(prod.stockLabel) || prod.stock > 0;
 
 interface Props {
     products: NormalizedProduct[];
@@ -110,12 +123,7 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                         >
                                             <td className="px-6 py-4">
                                                 <span
-                                                    className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                                        prod.distributor ===
-                                                        "Elit"
-                                                            ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                                                            : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                                    }`}
+                                                    className={`px-3 py-1 rounded-full text-xs font-bold ${badgeFor(prod.distributor).pill}`}
                                                 >
                                                     {prod.distributor}
                                                 </span>
@@ -159,14 +167,12 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                             <td className="px-6 py-4">
                                                 <span
                                                     className={
-                                                        prod.stock > 0
+                                                        hasStock(prod)
                                                             ? "text-emerald-400"
                                                             : "text-red-400"
                                                     }
                                                 >
-                                                    {prod.stock > 0
-                                                        ? `${prod.stock} un.`
-                                                        : "Out of stock"}
+                                                    {stockText(prod)}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 font-bold text-white whitespace-nowrap">
@@ -228,11 +234,7 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                     <div className="w-full h-48 bg-gray-900 flex items-center justify-center p-4 relative border-b border-gray-800">
                                         <div className="absolute top-3 left-3">
                                             <span
-                                                className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                                                    prod.distributor === "Elit"
-                                                        ? "bg-blue-600 text-white"
-                                                        : "bg-emerald-600 text-white"
-                                                }`}
+                                                className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${badgeFor(prod.distributor).solid}`}
                                             >
                                                 {prod.distributor}
                                             </span>
@@ -272,11 +274,9 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                         <div className="mt-auto flex flex-col gap-3 pt-3 border-t border-gray-700/50">
                                             <div className="flex items-center justify-between">
                                                 <span
-                                                    className={`text-xs font-medium ${prod.stock > 0 ? "text-emerald-400" : "text-red-400"}`}
+                                                    className={`text-xs font-medium ${hasStock(prod) ? "text-emerald-400" : "text-red-400"}`}
                                                 >
-                                                    {prod.stock > 0
-                                                        ? `${prod.stock} un.`
-                                                        : "Sin stock"}
+                                                    {stockText(prod)}
                                                 </span>
                                                 <span className="text-lg font-bold text-white">
                                                     $

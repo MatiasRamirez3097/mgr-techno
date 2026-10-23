@@ -77,7 +77,8 @@ export const config = {
         /*
          * Aplica a todas las rutas EXCEPTO:
          * - api/webhooks (para que Mercado Pago te avise de los pagos)
+         * - api/cron (Vercel Cron: se autentica con CRON_SECRET y debe correr aun en mantenimiento)
          */
-        "/((?!api/webhooks).*)",
+        "/((?!api/webhooks|api/cron).*)",
     ],
 };
