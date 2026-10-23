@@ -164,6 +164,12 @@ const LINKS = [
     {
         href: "/admin/comparator",
         label: "Precios Distribuidores",
+        children: [
+            {
+                href: "/admin/comparator/categories",
+                label: "Categorías",
+            },
+        ],
         icon: (
             <svg
                 xmlns="http://www.w3.org/2000/svg"

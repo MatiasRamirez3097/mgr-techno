@@ -2,19 +2,12 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-const CATEGORIES = [
-    { value: "", label: "Todas las categorías" },
-    { value: "ACCESORIOS", label: "Accesorios" },
-    { value: "CONECTIVIDAD", label: "Conectividad" },
-    { value: "SSD-INTERNOS", label: "SSD Internos" },
-    { value: "GABINETES", label: "Gabinetes" },
-    { value: "MEMORIAS", label: "Memorias" },
-    { value: "MOTHERBOARDS", label: "Motherboards" },
-    { value: "PROCESADORES", label: "Procesadores" },
-    { value: "VIDEO", label: "Placas de Video" },
-];
+interface Props {
+    // Categorías activas del comparador (ComparatorCategory)
+    categories: { value: string; label: string }[];
+}
 
-export const CategorySelect = () => {
+export const CategorySelect = ({ categories }: Props) => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -54,7 +47,7 @@ export const CategorySelect = () => {
                 cursor-pointer
             "
         >
-            {CATEGORIES.map((cat) => (
+            {[{ value: "", label: "Todas las categorías" }, ...categories].map((cat) => (
                 <option key={cat.value} value={cat.value}>
                     {cat.label}
                 </option>

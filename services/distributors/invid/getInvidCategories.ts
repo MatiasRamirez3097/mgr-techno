@@ -3,7 +3,7 @@ import { InvidCatalogItemModel } from "@/models/InvidCatalogItem";
 import type { InvidCategorySummary } from "@/types/shared/distributor";
 
 /**
- * Categorías presentes en el catálogo local de Invid, para completar `CATEGORY_MAP`.
+ * Categorías presentes en el catálogo local de Invid, para el mapeo de categorías del comparador.
  */
 export async function getInvidCategories(): Promise<InvidCategorySummary[]> {
     await connectDB();

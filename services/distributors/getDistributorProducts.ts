@@ -1,55 +1,21 @@
+import { after } from "next/server";
 import type { NormalizedProduct } from "@/types/shared/distributor";
+import type {
+    ComparatorCategoryDTO,
+    ElitCategoryMapping,
+    ElitCategoryParam,
+} from "@/types/shared/comparatorCategory";
+import { toNewBytesCategoryParam } from "@/lib/distributors/comparatorCategoryDefaults";
+import { getComparatorCategoryByKey } from "./categories/getComparatorCategoryByKey";
+import { recordElitCategories } from "./categories/recordElitCategories";
+import { getNewBytesToken } from "./newbytes/getNewBytesToken";
 import { searchInvidCatalog } from "./invid/searchInvidCatalog";
 import { scheduleInvidSyncIfStale } from "./invid/scheduleInvidSyncIfStale";
 
-type CategoryConfig = {
-    elit: { paramType: "categoria" | "sub_categoria"; value: string };
-    newbytes: string | string[]; // <--- Ahora puede ser un array
-    // IDs numéricos o nombres de categoría de Invid; los nombres se comparan por palabras
-    // sin plurales (buildCategoryNamePattern), así no hace falta el nombre exacto
-    invid: string | string[];
-};
-
-const CATEGORY_MAP: Record<string, CategoryConfig> = {
-    MEMORIAS: {
-        elit: { paramType: "categoria", value: "Memorias" },
-        newbytes: "Memorias",
-        invid: "Memorias",
-    },
-    PROCESADORES: {
-        elit: { paramType: "sub_categoria", value: "Procesadores" },
-        newbytes: "PROCESADORES",
-        invid: "Procesadores",
-    },
-    MOTHERBOARDS: {
-        elit: { paramType: "sub_categoria", value: "Motherboards" },
-        // Pasamos un array con todas las subdivisiones de NewBytes
-        newbytes: ["MOTHER-ASUS", "MOTHER-ASROCK", "MOTHER-GIGABYTE"],
-        invid: ["Mother", "Placas Madre"],
-    },
-    CONECTIVIDAD: {
-        elit: { paramType: "categoria", value: "CONECTIVIDAD" },
-        newbytes: "CONECTIVIDAD",
-        invid: "Conectividad",
-    },
-    "CASA-INTELIGENTE": {
-        elit: { paramType: "categoria", value: "SMART HOME" }, // Example: if Elit calls it differently
-        newbytes: "CASA-INTELIGENTE",
-        invid: ["Smart Home", "Casa Inteligente", "Domotica"],
-    },
-    "SSD-INTERNOS": {
-        elit: { paramType: "sub_categoria", value: "Discos Internos SSD" },
-        newbytes: "DISCOS-SSD",
-        invid: "SSD",
-    },
-    VIDEO: {
-        elit: { paramType: "sub_categoria", value: "Placas de Video" },
-        newbytes: "PLACA-DE-VIDEO",
-        invid: ["120", "172", "Placas de Video"],
-    },
-    // Add all your categories from CategorySelect.tsx here...
-};
-
+/**
+ * Busca en los distribuidores habilitados. `category` es la clave de una categoría del
+ * comparador (ComparatorCategory); a un distribuidor sin mapeo para esa categoría no se le consulta.
+ */
 export async function getDistributorProducts(
     searchQuery: string,
     category: string = "",
@@ -57,34 +23,40 @@ export async function getDistributorProducts(
 ): Promise<NormalizedProduct[]> {
     if (!searchQuery && !category) return []; // Optional: return empty if neither is provided
 
+    let mapping: ComparatorCategoryDTO | null = null;
+    if (category) {
+        mapping = await getComparatorCategoryByKey(category);
+        if (!mapping) return [];
+    }
+
     const fetchPromises: Promise<NormalizedProduct[]>[] = [];
 
     // ==========================================
-    // 1. CONDICIONAL: Solo consultamos si están habilitados
+    // 1. CONDICIONAL: Solo consultamos si están habilitados y tienen mapeo
     // ==========================================
-    if (enabledDistributors.includes("elit")) {
+    if (enabledDistributors.includes("elit") && (!mapping || mapping.elit.length > 0)) {
         // Le agregamos el .catch para que si uno falla, devuelva un array vacío
         // y no rompa todo el Promise.all
         fetchPromises.push(
-            fetchElit(searchQuery, category).catch((e) => {
+            fetchElit(searchQuery, mapping?.elit ?? []).catch((e) => {
                 console.error("Failed to fetch from Elit:", e);
                 return [];
             }),
         );
     }
 
-    if (enabledDistributors.includes("newbytes")) {
+    if (enabledDistributors.includes("newbytes") && (!mapping || mapping.newbytes.length > 0)) {
         fetchPromises.push(
-            fetchNewBytes(searchQuery, category).catch((e) => {
+            fetchNewBytes(searchQuery, mapping?.newbytes ?? []).catch((e) => {
                 console.error("Failed to fetch from NewBytes:", e);
                 return [];
             }),
         );
     }
 
-    if (enabledDistributors.includes("invid")) {
+    if (enabledDistributors.includes("invid") && (!mapping || mapping.invid.length > 0)) {
         fetchPromises.push(
-            fetchInvid(searchQuery, category).catch((e) => {
+            fetchInvid(searchQuery, mapping?.invid ?? []).catch((e) => {
                 console.error("Failed to fetch from INVID:", e);
                 return [];
             }),
@@ -94,11 +66,7 @@ export async function getDistributorProducts(
     // ==========================================
     // 2. EJECUTAR LLAMADAS EN PARALELO
     // ==========================================
-    // Promise.all ejecutará al mismo tiempo solo las promesas que agregamos arriba
     const resultsArrays = await Promise.all(fetchPromises);
-
-    // resultsArrays es un array de arrays (ej: [ [prodElit1, prodElit2], [prodNB1] ])
-    // .flat() los une a todos en un solo nivel
     const products = resultsArrays.flat();
 
     // ==========================================
@@ -114,27 +82,58 @@ export async function getDistributorProducts(
 // ==========================================
 async function fetchElit(
     searchQuery: string,
-    category: string,
+    categories: ElitCategoryMapping[],
+): Promise<NormalizedProduct[]> {
+    // Una consulta por categoría mapeada (o una sola sin categoría)
+    const requests = categories.length > 0 ? categories : [null];
+    const results = await Promise.all(
+        requests.map((cat) => fetchElitPage(searchQuery, cat)),
+    );
+
+    // Sin duplicados si un producto aparece en dos categorías mapeadas
+    const seen = new Set<string>();
+    return results.flat().filter((prod) => {
+        const id = String(prod.id);
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+    });
+}
+
+// Guarda las categorías que trae Elit para sugerirlas en el mapeo, sin demorar la respuesta
+function scheduleElitCategoriesRecord(
+    products: { categoria?: unknown; sub_categoria?: unknown }[],
+) {
+    const values: { paramType: ElitCategoryParam; value: string }[] = [];
+    for (const prod of products) {
+        if (typeof prod.categoria === "string") {
+            values.push({ paramType: "categoria", value: prod.categoria });
+        }
+        if (typeof prod.sub_categoria === "string") {
+            values.push({ paramType: "sub_categoria", value: prod.sub_categoria });
+        }
+    }
+    if (values.length === 0) return;
+
+    const record = () =>
+        recordElitCategories(values).catch((e) =>
+            console.error("Error guardando categorías de Elit:", e),
+        );
+    try {
+        after(record);
+    } catch {
+        // Fuera de un request (ej: scripts) no hay `after`
+        void record();
+    }
+}
+
+async function fetchElitPage(
+    searchQuery: string,
+    category: ElitCategoryMapping | null,
 ): Promise<NormalizedProduct[]> {
     const elitUrl = new URL("https://clientes.elit.com.ar/v1/api/productos");
     if (searchQuery) elitUrl.searchParams.append("nombre", searchQuery);
-
-    // 2. Append category to Elit's query parameters
-    if (category) {
-        const mappedCategory = CATEGORY_MAP[category];
-
-        if (mappedCategory) {
-            // Append as 'categoria' or 'sub_categoria' based on the dictionary
-            elitUrl.searchParams.append(
-                mappedCategory.elit.paramType,
-                mappedCategory.elit.value,
-            );
-        } else {
-            // Fallback in case a category is not in the dictionary yet
-            elitUrl.searchParams.append("categoria", category);
-        }
-    }
-
+    if (category) elitUrl.searchParams.append(category.paramType, category.value);
     elitUrl.searchParams.append("limit", "50");
 
     const response = await fetch(elitUrl.toString(), {
@@ -157,6 +156,8 @@ async function fetchElit(
         throw new Error("Elit returned an unexpected data structure");
     }
 
+    scheduleElitCategoriesRecord(rawData.resultado);
+
     // We chain .filter() before .map() to remove out-of-stock items
     return rawData.resultado
         .filter((prod: any) => Number(prod.stock_total) > 0)
@@ -173,86 +174,21 @@ async function fetchElit(
 }
 
 // ==========================================
-// NEWBYTES FETCH LOGIC & AUTHENTICATION
+// NEWBYTES FETCH LOGIC
 // ==========================================
-
-// Simple in-memory cache to prevent spamming the login endpoint on every search
-let cachedNbToken: string | null = null;
-let nbTokenExpiration: number = 0;
-
-async function getNewBytesToken(): Promise<string | null> {
-    // Return cached token if it exists and hasn't expired (e.g., valid for 55 minutes)
-    if (cachedNbToken && Date.now() < nbTokenExpiration) {
-        return cachedNbToken;
-    }
-
-    const loginUrl = "https://api.nb.com.ar/v1/auth/login";
-
-    const response = await fetch(loginUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            user: process.env.NEWBYTES_USER,
-            password: process.env.NEWBYTES_PASSWORD,
-            mode: "api",
-        }),
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        throw new Error(`NewBytes Auth failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    // WARNING: Adjust 'data.token' if the API returns the token under a different key
-    // (for example, data.data.token or data.access_token)
-    const token = data.token;
-
-    if (!token) {
-        throw new Error(
-            "NewBytes Auth successful but no token found in response.",
-        );
-    }
-
-    // Save token to cache and set expiration to 55 minutes from now
-    // (assuming the token lasts 1 hour, this gives a 5-minute safety margin)
-    cachedNbToken = token;
-    nbTokenExpiration = Date.now() + 55 * 60 * 1000;
-
-    return cachedNbToken;
-}
-
 async function fetchNewBytes(
     searchQuery: string,
-    category: string,
+    categories: string[],
 ): Promise<NormalizedProduct[]> {
     const token = await getNewBytesToken();
 
-    // 1. Determinar qué categorías de NB buscar
-    let nbCategoriesToFetch: string[] = [];
-
-    if (category) {
-        const mappedCategory = CATEGORY_MAP[category];
-        if (mappedCategory) {
-            // Si es un array (ej: Motherboards), lo usamos. Si es string, lo convertimos a array de 1 elemento.
-            nbCategoriesToFetch = Array.isArray(mappedCategory.newbytes)
-                ? mappedCategory.newbytes
-                : [mappedCategory.newbytes];
-        } else {
-            nbCategoriesToFetch = [category];
-        }
-    } else {
-        // Si no hay categoría seleccionada, hacemos una sola búsqueda global
-        nbCategoriesToFetch = [""];
-    }
+    // 1. Una consulta por categoría mapeada (ej: Motherboards) o una sola búsqueda global
+    const nbCategoriesToFetch =
+        categories.length > 0 ? categories.map(toNewBytesCategoryParam) : [""];
 
     // 2. Crear un array de promesas (peticiones) para ejecutar en paralelo
     const fetchPromises = nbCategoriesToFetch.map(async (nbCategoryValue) => {
-        let baseUrl = "https://api.nb.com.ar/v1/";
-        const nbUrl = new URL(baseUrl);
+        const nbUrl = new URL("https://api.nb.com.ar/v1/");
 
         if (nbCategoryValue) {
             nbUrl.searchParams.append("category", nbCategoryValue);
@@ -357,20 +293,11 @@ async function fetchNewBytes(
 // se sincroniza en segundo plano (services/distributors/invid) y acá sólo se consulta la DB.
 async function fetchInvid(
     searchQuery: string,
-    category: string,
+    categories: string[],
 ): Promise<NormalizedProduct[]> {
     await scheduleInvidSyncIfStale().catch((e) =>
         console.error("No se pudo programar la sincronización de Invid:", e),
     );
-
-    let categories: string[] = [];
-    if (category) {
-        const mappedCategory = CATEGORY_MAP[category];
-        const invidCategoryValue = mappedCategory ? mappedCategory.invid : category;
-        categories = Array.isArray(invidCategoryValue)
-            ? invidCategoryValue
-            : [invidCategoryValue];
-    }
 
     return searchInvidCatalog(searchQuery, categories);
 }

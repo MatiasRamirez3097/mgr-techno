@@ -6,6 +6,8 @@ import { InvidSyncStatus } from "@/components/admin/distributors/InvidSyncStatus
 import { getDistributorProducts } from "@/services/distributors/getDistributorProducts";
 import { getInvidSyncStatus } from "@/services/distributors/invid/getInvidSyncStatus";
 import { getInvidCategories } from "@/services/distributors/invid/getInvidCategories";
+import { getComparatorCategories } from "@/services/distributors/categories/getComparatorCategories";
+import Link from "next/link";
 
 // Si el catálogo de Invid quedó viejo se sincroniza con `after` al terminar el render
 export const maxDuration = 300;
@@ -30,7 +32,7 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
         : ["elit", "newbytes", "invid"];
 
     // Pasamos el array de distribuidores habilitados
-    const [products, invidStatus] = await Promise.all([
+    const [products, invidStatus, categories] = await Promise.all([
         getDistributorProducts(search, category, enabledDistributors),
         enabledDistributors.includes("invid")
             ? Promise.all([getInvidSyncStatus(), getInvidCategories()]).catch((e) => {
@@ -38,6 +40,7 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
                   return null;
               })
             : null,
+        getComparatorCategories({ activeOnly: true }),
     ]);
 
     return (
@@ -51,7 +54,15 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
                 <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
                     <DistributorSelect />
                     {/* Filter by Category */}
-                    <CategorySelect />
+                    <CategorySelect
+                        categories={categories.map((c) => ({ value: c.key, label: c.name }))}
+                    />
+                    <Link
+                        href="/admin/comparator/categories"
+                        className="text-xs text-gray-400 hover:text-white underline"
+                    >
+                        Configurar categorías
+                    </Link>
 
                     {/* Search by Name/SKU */}
                     <AdminSearch placeholder="Buscar por nombre, SKU..." />
