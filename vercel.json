@@ -1,6 +1,5 @@
 {
     "crons": [
-        { "path": "/api/cron/invid-sync", "schedule": "5 * * * *" },
-        { "path": "/api/cron/air-sync", "schedule": "20 * * * *" }
+        { "path": "/api/cron/invid-sync", "schedule": "5 * * * *" }
     ]
 }

@@ -162,6 +162,16 @@ export function parseAirRubros(text: string): AirRubrosData {
     return { rubros, grupos };
 }
 
+// Una lista con menos de la mitad de artículos que la anterior se considera incompleta
+// (ej: la intranet aplicó otro filtro) y no se importa, para no marcar el resto como no disponible
+export const AIR_MIN_LIST_RATIO = 0.5;
+const AIR_MIN_PREVIOUS_ITEMS = 200;
+
+export function isIncompleteAirList(items: number, previousItems: number | null | undefined): boolean {
+    if (!previousItems || previousItems < AIR_MIN_PREVIOUS_ITEMS) return false;
+    return items < previousItems * AIR_MIN_LIST_RATIO;
+}
+
 // Leyenda cuando no hay unidades en el depósito que usamos pero sí en otros
 // (empieza con "Sin stock" para que el comparador no lo muestre como disponible)
 export function getAirStockLabel(

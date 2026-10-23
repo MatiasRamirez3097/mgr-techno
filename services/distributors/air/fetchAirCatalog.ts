@@ -12,11 +12,12 @@ const AIR_BASE_URL = "https://air-intra.com.ar/2025";
 const USER_AGENT = "Mozilla/5.0 (compatible; MGRTechno/1.0)";
 const TIMEOUT_MS = 60000;
 
-// Mismo filtro que arma la intranet cuando no hay nada seleccionado (filter_to_dw en index_nav.js)
+// Filtro de la descarga (filter_to_dw en index_nav.js): todos los estados y sólo artículos
+// con stock. Con estado "D" la intranet a veces devuelve apenas una docena de artículos.
 const DEFAULT_FILTER = {
     grupo: 0,
     rubro: "",
-    estado: "D",
+    estado: "T",
     texto: "",
     orden: "",
     stock: "D",
@@ -101,10 +102,18 @@ async function fetchWithSession(step: string, path: string, cookie: string): Pro
     });
 }
 
+// Archivos tal como los entrega la intranet, antes de decodificar
+export interface AirRawFiles {
+    csv: Uint8Array;
+    rubros: Uint8Array | null;
+}
+
 /**
  * Descarga la lista completa (CSV) y los nombres de rubros y grupos de la intranet de AIR.
+ * La intranet no acepta conexiones desde Vercel: esto corre en una PC (tools/air-upload),
+ * que sube los archivos a /api/cron/air-import.
  */
-export async function fetchAirCatalog(): Promise<AirCatalogDownload> {
+export async function downloadAirFiles(): Promise<AirRawFiles> {
     const cookie = await loginToAir();
 
     const query = encodeURIComponent(JSON.stringify(DEFAULT_FILTER));
@@ -116,21 +125,28 @@ export async function fetchAirCatalog(): Promise<AirCatalogDownload> {
     if (!/csv/i.test(csvRes.headers.get("content-type") || "")) {
         throw new Error("AIR no devolvió la lista CSV (¿cambió el login o la descarga?)");
     }
-    const { rows, skipped } = parseAirCsv(decodeAirText(await csvRes.arrayBuffer()));
-    if (rows.length === 0) {
-        throw new Error("La lista de AIR llegó vacía o con un formato desconocido");
-    }
+    const csv = new Uint8Array(await csvRes.arrayBuffer());
 
     // Los nombres son opcionales: sin ellos se muestran los códigos de rubro
-    let names: AirRubrosData = { rubros: new Map(), grupos: new Map() };
+    let rubros: Uint8Array | null = null;
     try {
         const rubrosRes = await fetchWithSession("rubros", "/cache/rubros.txt", cookie);
-        if (rubrosRes.ok) {
-            names = parseAirRubros(decodeAirText(await rubrosRes.arrayBuffer()));
-        }
+        if (rubrosRes.ok) rubros = new Uint8Array(await rubrosRes.arrayBuffer());
     } catch (error) {
         console.error("AIR: no se pudieron obtener los nombres de rubros:", error);
     }
 
+    return { csv, rubros };
+}
+
+// Decodifica y lee los archivos descargados
+export function parseAirFiles(files: AirRawFiles): AirCatalogDownload {
+    const { rows, skipped } = parseAirCsv(decodeAirText(files.csv));
+    if (rows.length === 0) {
+        throw new Error("La lista de AIR llegó vacía o con un formato desconocido");
+    }
+    const names: AirRubrosData = files.rubros
+        ? parseAirRubros(decodeAirText(files.rubros))
+        : { rubros: new Map(), grupos: new Map() };
     return { rows, skipped, names };
 }

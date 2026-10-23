@@ -11,7 +11,7 @@ import { getAirCategories } from "@/services/distributors/air/getAirCategories";
 import { getComparatorCategories } from "@/services/distributors/categories/getComparatorCategories";
 import Link from "next/link";
 
-// Si el catálogo de Invid o de AIR quedó viejo se sincroniza con `after` al terminar el render
+// Si el catálogo de Invid quedó viejo se sincroniza con `after` al terminar el render
 export const maxDuration = 300;
 
 interface Props {
@@ -90,8 +90,9 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
             {airStatus && (
                 <DistributorSyncStatus
                     label="AIR"
-                    syncUrl="/api/admin/distributors/air/sync"
                     theme="orange"
+                    staleAfterHours={6}
+                    staleHint="La lista la sube la tarea programada de la PC (tools/air-upload): revisá que esté corriendo."
                     status={airStatus[0]}
                     categories={airStatus[1]}
                 />

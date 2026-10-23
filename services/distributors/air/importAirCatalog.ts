@@ -2,10 +2,14 @@ import type { AnyBulkWriteOperation } from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import { DistributorSyncStateModel } from "@/models/DistributorSyncState";
 import { AirCatalogItemModel } from "@/models/AirCatalogItem";
-import { mapAirRow, type AirCatalogItemData } from "@/lib/distributors/airMapper";
+import {
+    isIncompleteAirList,
+    mapAirRow,
+    type AirCatalogItemData,
+} from "@/lib/distributors/airMapper";
 import { hasSignificantPriceChange } from "@/lib/distributors/invidMapper";
 import { acquireSyncLock, releaseSyncLock } from "../syncLock";
-import { AIR_STATE_ID, fetchAirCatalog } from "./fetchAirCatalog";
+import { AIR_STATE_ID, parseAirFiles, type AirRawFiles } from "./fetchAirCatalog";
 
 const LOCK_DURATION_MS = 5 * 60 * 1000;
 
@@ -17,10 +21,11 @@ export interface AirSyncResult {
 }
 
 /**
- * Descarga la lista de AIR y la guarda en `air_catalog_items`. Registra los cambios de
- * precio significativos y marca como no disponibles los artículos que dejaron de aparecer.
+ * Guarda la lista de AIR (subida desde la PC con tools/air-upload) en `air_catalog_items`.
+ * Registra los cambios de precio significativos y marca como no disponibles los artículos
+ * que dejaron de aparecer.
  */
-export async function syncAirCatalog(): Promise<AirSyncResult> {
+export async function importAirCatalog(files: AirRawFiles): Promise<AirSyncResult> {
     await connectDB();
 
     if (!(await acquireSyncLock(AIR_STATE_ID, LOCK_DURATION_MS))) {
@@ -36,7 +41,7 @@ export async function syncAirCatalog(): Promise<AirSyncResult> {
     let priceChanges = 0;
 
     try {
-        const { rows, skipped, names } = await fetchAirCatalog();
+        const { rows, skipped, names } = parseAirFiles(files);
 
         const items: AirCatalogItemData[] = [];
         for (const row of rows) {
@@ -45,6 +50,15 @@ export async function syncAirCatalog(): Promise<AirSyncResult> {
         }
         if (items.length === 0) {
             throw new Error("La lista de AIR no tiene artículos con precio");
+        }
+
+        const state = await DistributorSyncStateModel.findById(AIR_STATE_ID, {
+            lastSyncItems: 1,
+        }).lean<{ lastSyncItems?: number }>();
+        if (isIncompleteAirList(items.length, state?.lastSyncItems)) {
+            throw new Error(
+                `La lista llegó con ${items.length} artículos y la anterior tenía ${state?.lastSyncItems}: no se importó`,
+            );
         }
 
         // Precios anteriores para detectar variaciones
@@ -107,7 +121,7 @@ export async function syncAirCatalog(): Promise<AirSyncResult> {
         };
     } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido";
-        console.error("Error sincronizando el catálogo de AIR:", message);
+        console.error("Error importando la lista de AIR:", message);
 
         await DistributorSyncStateModel.updateOne(
             { _id: AIR_STATE_ID },
