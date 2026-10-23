@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getQuoteById } from "@/services/quotes/getQuoteById";
+import { getQuotePriceContext } from "@/services/quotes/getQuotePriceContext";
 import { QuoteForm } from "@/components/admin/quotes/QuoteForm";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,8 @@ export default async function AdminEditQuotePage({ params }: Props) {
     if (!quote) {
         notFound();
     }
+
+    const priceContext = await getQuotePriceContext([quote]);
 
     return (
         <div>
@@ -54,7 +57,7 @@ export default async function AdminEditQuotePage({ params }: Props) {
                     </a>
                 </div>
             </div>
-            <QuoteForm mode="edit" quote={quote} />
+            <QuoteForm mode="edit" quote={quote} priceContext={priceContext} />
         </div>
     );
 }

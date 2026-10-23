@@ -19,6 +19,12 @@ export interface QuoteItemDTO {
     image?: string;
     quantity: number;
     costPrice?: number;
+    // Ítems de distribuidores en dólares (Invid): costo en USD y cotización usada
+    costPriceUsd?: number;
+    costExchangeRate?: number;
+    // Valores vigentes cuando se ignoró la última alerta de precio
+    alertAckPriceUsd?: number;
+    alertAckExchangeRate?: number;
     unitPrice: number;
     taxRate: number; // e.g. 10.5 or 21
     discount?: number;

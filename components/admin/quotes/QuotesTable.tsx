@@ -9,6 +9,8 @@ interface Props {
     quotes: QuoteDTO[];
     search?: string;
     status?: string;
+    // Cantidad de ítems con alerta de precio por presupuesto
+    priceAlerts?: Record<string, number>;
 }
 
 const STATUS_LABELS: Record<QuoteStatus, { label: string; color: string }> = {
@@ -38,7 +40,7 @@ const STATUS_LABELS: Record<QuoteStatus, { label: string; color: string }> = {
     },
 };
 
-export function QuotesTable({ quotes, search, status }: Props) {
+export function QuotesTable({ quotes, search, status, priceAlerts }: Props) {
     const router = useRouter();
     const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
     const [actionMessage, setActionMessage] = useState<{
@@ -221,6 +223,15 @@ export function QuotesTable({ quotes, search, status }: Props) {
                                     >
                                         <td className="px-6 py-4 font-mono font-medium text-white whitespace-nowrap">
                                             {quote.number}
+                                            {(priceAlerts?.[quote.id] ?? 0) > 0 && (
+                                                <span
+                                                    className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-sans font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30"
+                                                    title="Cambió el costo o el dólar de ítems de distribuidores"
+                                                >
+                                                    ⚠ {priceAlerts![quote.id]} precio
+                                                    {priceAlerts![quote.id] > 1 ? "s" : ""}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="font-medium text-white">

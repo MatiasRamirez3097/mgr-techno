@@ -9,13 +9,41 @@ import { FormModal } from "@/components/admin/FormModal";
 import { CustomerForm } from "@/components/admin/CustomerForm";
 import { DistributorProductSelectorModal } from "./DistributorProductSelectorModal";
 import type { QuoteDTO, QuoteItemDTO, QuoteCustomerSnapshot } from "@/types/shared/quote";
+import {
+    acknowledgeQuoteItemAlerts,
+    getQuoteItemPriceAlerts,
+    isQuoteOpen,
+    refreshQuoteItemCost,
+    type QuoteItemPriceAlert,
+    type QuotePriceContext,
+} from "@/lib/quotes/priceAlerts";
 
 interface Props {
     quote?: QuoteDTO;
     mode: "create" | "edit";
+    // Precios y cotización actuales para avisar cambios en ítems en dólares
+    priceContext?: QuotePriceContext;
 }
 
-export function QuoteForm({ quote, mode }: Props) {
+const formatUsd = (n: number) =>
+    `USD ${n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatArs = (n: number) => `$${Math.round(n).toLocaleString("es-AR")}`;
+const formatChange = (change: number) =>
+    `${change > 0 ? "+" : ""}${(change * 100).toLocaleString("es-AR", { maximumFractionDigits: 1 })}%`;
+
+function describeAlert(alert: QuoteItemPriceAlert): string {
+    return alert.type === "cost"
+        ? `El costo del distribuidor cambió: ${formatUsd(alert.previous)} → ${formatUsd(alert.current)} (${formatChange(alert.change)})`
+        : `El dólar subió: ${formatArs(alert.previous)} → ${formatArs(alert.current)} (${formatChange(alert.change)})`;
+}
+
+const DISTRIBUTOR_BADGE: Record<string, string> = {
+    elit: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    newbytes: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    invid: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+};
+
+export function QuoteForm({ quote, mode, priceContext }: Props) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -172,6 +200,19 @@ export function QuoteForm({ quote, mode }: Props) {
         });
     };
 
+    // Acciones sobre una alerta de precio: se aplican al guardar el presupuesto
+    const resolveItemAlert = (index: number, action: "refresh" | "ignore") => {
+        if (!priceContext) return;
+        setForm((prev) => {
+            const items = [...prev.items];
+            items[index] =
+                action === "refresh"
+                    ? refreshQuoteItemCost(items[index], priceContext)
+                    : acknowledgeQuoteItemAlerts(items[index], priceContext);
+            return { ...prev, items };
+        });
+    };
+
     const removeItem = (index: number) => {
         setForm((prev) => ({
             ...prev,
@@ -212,6 +253,8 @@ export function QuoteForm({ quote, mode }: Props) {
         unitPrice: number;
         quantity: number;
         taxRate: number;
+        costPriceUsd?: number;
+        costExchangeRate?: number;
     }) => {
         const newItem: QuoteItemDTO = {
             origin: "distributor",
@@ -221,6 +264,8 @@ export function QuoteForm({ quote, mode }: Props) {
             distributor: distItem.distributor,
             distributorSku: distItem.distributorSku,
             costPrice: distItem.costPrice,
+            costPriceUsd: distItem.costPriceUsd,
+            costExchangeRate: distItem.costExchangeRate,
             unitPrice: distItem.unitPrice,
             quantity: distItem.quantity,
             taxRate: distItem.taxRate,
@@ -602,7 +647,11 @@ export function QuoteForm({ quote, mode }: Props) {
                                 {form.items.map((item, idx) => {
                                     const originBadge =
                                         item.origin === "distributor" ? (
-                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                            <span
+                                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                                                    DISTRIBUTOR_BADGE[item.distributor || ""] || DISTRIBUTOR_BADGE.elit
+                                                }`}
+                                            >
                                                 {item.distributor || "DISTRIB"}
                                             </span>
                                         ) : item.origin === "manual" ? (
@@ -620,10 +669,18 @@ export function QuoteForm({ quote, mode }: Props) {
                                     const lineNet = lineTaxRate > 0 ? lineGross / (1 + lineTaxRate / 100) : lineGross;
                                     const lineIva = lineGross - lineNet;
 
+                                    // Sólo se avisa en presupuestos guardados y abiertos
+                                    const priceAlerts =
+                                        priceContext && quote && isQuoteOpen(quote)
+                                            ? getQuoteItemPriceAlerts(item, priceContext)
+                                            : [];
+
                                     return (
+                                        <div key={idx}>
                                         <div
-                                            key={idx}
-                                            className="bg-gray-800/40 border border-gray-800 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-3"
+                                            className={`bg-gray-800/40 border border-gray-800 p-4 flex flex-col md:flex-row items-start md:items-center gap-3 ${
+                                                priceAlerts.length > 0 ? "rounded-t-xl" : "rounded-xl"
+                                            }`}
                                         >
                                             {/* Imagen del producto si existe */}
                                             <div className="w-10 h-10 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-center shrink-0 overflow-hidden p-1 self-start md:self-center">
@@ -649,6 +706,12 @@ export function QuoteForm({ quote, mode }: Props) {
                                                     {item.sku && (
                                                         <span className="text-[11px] font-mono text-gray-400">
                                                              SKU: {item.sku}
+                                                        </span>
+                                                    )}
+                                                    {item.costPriceUsd && item.costExchangeRate && (
+                                                        <span className="text-[11px] font-mono text-gray-500">
+                                                            Costo {formatUsd(item.costPriceUsd)} · dólar{" "}
+                                                            {formatArs(item.costExchangeRate)}
                                                         </span>
                                                     )}
                                                 </div>
@@ -728,6 +791,37 @@ export function QuoteForm({ quote, mode }: Props) {
                                             >
                                                 ✕
                                             </button>
+                                        </div>
+
+                                        {priceAlerts.length > 0 && (
+                                            <div className="rounded-b-xl border border-t-0 border-amber-500/30 bg-amber-500/10 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 text-xs">
+                                                <div className="flex-1 text-amber-300 space-y-0.5">
+                                                    {priceAlerts.map((alert) => (
+                                                        <p key={alert.type}>⚠ {describeAlert(alert)}</p>
+                                                    ))}
+                                                    <p className="text-amber-200/60">
+                                                        Los cambios se aplican al guardar el presupuesto.
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-2 shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => resolveItemAlert(idx, "refresh")}
+                                                        className="px-3 py-1.5 rounded-lg bg-amber-500 text-black font-semibold hover:brightness-110 transition"
+                                                        title="Usa el costo y el dólar actuales y mantiene el margen sobre el precio de venta"
+                                                    >
+                                                        Actualizar costo y precio
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => resolveItemAlert(idx, "ignore")}
+                                                        className="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition"
+                                                    >
+                                                        Ignorar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                         </div>
                                     );
                                 })}
