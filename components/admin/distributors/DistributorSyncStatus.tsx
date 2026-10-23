@@ -28,15 +28,21 @@ function timeAgo(iso: string | null): string {
     return `hace ${Math.round(hours / 24)} días`;
 }
 
+const isOlderThan = (iso: string | null, hours: number) =>
+    !iso || Date.now() - new Date(iso).getTime() > hours * 60 * 60 * 1000;
+
 interface Props {
     label: string;
-    // Endpoint de sincronización manual (POST)
-    syncUrl: string;
+    // Endpoint de sincronización manual (POST); sin él no se muestra el botón
+    syncUrl?: string;
     theme: keyof typeof THEMES;
     status: DistributorSyncStatusDTO;
     categories: DistributorCategorySummary[];
     // Cupo máximo de requests por hora, si el distribuidor lo limita
     rateLimitMax?: number;
+    // Aviso cuando la última actualización tiene más de estas horas
+    staleAfterHours?: number;
+    staleHint?: string;
 }
 
 // Estado de la copia local del catálogo de un distribuidor (Invid, AIR)
@@ -47,12 +53,15 @@ export const DistributorSyncStatus = ({
     status,
     categories,
     rateLimitMax,
+    staleAfterHours,
+    staleHint,
 }: Props) => {
     const router = useRouter();
     const [syncing, setSyncing] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
 
     const handleSync = async () => {
+        if (!syncUrl) return;
         setSyncing(true);
         setMessage(null);
         try {
@@ -78,6 +87,8 @@ export const DistributorSyncStatus = ({
 
     const hasError =
         status.lastSyncStatus === "error" || status.lastSyncStatus === "partial";
+    const isStale =
+        staleAfterHours !== undefined && isOlderThan(status.lastSuccessfulSyncAt, staleAfterHours);
 
     return (
         <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 px-4 py-3 rounded-xl border text-xs text-gray-400 ${THEMES[theme].box}`}>
@@ -106,16 +117,19 @@ export const DistributorSyncStatus = ({
             {hasError && status.lastSyncError && (
                 <span className="text-amber-400">Último intento: {status.lastSyncError}</span>
             )}
+            {isStale && staleHint && <span className="text-amber-400">{staleHint}</span>}
             {message && <span className="text-gray-200">{message}</span>}
 
-            <button
-                type="button"
-                onClick={handleSync}
-                disabled={syncing || status.syncing}
-                className="ml-auto px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-200 font-semibold transition"
-            >
-                {syncing || status.syncing ? "Sincronizando..." : "Sincronizar ahora"}
-            </button>
+            {syncUrl && (
+                <button
+                    type="button"
+                    onClick={handleSync}
+                    disabled={syncing || status.syncing}
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-200 font-semibold transition"
+                >
+                    {syncing || status.syncing ? "Sincronizando..." : "Sincronizar ahora"}
+                </button>
+            )}
 
             {/* Categorías tal como las nombra el distribuidor, para revisar el mapeo de categorías */}
             {categories.length > 0 && (

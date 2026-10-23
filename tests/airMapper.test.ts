@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     decodeAirText,
     getAirStockLabel,
+    isIncompleteAirList,
     mapAirRow,
     parseAirCsv,
     parseAirRubros,
@@ -124,5 +125,18 @@ describe("getAirStockLabel", () => {
             "Sin stock en ROS (otros depósitos: 11)",
         );
         expect(getAirStockLabel({ ROS: 0 })).toBeUndefined();
+    });
+});
+
+describe("isIncompleteAirList", () => {
+    it("rechaza una lista con menos de la mitad de artículos que la anterior", () => {
+        expect(isIncompleteAirList(12, 3025)).toBe(true);
+        expect(isIncompleteAirList(2800, 3025)).toBe(false);
+    });
+
+    it("acepta cualquier lista si no hay una anterior comparable", () => {
+        expect(isIncompleteAirList(12, 0)).toBe(false);
+        expect(isIncompleteAirList(12, null)).toBe(false);
+        expect(isIncompleteAirList(12, 50)).toBe(false);
     });
 });

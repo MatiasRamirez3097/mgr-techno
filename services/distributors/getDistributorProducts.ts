@@ -12,7 +12,6 @@ import { getNewBytesToken } from "./newbytes/getNewBytesToken";
 import { searchInvidCatalog } from "./invid/searchInvidCatalog";
 import { scheduleInvidSyncIfStale } from "./invid/scheduleInvidSyncIfStale";
 import { searchAirCatalog } from "./air/searchAirCatalog";
-import { scheduleAirSyncIfStale } from "./air/scheduleAirSyncIfStale";
 
 /**
  * Busca en los distribuidores habilitados. `category` es la clave de una categoría del
@@ -316,15 +315,11 @@ async function fetchInvid(
 // ==========================================
 // AIR: COPIA LOCAL DE LA LISTA DE PRECIOS
 // ==========================================
-// AIR no tiene API: la lista CSV se descarga de su intranet (services/distributors/air)
-// y acá sólo se consulta la DB.
+// AIR no tiene API y su intranet no acepta conexiones desde Vercel: una PC descarga la
+// lista y la sube (tools/air-upload → /api/cron/air-import). Acá sólo se consulta la DB.
 async function fetchAir(
     searchQuery: string,
     categories: string[],
 ): Promise<NormalizedProduct[]> {
-    await scheduleAirSyncIfStale().catch((e) =>
-        console.error("No se pudo programar la sincronización de AIR:", e),
-    );
-
     return searchAirCatalog(searchQuery, categories);
 }
