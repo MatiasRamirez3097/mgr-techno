@@ -9,6 +9,12 @@ type Props = {
     pendingReviewCount: number;
 };
 
+type SidebarChild = {
+    href: string;
+    label: string;
+    pendingReviewBadge?: boolean;
+};
+
 const LINKS = [
     {
         href: "/admin/dashboard",
@@ -93,6 +99,8 @@ const LINKS = [
             {
                 href: "/admin/products?status=pending_review",
                 label: "Pendientes revisión",
+                // Muestra ⚠ y el contador de productos pendientes de revisión
+                pendingReviewBadge: true,
             },
         ],
     },
@@ -327,14 +335,13 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                             )}
 
                             {!isCollapsedDesktop &&
-                                link.children?.map((child) => {
-                                    const childActive =
-                                        child.href.includes(
-                                            "status=pending_review",
-                                        ) &&
-                                        pathname === "/admin/products" &&
-                                        searchParams.get("status") ===
-                                            "pending_review";
+                                link.children?.map((child: SidebarChild) => {
+                                    const isPendingReview = Boolean(child.pendingReviewBadge);
+                                    const childActive = isPendingReview
+                                        ? pathname === "/admin/products" &&
+                                          searchParams.get("status") === "pending_review"
+                                        : pathname === child.href ||
+                                          pathname.startsWith(`${child.href}/`);
 
                                     return (
                                         <Link
@@ -343,14 +350,14 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                                             onClick={() => setMobileOpen(false)}
                                             className={`ml-8 mt-1 flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
                                                 childActive
-                                                    ? "bg-gray-800 text-yellow-400 font-medium"
+                                                    ? `bg-gray-800 font-medium ${isPendingReview ? "text-yellow-400" : "text-white"}`
                                                     : "text-gray-500 hover:text-white"
                                             }`}
                                         >
-                                            <span>⚠</span>
+                                            {isPendingReview && <span>⚠</span>}
                                             <span>{child.label}</span>
 
-                                            {pendingReviewCount > 0 && (
+                                            {isPendingReview && pendingReviewCount > 0 && (
                                                 <span className="ml-auto min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full bg-yellow-500 text-black text-[10px] font-bold">
                                                     {pendingReviewCount}
                                                 </span>
