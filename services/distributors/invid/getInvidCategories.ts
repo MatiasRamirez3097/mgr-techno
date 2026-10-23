@@ -1,14 +1,14 @@
 import { connectDB } from "@/lib/mongodb";
 import { InvidCatalogItemModel } from "@/models/InvidCatalogItem";
-import type { InvidCategorySummary } from "@/types/shared/distributor";
+import type { DistributorCategorySummary } from "@/types/shared/distributor";
 
 /**
  * Categorías presentes en el catálogo local de Invid, para el mapeo de categorías del comparador.
  */
-export async function getInvidCategories(): Promise<InvidCategorySummary[]> {
+export async function getInvidCategories(): Promise<DistributorCategorySummary[]> {
     await connectDB();
 
-    return InvidCatalogItemModel.aggregate<InvidCategorySummary>([
+    return InvidCatalogItemModel.aggregate<DistributorCategorySummary>([
         { $match: { available: true } },
         { $unwind: "$categories" },
         {

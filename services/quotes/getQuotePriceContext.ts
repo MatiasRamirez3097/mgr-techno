@@ -1,38 +1,53 @@
 import { connectDB } from "@/lib/mongodb";
 import { InvidCatalogItemModel } from "@/models/InvidCatalogItem";
+import { AirCatalogItemModel } from "@/models/AirCatalogItem";
 import { getUsdExchangeRate } from "@/services/exchangeRates/getUsdExchangeRate";
-import { isQuoteOpen, type QuotePriceContext } from "@/lib/quotes/priceAlerts";
+import { isQuoteOpen, quotePriceKey, type QuotePriceContext } from "@/lib/quotes/priceAlerts";
 import type { QuoteDTO } from "@/types/shared/quote";
 
 /**
- * Precios actuales de Invid (USD) y cotización vigente para calcular las alertas
- * de precio de los presupuestos abiertos con ítems en dólares.
+ * Precios actuales en USD (catálogos locales de Invid y AIR) y cotización vigente para
+ * calcular las alertas de precio de los presupuestos abiertos con ítems en dólares.
  */
 export async function getQuotePriceContext(quotes: QuoteDTO[]): Promise<QuotePriceContext> {
-    const invidIds = new Set<string>();
+    const idsByDistributor: Record<string, Set<string>> = { invid: new Set(), air: new Set() };
     for (const quote of quotes) {
         if (!isQuoteOpen(quote)) continue;
         for (const item of quote.items) {
-            if (item.distributor === "invid" && item.distributorSku && item.costPriceUsd) {
-                invidIds.add(item.distributorSku);
+            const ids = item.distributor ? idsByDistributor[item.distributor] : undefined;
+            if (ids && item.distributorSku && item.costPriceUsd) {
+                ids.add(item.distributorSku);
             }
         }
     }
 
-    if (invidIds.size === 0) return { invidPrices: {}, usdRate: null };
+    const invidIds = [...idsByDistributor.invid];
+    const airIds = [...idsByDistributor.air];
+    if (invidIds.length === 0 && airIds.length === 0) return { prices: {}, usdRate: null };
 
     await connectDB();
 
-    const [items, usd] = await Promise.all([
-        InvidCatalogItemModel.find(
-            { invidId: { $in: [...invidIds] }, available: true },
-            { invidId: 1, finalPrice: 1 },
-        ).lean<{ invidId: string; finalPrice: number }[]>(),
+    const [invidItems, airItems, usd] = await Promise.all([
+        invidIds.length > 0
+            ? InvidCatalogItemModel.find(
+                  { invidId: { $in: invidIds }, available: true },
+                  { invidId: 1, finalPrice: 1 },
+              ).lean<{ invidId: string; finalPrice: number }[]>()
+            : [],
+        airIds.length > 0
+            ? AirCatalogItemModel.find(
+                  { airId: { $in: airIds }, available: true },
+                  { airId: 1, finalPrice: 1 },
+              ).lean<{ airId: string; finalPrice: number }[]>()
+            : [],
         getUsdExchangeRate(),
     ]);
 
     return {
-        invidPrices: Object.fromEntries(items.map((i) => [i.invidId, i.finalPrice])),
+        prices: Object.fromEntries([
+            ...invidItems.map((i) => [quotePriceKey("invid", i.invidId), i.finalPrice]),
+            ...airItems.map((i) => [quotePriceKey("air", i.airId), i.finalPrice]),
+        ]),
         usdRate: usd?.rate ?? null,
     };
 }

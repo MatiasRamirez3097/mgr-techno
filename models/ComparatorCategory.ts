@@ -32,6 +32,8 @@ const ComparatorCategorySchema = new Schema(
         },
         newbytes: { type: [String], default: [] },
         invid: { type: [String], default: [] },
+        // Códigos de rubro de AIR (ej: "001-0331")
+        air: { type: [String], default: [] },
     },
     { timestamps: true },
 );

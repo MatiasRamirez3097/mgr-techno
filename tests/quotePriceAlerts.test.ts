@@ -24,11 +24,19 @@ const item: QuoteItemDTO = {
 };
 
 const ctx = (priceUsd: number, usdRate: number): QuotePriceContext => ({
-    invidPrices: { "ART-001": priceUsd },
+    prices: { "invid:ART-001": priceUsd },
     usdRate,
 });
 
 describe("getQuoteItemPriceAlerts", () => {
+    it("busca el precio actual por distribuidor y código", () => {
+        const airItem = { ...item, distributor: "air", distributorSku: "39580" };
+        const prices = { "invid:39580": 400, "air:39580": 330 };
+        const [alert] = getQuoteItemPriceAlerts(airItem, { prices, usdRate: 1000 });
+        expect(alert.current).toBe(330);
+        expect(getQuoteItemPriceAlerts(item, { prices, usdRate: 1000 })).toEqual([]);
+    });
+
     it("no avisa si el costo varió menos de 2% y el dólar subió menos de 10%", () => {
         expect(getQuoteItemPriceAlerts(item, ctx(305, 1090))).toEqual([]);
     });
@@ -50,7 +58,7 @@ describe("getQuoteItemPriceAlerts", () => {
             [],
         );
         expect(
-            getQuoteItemPriceAlerts(item, { invidPrices: {}, usdRate: null }),
+            getQuoteItemPriceAlerts(item, { prices: {}, usdRate: null }),
         ).toEqual([]);
     });
 

@@ -3,9 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
-    InvidCategorySummary,
-    InvidSyncStatusDTO,
+    DistributorCategorySummary,
+    DistributorSyncStatusDTO,
 } from "@/types/shared/distributor";
+
+const THEMES = {
+    purple: {
+        box: "border-purple-500/20 bg-purple-500/5",
+        badge: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    },
+    orange: {
+        box: "border-orange-500/20 bg-orange-500/5",
+        badge: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+    },
+};
 
 function timeAgo(iso: string | null): string {
     if (!iso) return "nunca";
@@ -18,11 +29,25 @@ function timeAgo(iso: string | null): string {
 }
 
 interface Props {
-    status: InvidSyncStatusDTO;
-    categories: InvidCategorySummary[];
+    label: string;
+    // Endpoint de sincronización manual (POST)
+    syncUrl: string;
+    theme: keyof typeof THEMES;
+    status: DistributorSyncStatusDTO;
+    categories: DistributorCategorySummary[];
+    // Cupo máximo de requests por hora, si el distribuidor lo limita
+    rateLimitMax?: number;
 }
 
-export const InvidSyncStatus = ({ status, categories }: Props) => {
+// Estado de la copia local del catálogo de un distribuidor (Invid, AIR)
+export const DistributorSyncStatus = ({
+    label,
+    syncUrl,
+    theme,
+    status,
+    categories,
+    rateLimitMax,
+}: Props) => {
     const router = useRouter();
     const [syncing, setSyncing] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
@@ -31,7 +56,7 @@ export const InvidSyncStatus = ({ status, categories }: Props) => {
         setSyncing(true);
         setMessage(null);
         try {
-            const res = await fetch("/api/admin/distributors/invid/sync", {
+            const res = await fetch(syncUrl, {
                 method: "POST",
             });
             const data = await res.json();
@@ -55,9 +80,9 @@ export const InvidSyncStatus = ({ status, categories }: Props) => {
         status.lastSyncStatus === "error" || status.lastSyncStatus === "partial";
 
     return (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 px-4 py-3 rounded-xl border border-purple-500/20 bg-purple-500/5 text-xs text-gray-400">
-            <span className="px-2 py-0.5 rounded-md font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                INVID
+        <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 px-4 py-3 rounded-xl border text-xs text-gray-400 ${THEMES[theme].box}`}>
+            <span className={`px-2 py-0.5 rounded-md font-bold border ${THEMES[theme].badge}`}>
+                {label}
             </span>
             <span>
                 Catálogo:{" "}
@@ -73,8 +98,10 @@ export const InvidSyncStatus = ({ status, categories }: Props) => {
                 </strong>{" "}
                 ({timeAgo(status.usdRateUpdatedAt)})
             </span>
-            {status.rateLimitRemaining !== null && (
-                <span>Requests disponibles esta hora: {status.rateLimitRemaining}/50</span>
+            {status.rateLimitRemaining !== null && rateLimitMax && (
+                <span>
+                    Requests disponibles esta hora: {status.rateLimitRemaining}/{rateLimitMax}
+                </span>
             )}
             {hasError && status.lastSyncError && (
                 <span className="text-amber-400">Último intento: {status.lastSyncError}</span>
@@ -90,11 +117,11 @@ export const InvidSyncStatus = ({ status, categories }: Props) => {
                 {syncing || status.syncing ? "Sincronizando..." : "Sincronizar ahora"}
             </button>
 
-            {/* Categorías tal como las nombra Invid, para revisar el mapeo de categorías */}
+            {/* Categorías tal como las nombra el distribuidor, para revisar el mapeo de categorías */}
             {categories.length > 0 && (
                 <details className="w-full">
                     <summary className="cursor-pointer text-gray-400 hover:text-gray-200">
-                        Ver categorías de Invid ({categories.length})
+                        Ver categorías de {label} ({categories.length})
                     </summary>
                     <ul className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1">
                         {categories.map((cat) => (

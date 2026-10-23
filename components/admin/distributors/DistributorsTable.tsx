@@ -11,6 +11,10 @@ const BADGE_STYLES: Record<string, { pill: string; solid: string }> = {
         pill: "bg-purple-500/20 text-purple-300 border border-purple-500/30",
         solid: "bg-purple-600 text-white",
     },
+    AIR: {
+        pill: "bg-orange-500/20 text-orange-300 border border-orange-500/30",
+        solid: "bg-orange-600 text-white",
+    },
 };
 const DEFAULT_BADGE = {
     pill: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
@@ -19,11 +23,12 @@ const DEFAULT_BADGE = {
 const badgeFor = (distributor: string) =>
     BADGE_STYLES[distributor] || DEFAULT_BADGE;
 
-// Invid puede informar sólo una leyenda ("Stock bajo") en lugar de cantidades
+// Invid puede informar sólo una leyenda ("Stock bajo") en lugar de cantidades;
+// AIR informa "Sin stock en ROS (...)" cuando sólo hay en otros depósitos
 const stockText = (prod: NormalizedProduct) =>
     prod.stockLabel || (prod.stock > 0 ? `${prod.stock} un.` : "Sin stock");
 const hasStock = (prod: NormalizedProduct) =>
-    Boolean(prod.stockLabel) || prod.stock > 0;
+    prod.stock > 0 || Boolean(prod.stockLabel && !/^sin stock/i.test(prod.stockLabel));
 
 interface Props {
     products: NormalizedProduct[];

@@ -19,12 +19,14 @@ export interface NormalizedProduct {
     taxRate?: number;
 }
 
-export interface InvidSyncStatusDTO {
+// Estado de la copia local del catálogo de un distribuidor (Invid, AIR)
+export interface DistributorSyncStatusDTO {
     lastSuccessfulSyncAt: string | null;
     lastSyncStatus: "ok" | "partial" | "error" | "skipped" | null;
     lastSyncError: string | null;
     lastSyncItems: number;
     syncing: boolean;
+    // Cupo de requests informado por el distribuidor (sólo Invid)
     rateLimitRemaining: number | null;
     rateLimitResetAt: string | null;
     catalogCount: number;
@@ -32,7 +34,8 @@ export interface InvidSyncStatusDTO {
     usdRateUpdatedAt: string | null;
 }
 
-export interface InvidCategorySummary {
+// Categoría presente en un catálogo local, para el mapeo de categorías del comparador
+export interface DistributorCategorySummary {
     id: string;
     name: string;
     parentName: string | null;
