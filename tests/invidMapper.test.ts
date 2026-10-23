@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     buildCategoryNamePattern,
+    buildInvidProductUrl,
     convertToArs,
     hasSignificantPriceChange,
     isUsdCurrency,
@@ -162,5 +163,23 @@ describe("buildCategoryNamePattern", () => {
     it("devuelve null si no hay palabras útiles", () => {
         expect(buildCategoryNamePattern("de")).toBeNull();
         expect(buildCategoryNamePattern("")).toBeNull();
+    });
+});
+
+describe("buildInvidProductUrl", () => {
+    it("arma el slug del título y agrega el ID de Invid", () => {
+        expect(buildInvidProductUrl("Teclado Genius LuxeMate 120 Black USB (3951)", "0418057")).toBe(
+            "https://www.invidcomputers.com/teclado-genius-luxemate-120-black-usb-3951---det--0418057",
+        );
+        expect(buildInvidProductUrl("Teclado+Mouse Kelyx USB Cableado Negro (7107)", "0417313")).toBe(
+            "https://www.invidcomputers.com/teclado-mouse-kelyx-usb-cableado-negro-7107---det--0417313",
+        );
+    });
+
+    it("quita acentos y no arma link sin ID", () => {
+        expect(buildInvidProductUrl("Cámara Ñandú", "0400001")).toBe(
+            "https://www.invidcomputers.com/camara-nandu---det--0400001",
+        );
+        expect(buildInvidProductUrl("Sin ID", "")).toBeNull();
     });
 });

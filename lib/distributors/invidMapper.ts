@@ -188,6 +188,22 @@ export function mapInvidArticle(
     };
 }
 
+/**
+ * Página del producto en la web de Invid: el título como slug, "---det--" y el ID de Invid.
+ * Ej: "Teclado+Mouse Kelyx USB (7107)" + "0417313" →
+ * https://www.invidcomputers.com/teclado-mouse-kelyx-usb-7107---det--0417313
+ */
+export function buildInvidProductUrl(title: string, invidId: string): string | null {
+    if (!invidId) return null;
+    const slug = title
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    return `https://www.invidcomputers.com/${slug}---det--${encodeURIComponent(invidId)}`;
+}
+
 const CATEGORY_STOPWORDS = new Set(["de", "del", "y", "e", "para", "con", "la", "el", "las", "los"]);
 
 /**
