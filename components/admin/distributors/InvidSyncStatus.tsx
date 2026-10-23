@@ -90,7 +90,7 @@ export const InvidSyncStatus = ({ status, categories }: Props) => {
                 {syncing || status.syncing ? "Sincronizando..." : "Sincronizar ahora"}
             </button>
 
-            {/* Categorías tal como las nombra Invid, para revisar el mapeo de CATEGORY_MAP */}
+            {/* Categorías tal como las nombra Invid, para revisar el mapeo de categorías */}
             {categories.length > 0 && (
                 <details className="w-full">
                     <summary className="cursor-pointer text-gray-400 hover:text-gray-200">
