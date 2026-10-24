@@ -130,6 +130,18 @@ export function PurchaseForm({ purchase, mode }: Props) {
         notes: purchase?.notes || "",
     });
 
+    // Sólo afecta cómo se interpreta el costo que se tipea: en la base
+    // siempre se guarda el costo unitario sin IVA.
+    const [costsIncludeTax, setCostsIncludeTax] = useState(false);
+
+    const getNetUnitCost = (item: PurchaseItem) => {
+        const entered = Number(item.unitCost || 0);
+        if (!costsIncludeTax) return entered;
+        const rate = Number(item.taxRate ?? 10.5);
+        // 4 decimales para que subtotal + IVA reconstruya el total cargado
+        return Math.round((entered / (1 + rate / 100)) * 10000) / 10000;
+    };
+
     const addItem = () => {
         if (isReadOnly) return;
         setForm((prev) => ({
@@ -207,8 +219,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
         Math.round(
             form.items.reduce(
                 (acc, item) =>
-                    acc +
-                    Number(item.quantity || 0) * Number(item.unitCost || 0),
+                    acc + Number(item.quantity || 0) * getNetUnitCost(item),
                 0,
             ) * 100,
         ) / 100;
@@ -217,7 +228,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
         Math.round(
             form.items.reduce((acc, item) => {
                 const lineSubtotal =
-                    Number(item.quantity || 0) * Number(item.unitCost || 0);
+                    Number(item.quantity || 0) * getNetUnitCost(item);
                 const rate = Number(item.taxRate ?? 10.5);
                 return acc + lineSubtotal * (rate / 100);
             }, 0) * 100,
@@ -252,7 +263,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
             name: item.name || "Producto",
             taxRate: Number(item.taxRate ?? 10.5),
             quantity: Number(item.quantity),
-            unitCost: Number(item.unitCost),
+            unitCost: getNetUnitCost(item),
         })),
 
         document: form.document,
@@ -570,6 +581,34 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                 </span>
                             )}
                         </div>
+                        {!isReadOnly && (
+                            <div className="flex items-center gap-2 mb-4 text-xs">
+                                <span className="text-gray-400">
+                                    Los costos que ingreso son:
+                                </span>
+                                <div className="inline-flex rounded-lg border border-gray-700 overflow-hidden">
+                                    {[
+                                        { value: false, label: "Sin IVA" },
+                                        { value: true, label: "Con IVA" },
+                                    ].map((opt) => (
+                                        <button
+                                            key={opt.label}
+                                            type="button"
+                                            onClick={() =>
+                                                setCostsIncludeTax(opt.value)
+                                            }
+                                            className={`px-3 py-1.5 transition-colors ${
+                                                costsIncludeTax === opt.value
+                                                    ? "bg-brand text-white font-semibold"
+                                                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                                            }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <div className="grid grid-cols-12 gap-2 mb-2 text-xs font-medium text-gray-400 px-1">
                             <div className="col-span-6">Producto</div>
                             <div className="col-span-2">Cantidad</div>
@@ -577,6 +616,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                 {form.currency === "USD"
                                     ? "Costo USD"
                                     : "Costo ARS"}
+                                {costsIncludeTax ? " c/IVA" : " s/IVA"}
                             </div>
                             <div className="col-span-1 text-center">IVA %</div>
                             {!isReadOnly && (
@@ -696,6 +736,15 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                         className={inputClass}
                                         step="0.01"
                                     />
+                                    {costsIncludeTax &&
+                                        Number(item.unitCost) > 0 && (
+                                            <div className="text-[11px] text-gray-500 mt-0.5 font-mono">
+                                                s/IVA:{" "}
+                                                {formatCurrency(
+                                                    getNetUnitCost(item),
+                                                )}
+                                            </div>
+                                        )}
                                 </div>
 
                                 <div className="col-span-1 text-center">
