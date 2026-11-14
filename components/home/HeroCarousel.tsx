@@ -1,67 +1,34 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { HeroSlideContent } from "@/components/home/HeroSlideContent";
+import type { HeroSlideDTO } from "@/types/shared/heroSlide";
 
-interface Slide {
-    image: string;
-    title: string;
-    subtitle?: string;
-    cta?: string;
-    href?: string;
+interface Props {
+    slides: HeroSlideDTO[];
 }
 
-const SLIDES: Slide[] = [
-    {
-        image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1788618658/banner4_bjyfwr.png",
-        title: "3 Cuotas sin interés",
-        subtitle: "Con tarjeta de crédito a través de Mercado Pago",
-        cta: "Ver productos",
-        href: "/productos",
-    },
-    {
-        image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436851/banner1_xaiuk2.jpg",
-        title: "Componentes de PC",
-        subtitle: "Las mejores marcas al mejor precio",
-        cta: "Ver productos",
-        href: "/productos/categoria/componentes-de-pc",
-    },
-    {
-        image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436487/Mesa_de_trabajo_3_nhiiih.jpg",
-        title: "Ofertas imperdibles",
-        subtitle: "Descuentos en periféricos y más",
-        cta: "Ver ofertas",
-        href: "/productos/ofertas",
-    },
-    {
-        image: "https://res.cloudinary.com/dunvoi8mr/image/upload/v1780436401/Mesa_de_trabajo_2_svrdnb.jpg",
-        title: "Refrigeración",
-        subtitle: "Mantené tu equipo al límite",
-        cta: "Explorar",
-        href: "/productos/categoria/refrigeracion",
-    },
-];
-
-export function HeroCarousel() {
+export function HeroCarousel({ slides }: Props) {
     const [current, setCurrent] = useState(0);
     const [paused, setPaused] = useState(false);
+    const total = slides.length;
 
     const next = useCallback(() => {
-        setCurrent((prev) => (prev + 1) % SLIDES.length);
-    }, []);
+        setCurrent((prev) => (prev + 1) % total);
+    }, [total]);
 
     const prev = () => {
-        setCurrent((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
+        setCurrent((prev) => (prev - 1 + total) % total);
     };
 
     useEffect(() => {
-        if (paused) return;
+        if (paused || total < 2) return;
         const interval = setInterval(next, 5000);
         return () => clearInterval(interval);
-    }, [paused, next]);
+    }, [paused, next, total]);
 
-    const slide = SLIDES[current];
+    if (total === 0) return null;
 
     return (
         <div
@@ -69,71 +36,83 @@ export function HeroCarousel() {
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
-            {/* Imagen */}
-            {SLIDES.map((s, i) => (
-                <div
-                    key={i}
-                    className={`absolute inset-0 transition-opacity duration-700 ${i === current ? "opacity-100" : "opacity-0"}`}
-                >
-                    <Image
-                        src={s.image}
-                        alt={s.title}
-                        fill
-                        sizes="100vw"
-                        className="object-cover"
+            {/* Slides: toda la imagen (y su texto) es el vínculo. Las ocultas no reciben clicks. */}
+            {slides.map((s, i) => {
+                const visible = i === current;
+                const className = `group absolute inset-0 block transition-opacity duration-700 ${
+                    visible ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`;
+                const content = (
+                    <HeroSlideContent
+                        image={s.image}
+                        title={s.title}
+                        subtitle={s.subtitle}
+                        ctaLabel={s.ctaLabel}
                         priority={i === 0}
                     />
-                </div>
-            ))}
+                );
 
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
+                if (!s.href) {
+                    return (
+                        <div key={s.id} className={className} aria-hidden={!visible}>
+                            {content}
+                        </div>
+                    );
+                }
 
-            {/* Contenido */}
-            {slide.title && slide.subtitle && slide.href && (
-                <div className="absolute inset-0 flex items-center px-8 sm:px-14">
-                    <div className="max-w-lg">
-                        <h2 className="text-2xl sm:text-4xl font-bold text-white mb-2 drop-shadow">
-                            {slide.title}
-                        </h2>
-                        <p className="text-sm sm:text-base text-gray-200 mb-6 drop-shadow">
-                            {slide.subtitle}
-                        </p>
-                        <Link
-                            href={slide.href}
-                            className="inline-block px-6 py-3 rounded-xl bg-brand text-white font-medium hover:brightness-110 transition-all"
-                        >
-                            {slide.cta}
-                        </Link>
-                    </div>
-                </div>
-            )}
-            {/* Flechas */}
-            <button
-                onClick={prev}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
-            >
-                ‹
-            </button>
-            <button
-                onClick={next}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
-            >
-                ›
-            </button>
+                return (
+                    <Link
+                        key={s.id}
+                        href={s.href}
+                        className={className}
+                        aria-hidden={!visible}
+                        tabIndex={visible ? 0 : -1}
+                        aria-label={s.title || s.ctaLabel || undefined}
+                        {...(s.openInNewTab
+                            ? { target: "_blank", rel: "noopener noreferrer" }
+                            : {})}
+                    >
+                        {content}
+                    </Link>
+                );
+            })}
 
-            {/* Dots */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {SLIDES.map((_, i) => (
+            {total > 1 && (
+                <>
+                    {/* Flechas */}
                     <button
-                        key={i}
-                        onClick={() => setCurrent(i)}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${
-                            i === current ? "w-6 bg-brand" : "w-1.5 bg-white/50"
-                        }`}
-                    />
-                ))}
-            </div>
+                        type="button"
+                        onClick={prev}
+                        aria-label="Anterior"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                    >
+                        ‹
+                    </button>
+                    <button
+                        type="button"
+                        onClick={next}
+                        aria-label="Siguiente"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                    >
+                        ›
+                    </button>
+
+                    {/* Dots */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                        {slides.map((s, i) => (
+                            <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => setCurrent(i)}
+                                aria-label={`Ir al banner ${i + 1}`}
+                                className={`h-1.5 rounded-full transition-all duration-300 ${
+                                    i === current ? "w-6 bg-brand" : "w-1.5 bg-white/50"
+                                }`}
+                            />
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

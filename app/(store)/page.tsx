@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getProductsNew } from "@/services/products/getProductsNew";
 import { getProductsOnSale } from "@/services/products/getProductsOnSale";
 import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
+import { getHeroSlides } from "@/services/heroSlides/getHeroSlides";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { ProductRow } from "@/components/home/ProductRow";
@@ -18,15 +19,16 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-    const [onSale, categories, newProducts] = await Promise.all([
+    const [onSale, categories, newProducts, heroSlides] = await Promise.all([
         getProductsOnSale(8),
         getCategoriesBase({}),
         getProductsNew(8),
+        getHeroSlides({ activeOnly: true }),
     ]);
     return (
         <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col gap-14">
             {/* Hero */}
-            <HeroCarousel />
+            <HeroCarousel slides={heroSlides} />
 
             {/* Categorías */}
             <CategoryGrid categories={categories} />

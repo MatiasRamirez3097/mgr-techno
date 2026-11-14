@@ -32,7 +32,14 @@ export function useCloudinaryUpload({
     const [error, setError] = useState<string | null>(null);
 
     const openUploadWidget = useCallback(
-        async (customOptions: { cropping?: boolean; multiple?: boolean; aspectRatio?: number } = {}) => {
+        async (
+            customOptions: {
+                cropping?: boolean;
+                multiple?: boolean;
+                aspectRatio?: number;
+                cropTitle?: string;
+            } = {},
+        ) => {
             setIsLoading(true);
             setError(null);
 
@@ -133,7 +140,7 @@ export function useCloudinaryUpload({
                                     drop_title_multi: "Soltá las imágenes",
                                 },
                                 crop: {
-                                    title: "Recortar imagen (1:1 recomendado)",
+                                    title: customOptions.cropTitle ?? "Recortar imagen (1:1 recomendado)",
                                     crop_btn: "Recortar y usar",
                                     skip_btn: "Usar original (sin recortar)",
                                     reset_btn: "Reiniciar",
