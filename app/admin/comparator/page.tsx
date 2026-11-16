@@ -78,6 +78,12 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
                     >
                         Configurar categorías
                     </Link>
+                    <Link
+                        href="/admin/comparator/pricing"
+                        className="text-xs text-gray-400 hover:text-white underline"
+                    >
+                        Revisión de precios
+                    </Link>
                     <AutoLinkButton />
 
                     {/* Search by Name/SKU */}

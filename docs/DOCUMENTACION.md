@@ -262,7 +262,7 @@ Campos: `productId`, `status` (`available|reserved|sold|defective`), `purchaseId
 ### 4.9 Auxiliares
 - **AfipToken**: `ws` (único), `token`, `sign`, `expirationTime` — caché del Ticket de Acceso.
 - **Counter**: `_id` string + `seq`. Secuencias atómicas (`lib/counters/getNextGenericNumber.ts` → `getNextSequence`): `purchase_generic`, `quote_1`, `voucher_REC|FAC|NC|ND`.
-- **StoreSettings**: documento único `_id: "store"` con `mercadoPagoSurchargePercent` (def. 25, 0–100). Se edita en `/admin/settings`.
+- **StoreSettings**: documento único `_id: "store"` con `mercadoPagoSurchargePercent` (def. 25, 0–100). Se edita en `/admin/settings`. También guarda los márgenes generales de la revisión de precios (`targetMarginPercent` def. 20, `minMarginPercent` def. 10, `priceRoundingStep` def. 100), que se leen con `getPricingSettings()` y **no** salen en `getStoreSettings()` (que llega al navegador en la tienda).
 - **ProductDistributorLink** (colección `product_distributor_links`): `productId`, `distributor` (`elit|newbytes|invid|air`), `distributorProductId` (ID propio del distribuidor), `distributorSku`, `name`, `link`, `image`, `matchMethod` (`part_number|ean|manual`) y el último costo visto (`lastPrice` en ARS con IVA, `lastStock`, `lastStockLabel`, `lastCheckedAt`). Único por `productId + distributor`. Se borran al borrar el producto.
 
 ---
@@ -420,6 +420,8 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
 
 **Vínculos con distribuidores**: cada producto (no combo) puede vincularse con su equivalente en cada distribuidor (`ProductDistributorLink`, servicios en `services/distributors/links/`), para comparar el precio de venta (`effectivePrice`) con el costo. En el formulario del producto, el panel "Distribuidores" muestra los vínculos con su costo, stock y margen sobre el costo, sugiere coincidencias exactas por part number (`mpn` o `sku` normalizados, mínimo 5 caracteres: `lib/distributors/productLinks.ts`) o EAN (`gtin`) y permite buscar a mano. En el comparador, la columna "Tu producto" muestra a qué producto está vinculado cada resultado y permite vincularlo; "Vincular automáticamente" cruza todo el catálogo contra Invid y AIR y crea los vínculos con un único candidato, sin tocar los existentes (los casos con varios candidatos se informan). Invid y AIR muestran siempre el costo vigente de su copia local (`applyLocalCatalogPrices`); Elit y NewBytes, el último guardado.
 
+**Revisión de precios** (`/admin/comparator/pricing`, `services/pricing/getPriceReview.ts`): compara el `effectivePrice` de cada producto (sin combos ni el producto sistema de PC Armada) con el **mejor costo con stock** de sus vínculos disponibles. Margen = (precio − costo) / costo; estado `below_min` / `below_target` / `ok` / `no_cost` y precio sugerido = costo × (1 + objetivo), redondeado hacia arriba al múltiplo configurado (`lib/priceReview.ts`). Los márgenes salen de la categoría del producto: se recorre cada categoría hacia arriba en la jerarquía y se usa la primera que defina el valor (objetivo y mínimo por separado; el mínimo nunca supera al objetivo); si ninguna lo define, el general. Se configuran en `/admin/comparator/margins` (campos `Category.targetMarginPercent`/`minMarginPercent`, `null` = hereda; no los expone `mapCategoryToDTO`). Muestra también el último costo de compra (`InventoryItem.unitCost`, neto, pasado a c/IVA con la alícuota del producto). Vistas: vinculados, bajo el mínimo, bajo el objetivo, sin stock en distribuidores, sin vincular y todos. "Aplicar" (`POST /api/admin/pricing/apply`, `applyProductPrices`) usa `updateProductQuickFields`: si hay una oferta vigente y el precio nuevo sigue por debajo del regular, cambia la oferta; si no, cambia el regular y quita la oferta.
+
 ### 6.9 Feeds y SEO
 `app/{hardgamers,buscahard,bestgaming}.xml/route.ts` delegan en `lib/feeds/buildProductFeed.ts` (`buildProductFeedResponse(descripción)`); `google-merchant-feed.xml` es propio (precio final, imagen de 1000 px, `quantity_to_sell_on_facebook`). Generan RSS con `g:*` (id, gtin, título, descripción, imagen optimizada, condición, disponibilidad, precio y precio de oferta, marca, mpn) para productos `publish` + `isAvailable`. Los feeds de comparadores incluyen los productos Outlet con `g:condition = refurbished`; Google Merchant los excluye (para Google `refurbished` es sólo restaurado profesionalmente). `revalidate = 3600`. `sitemap.ts` cubre productos y categorías.
 
@@ -474,6 +476,9 @@ Todas las rutas `/api/admin/*` y `/api/afip/*` requieren `role = administrator` 
 | GET/POST | `/api/admin/products/[id]/distributor-links` · DELETE `/[linkId]` | Vínculos del producto con distribuidores |
 | GET | `/api/admin/products/[id]/distributor-links/suggestions` | Coincidencias por part number / EAN |
 | POST | `/api/admin/distributors/links/auto` | Vinculación automática con Invid y AIR |
+| POST | `/api/admin/pricing/apply` | Aplicar precios desde la revisión (`{ updates: [{ productId, price }] }`, máx. 500) |
+| PUT | `/api/admin/pricing/settings` | Márgenes generales y redondeo |
+| PUT | `/api/admin/pricing/category-margins` | Márgenes por categoría (`{ categories: [{ id, targetMarginPercent, minMarginPercent }] }`) |
 | GET / PUT | `/api/admin/settings` | Leer / guardar configuración de la tienda (`{ mercadoPagoSurchargePercent }`) |
 | POST/GET | `/api/admin/cloudinary/sign` | Firma de subida directa a Cloudinary |
 | POST | `/api/admin/upload` | Subida de archivos |

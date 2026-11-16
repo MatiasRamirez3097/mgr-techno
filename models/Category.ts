@@ -15,6 +15,10 @@ export const CategorySchema = new Schema(
         image: { type: String, default: null },
         count: { type: Number, default: 0 },
         menuOrder: { type: Number, default: 999 },
+        // Revisión de precios: margen sobre el costo (%). null = hereda de la categoría
+        // superior o usa el general. Sólo admin: mapCategoryToDTO no los expone.
+        targetMarginPercent: { type: Number, default: null, min: 0, max: 1000 },
+        minMarginPercent: { type: Number, default: null, min: 0, max: 1000 },
         attributeDefinitions: {
             type: [
                 {
