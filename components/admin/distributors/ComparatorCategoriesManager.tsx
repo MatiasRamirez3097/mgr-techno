@@ -1,4 +1,7 @@
 "use client";
+import { ResponsiveTable, type Column } from "@/components/admin/ui/ResponsiveTable";
+import { ModalFormFooter } from "@/components/admin/ui/ModalFormFooter";
+import { buttonClass } from "@/components/admin/ui/styles";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -137,6 +140,53 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
             c.air.length === 0 && "AIR",
         ].filter(Boolean);
 
+    const columns: Column<ComparatorCategoryDTO>[] = [
+        { key: "order", header: "Orden", mobile: "hidden", className: "text-gray-500", cell: (c) => c.order },
+        {
+            key: "name",
+            header: "Categoría",
+            mobile: "title",
+            cell: (c) => (
+                <>
+                    <div className="font-medium text-white">{c.name}</div>
+                    <div className="text-xs text-gray-500 font-mono">
+                        {c.key}
+                        {!c.active && " · inactiva"}
+                    </div>
+                    {missing(c).length > 0 && (
+                        <div className="text-xs text-amber-400 mt-0.5">Sin mapeo: {missing(c).join(", ")}</div>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: "elit",
+            header: "Elit",
+            className: "text-gray-300 text-xs",
+            cell: (c) => c.elit.map((e) => `${e.value} (${e.paramType})`).join(", ") || "—",
+        },
+        { key: "newbytes", header: "NewBytes", className: "text-gray-300 text-xs", cell: (c) => c.newbytes.join(", ") || "—" },
+        { key: "invid", header: "Invid", className: "text-gray-300 text-xs", cell: (c) => summary(c.invid, options.invid) || "—" },
+        { key: "air", header: "AIR", className: "text-gray-300 text-xs", cell: (c) => summary(c.air, options.air) || "—" },
+        {
+            key: "actions",
+            header: "",
+            mobile: "actions",
+            align: "right",
+            className: "whitespace-nowrap",
+            cell: (c) => (
+                <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => openForm(c)} className={`${buttonClass.secondary} min-h-9 px-3 text-xs`}>
+                    Editar
+                </button>
+                <button type="button" onClick={() => handleDelete(c)} className={`${buttonClass.danger} min-h-9 px-3 text-xs`}>
+                    Eliminar
+                </button>
+                </div>
+            ),
+        },
+    ];
+
     return (
         <div className="space-y-4">
             {options.errors.length > 0 && (
@@ -156,79 +206,17 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
                 </button>
             </div>
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-800/50 border-b border-gray-800 text-gray-400">
-                        <tr>
-                            <th className="px-4 py-3 font-semibold">Orden</th>
-                            <th className="px-4 py-3 font-semibold">Categoría</th>
-                            <th className="px-4 py-3 font-semibold">Elit</th>
-                            <th className="px-4 py-3 font-semibold">NewBytes</th>
-                            <th className="px-4 py-3 font-semibold">Invid</th>
-                            <th className="px-4 py-3 font-semibold">AIR</th>
-                            <th className="px-4 py-3" />
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-800">
-                        {categories.map((c) => (
-                            <tr key={c.id} className={c.active ? "" : "opacity-50"}>
-                                <td className="px-4 py-3 text-gray-500">{c.order}</td>
-                                <td className="px-4 py-3">
-                                    <div className="font-medium text-white">{c.name}</div>
-                                    <div className="text-xs text-gray-500 font-mono">
-                                        {c.key}
-                                        {!c.active && " · inactiva"}
-                                    </div>
-                                    {missing(c).length > 0 && (
-                                        <div className="text-xs text-amber-400 mt-0.5">
-                                            Sin mapeo: {missing(c).join(", ")}
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="px-4 py-3 text-gray-300 text-xs">
-                                    {c.elit.map((e) => `${e.value} (${e.paramType})`).join(", ") || "—"}
-                                </td>
-                                <td className="px-4 py-3 text-gray-300 text-xs">
-                                    {c.newbytes.join(", ") || "—"}
-                                </td>
-                                <td className="px-4 py-3 text-gray-300 text-xs">
-                                    {summary(c.invid, options.invid) || "—"}
-                                </td>
-                                <td className="px-4 py-3 text-gray-300 text-xs">
-                                    {summary(c.air, options.air) || "—"}
-                                </td>
-                                <td className="px-4 py-3 text-right whitespace-nowrap">
-                                    <button
-                                        type="button"
-                                        onClick={() => openForm(c)}
-                                        className="text-xs text-gray-300 hover:text-white underline mr-3"
-                                    >
-                                        Editar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDelete(c)}
-                                        className="text-xs text-red-400 hover:text-red-300 underline"
-                                    >
-                                        Eliminar
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {categories.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
-                                    No hay categorías configuradas.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <ResponsiveTable
+                rows={categories}
+                columns={columns}
+                getRowKey={(c) => c.id}
+                minWidth="860px"
+                empty="No hay categorías configuradas."
+            />
 
             {form && (
                 <FormModal title={editingId ? `Editar ${form.name}` : "Nueva categoría"}>
-                    <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-5">
+                    <div className="space-y-5">
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                             <label className="sm:col-span-2 text-xs text-gray-400">
                                 Nombre
@@ -376,29 +364,16 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
                         </section>
                     </div>
 
-                    {error && (
-                        <p className="mt-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg">
-                            {error}
-                        </p>
-                    )}
-
-                    <div className="flex justify-end gap-2 mt-5">
-                        <button
-                            type="button"
-                            onClick={closeForm}
-                            className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 text-sm font-semibold hover:bg-gray-700 transition"
-                        >
+                    <ModalFormFooter
+                        message={error ? <span className="text-red-400">{error}</span> : null}
+                    >
+                        <button type="button" onClick={closeForm} className={buttonClass.ghost}>
                             Cancelar
                         </button>
-                        <button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={saving || !form.name.trim() || !form.key.trim()}
-                            className="px-5 py-2 rounded-lg bg-brand text-white text-sm font-bold hover:brightness-110 disabled:opacity-50 transition"
-                        >
+                        <button type="button" onClick={handleSave} disabled={saving || !form.name.trim() || !form.key.trim()} className={buttonClass.primary}>
                             {saving ? "Guardando..." : "Guardar"}
                         </button>
-                    </div>
+                    </ModalFormFooter>
                 </FormModal>
             )}
         </div>

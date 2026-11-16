@@ -10,6 +10,10 @@ import type {
 } from "@/types/shared/category";
 import { HARDWARE_ATTRIBUTE_PRESETS } from "@/constants/hardwareAttributePresets";
 import { getEffectiveCategoryAttributeDefinitions } from "@/services/categories/getEffectiveCategoryAttributes";
+import { FormSection } from "@/components/admin/ui/FormSection";
+import { SectionNav, type SectionNavItem } from "@/components/admin/ui/SectionNav";
+import { StickyActionBar } from "@/components/admin/ui/StickyActionBar";
+import { buttonClass, cardClass } from "@/components/admin/ui/styles";
 
 interface Props {
     category?: any;
@@ -151,6 +155,8 @@ export function CategoryForm({ category, categories, mode }: Props) {
 
     const [selectedPreset, setSelectedPreset] = useState<string>("");
     const [optionInputs, setOptionInputs] = useState<Record<number, string>>({});
+    // Atributo desplegado (uno a la vez, para que la lista no sea eterna en el celular)
+    const [openAttribute, setOpenAttribute] = useState<number | null>(null);
 
     // Atributos heredados de la categoría padre (si tiene parentId)
     const inheritedAttributes = useMemo(() => {
@@ -206,6 +212,7 @@ export function CategoryForm({ category, categories, mode }: Props) {
     };
 
     const handleAddAttribute = () => {
+        setOpenAttribute(attributeDefinitions.length);
         setAttributeDefinitions((prev) => [
             ...prev,
             {
@@ -222,6 +229,21 @@ export function CategoryForm({ category, categories, mode }: Props) {
 
     const handleRemoveAttribute = (index: number) => {
         setAttributeDefinitions((prev) => prev.filter((_, i) => i !== index));
+        setOptionInputs({});
+        setOpenAttribute((open) => (open === null || open === index ? null : open > index ? open - 1 : open));
+    };
+
+    // Mueve un atributo una posición (el orden es el de la ficha técnica)
+    const handleMoveAttribute = (index: number, direction: -1 | 1) => {
+        const target = index + direction;
+        setAttributeDefinitions((prev) => {
+            if (target < 0 || target >= prev.length) return prev;
+            const next = [...prev];
+            [next[index], next[target]] = [next[target], next[index]];
+            return next;
+        });
+        setOptionInputs({});
+        setOpenAttribute((open) => (open === index ? target : open === target ? index : open));
     };
 
     const handleUpdateAttribute = (
@@ -363,9 +385,9 @@ export function CategoryForm({ category, categories, mode }: Props) {
     };
 
     const inputClass =
-        "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
+        "w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2.5 border border-gray-700 focus:border-brand outline-none transition-colors";
     const smallInputClass =
-        "w-full bg-gray-800 text-white text-xs rounded-lg px-3 py-2 border border-gray-700 focus:border-brand outline-none transition-colors";
+        "w-full bg-gray-800 text-white text-sm sm:text-xs rounded-lg px-3 py-2 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
 
     // Filtrar la propia categoría para no permitir seleccionarse como su propio padre
@@ -373,18 +395,29 @@ export function CategoryForm({ category, categories, mode }: Props) {
         (c) => !categoryId || c.id !== categoryId,
     );
 
+    const TYPE_LABEL: Record<string, string> = {
+        select: "Selector único",
+        multiselect: "Selector múltiple",
+        number: "Numérico",
+        boolean: "Sí / No",
+        text: "Texto",
+    };
+
+    const sections: SectionNavItem[] = [
+        { id: "general", label: "General" },
+        { id: "imagen", label: "Imagen" },
+        { id: "atributos", label: `Atributos${attributeDefinitions.length ? ` (${attributeDefinitions.length})` : ""}` },
+    ];
+
+    const submitLabel = loading ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear categoría";
+
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-        >
-            {/* Columna principal */}
-            <div className="lg:col-span-2 flex flex-col gap-6">
-                {/* Info básica */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Información básica
-                    </h2>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+            {/* Contenido */}
+            <div className="min-w-0 flex flex-col gap-6">
+                <SectionNav sections={sections} />
+
+                <FormSection id="general" title="General">
                     <div className="flex flex-col gap-4">
                         <div>
                             <label className={labelClass}>
@@ -414,23 +447,39 @@ export function CategoryForm({ category, categories, mode }: Props) {
                                 Si se deja vacío, se generará automáticamente a partir del nombre.
                             </p>
                         </div>
-                    </div>
-                </section>
-
-                {/* Atributos de la Categoría (Especificaciones y Armá tu PC) */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                         <div>
-                            <h2 className="text-base font-bold text-white">
-                                Atributos de la Categoría
-                            </h2>
-                            <p className="text-xs text-gray-400 mt-0.5">
-                                Define las especificaciones técnicas de los productos de esta categoría y las claves de compatibilidad para &ldquo;Armá tu PC&rdquo;.
+                            <label className={labelClass}>Categoría superior</label>
+                            <select
+                                name="parentId"
+                                value={form.parentId}
+                                onChange={handleChange}
+                                className={inputClass}
+                            >
+                                <option value="">Ninguna (Categoría principal)</option>
+                                {availableParents.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
+                                        {cat.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-gray-500 mt-2">
+                                Selecciona una categoría si esta debe ser una subcategoría hija. Heredará automáticamente los atributos de su categoría superior.
                             </p>
                         </div>
                     </div>
+                </FormSection>
 
-                    {/* Selector de Plantilla de Hardware */}
+                <FormSection id="imagen" title="Imagen descriptiva">
+                    <div className="max-w-md">
+                        <ImageUploader image={image} onChange={setImage} />
+                    </div>
+                </FormSection>
+
+                <FormSection
+                    id="atributos"
+                    title="Atributos de la categoría"
+                    description="Especificaciones técnicas de los productos de esta categoría y claves de compatibilidad para «Armá tu PC». El orden es el de la ficha técnica."
+                >
                     <div className="p-4 rounded-xl bg-gray-800/50 border border-gray-700/70 mb-5">
                         <label className="text-xs font-medium text-gray-300 block mb-2">
                             ⚡ Cargar plantilla estandarizada para &ldquo;Armá tu PC&rdquo;
@@ -486,8 +535,8 @@ export function CategoryForm({ category, categories, mode }: Props) {
                         </div>
                     )}
 
-                    {/* Lista de atributos propios */}
-                    <div className="flex flex-col gap-4">
+                    {/* Lista de atributos propios: cada uno se despliega para editarlo */}
+                    <div className="flex flex-col gap-3">
                         {attributeDefinitions.length === 0 ? (
                             <div className="text-center py-8 border border-dashed border-gray-800 rounded-xl text-gray-500 text-sm">
                                 Esta categoría aún no tiene atributos propios definidos.
@@ -497,11 +546,78 @@ export function CategoryForm({ category, categories, mode }: Props) {
                                 </span>
                             </div>
                         ) : (
-                            attributeDefinitions.map((attr, idx) => (
-                                <div
-                                    key={idx}
-                                    className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/80 flex flex-col gap-3"
-                                >
+                            attributeDefinitions.map((attr, idx) => {
+                                const isOpen = openAttribute === idx;
+                                const optionCount = (attr.options || []).length;
+                                return (
+                                    <div
+                                        key={idx}
+                                        className={`rounded-xl border bg-gray-800/40 ${isOpen ? "border-brand/40" : "border-gray-700/80"}`}
+                                    >
+                                        <div className="flex items-center gap-1 p-2">
+                                            {/* Ordenar: botones grandes, cómodos en táctil */}
+                                            <div className="flex shrink-0 flex-col sm:flex-row">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMoveAttribute(idx, -1)}
+                                                    disabled={idx === 0}
+                                                    aria-label="Subir atributo"
+                                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-700 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                                                >
+                                                    ↑
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMoveAttribute(idx, 1)}
+                                                    disabled={idx === attributeDefinitions.length - 1}
+                                                    aria-label="Bajar atributo"
+                                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-700 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                                                >
+                                                    ↓
+                                                </button>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setOpenAttribute(isOpen ? null : idx)}
+                                                aria-expanded={isOpen}
+                                                className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-gray-800"
+                                            >
+                                                <span
+                                                    aria-hidden
+                                                    className={`text-xs text-gray-500 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                                                >
+                                                    ▶
+                                                </span>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block truncate text-sm font-medium text-white">
+                                                        {attr.label || "Atributo sin nombre"}
+                                                        {attr.required && <span className="ml-1 text-brand">*</span>}
+                                                    </span>
+                                                    <span className="block truncate text-[11px] text-gray-500">
+                                                        <span className="font-mono">{attr.key || "sin clave"}</span>
+                                                        {" · "}
+                                                        {TYPE_LABEL[attr.type] || attr.type}
+                                                        {(attr.type === "select" || attr.type === "multiselect") &&
+                                                            ` · ${optionCount} opcion${optionCount === 1 ? "" : "es"}`}
+                                                        {attr.type === "number" && attr.unit ? ` · ${attr.unit}` : ""}
+                                                    </span>
+                                                </span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveAttribute(idx)}
+                                                aria-label="Eliminar atributo"
+                                                title="Eliminar atributo"
+                                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+
+                                        {isOpen && (
+                                            <div className="flex flex-col gap-3 border-t border-gray-700/80 p-3 sm:p-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
                                         {/* Nombre visible */}
                                         <div className="sm:col-span-4">
@@ -575,7 +691,7 @@ export function CategoryForm({ category, categories, mode }: Props) {
                                         </div>
 
                                         {/* Unidad (si es numérico) o acciones */}
-                                        <div className="sm:col-span-2 flex items-end justify-between gap-2 pt-5">
+                                        <div className="sm:col-span-2 flex items-end gap-2 sm:pt-5">
                                             <label className="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer select-none">
                                                 <input
                                                     type="checkbox"
@@ -594,22 +710,12 @@ export function CategoryForm({ category, categories, mode }: Props) {
                                                 />
                                                 <span>Oblig.</span>
                                             </label>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleRemoveAttribute(idx)
-                                                }
-                                                className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-500/10 transition-colors"
-                                                title="Eliminar atributo"
-                                            >
-                                                ✕
-                                            </button>
                                         </div>
                                     </div>
 
                                     {/* Unidad para campos numéricos */}
                                     {attr.type === "number" && (
-                                        <div className="flex items-center gap-3 pt-1">
+                                        <div className="flex flex-wrap items-center gap-3 pt-1">
                                             <label className="text-xs text-gray-400 shrink-0">
                                                 Unidad de medida (opcional):
                                             </label>
@@ -703,64 +809,60 @@ export function CategoryForm({ category, categories, mode }: Props) {
                                             </div>
                                         </div>
                                     )}
-                                </div>
-                            ))
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })
                         )}
 
                         <button
                             type="button"
                             onClick={handleAddAttribute}
-                            className="w-full py-2.5 rounded-xl border border-dashed border-gray-700 hover:border-brand text-xs font-medium text-gray-300 hover:text-white transition-colors"
+                            className="w-full py-3 rounded-xl border border-dashed border-gray-700 hover:border-brand text-sm sm:text-xs font-medium text-gray-300 hover:text-white transition-colors"
                         >
                             + Agregar atributo personalizado
                         </button>
                     </div>
-                </section>
+                </FormSection>
 
-                {/* Imagen */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Imagen descriptiva
-                    </h2>
-                    <ImageUploader image={image} onChange={setImage} />
-                </section>
+                {/* Celular y tablet: "Guardar" siempre a mano */}
+                <StickyActionBar
+                    className="lg:hidden"
+                    info={
+                        error ? (
+                            <span className="text-red-400">{error}</span>
+                        ) : success ? (
+                            <span className="text-green-400">{success}</span>
+                        ) : null
+                    }
+                >
+                    <button type="submit" disabled={loading} className={buttonClass.primary}>
+                        {submitLabel}
+                    </button>
+                </StickyActionBar>
             </div>
 
-            {/* Columna lateral */}
-            <div className="flex flex-col gap-4">
-                {/* Acciones de Guardar / Eliminar */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Acciones
-                    </h2>
+            {/* Acciones: columna derecha pegada en escritorio; al final en el celular (eliminar, ver en tienda) */}
+            <aside className={`min-w-0 ${mode === "edit" ? "" : "hidden lg:block"}`}>
+                <section className={`${cardClass} p-4 sm:p-6 lg:sticky lg:top-6`}>
+                    <h2 className="text-base font-bold text-white mb-4">Acciones</h2>
                     <div className="flex flex-col gap-4">
-                        {error && (
-                            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
-                                {error}
-                            </div>
-                        )}
-                        {success && (
-                            <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-400">
-                                {success}
-                            </div>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                        >
-                            {loading ? (
-                                <>
-                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    <span>Guardando...</span>
-                                </>
-                            ) : mode === "edit" ? (
-                                "Guardar cambios"
-                            ) : (
-                                "Crear categoría"
+                        <div className="hidden flex-col gap-4 lg:flex">
+                            {error && (
+                                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+                                    {error}
+                                </div>
                             )}
-                        </button>
+                            {success && (
+                                <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-400">
+                                    {success}
+                                </div>
+                            )}
+                            <button type="submit" disabled={loading} className={`${buttonClass.primary} w-full py-3`}>
+                                {submitLabel}
+                            </button>
+                        </div>
 
                         {mode === "edit" && (
                             <button
@@ -785,33 +887,7 @@ export function CategoryForm({ category, categories, mode }: Props) {
                         )}
                     </div>
                 </section>
-
-                {/* Categoría Padre */}
-                <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                    <h2 className="text-base font-bold text-white mb-4">
-                        Jerarquía
-                    </h2>
-                    <div>
-                        <label className={labelClass}>Categoría superior</label>
-                        <select
-                            name="parentId"
-                            value={form.parentId}
-                            onChange={handleChange}
-                            className={inputClass}
-                        >
-                            <option value="">Ninguna (Categoría principal)</option>
-                            {availableParents.map((cat) => (
-                                <option key={cat.id} value={cat.id}>
-                                    {cat.name}
-                                </option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-gray-500 mt-2">
-                            Selecciona una categoría si esta debe ser una subcategoría hija. Heredará automáticamente los atributos de su categoría superior.
-                        </p>
-                    </div>
-                </section>
-            </div>
+            </aside>
         </form>
     );
 }

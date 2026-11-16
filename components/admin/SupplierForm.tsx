@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Field } from "@/components/admin/ui/Field";
+import { ModalFormFooter } from "@/components/admin/ui/ModalFormFooter";
+import { buttonClass, inputClass, textareaClass } from "@/components/admin/ui/styles";
 
 interface Props {
     supplier?: any;
@@ -202,195 +205,106 @@ export function SupplierForm({
             setLoading(false);
         }
     };
-    const inputClass =
-        "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
-    const labelClass = "text-sm text-gray-400 mb-1 block";
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                <h2 className="text-base font-bold text-white mb-4">
-                    Información básica
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label className={labelClass}>CUIT *</label>
-                        <div className="flex gap-2">
-                            <input
-                                className={inputClass}
-                                placeholder="Ingresá CUIT..."
-                                name="taxId"
-                                value={form.taxId}
-                                onChange={handleChange}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => handleCUITBlur(form.taxId)}
-                                disabled={cuitLoading || !form.taxId}
-                                className="px-4 py-3 rounded-lg bg-brand text-white text-xs font-medium hover:brightness-110 disabled:opacity-50 transition shrink-0 flex items-center gap-1.5"
-                                title="Consultar en Padrón AFIP"
-                            >
-                                {cuitLoading ? (
-                                    <>
-                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        <span>Buscando...</span>
-                                    </>
-                                ) : (
-                                    <span>Consultar AFIP</span>
-                                )}
-                            </button>
-                        </div>
-                        {cuitFeedback && (
-                            <p
-                                className={`text-xs mt-1.5 font-medium ${
-                                    cuitFeedback.type === "success"
-                                        ? "text-emerald-400"
-                                        : "text-amber-400"
-                                }`}
-                            >
-                                {cuitFeedback.message}
-                            </p>
-                        )}
-                    </div>
-                    <div>
-                        <label className={labelClass}>Nombre </label>
-                        <div className="flex gap-2">
-                            <input
-                                name="name"
-                                className={inputClass}
-                                placeholder="Nombre"
-                                value={form.name}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                    <div className="col-span">
-                        <label className={labelClass}>Email</label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Datos fiscales</legend>
+                <Field label="CUIT *" className="sm:col-span-2">
+                    <div className="flex gap-2">
                         <input
-                            name="email"
                             className={inputClass}
-                            placeholder="Email"
-                            value={form.email}
+                            placeholder="Ingresá CUIT..."
+                            name="taxId"
+                            value={form.taxId}
                             onChange={handleChange}
+                            inputMode="numeric"
                         />
+                        <button
+                            type="button"
+                            onClick={() => handleCUITBlur(form.taxId)}
+                            disabled={cuitLoading || !form.taxId}
+                            className={`${buttonClass.secondary} shrink-0`}
+                            title="Consultar en Padrón AFIP"
+                        >
+                            {cuitLoading ? (
+                                <>
+                                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <span>Buscando...</span>
+                                </>
+                            ) : (
+                                <span>Consultar AFIP</span>
+                            )}
+                        </button>
                     </div>
-                    <div className="col-span">
-                        <label className={labelClass}>Website</label>
-                        <input
-                            name="website"
-                            className={inputClass}
-                            placeholder="Website"
-                            value={form.website}
-                            onChange={handleChange}
-                        />
-                    </div>
+                    {cuitFeedback && (
+                        <p
+                            className={`text-xs mt-1.5 font-medium ${
+                                cuitFeedback.type === "success" ? "text-emerald-400" : "text-amber-400"
+                            }`}
+                        >
+                            {cuitFeedback.message}
+                        </p>
+                    )}
+                </Field>
+                <Field label="Razón social / nombre" className="sm:col-span-2">
+                    <input name="name" className={inputClass} placeholder="Nombre" value={form.name} onChange={handleChange} />
+                </Field>
+            </fieldset>
 
-                    <div className="col-span">
-                        <label className={labelClass}>Cod Postal </label>
-                        <input
-                            className={inputClass}
-                            placeholder="Codigo Postal"
-                            name="address.zip"
-                            value={form.address.zip}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div>
-                        <label className={labelClass}>Direccion </label>
-                        <div className="flex gap-2">
-                            <input
-                                name="address.street"
-                                className={inputClass}
-                                placeholder="Direccion"
-                                value={form.address.street}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                    <div className="col-span">
-                        <label className={labelClass}>Ciudad</label>
-                        <input
-                            name="address.city"
-                            className={inputClass}
-                            placeholder="Ciudad"
-                            value={form.address.city}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="col-span">
-                        <label className={labelClass}>Provincia</label>
-                        <input
-                            name="address.state"
-                            className={inputClass}
-                            placeholder="Provincia"
-                            value={form.address.state}
-                            onChange={handleChange}
-                        />
-                    </div>
-                </div>
-            </section>
-            <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                <h2 className="text-base font-bold text-white mb-4">
-                    Datos de contacto
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="col-span">
-                        <label className={labelClass}>Nombre Contacto</label>
-                        <input
-                            className={inputClass}
-                            placeholder="Nombre Contacto"
-                            name="contactName"
-                            value={form.contactName}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div>
-                        <label className={labelClass}>Tel Contacto </label>
-                        <div className="flex gap-2">
-                            <input
-                                name="phone"
-                                className={inputClass}
-                                placeholder="Tel contacto"
-                                value={form.phone}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                        <label className={labelClass}>Notas</label>
-                        <textarea
-                            className={inputClass}
-                            placeholder="notas..."
-                            name="notes"
-                            value={form.notes}
-                            onChange={handleChange}
-                        />
-                    </div>
-                </div>
-            </section>
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            {success && <p className="text-sm text-green-400">{success}</p>}
-            <div className="flex justify-end gap-2">
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="px-4 py-2 text-sm text-gray-400 hover:text-white"
-                >
+            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Contacto</legend>
+                <Field label="Persona de contacto">
+                    <input name="contactName" className={inputClass} placeholder="Nombre del contacto" value={form.contactName} onChange={handleChange} />
+                </Field>
+                <Field label="Teléfono">
+                    <input name="phone" className={inputClass} placeholder="Teléfono" value={form.phone} onChange={handleChange} type="tel" />
+                </Field>
+                <Field label="Email">
+                    <input name="email" className={inputClass} placeholder="correo@proveedor.com" value={form.email} onChange={handleChange} type="email" />
+                </Field>
+                <Field label="Sitio web">
+                    <input name="website" className={inputClass} placeholder="https://..." value={form.website} onChange={handleChange} />
+                </Field>
+            </fieldset>
+
+            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Domicilio</legend>
+                <Field label="Dirección" className="sm:col-span-2">
+                    <input name="address.street" className={inputClass} placeholder="Calle y número" value={form.address.street} onChange={handleChange} />
+                </Field>
+                <Field label="Ciudad">
+                    <input name="address.city" className={inputClass} placeholder="Ciudad" value={form.address.city} onChange={handleChange} />
+                </Field>
+                <Field label="Provincia">
+                    <input name="address.state" className={inputClass} placeholder="Provincia" value={form.address.state} onChange={handleChange} />
+                </Field>
+                <Field label="Código postal">
+                    <input name="address.zip" className={inputClass} placeholder="Ej: 2000" value={form.address.zip} onChange={handleChange} />
+                </Field>
+            </fieldset>
+
+            <fieldset className="flex flex-col gap-4">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Notas</legend>
+                <textarea className={textareaClass} placeholder="Notas internas..." name="notes" value={form.notes} onChange={handleChange} />
+            </fieldset>
+
+            <ModalFormFooter
+                message={
+                    error ? (
+                        <span className="text-red-400">{error}</span>
+                    ) : success ? (
+                        <span className="text-green-400">{success}</span>
+                    ) : null
+                }
+            >
+                <button type="button" onClick={onCancel} className={buttonClass.ghost}>
                     Cancelar
                 </button>
-
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 rounded-lg bg-brand text-white text-sm"
-                >
-                    {loading ? "Creando..." : "Crear"}
+                <button type="submit" disabled={loading} className={buttonClass.primary}>
+                    {loading ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear proveedor"}
                 </button>
-            </div>
+            </ModalFormFooter>
         </form>
     );
 }

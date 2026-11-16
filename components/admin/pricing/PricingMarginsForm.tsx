@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { StickyActionBar } from "@/components/admin/ui/StickyActionBar";
+import { buttonClass } from "@/components/admin/ui/styles";
 import { useRouter } from "next/navigation";
 import { resolveMargins, suggestPrice, type CategoryMarginNode } from "@/lib/priceReview";
 import type { PricingSettingsDTO } from "@/types/shared/settings";
@@ -14,7 +16,7 @@ interface Props {
 type Draft = Record<string, { target: string; min: string }>;
 
 const inputClass =
-    "w-24 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white font-mono text-right outline-none focus:border-brand";
+    "w-20 sm:w-24 bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-white font-mono text-right outline-none focus:border-brand";
 
 const toNumberOrNull = (value: string) => (value.trim() === "" ? null : Number(value));
 const toInput = (value: number | null) => (value === null ? "" : String(value));
@@ -124,14 +126,14 @@ export function PricingMarginsForm({ settings, categories }: Props) {
     return (
         <div className="space-y-6">
             {/* Generales */}
-            <section className="bg-gray-900 rounded-2xl border border-gray-800 p-6 space-y-4">
+            <section className="bg-gray-900 rounded-2xl border border-gray-800 p-4 sm:p-6 space-y-4">
                 <div>
                     <h2 className="text-lg font-semibold text-white">Márgenes generales</h2>
                     <p className="text-sm text-gray-400 mt-1">
                         Margen sobre el costo del distribuidor (con IVA). Se usa para las categorías que no definen el suyo.
                     </p>
                 </div>
-                <div className="flex flex-wrap gap-6">
+                <div className="grid grid-cols-2 gap-4 sm:flex sm:flex-wrap sm:gap-6">
                     <label className="flex flex-col gap-1">
                         <span className="text-sm text-gray-300">Margen objetivo (%)</span>
                         <input
@@ -184,7 +186,7 @@ export function PricingMarginsForm({ settings, categories }: Props) {
             </section>
 
             {/* Por categoría */}
-            <section className="bg-gray-900 rounded-2xl border border-gray-800 p-6 space-y-4">
+            <section className="bg-gray-900 rounded-2xl border border-gray-800 p-4 sm:p-6 space-y-4">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
                         <h2 className="text-lg font-semibold text-white">Márgenes por categoría</h2>
@@ -198,7 +200,7 @@ export function PricingMarginsForm({ settings, categories }: Props) {
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                         placeholder="Filtrar categorías…"
-                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                        className="w-full sm:w-64 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-brand"
                     />
                 </div>
 
@@ -207,9 +209,13 @@ export function PricingMarginsForm({ settings, categories }: Props) {
                         <thead className="text-gray-400 border-b border-gray-800">
                             <tr>
                                 <th className="text-left py-2 font-semibold">Categoría</th>
-                                <th className="text-right py-2 font-semibold">Objetivo (%)</th>
-                                <th className="text-right py-2 font-semibold">Mínimo (%)</th>
-                                <th className="text-right py-2 font-semibold">Efectivo</th>
+                                <th className="text-right py-2 font-semibold">
+                                    Objetivo <span className="max-sm:hidden">(%)</span>
+                                </th>
+                                <th className="text-right py-2 pl-2 font-semibold">
+                                    Mínimo <span className="max-sm:hidden">(%)</span>
+                                </th>
+                                <th className="hidden sm:table-cell text-right py-2 font-semibold">Efectivo</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800">
@@ -218,9 +224,14 @@ export function PricingMarginsForm({ settings, categories }: Props) {
                                 const values = draft[c.id];
                                 return (
                                     <tr key={c.id}>
-                                        <td className="py-2 text-gray-200" style={{ paddingLeft: filter ? 0 : c.depth * 20 }}>
+                                        <td className="py-2 pr-2 text-gray-200" style={{ paddingLeft: filter ? 0 : Math.min(c.depth, 4) * 14 }}>
                                             {c.depth > 0 && !filter && <span className="text-gray-600 mr-1">└</span>}
                                             {c.name}
+                                            {/* En el celular el margen efectivo va debajo del nombre */}
+                                            <span className="sm:hidden block text-[11px] text-gray-500">
+                                                Efectivo {effective.targetMarginPercent}% / {effective.minMarginPercent}%
+                                                {effective.targetSource && effective.targetSource !== c.name && ` (de ${effective.targetSource})`}
+                                            </span>
                                         </td>
                                         <td className="py-2 text-right">
                                             <input
@@ -235,7 +246,7 @@ export function PricingMarginsForm({ settings, categories }: Props) {
                                                 className={inputClass}
                                             />
                                         </td>
-                                        <td className="py-2 text-right">
+                                        <td className="py-2 pl-2 text-right">
                                             <input
                                                 type="number"
                                                 min={0}
@@ -249,7 +260,7 @@ export function PricingMarginsForm({ settings, categories }: Props) {
                                             />
                                         </td>
                                         <td
-                                            className="py-2 text-right text-xs text-gray-400 whitespace-nowrap"
+                                            className="hidden sm:table-cell py-2 text-right text-xs text-gray-400 whitespace-nowrap"
                                             title={effective.targetSource ? `Objetivo de ${effective.targetSource}` : "Objetivo general"}
                                         >
                                             {effective.targetMarginPercent}% / {effective.minMarginPercent}%
@@ -265,26 +276,27 @@ export function PricingMarginsForm({ settings, categories }: Props) {
                 </div>
             </section>
 
-            <div className="flex items-center gap-4">
+            {/* "Guardar" siempre a mano: la lista de categorías es larga */}
+            <StickyActionBar
+                info={
+                    invalidCategory ? (
+                        <span className="text-red-400">
+                            Revisá &quot;{invalidCategory.name}&quot;: el mínimo no puede superar al objetivo.
+                        </span>
+                    ) : message ? (
+                        <span className={message.type === "success" ? "text-green-400" : "text-red-400"}>{message.text}</span>
+                    ) : null
+                }
+            >
                 <button
                     type="button"
                     onClick={save}
                     disabled={saving || !generalValid || Boolean(invalidCategory)}
-                    className="bg-brand hover:opacity-90 disabled:opacity-50 text-white font-medium rounded-lg px-5 py-2"
+                    className={buttonClass.primary}
                 >
                     {saving ? "Guardando..." : "Guardar"}
                 </button>
-                {invalidCategory && (
-                    <span className="text-sm text-red-400">
-                        Revisá &quot;{invalidCategory.name}&quot;: el mínimo no puede superar al objetivo.
-                    </span>
-                )}
-                {message && (
-                    <span className={`text-sm ${message.type === "success" ? "text-green-400" : "text-red-400"}`}>
-                        {message.text}
-                    </span>
-                )}
-            </div>
+            </StickyActionBar>
         </div>
     );
 }

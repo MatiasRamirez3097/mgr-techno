@@ -69,7 +69,7 @@ export function StoreSettingsForm({
     return (
         <form
             onSubmit={handleSubmit}
-            className="bg-gray-900 rounded-2xl border border-gray-800 p-6 flex flex-col gap-5"
+            className="bg-gray-900 rounded-2xl border border-gray-800 p-4 sm:p-6 flex flex-col gap-5"
         >
             <div>
                 <h2 className="text-lg font-semibold text-white">Pagos</h2>
@@ -92,7 +92,7 @@ export function StoreSettingsForm({
                     step={0.5}
                     value={surcharge}
                     onChange={(e) => setSurcharge(e.target.value)}
-                    className="w-40 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand"
+                    className="w-full sm:w-40 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-brand"
                 />
             </label>
 
@@ -128,7 +128,7 @@ export function StoreSettingsForm({
                 <button
                     type="submit"
                     disabled={!isValid || saving}
-                    className="bg-brand hover:opacity-90 disabled:opacity-50 text-white font-medium rounded-lg px-5 py-2 transition-opacity"
+                    className="w-full sm:w-auto min-h-10 bg-brand hover:opacity-90 disabled:opacity-50 text-white font-medium rounded-lg px-5 py-2 transition-opacity"
                 >
                     {saving ? "Guardando..." : "Guardar"}
                 </button>
