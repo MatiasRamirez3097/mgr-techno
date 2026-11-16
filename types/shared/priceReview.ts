@@ -22,6 +22,8 @@ export interface PriceReviewDistributorCost {
     inStock: boolean;
     available: boolean;
     lastCheckedAt: string | null;
+    // Variación del último cambio de costo, si fue en los últimos días (Elit, NewBytes)
+    recentChange: number | null;
 }
 
 export interface PriceReviewRow {

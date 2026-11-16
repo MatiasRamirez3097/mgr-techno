@@ -217,6 +217,15 @@ export function PriceReviewTable({ rows }: Props) {
                                                                 {isBest && " ★"}
                                                             </span>
                                                             <span className="font-mono text-gray-200">
+                                                                {c.recentChange !== null && (
+                                                                    <span
+                                                                        className={`mr-1 ${c.recentChange > 0 ? "text-red-400" : "text-emerald-400"}`}
+                                                                        title="Cambio de costo en los últimos 7 días"
+                                                                    >
+                                                                        {c.recentChange > 0 ? "▲" : "▼"}
+                                                                        {formatPercent(Math.abs(c.recentChange))}
+                                                                    </span>
+                                                                )}
                                                                 {c.price ? formatArs(c.price) : "—"}
                                                                 <span className={`ml-1.5 ${c.inStock ? "text-emerald-400" : "text-red-400"}`}>
                                                                     {!c.available ? "no disp." : c.inStock ? "●" : "sin stock"}

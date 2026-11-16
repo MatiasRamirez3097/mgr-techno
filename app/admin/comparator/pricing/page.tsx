@@ -5,6 +5,8 @@ import { PriceReviewFilters } from "@/components/admin/pricing/PriceReviewFilter
 import { PriceReviewTable } from "@/components/admin/pricing/PriceReviewTable";
 import { getPriceReview } from "@/services/pricing/getPriceReview";
 import { getCategoryMargins } from "@/services/pricing/getCategoryMargins";
+import { getLinkPricesSyncStatus } from "@/services/distributors/links/getLinkPricesSyncStatus";
+import { RefreshCostsButton } from "@/components/admin/pricing/RefreshCostsButton";
 import type { PriceReviewView } from "@/types/shared/priceReview";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +30,7 @@ export default async function PriceReviewPage({ searchParams }: Props) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 20;
 
-    const [review, categories] = await Promise.all([
+    const [review, categories, syncStatus] = await Promise.all([
         getPriceReview({
             search: params.search,
             categoryId: params.category,
@@ -38,6 +40,7 @@ export default async function PriceReviewPage({ searchParams }: Props) {
             limit,
         }),
         getCategoryMargins(),
+        getLinkPricesSyncStatus(),
     ]);
 
     const viewHref = (v: PriceReviewView) => {
@@ -75,6 +78,10 @@ export default async function PriceReviewPage({ searchParams }: Props) {
                         Configurar márgenes
                     </Link>
                 </div>
+            </div>
+
+            <div className="mb-4">
+                <RefreshCostsButton status={syncStatus} />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">

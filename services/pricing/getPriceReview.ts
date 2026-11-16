@@ -24,6 +24,8 @@ import type { PriceReviewFilters, PriceReviewResult, PriceReviewRow } from "@/ty
 import { getCategoryMargins } from "./getCategoryMargins";
 
 const DEFAULT_TAX_RATE = 10.5;
+// Un cambio de costo se muestra en la tabla durante esta ventana
+const RECENT_CHANGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface ProductLean {
     _id: Types.ObjectId;
@@ -107,6 +109,11 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
             inStock: hasDistributorStock(l.lastStock, l.lastStockLabel),
             available: l.available,
             lastCheckedAt: l.lastCheckedAt,
+            recentChange:
+                l.previousPrice && l.lastPrice && l.priceChangedAt &&
+                Date.now() - new Date(l.priceChangedAt).getTime() < RECENT_CHANGE_MS
+                    ? (l.lastPrice - l.previousPrice) / l.previousPrice
+                    : null,
         }));
         const effectivePrice = Number(product.effectivePrice) || 0;
         const comparison = comparePriceWithCosts({

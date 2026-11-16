@@ -50,6 +50,10 @@ export async function linkProductToDistributor(
                 lastStock: data.stock,
                 lastStockLabel: data.stockLabel,
                 lastCheckedAt: data.price !== null ? new Date() : null,
+                // Un vínculo nuevo o reemplazado arranca sin historial
+                previousPrice: null,
+                priceChangedAt: null,
+                missingSince: null,
             },
         },
         { upsert: true, returnDocument: "after", runValidators: true },
