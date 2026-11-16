@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { refreshRemoteLinkPrices } from "@/services/distributors/links/refreshRemoteLinkPrices";
 import { notifyPriceAlerts } from "@/services/pricing/notifyPriceAlerts";
+import { generateLinkSuggestions } from "@/services/distributors/links/generateLinkSuggestions";
 
-// Elit puede requerir recorrer ~19 páginas de su catálogo
+// Elit puede requerir recorrer ~19 páginas de su catálogo (dos veces: costos y sugerencias)
 export const maxDuration = 300;
 
 // Llamado por Vercel Cron (vercel.json) todos los días a las 7:00 de Argentina (10:00 UTC);
@@ -22,10 +23,22 @@ export async function GET(req: NextRequest) {
         return null;
     });
 
+    // Después, buscar posibles vínculos para los productos que todavía no los tienen
+    const suggestions = await generateLinkSuggestions().catch((err) => {
+        console.error("Error buscando sugerencias de vínculo:", err);
+        return null;
+    });
+
     return NextResponse.json({
         skipped: refresh.skipped ?? false,
         distributors: refresh.distributors,
         priceChanges: refresh.priceChanges.length,
         alerts,
+        suggestions: suggestions && {
+            skipped: suggestions.skipped ?? false,
+            suggestions: suggestions.suggestions,
+            products: suggestions.products,
+            errors: suggestions.errors,
+        },
     });
 }

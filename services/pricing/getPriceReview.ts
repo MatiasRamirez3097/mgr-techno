@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models/Product";
 import { InventoryItemModel } from "@/models/InventoryItem";
 import { ProductDistributorLinkModel } from "@/models/ProductDistributorLink";
+import { ProductLinkSuggestionModel } from "@/models/ProductLinkSuggestion";
 import { CUSTOM_PC_SYSTEM_SLUG } from "@/services/products/ensureCustomPcProduct";
 import { getCategoriesDescendants } from "@/services/categories/getCategoriesDescendants";
 import { buildAdminProductSearchMatch } from "@/lib/search/adminProductSearch";
@@ -20,7 +21,12 @@ import {
 import { applyLocalCatalogPrices } from "@/services/distributors/links/applyLocalCatalogPrices";
 import { getPricingSettings } from "@/services/settings/getPricingSettings";
 import type { ProductDistributorLinkDTO } from "@/types/shared/distributorLink";
-import type { PriceReviewFilters, PriceReviewResult, PriceReviewRow } from "@/types/shared/priceReview";
+import type {
+    PriceReviewFilters,
+    PriceReviewLinkSuggestion,
+    PriceReviewResult,
+    PriceReviewRow,
+} from "@/types/shared/priceReview";
 import { getCategoryMargins } from "./getCategoryMargins";
 
 const DEFAULT_TAX_RATE = 10.5;
@@ -60,6 +66,8 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
         slug: { $ne: CUSTOM_PC_SYSTEM_SLUG },
     };
     if ((filters.status || "publish") === "publish") query.status = "publish";
+    if (filters.stock === "in") query.availableStock = { $gt: 0 };
+    else if (filters.stock === "out") query.availableStock = { $not: { $gt: 0 } };
 
     const searchMatch = buildAdminProductSearchMatch(filters.search || "");
     if (searchMatch) Object.assign(query, searchMatch);
@@ -82,9 +90,14 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
 
     const categories = new Map<string, CategoryMarginNode>(categoryList.map((c) => [c.id, c]));
 
-    const linkDocs = await ProductDistributorLinkModel.find({
-        productId: { $in: products.map((p) => p._id) },
-    }).lean<ProductDistributorLinkDoc[]>();
+    const productIds = products.map((p) => p._id);
+    const [linkDocs, suggestionRefs] = await Promise.all([
+        ProductDistributorLinkModel.find({ productId: { $in: productIds } }).lean<ProductDistributorLinkDoc[]>(),
+        ProductLinkSuggestionModel.find(
+            { dismissedAt: null, productId: { $in: productIds } },
+            { productId: 1, distributor: 1 },
+        ).lean<{ productId: Types.ObjectId; distributor: string }[]>(),
+    ]);
     const links = await applyLocalCatalogPrices(linkDocs.map(mapProductDistributorLinkToDTO));
 
     const linksByProduct = new Map<string, ProductDistributorLinkDTO[]>();
@@ -140,8 +153,19 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
             targetMarginPercent: margins.targetMarginPercent,
             minMarginPercent: margins.minMarginPercent,
             marginSource: margins.targetSource,
+            linkSuggestions: [],
         };
     });
+
+    // Una sugerencia deja de valer cuando el producto ya se vinculó con ese distribuidor
+    const linkedPairs = new Set(links.map((l) => `${l.productId}:${l.distributor}`));
+    const withSuggestions = new Set(
+        suggestionRefs
+            .map((s) => `${s.productId.toString()}:${s.distributor}`)
+            .filter((pair) => !linkedPairs.has(pair))
+            .map((pair) => pair.split(":")[0]),
+    );
+    const hasSuggestions = (r: PriceReviewRow) => withSuggestions.has(r.productId);
 
     const isLinked = (r: PriceReviewRow) => r.costs.length > 0;
     const isNoStock = (r: PriceReviewRow) => isLinked(r) && r.bestCost === null;
@@ -152,6 +176,7 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
         belowMin: allRows.filter((r) => r.marginStatus === "below_min").length,
         belowTarget: allRows.filter((r) => r.marginStatus === "below_target").length,
         noStock: allRows.filter(isNoStock).length,
+        withSuggestions: allRows.filter(hasSuggestions).length,
     };
 
     const filtered = allRows.filter((r) => {
@@ -166,6 +191,8 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
                 return isNoStock(r);
             case "unlinked":
                 return !isLinked(r);
+            case "suggested":
+                return hasSuggestions(r);
             default:
                 return true;
         }
@@ -180,9 +207,48 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
 
     const total = filtered.length;
     const rows = filtered.slice((page - 1) * limit, page * limit);
-    await attachLastPurchaseCosts(rows, new Map(products.map((p) => [p._id.toString(), p.taxRate])));
+    await Promise.all([
+        attachLastPurchaseCosts(rows, new Map(products.map((p) => [p._id.toString(), p.taxRate]))),
+        attachLinkSuggestions(rows.filter(hasSuggestions)),
+    ]);
 
     return { rows, total, page, totalPages: Math.max(1, Math.ceil(total / limit)), summary };
+}
+
+/** Sugerencias de vínculo pendientes de cada fila, en los distribuidores que no tiene vinculados. */
+async function attachLinkSuggestions(rows: PriceReviewRow[]): Promise<void> {
+    if (rows.length === 0) return;
+    const docs = await ProductLinkSuggestionModel.find({
+        dismissedAt: null,
+        productId: { $in: rows.map((r) => new Types.ObjectId(r.productId)) },
+    })
+        .sort({ score: -1, price: 1 })
+        .lean<(Omit<PriceReviewLinkSuggestion, "id"> & { _id: Types.ObjectId; productId: Types.ObjectId })[]>();
+
+    const byProduct = new Map<string, PriceReviewLinkSuggestion[]>();
+    for (const { _id, productId, ...doc } of docs) {
+        const list = byProduct.get(productId.toString()) ?? [];
+        list.push({
+            id: _id.toString(),
+            distributor: doc.distributor,
+            distributorProductId: doc.distributorProductId,
+            distributorSku: doc.distributorSku ?? "",
+            name: doc.name,
+            link: doc.link ?? null,
+            image: doc.image ?? null,
+            price: Number(doc.price) || 0,
+            stock: Number(doc.stock) || 0,
+            stockLabel: doc.stockLabel ?? null,
+            matchMethod: doc.matchMethod,
+            matchedValue: doc.matchedValue ?? "",
+            score: Number(doc.score) || 0,
+        });
+        byProduct.set(productId.toString(), list);
+    }
+    for (const row of rows) {
+        const linked = new Set(row.costs.map((c) => c.distributor));
+        row.linkSuggestions = (byProduct.get(row.productId) ?? []).filter((s) => !linked.has(s.distributor));
+    }
 }
 
 /** Último costo de compra (InventoryItem.unitCost, neto) de cada fila, pasado a c/IVA. */

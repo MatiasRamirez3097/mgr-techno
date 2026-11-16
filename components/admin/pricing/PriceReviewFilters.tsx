@@ -9,7 +9,7 @@ interface Props {
 const selectClass =
     "bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-brand";
 
-/** Filtros de la revisión de precios en la URL (categoría y estado de publicación). */
+/** Filtros de la revisión de precios en la URL (categoría, estado de publicación y stock propio). */
 export function PriceReviewFilters({ categories }: Props) {
     const router = useRouter();
     const pathname = usePathname();
@@ -45,6 +45,16 @@ export function PriceReviewFilters({ categories }: Props) {
             >
                 <option value="publish">Sólo publicados</option>
                 <option value="all">Todos los estados</option>
+            </select>
+            <select
+                value={searchParams.get("stock") || ""}
+                onChange={(e) => setParam("stock", e.target.value)}
+                className={selectClass}
+                aria-label="Stock propio"
+            >
+                <option value="">Con y sin stock</option>
+                <option value="in">Con stock propio</option>
+                <option value="out">Sin stock propio</option>
             </select>
         </>
     );

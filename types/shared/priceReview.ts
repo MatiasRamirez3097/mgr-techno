@@ -1,12 +1,21 @@
 import type { MarginStatus } from "@/lib/priceReview";
 import type { DistributorKey } from "@/types/shared/distributorLink";
 
-export type PriceReviewView = "linked" | "below_min" | "below_target" | "no_stock" | "unlinked" | "all";
+export type PriceReviewView =
+    | "linked"
+    | "below_min"
+    | "below_target"
+    | "no_stock"
+    | "unlinked"
+    | "suggested"
+    | "all";
 
 export interface PriceReviewFilters {
     search?: string;
     categoryId?: string;
     status?: "publish" | "all";
+    // Stock propio disponible: "in" = con stock, "out" = sin stock
+    stock?: "in" | "out";
     view?: PriceReviewView;
     page?: number;
     limit?: number;
@@ -24,6 +33,25 @@ export interface PriceReviewDistributorCost {
     lastCheckedAt: string | null;
     // Variación del último cambio de costo, si fue en los últimos días (Elit, NewBytes)
     recentChange: number | null;
+}
+
+// Posible equivalente en un distribuidor no vinculado, encontrado por la búsqueda automática
+export interface PriceReviewLinkSuggestion {
+    id: string;
+    distributor: DistributorKey;
+    distributorProductId: string;
+    distributorSku: string;
+    name: string;
+    link: string | null;
+    image: string | null;
+    // Costo al momento de la búsqueda (ARS c/IVA)
+    price: number;
+    stock: number;
+    stockLabel: string | null;
+    matchMethod: "part_number" | "ean" | "name";
+    matchedValue: string;
+    // Similitud del nombre (0 a 1); 1 en las coincidencias por código
+    score: number;
 }
 
 export interface PriceReviewRow {
@@ -51,6 +79,8 @@ export interface PriceReviewRow {
     margin: number | null;
     marginStatus: MarginStatus;
     suggestedPrice: number | null;
+    // Sugerencias de vínculo en distribuidores todavía no vinculados
+    linkSuggestions: PriceReviewLinkSuggestion[];
 }
 
 export interface PriceReviewResult {
@@ -59,7 +89,15 @@ export interface PriceReviewResult {
     page: number;
     totalPages: number;
     // Resumen sobre todos los productos del filtro (no sólo la página)
-    summary: { linked: number; unlinked: number; belowMin: number; belowTarget: number; noStock: number };
+    summary: {
+        linked: number;
+        unlinked: number;
+        belowMin: number;
+        belowTarget: number;
+        noStock: number;
+        // Productos con sugerencias de vínculo pendientes
+        withSuggestions: number;
+    };
 }
 
 export interface CategoryMarginDTO {
