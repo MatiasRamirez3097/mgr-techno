@@ -1,6 +1,6 @@
 # Plan: rediseño del panel de administración (orden de formularios + responsive)
 
-Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1): `feat/admin-ui-foundation` · PR 2 (fase 2): `feat/admin-ui-lists` · sigue la fase 3
+Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1): `feat/admin-ui-foundation` · PR 2 (fase 2): `feat/admin-ui-lists` · PR 3 (fase 3): `feat/admin-ui-product-form` · sigue la fase 4
 
 Objetivos:
 1. Formularios más cortos de recorrer y ordenados: secciones claras, navegación entre secciones y
@@ -124,11 +124,20 @@ Orden propuesto de secciones, con `SectionNav` y `StickyActionBar`:
 En escritorio: índice a la izquierda, contenido al centro y una columna derecha angosta y pegada
 con Publicación (estado, destacado) + Guardar. En el celular: índice arriba, Guardar abajo fijo.
 
-- [ ] Partir `ProductForm.tsx` en subcomponentes por sección (`components/admin/products/sections/`)
-      sin cambiar el estado ni el envío (el estado sigue en `ProductForm`).
-- [ ] Errores de validación: llevar a la sección con error y marcarla en el índice.
+- [x] Reordenar `ProductForm.tsx` por secciones (`FormSection` + `SectionNav` + `StickyActionBar`)
+      sin cambiar el estado ni el envío. Los bloques de JSX se movieron tal cual; partirlo en
+      subcomponentes queda como mejora aparte (no cambia nada visible).
+- [x] Errores de validación: llevar a la sección con error y marcarla en el índice.
 
 **PR 3**.
+
+Notas de la fase 3:
+- La barra lateral (`ProductFormSiderbar.tsx`) se reemplazó por `ProductPublishPanel` (estado,
+  guardar, eliminar, ver en tienda). Marca pasó a "General"; imágenes y categorías a su sección.
+- Columnas: celular 1; `lg` contenido + publicación; `xl` índice vertical + contenido + publicación.
+  Hasta `xl` el índice es horizontal y pegado arriba.
+- Atributos arranca plegada al editar si están todos los obligatorios cargados (resumen "N de M").
+- "Cambios sin guardar" compara el estado con lo último guardado.
 
 ## Fase 4 — Órdenes, presupuestos y compras
 
