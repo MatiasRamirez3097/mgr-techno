@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ProductFormSidebar } from "@/components/admin/products/ProductFormSiderbar";
+import { ProductPublishPanel } from "@/components/admin/products/ProductPublishPanel";
+import { CategoryTree } from "@/components/admin/products/components/CategoryTree";
+import { ImageUploader } from "@/components/admin/products/components/ImageUploader";
+import { SearchableEntitySelect } from "@/components/admin/SearchableEntitySelect";
+import { FormSection } from "@/components/admin/ui/FormSection";
+import { SectionNav, type SectionNavItem } from "@/components/admin/ui/SectionNav";
+import { StickyActionBar } from "@/components/admin/ui/StickyActionBar";
+import { buttonClass } from "@/components/admin/ui/styles";
 import { buildProductPayload } from "@/services/products/buildProductPayload";
 import { extractProductImages } from "@/services/products/extractProductImages";
 import { getEffectiveCategoryAttributeDefinitions } from "@/services/categories/getEffectiveCategoryAttributes";
@@ -34,6 +41,39 @@ type FieldError = {
     path: string[];
     message: string;
 };
+
+// Sección del formulario de cada campo, para marcar en el índice dónde hay errores
+const FIELD_SECTION: Record<string, string> = {
+    type: "general",
+    name: "general",
+    sku: "general",
+    mpn: "general",
+    gtin: "general",
+    brand: "general",
+    bundleItems: "combo",
+    regularPrice: "precios",
+    salePrice: "precios",
+    taxRate: "precios",
+    stockQuantity: "precios",
+    manageStock: "precios",
+    hasSerialNumber: "precios",
+    description: "descripcion",
+    shortDescription: "descripcion",
+    image: "imagenes",
+    images: "imagenes",
+    categories: "imagenes",
+    attributes: "atributos",
+    weight: "envio",
+    length: "envio",
+    width: "envio",
+    height: "envio",
+    dimensions: "envio",
+    shippingSize: "envio",
+    hasFreeShipping: "envio",
+};
+
+const isEmptyAttributeValue = (value: unknown) =>
+    value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
 
 function computeBundleRegularSum(items: BundleItemDTO[]): number {
     return items.reduce(
@@ -291,6 +331,7 @@ export function ProductForm({
         setLoading(true);
         setError([]);
         setSuccess("");
+        setFieldErrors({});
 
         try {
             const res = await fetch(
@@ -337,6 +378,8 @@ export function ProductForm({
             setSuccess(
                 mode === "edit" ? "Producto actualizado" : "Producto creado",
             );
+            setFieldErrors({});
+            setSavedSnapshot(JSON.stringify({ form, image, images }));
             if (mode === "create") {
                 const createdId =
                     data.id ||
@@ -416,87 +459,237 @@ export function ProductForm({
               )
             : 0;
 
+    const brandOptions = useMemo(
+        () =>
+            [...brands]
+                .sort((a, b) => (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" }))
+                .map((b) => ({ value: b.id, label: b.name })),
+        [brands],
+    );
+
+    // Atributos cargados sobre los disponibles; con todos los obligatorios cargados la sección
+    // arranca plegada para acortar el formulario
+    const filledAttributes = effectiveAttributeDefs.filter((d) => !isEmptyAttributeValue(getAttributeValue(d.key)));
+    const attributesSummary =
+        effectiveAttributeDefs.length > 0
+            ? `${filledAttributes.length} de ${effectiveAttributeDefs.length} cargados`
+            : form.categories.length === 0
+              ? "Sin categorías"
+              : "Sin atributos configurados";
+    const attributesComplete =
+        mode === "edit" &&
+        effectiveAttributeDefs.length > 0 &&
+        effectiveAttributeDefs.every((d) => !d.required || !isEmptyAttributeValue(getAttributeValue(d.key)));
+
+    // Secciones con errores de validación (por el primer tramo del path: "dimensions.width" → envio)
+    const sectionErrors = useMemo(() => {
+        const result: Record<string, boolean> = {};
+        for (const key of Object.keys(fieldErrors)) {
+            const section = FIELD_SECTION[key.split(".")[0]];
+            if (section) result[section] = true;
+        }
+        return result;
+    }, [fieldErrors]);
+
+    const sections: SectionNavItem[] = [
+        { id: "general", label: "General", hasError: sectionErrors.general },
+        { id: "combo", label: "Combo", hidden: !isBundle, hasError: sectionErrors.combo },
+        { id: "precios", label: "Precios y stock", hasError: sectionErrors.precios },
+        { id: "distribuidores", label: "Distribuidores", hidden: !(mode === "edit" && product?.id && !isBundle) },
+        { id: "descripcion", label: "Descripción", hasError: sectionErrors.descripcion },
+        { id: "imagenes", label: "Imágenes y categorías", hasError: sectionErrors.imagenes },
+        { id: "atributos", label: "Atributos", hasError: sectionErrors.atributos },
+        { id: "envio", label: "Envío", hasError: sectionErrors.envio },
+    ];
+
+    // Al fallar el guardado, llevar a la primera sección con errores
+    useEffect(() => {
+        const first = sections.find((s) => s.hasError && !s.hidden);
+        if (first) document.getElementById(first.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Sólo cuando cambian los errores
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sectionErrors]);
+
+    // "Cambios sin guardar": se compara con lo último guardado
+    const snapshot = JSON.stringify({ form, image, images });
+    const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+    const dirty = snapshot !== savedSnapshot;
+
     return (
         <>
             <form
                 onSubmit={handleSubmit}
-                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+                className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[190px_minmax(0,1fr)_300px]"
             >
-                {form.status === "pending_review" && (
-                    <div className="lg:col-span-3 p-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 text-yellow-200 flex items-start gap-3">
-                        <span className="text-xl shrink-0">⚠️</span>
-                        <div className="text-sm">
-                            <strong className="font-semibold block text-yellow-300 mb-0.5">
-                                Producto en estado &ldquo;Pendiente de revisión&rdquo;
-                            </strong>
-                            Este producto fue ingresado como una <strong>carga rápida de compras</strong> o aún no fue completado. Se encuentra oculto de la tienda pública. Antes de cambiar su estado a <strong>Publicado</strong>, asegurate de cargar sus imágenes, descripción detallada y atributos.
-                        </div>
+                {/* Índice de secciones (escritorio ancho) */}
+                <aside className="hidden xl:block xl:col-start-1 xl:row-start-1">
+                    <SectionNav orientation="vertical" sections={sections} />
+                </aside>
+
+                {/* Publicación: columna derecha pegada en escritorio; arriba en el celular */}
+                <aside className="lg:col-start-2 lg:row-start-1 xl:col-start-3">
+                    <div className="lg:sticky lg:top-6">
+                        <ProductPublishPanel
+                            mode={mode}
+                            slug={product?.slug}
+                            status={form.status}
+                            onStatusChange={handleChange}
+                            loading={loading}
+                            deleting={deleting}
+                            error={error}
+                            success={success}
+                            dirty={dirty}
+                            onDelete={handleDelete}
+                        />
                     </div>
-                )}
+                </aside>
 
-                {/* Columna principal */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    {/* Selector de Tipo de Producto */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-3">
-                            Tipo de producto
-                        </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        type: "simple",
-                                    }))
-                                }
-                                className={`p-4 rounded-xl border text-left transition-all ${
-                                    !isBundle
-                                        ? "border-brand bg-brand/10 text-white"
-                                        : "border-gray-800 bg-gray-800/40 text-gray-400 hover:border-gray-700"
-                                }`}
-                            >
-                                <div className="font-semibold text-sm">
-                                    Producto Simple
-                                </div>
-                                <div className="text-xs text-gray-400 mt-1">
-                                    Artículo individual con su propio stock y
-                                    precio.
-                                </div>
-                            </button>
+                {/* Contenido */}
+                <div className="min-w-0 flex flex-col gap-6 lg:col-start-1 lg:row-start-1 xl:col-start-2">
+                    <SectionNav className="xl:hidden" sections={sections} />
 
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        type: "bundle",
-                                        hasSerialNumber: false,
-                                        regularPrice: computeBundleRegularSum(
-                                            prev.bundleItems,
-                                        ),
-                                    }))
-                                }
-                                className={`p-4 rounded-xl border text-left transition-all ${
-                                    isBundle
-                                        ? "border-brand bg-brand/10 text-white"
-                                        : "border-gray-800 bg-gray-800/40 text-gray-400 hover:border-gray-700"
-                                }`}
-                            >
-                                <div className="font-semibold text-sm flex items-center gap-2">
-                                    <span>📦 Combo / Producto Compuesto</span>
-                                </div>
-                                <div className="text-xs text-gray-400 mt-1">
-                                    Compuesto por 1 o más productos. Su stock y
-                                    precio regular se calculan automáticamente.
-                                </div>
-                            </button>
+                    {form.status === "pending_review" && (
+                        <div className="p-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 text-yellow-200 flex items-start gap-3">
+                            <span className="text-xl shrink-0">⚠️</span>
+                            <div className="text-sm">
+                                <strong className="font-semibold block text-yellow-300 mb-0.5">
+                                    Producto en estado &ldquo;Pendiente de revisión&rdquo;
+                                </strong>
+                                Este producto fue ingresado como una <strong>carga rápida de compras</strong> o aún no fue completado. Se encuentra oculto de la tienda pública. Antes de cambiar su estado a <strong>Publicado</strong>, asegurate de cargar sus imágenes, descripción detallada y atributos.
+                            </div>
                         </div>
-                    </section>
+                    )}
+
+                    <FormSection id="general" title="General" hasError={sectionErrors.general}>
+                        <div className="flex flex-col gap-5">
+                            <div>
+                                <p className={labelClass}>Tipo de producto</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                type: "simple",
+                                            }))
+                                        }
+                                        className={`p-4 rounded-xl border text-left transition-all ${
+                                            !isBundle
+                                                ? "border-brand bg-brand/10 text-white"
+                                                : "border-gray-800 bg-gray-800/40 text-gray-400 hover:border-gray-700"
+                                        }`}
+                                    >
+                                        <div className="font-semibold text-sm">
+                                            Producto Simple
+                                        </div>
+                                        <div className="text-xs text-gray-400 mt-1">
+                                            Artículo individual con su propio stock y
+                                            precio.
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                type: "bundle",
+                                                hasSerialNumber: false,
+                                                regularPrice: computeBundleRegularSum(
+                                                    prev.bundleItems,
+                                                ),
+                                            }))
+                                        }
+                                        className={`p-4 rounded-xl border text-left transition-all ${
+                                            isBundle
+                                                ? "border-brand bg-brand/10 text-white"
+                                                : "border-gray-800 bg-gray-800/40 text-gray-400 hover:border-gray-700"
+                                        }`}
+                                    >
+                                        <div className="font-semibold text-sm flex items-center gap-2">
+                                            <span>📦 Combo / Producto Compuesto</span>
+                                        </div>
+                                        <div className="text-xs text-gray-400 mt-1">
+                                            Compuesto por 1 o más productos. Su stock y
+                                            precio regular se calculan automáticamente.
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className={labelClass}>
+                                    Nombre del producto
+                                </label>
+                                <input
+                                    name="name"
+                                    value={form.name}
+                                    onChange={handleChange}
+                                    required
+                                    className={inputClass}
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className={labelClass}>SKU</label>
+                                    <input
+                                        name="sku"
+                                        value={form.sku}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>MPN</label>
+                                    <input
+                                        name="mpn"
+                                        value={form.mpn}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>GTIN</label>
+                                    <input
+                                        name="gtin"
+                                        value={form.gtin}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <div className="mb-1 flex items-center justify-between gap-2">
+                                    <span className={labelClass}>Marca</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCreateBrand(true)}
+                                        className="text-xs font-semibold text-brand hover:underline"
+                                    >
+                                        + Nueva marca
+                                    </button>
+                                </div>
+                                <SearchableEntitySelect
+                                    options={brandOptions}
+                                    value={form.brand || ""}
+                                    onChange={(brandId) => setForm((prev) => ({ ...prev, brand: brandId }))}
+                                    placeholder="Seleccionar marca"
+                                    searchPlaceholder="Buscar marca..."
+                                    emptyText="No se encontraron marcas"
+                                />
+                                {fieldErrors.brand && <p className="mt-2 text-sm text-red-400">{fieldErrors.brand}</p>}
+                            </div>
+                        </div>
+                    </FormSection>
 
                     {/* Componentes del Combo (solo cuando type === "bundle") */}
+                    {/* Componentes del Combo (solo cuando type === "bundle") */}
                     {isBundle && (
-                        <section className="bg-gray-900 rounded-2xl p-6 border border-blue-500/30">
+                        <section
+                            id="combo"
+                            className="scroll-mt-32 md:scroll-mt-24 bg-gray-900 rounded-2xl p-4 sm:p-6 border border-blue-500/30"
+                        >
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                                 <div>
                                     <h2 className="text-base font-bold text-white">
@@ -697,55 +890,154 @@ export function ProductForm({
                         </section>
                     )}
 
-                    {/* Info básica */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Información básica
-                        </h2>
+                    <FormSection
+                        id="precios"
+                        title="Precios y stock"
+                        hasError={sectionErrors.precios}
+                        headerActions={
+                            <>
+                                {isBundle && discountPercentage > 0 && (
+                                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">
+                                        Ahorro del combo: {discountPercentage}% OFF
+                                    </span>
+                                )}
+                            </>
+                        }
+                    >
+                        <div className="flex flex-col gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className={labelClass}>
+                                        {isBundle
+                                            ? "Precio regular (Suma automática de componentes)"
+                                            : "Precio regular"}
+                                    </label>
+                                    <input
+                                        name="regularPrice"
+                                        value={form.regularPrice}
+                                        onChange={handleChange}
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                        readOnly={isBundle}
+                                        className={`${inputClass} ${isBundle ? "opacity-60 cursor-not-allowed bg-gray-900" : ""}`}
+                                    />
+                                    {fieldErrors.regularPrice && (
+                                        <p className="text-sm text-red-400">
+                                            {fieldErrors.regularPrice}
+                                        </p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className={labelClass}>
+                                        {isBundle
+                                            ? "Precio de oferta del combo (Obligatorio)"
+                                            : "Precio de oferta"}
+                                    </label>
+                                    <input
+                                        name="salePrice"
+                                        value={form.salePrice}
+                                        onChange={handleChange}
+                                        type="number"
+                                        step="0.01"
+                                        required={isBundle}
+                                        className={inputClass}
+                                        placeholder={
+                                            isBundle
+                                                ? "Precio final de venta del combo"
+                                                : "Dejar vacío si no aplica"
+                                        }
+                                    />
+                                    {fieldErrors.salePrice && (
+                                        <p className="text-sm text-red-400">
+                                            {fieldErrors.salePrice}
+                                        </p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className={labelClass}>
+                                        Porcentaje Impuestos
+                                    </label>
+                                    <select
+                                        name="taxRate"
+                                        value={form.taxRate}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                    >
+                                        <option value="10.5">10.5%</option>
+                                        <option value="21">21%</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="border-t border-gray-800 pt-5">
+                                <h3 className="mb-3 text-sm font-semibold text-white">Stock</h3>
+                                {isBundle ? (
+                                    <div className="rounded-xl bg-gray-800/50 border border-gray-700 p-4 text-xs text-gray-300 leading-relaxed">
+                                        El stock de este combo es{" "}
+                                        <strong>virtual</strong> y se calcula
+                                        automáticamente según el stock disponible de los
+                                        productos que lo componen. Si el combo se queda
+                                        sin stock y luego sus componentes recuperan
+                                        stock, el combo pasará a{" "}
+                                        <strong>Pendiente de revisión</strong> para
+                                        verificar su precio de oferta.
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-4">
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                name="manageStock"
+                                                checked={form.manageStock}
+                                                onChange={handleChange}
+                                                className="w-4 h-4 accent-brand"
+                                            />
+                                            <span className="text-sm text-gray-300">
+                                                Gestionar stock
+                                            </span>
+                                        </label>
+                                        {form.manageStock && (
+                                            <div className="flex flex-col gap-4">
+                                                <label className="flex items-center gap-3 cursor-pointer">
+                                                    <input
+                                                        name="hasSerialNumber"
+                                                        checked={form.hasSerialNumber}
+                                                        onChange={handleChange}
+                                                        type="checkbox"
+                                                        className="w-4 h-4 accent-brand"
+                                                    />
+                                                    <span className="text-sm text-gray-300">
+                                                        Tiene Número de serie?
+                                                    </span>
+                                                    {fieldErrors.manageStock && (
+                                                        <p className="text-sm text-red-400">
+                                                            {fieldErrors.manageStock}
+                                                        </p>
+                                                    )}
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </FormSection>
+
+                    {/* Vínculos con distribuidores (sólo productos ya guardados; los combos no se vinculan) */}
+                    <div id="distribuidores" className="scroll-mt-32 md:scroll-mt-24 empty:hidden">
+                    {mode === "edit" && product?.id && !isBundle && (
+                        <ProductDistributorLinksPanel
+                            productId={product.id}
+                            sellingPrice={getFinalPrice({
+                                regularPrice: Number(form.regularPrice) || 0,
+                                salePrice: Number(form.salePrice) > 0 ? Number(form.salePrice) : null,
+                            })}
+                        />
+                    )}
+                    </div>
+
+                    <FormSection id="descripcion" title="Descripción" hasError={sectionErrors.descripcion}>
                         <div className="flex flex-col gap-4">
-                            <div>
-                                <label className={labelClass}>
-                                    Nombre del producto
-                                </label>
-                                <input
-                                    name="name"
-                                    value={form.name}
-                                    onChange={handleChange}
-                                    required
-                                    className={inputClass}
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label className={labelClass}>SKU</label>
-                                    <input
-                                        name="sku"
-                                        value={form.sku}
-                                        onChange={handleChange}
-                                        className={inputClass}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className={labelClass}>MPN</label>
-                                    <input
-                                        name="mpn"
-                                        value={form.mpn}
-                                        onChange={handleChange}
-                                        className={inputClass}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className={labelClass}>GTIN</label>
-                                    <input
-                                        name="gtin"
-                                        value={form.gtin}
-                                        onChange={handleChange}
-                                        className={inputClass}
-                                    />
-                                </div>
-                            </div>
                             <div>
                                 <label className={labelClass}>
                                     Descripción corta
@@ -785,37 +1077,57 @@ export function ProductForm({
                                 )}
                             </div>
                         </div>
-                    </section>
+                    </FormSection>
 
-                    {/* Atributos / Especificaciones por Categoría */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <FormSection id="imagenes" title="Imágenes y categorías" hasError={sectionErrors.imagenes}>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <div>
-                                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                                    <span>
-                                        Atributos / Especificaciones por
-                                        Categoría
-                                    </span>
-                                    {effectiveAttributeDefs.length > 0 && (
-                                        <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-brand/15 text-brand border border-brand/30">
-                                            {effectiveAttributeDefs.length}{" "}
-                                            disponibles
-                                        </span>
-                                    )}
-                                </h2>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                    Estos atributos dependen de las categorías
-                                    asignadas al producto y se utilizan en la
-                                    ficha técnica y el sistema &ldquo;Armá tu
-                                    PC&rdquo;.
-                                </p>
+                                <h3 className="mb-3 text-sm font-semibold text-white">Imágenes</h3>
+                                <ImageUploader
+                                    image={image}
+                                    images={images}
+                                    onChange={({ image, images }) => {
+                                        setImage(image);
+                                        setImages(images);
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <h3 className="mb-3 text-sm font-semibold text-white">Categorías</h3>
+                                <div className="flex max-h-80 flex-col gap-2 overflow-y-auto rounded-xl border border-gray-800 p-3">
+                                    <CategoryTree
+                                        categories={categories}
+                                        selectedCategories={form.categories}
+                                        onToggle={handleCategoryToggle}
+                                    />
+                                </div>
+                                {fieldErrors.categories && (
+                                    <p className="mt-2 text-sm text-red-400">{fieldErrors.categories}</p>
+                                )}
                             </div>
                         </div>
+                    </FormSection>
 
+                    <FormSection
+                        id="atributos"
+                        title="Atributos / especificaciones"
+                        description="Dependen de las categorías del producto; se usan en la ficha técnica y en «Armá tu PC»."
+                        hasError={sectionErrors.atributos}
+                        collapsible
+                        defaultCollapsed={attributesComplete}
+                        summary={attributesSummary}
+                        headerActions={
+                            effectiveAttributeDefs.length > 0 && (
+                                <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-brand/15 text-brand border border-brand/30">
+                                    {attributesSummary}
+                                </span>
+                            )
+                        }
+                    >
                         {form.categories.length === 0 ? (
                             <div className="rounded-xl border border-dashed border-gray-700 p-5 text-center text-sm text-gray-400">
-                                Seleccioná al menos una categoría en el panel
-                                derecho para desplegar sus atributos técnicos
+                                Seleccioná al menos una categoría en &ldquo;Imágenes y
+                                categorías&rdquo; para desplegar sus atributos técnicos
                                 (ej. Socket, Chipset, Slots de RAM, Watts,
                                 etc.).
                             </div>
@@ -1270,157 +1582,9 @@ export function ProductForm({
                                 })}
                             </div>
                         )}
-                    </section>
+                    </FormSection>
 
-                    {/* Precios */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-white">
-                                Precios
-                            </h2>
-                            {isBundle && discountPercentage > 0 && (
-                                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">
-                                    Ahorro del combo: {discountPercentage}% OFF
-                                </span>
-                            )}
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label className={labelClass}>
-                                    {isBundle
-                                        ? "Precio regular (Suma automática de componentes)"
-                                        : "Precio regular"}
-                                </label>
-                                <input
-                                    name="regularPrice"
-                                    value={form.regularPrice}
-                                    onChange={handleChange}
-                                    type="number"
-                                    step="0.01"
-                                    required
-                                    readOnly={isBundle}
-                                    className={`${inputClass} ${isBundle ? "opacity-60 cursor-not-allowed bg-gray-900" : ""}`}
-                                />
-                                {fieldErrors.regularPrice && (
-                                    <p className="text-sm text-red-400">
-                                        {fieldErrors.regularPrice}
-                                    </p>
-                                )}
-                            </div>
-                            <div>
-                                <label className={labelClass}>
-                                    {isBundle
-                                        ? "Precio de oferta del combo (Obligatorio)"
-                                        : "Precio de oferta"}
-                                </label>
-                                <input
-                                    name="salePrice"
-                                    value={form.salePrice}
-                                    onChange={handleChange}
-                                    type="number"
-                                    step="0.01"
-                                    required={isBundle}
-                                    className={inputClass}
-                                    placeholder={
-                                        isBundle
-                                            ? "Precio final de venta del combo"
-                                            : "Dejar vacío si no aplica"
-                                    }
-                                />
-                                {fieldErrors.salePrice && (
-                                    <p className="text-sm text-red-400">
-                                        {fieldErrors.salePrice}
-                                    </p>
-                                )}
-                            </div>
-                            <div>
-                                <label className={labelClass}>
-                                    Porcentaje Impuestos
-                                </label>
-                                <select
-                                    name="taxRate"
-                                    value={form.taxRate}
-                                    onChange={handleChange}
-                                    className={inputClass}
-                                >
-                                    <option value="10.5">10.5%</option>
-                                    <option value="21">21%</option>
-                                </select>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Vínculos con distribuidores (sólo productos ya guardados; los combos no se vinculan) */}
-                    {mode === "edit" && product?.id && !isBundle && (
-                        <ProductDistributorLinksPanel
-                            productId={product.id}
-                            sellingPrice={getFinalPrice({
-                                regularPrice: Number(form.regularPrice) || 0,
-                                salePrice: Number(form.salePrice) > 0 ? Number(form.salePrice) : null,
-                            })}
-                        />
-                    )}
-
-                    {/* Stock */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Stock
-                        </h2>
-                        {isBundle ? (
-                            <div className="rounded-xl bg-gray-800/50 border border-gray-700 p-4 text-xs text-gray-300 leading-relaxed">
-                                El stock de este combo es{" "}
-                                <strong>virtual</strong> y se calcula
-                                automáticamente según el stock disponible de los
-                                productos que lo componen. Si el combo se queda
-                                sin stock y luego sus componentes recuperan
-                                stock, el combo pasará a{" "}
-                                <strong>Pendiente de revisión</strong> para
-                                verificar su precio de oferta.
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-4">
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        name="manageStock"
-                                        checked={form.manageStock}
-                                        onChange={handleChange}
-                                        className="w-4 h-4 accent-brand"
-                                    />
-                                    <span className="text-sm text-gray-300">
-                                        Gestionar stock
-                                    </span>
-                                </label>
-                                {form.manageStock && (
-                                    <div className="flex flex-col gap-4">
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                name="hasSerialNumber"
-                                                checked={form.hasSerialNumber}
-                                                onChange={handleChange}
-                                                type="checkbox"
-                                                className="w-4 h-4 accent-brand"
-                                            />
-                                            <span className="text-sm text-gray-300">
-                                                Tiene Número de serie?
-                                            </span>
-                                            {fieldErrors.manageStock && (
-                                                <p className="text-sm text-red-400">
-                                                    {fieldErrors.manageStock}
-                                                </p>
-                                            )}
-                                        </label>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </section>
-
-                    {/* Envío */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Envío
-                        </h2>
+                    <FormSection id="envio" title="Envío" hasError={sectionErrors.envio}>
                         {/* Controles de Envío Gratis y Tamaño */}
                         <div className="flex flex-col gap-4 mb-6 pb-6 border-b border-gray-800">
                             <label className="flex items-center gap-3 cursor-pointer">
@@ -1528,32 +1692,25 @@ export function ProductForm({
                                 )}
                             </div>
                         </div>
-                    </section>
-                </div>
+                    </FormSection>
 
-                <ProductFormSidebar
-                    mode={mode}
-                    product={product}
-                    loading={loading}
-                    deleting={deleting}
-                    error={error}
-                    success={success}
-                    fieldErrors={fieldErrors}
-                    categories={categories}
-                    brands={brands}
-                    form={form}
-                    image={image}
-                    images={images}
-                    onImageChange={({ image, images }) => {
-                        setImage(image);
-                        setImages(images);
-                    }}
-                    onCategoryToggle={handleCategoryToggle}
-                    onChange={handleChange}
-                    onDelete={handleDelete}
-                    onSubmit={() => {}}
-                    onOpenCreateBrand={() => setShowCreateBrand(true)}
-                />
+                    {/* Celular y tablet: "Guardar" siempre a mano */}
+                    <StickyActionBar
+                        className="lg:hidden"
+                        dirty={dirty}
+                        info={
+                            Object.keys(fieldErrors).length > 0 ? (
+                                <span className="text-red-400">Revisá las secciones marcadas</span>
+                            ) : success ? (
+                                <span className="text-green-400">{success}</span>
+                            ) : null
+                        }
+                    >
+                        <button type="submit" disabled={loading} className={buttonClass.primary}>
+                            {loading ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear producto"}
+                        </button>
+                    </StickyActionBar>
+                </div>
             </form>
             {showCreateBrand && (
                 <CreateBrandModal

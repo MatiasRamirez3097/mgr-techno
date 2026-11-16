@@ -12,15 +12,17 @@ export interface SectionNavItem {
 
 interface Props {
     sections: SectionNavItem[];
+    // horizontal: chips desplazables pegados arriba (celular / pantallas medianas);
+    // vertical: lista pegada al costado (escritorio ancho)
+    orientation?: "horizontal" | "vertical";
     className?: string;
 }
 
 /**
- * Índice de secciones de un formulario largo. En escritorio, lista vertical pegada al costado;
- * en el celular, barra horizontal desplazable pegada debajo de la barra superior. Marca la
- * sección visible y las que tienen errores.
+ * Índice de secciones de un formulario largo: lleva a cada sección, marca la que está a la vista
+ * y las que tienen errores. Las secciones se identifican por su `id` (FormSection lo recibe).
  */
-export function SectionNav({ sections, className = "" }: Props) {
+export function SectionNav({ sections, orientation = "horizontal", className = "" }: Props) {
     const visible = sections.filter((s) => !s.hidden);
     const [active, setActive] = useState(visible[0]?.id ?? "");
     const ids = visible.map((s) => s.id).join(",");
@@ -51,12 +53,25 @@ export function SectionNav({ sections, className = "" }: Props) {
         document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
+    const horizontal = orientation === "horizontal";
+
     return (
         <nav
             aria-label="Secciones del formulario"
-            className={`sticky top-16 z-20 -mx-4 border-b border-gray-800 bg-gray-950/95 px-4 py-2 backdrop-blur md:top-6 md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none ${className}`}
+            className={
+                horizontal
+                    ? // Debajo de la barra superior del celular (h-16); en md+ no hay barra superior
+                      `sticky top-16 z-20 -mx-4 border-b border-gray-800 bg-gray-950/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 md:top-0 md:mx-0 md:rounded-xl md:border md:px-2 ${className}`
+                    : `sticky top-6 ${className}`
+            }
         >
-            <ul className="flex gap-2 overflow-x-auto md:flex-col md:gap-1 md:overflow-visible [scrollbar-width:none]">
+            <ul
+                className={
+                    horizontal
+                        ? "flex gap-2 overflow-x-auto [scrollbar-width:none]"
+                        : "flex flex-col gap-1"
+                }
+            >
                 {visible.map((section) => {
                     const isActive = section.id === active;
                     return (
@@ -65,15 +80,17 @@ export function SectionNav({ sections, className = "" }: Props) {
                                 type="button"
                                 onClick={() => go(section.id)}
                                 aria-current={isActive ? "location" : undefined}
-                                className={`flex w-full items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition md:rounded-lg md:px-3 md:py-2 md:text-left ${
+                                className={`flex w-full items-center gap-2 whitespace-nowrap text-sm transition ${
+                                    horizontal ? "rounded-full px-3 py-1.5" : "rounded-lg px-3 py-2 text-left"
+                                } ${
                                     isActive
-                                        ? "bg-brand/15 text-white font-semibold md:border-l-2 md:border-brand md:rounded-l-none"
+                                        ? `bg-brand/15 font-semibold text-white ${horizontal ? "" : "border-l-2 border-brand rounded-l-none"}`
                                         : "text-gray-400 hover:bg-gray-800 hover:text-white"
                                 }`}
                             >
                                 <span>{section.label}</span>
                                 {section.hasError && (
-                                    <span className="h-2 w-2 rounded-full bg-red-500" aria-label="Tiene errores" />
+                                    <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" aria-label="Tiene errores" />
                                 )}
                             </button>
                         </li>
