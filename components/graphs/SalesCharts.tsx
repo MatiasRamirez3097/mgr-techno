@@ -24,13 +24,13 @@ export default function SalesCharts({ data }: { data: any[] }) {
         return <p>No hay datos suficientes para graficar.</p>;
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
             {/* GRÁFICO 1: Ingresos por Mes (Barras) */}
-            <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800 shadow-sm">
-                <h3 className="text-lg font-bold text-white mb-4">
+            <div className="min-w-0 p-4 sm:p-6 rounded-2xl bg-gray-900 border border-gray-800 shadow-sm">
+                <h3 className="text-base sm:text-lg font-bold text-white mb-4">
                     Ingresos Mensuales
                 </h3>
-                <div className="h-72">
+                <div className="h-56 sm:h-72">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data}>
                             <CartesianGrid
@@ -40,11 +40,13 @@ export default function SalesCharts({ data }: { data: any[] }) {
                             />
                             <XAxis
                                 dataKey="month"
-                                tick={{ fill: "#666" }}
+                                tick={{ fill: "#666", fontSize: 12 }}
                                 axisLine={false}
                             />
                             <YAxis
                                 tickFormatter={(val) => `$${val / 1000}k`}
+                                tick={{ fontSize: 12 }}
+                                width={56}
                                 axisLine={false}
                                 tickLine={false}
                             />
@@ -80,11 +82,11 @@ export default function SalesCharts({ data }: { data: any[] }) {
             </div>
 
             {/* GRÁFICO 2: Cantidad de Ventas (Líneas) */}
-            <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800 shadow-sm">
-                <h3 className="text-lg font-bold text-white mb-4">
+            <div className="min-w-0 p-4 sm:p-6 rounded-2xl bg-gray-900 border border-gray-800 shadow-sm">
+                <h3 className="text-base sm:text-lg font-bold text-white mb-4">
                     Ventas Concretadas
                 </h3>
-                <div className="h-72">
+                <div className="h-56 sm:h-72">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data}>
                             <CartesianGrid
@@ -94,10 +96,10 @@ export default function SalesCharts({ data }: { data: any[] }) {
                             />
                             <XAxis
                                 dataKey="month"
-                                tick={{ fill: "#666" }}
+                                tick={{ fill: "#666", fontSize: 12 }}
                                 axisLine={false}
                             />
-                            <YAxis axisLine={false} tickLine={false} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} width={32} />
                             <Tooltip
                                 contentStyle={{
                                     backgroundColor: "#1f2937",

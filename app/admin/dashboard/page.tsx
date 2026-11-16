@@ -48,59 +48,59 @@ export default async function DashboardPage() {
             <AdminPageHeader title="Panel de control" description="Actualizado al día de hoy" className="!mb-0" />
 
             {/* Tarjetas de Resumen KPI */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {/* Tarjeta 1: Mes Actual */}
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm hover:border-gray-700 transition-colors relative overflow-hidden">
+                <div className="min-w-0 bg-gray-900 border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm hover:border-gray-700 transition-colors relative overflow-hidden">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500" />
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <p className="text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Este Mes ({currentMonthStr.split(" ")[0]})
                     </p>
-                    <p className="text-3xl font-extrabold text-white mt-2">
+                    <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold text-white mt-2 break-words">
                         ${currentMonthTotal.toLocaleString("es-AR")}
                     </p>
-                    <p className="text-xs text-indigo-400 mt-2 font-medium">
+                    <p className="text-xs text-indigo-400 mt-2 font-medium max-sm:hidden">
                         Facturación mensual
                     </p>
                 </div>
 
                 {/* Tarjeta 2: Año Actual */}
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm hover:border-gray-700 transition-colors relative overflow-hidden">
+                <div className="min-w-0 bg-gray-900 border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm hover:border-gray-700 transition-colors relative overflow-hidden">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-purple-500" />
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <p className="text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Este Año ({currentYearStr})
                     </p>
-                    <p className="text-3xl font-extrabold text-white mt-2">
+                    <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold text-white mt-2 break-words">
                         ${currentYearTotal.toLocaleString("es-AR")}
                     </p>
-                    <p className="text-xs text-purple-400 mt-2 font-medium">
+                    <p className="text-xs text-purple-400 mt-2 font-medium max-sm:hidden">
                         Facturación anual acumulada
                     </p>
                 </div>
 
                 {/* Tarjeta 3: Histórico */}
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm hover:border-gray-700 transition-colors relative overflow-hidden">
+                <div className="min-w-0 bg-gray-900 border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm hover:border-gray-700 transition-colors relative overflow-hidden">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <p className="text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Histórico Total
                     </p>
-                    <p className="text-3xl font-extrabold text-white mt-2">
+                    <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold text-white mt-2 break-words">
                         ${totalRevenue.toLocaleString("es-AR")}
                     </p>
-                    <p className="text-xs text-emerald-400 mt-2 font-medium">
+                    <p className="text-xs text-emerald-400 mt-2 font-medium max-sm:hidden">
                         Total histórico registrado
                     </p>
                 </div>
 
                 {/* Tarjeta 4: Cantidad de Ventas */}
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm hover:border-gray-700 transition-colors relative overflow-hidden">
+                <div className="min-w-0 bg-gray-900 border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm hover:border-gray-700 transition-colors relative overflow-hidden">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-brand" />
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <p className="text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Ventas Concretadas
                     </p>
-                    <p className="text-3xl font-extrabold text-white mt-2">
+                    <p className="text-lg sm:text-2xl xl:text-3xl font-extrabold text-white mt-2 break-words">
                         {totalOrders}
                     </p>
-                    <p className="text-xs text-brand mt-2 font-medium">
+                    <p className="text-xs text-brand mt-2 font-medium max-sm:hidden">
                         Órdenes de compra finalizadas
                     </p>
                 </div>
