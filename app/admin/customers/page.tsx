@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { getCustomersWithOrders } from "@/services/customers/getCustomers";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
+import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
+import { ViewDetailLink } from "@/components/admin/ui/ViewDetailLink";
 
 interface Props {
     searchParams: Promise<{
@@ -28,139 +29,91 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
         <div>
             <AdminPageHeader title="Clientes" actions={<AdminSearch placeholder="Buscar por nombre o email..." />} />
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
-                <table className="w-full min-w-[760px]">
-                    <thead>
-                        <tr className="border-b border-gray-800">
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Cliente
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Ubicación
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Pedidos
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Total gastado
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Registrado
-                            </th>
-                            <th className="text-right text-xs text-gray-400 font-medium px-6 py-4">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {customers.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={6}
-                                    className="px-6 py-12 text-center text-gray-400 text-sm"
-                                >
-                                    No se encontraron clientes
-                                    {search ? ` para "${search}"` : ""}
-                                </td>
-                            </tr>
-                        ) : (
-                            customers.map((customer: any) => (
-                                <tr
-                                    key={customer.id}
-                                    className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
-                                >
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-sm font-bold shrink-0">
-                                                {customer.first_name
-                                                    ?.charAt(0)
-                                                    ?.toUpperCase() ||
-                                                    customer.email
-                                                        ?.charAt(0)
-                                                        ?.toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-white font-medium">
-                                                    {customer.first_name}{" "}
-                                                    {customer.last_name}
-                                                </p>
-                                                <p className="text-xs text-gray-400">
-                                                    {customer.email}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <p className="text-sm text-gray-300">
-                                            {customer.billing?.city || "—"}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                            {customer.billing?.state || ""}
-                                        </p>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-white">
-                                        {customer.orders.length}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-white">
-                                        $
-                                        {parseFloat(
-                                            customer.total_spent || "0",
-                                        ).toLocaleString("es-AR")}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-400">
-                                        {new Date(
-                                            customer.createdAt,
-                                        ).toLocaleDateString("es-AR", {
-                                            day: "2-digit",
-                                            month: "short",
-                                            year: "numeric",
-                                        })}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-1.5">
-                                            <Link
-                                                href={`/admin/customers/${customer.id}`}
-                                                title="Ver detalle de cliente"
-                                                aria-label="Ver detalle de cliente"
-                                                className="w-8 h-8 rounded-lg border bg-gray-800/80 border-gray-700/80 text-gray-300 hover:text-brand hover:bg-brand/10 hover:border-brand/40 flex items-center justify-center transition-all"
-                                            >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="w-4 h-4"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                    strokeWidth={1.8}
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                                                    />
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                    />
-                                                </svg>
-                                            </Link>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+            <ResponsiveTable
+                rows={customers as any[]}
+                getRowKey={(customer) => String(customer.id)}
+                rowHref={(customer) => `/admin/customers/${customer.id}`}
+                empty={`No se encontraron clientes${search ? ` para "${search}"` : ""}`}
+                columns={[
+                    {
+                        key: "avatar",
+                        header: "",
+                        mobile: "media",
+                        desktop: false,
+                        cell: (customer) => <Avatar customer={customer} />,
+                    },
+                    {
+                        key: "customer",
+                        header: "Cliente",
+                        mobile: "title",
+                        cell: (customer) => (
+                            <div className="flex items-center gap-3">
+                                <span className="hidden md:block">
+                                    <Avatar customer={customer} />
+                                </span>
+                                <div className="min-w-0">
+                                    <p className="text-sm text-white font-medium">
+                                        {customer.first_name} {customer.last_name}
+                                    </p>
+                                    <p className="hidden md:block text-xs text-gray-400">{customer.email}</p>
+                                </div>
+                            </div>
+                        ),
+                    },
+                    { key: "email", header: "Email", mobile: "subtitle", desktop: false, cell: (customer) => customer.email },
+                    {
+                        key: "location",
+                        header: "Ubicación",
+                        cell: (customer) => (
+                            <>
+                                <span className="text-gray-300">{customer.billing?.city || "—"}</span>
+                                {customer.billing?.state && (
+                                    <span className="block text-xs text-gray-500">{customer.billing.state}</span>
+                                )}
+                            </>
+                        ),
+                    },
+                    { key: "orders", header: "Pedidos", className: "text-white", cell: (customer) => customer.orders.length },
+                    {
+                        key: "spent",
+                        header: "Total gastado",
+                        className: "text-white whitespace-nowrap",
+                        cell: (customer) => `$${parseFloat(customer.total_spent || "0").toLocaleString("es-AR")}`,
+                    },
+                    {
+                        key: "createdAt",
+                        header: "Registrado",
+                        className: "text-gray-400 whitespace-nowrap",
+                        cell: (customer) => new Date(customer.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }),
+                    },
+                    {
+                        key: "actions",
+                        header: "Acciones",
+                        align: "right",
+                        mobile: "hidden",
+                        cell: (customer) => (
+                            <ViewDetailLink href={`/admin/customers/${customer.id}`} label="Ver detalle de cliente" />
+                        ),
+                    },
+                ]}
+            />
 
-                <div className="px-6 py-4 border-t border-gray-800">
-                    <AdminPagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        totalItems={total}
-                        limit={perPage}
-                    />
-                </div>
+            <div className="mt-4">
+                <AdminPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={total}
+                    limit={perPage}
+                />
             </div>
+        </div>
+    );
+}
+
+function Avatar({ customer }: { customer: { first_name?: string; email?: string } }) {
+    return (
+        <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-sm font-bold shrink-0">
+            {customer.first_name?.charAt(0)?.toUpperCase() || customer.email?.charAt(0)?.toUpperCase()}
         </div>
     );
 }

@@ -7,6 +7,7 @@ import { DISTRIBUTOR_LABELS, hasDistributorStock } from "@/lib/distributors/prod
 import { getMarginStatus, type MarginStatus } from "@/lib/priceReview";
 import type { PriceReviewLinkSuggestion, PriceReviewRow } from "@/types/shared/priceReview";
 import { DISTRIBUTOR_KEYS } from "@/types/shared/distributorLink";
+import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
 
 interface Props {
     rows: PriceReviewRow[];
@@ -70,6 +71,7 @@ export function PriceReviewTable({ rows }: Props) {
 
     const selectableRows = rows.filter((r) => r.suggestedPrice || editedPrice(r));
     const allSelected = selectableRows.length > 0 && selectableRows.every((r) => selected.has(r.productId));
+    const toggleAll = () => setSelected(allSelected ? new Set() : new Set(selectableRows.map((r) => r.productId)));
 
     async function apply(updates: { productId: string; price: number }[]) {
         if (updates.length === 0) return;
@@ -115,11 +117,16 @@ export function PriceReviewTable({ rows }: Props) {
     return (
         <div>
             <div className="flex flex-wrap items-center gap-3 p-4 border-b border-gray-800 bg-gray-800/20">
+                {/* En el celular no hay encabezado de tabla: el "seleccionar todos" va acá */}
+                <label className="md:hidden flex items-center gap-2 text-sm text-gray-300">
+                    <input type="checkbox" className="h-5 w-5" checked={allSelected} onChange={toggleAll} />
+                    Todos
+                </label>
                 <button
                     type="button"
                     onClick={() => apply(selectedUpdates)}
                     disabled={applying || selectedUpdates.length === 0}
-                    className="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold disabled:opacity-40"
+                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold disabled:opacity-40"
                 >
                     {applying ? "Aplicando…" : `Aplicar a seleccionados (${selectedUpdates.length})`}
                 </button>
@@ -133,216 +140,275 @@ export function PriceReviewTable({ rows }: Props) {
                 )}
             </div>
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-sm">
-                    <thead className="bg-gray-800/50 border-b border-gray-800 text-gray-400">
-                        <tr>
-                            <th className="px-3 py-3">
+            <ResponsiveTable
+                variant="bare"
+                rows={rows}
+                getRowKey={(row) => row.productId}
+                minWidth="1100px"
+                renderExpanded={(row) =>
+                    expanded.has(row.productId) && row.linkSuggestions.length > 0 ? (
+                        <LinkSuggestionsList row={row} />
+                    ) : null
+                }
+                columns={[
+                    {
+                        key: "select",
+                        header: (
+                            <input
+                                type="checkbox"
+                                checked={allSelected}
+                                onChange={toggleAll}
+                                aria-label="Seleccionar todos"
+                            />
+                        ),
+                        mobile: "hidden",
+                        cell: (row) => (
+                            <input
+                                type="checkbox"
+                                checked={selected.has(row.productId)}
+                                disabled={!(row.suggestedPrice || editedPrice(row))}
+                                onChange={() => toggle(row.productId)}
+                                aria-label={`Seleccionar ${row.name}`}
+                            />
+                        ),
+                    },
+                    {
+                        key: "image",
+                        header: "",
+                        mobile: "media",
+                        desktop: false,
+                        cell: (row) => (
+                            <label className="flex flex-col items-center gap-2">
+                                <ProductImage row={row} />
                                 <input
                                     type="checkbox"
-                                    checked={allSelected}
-                                    onChange={() =>
-                                        setSelected(allSelected ? new Set() : new Set(selectableRows.map((r) => r.productId)))
-                                    }
-                                    aria-label="Seleccionar todos"
+                                    className="h-5 w-5"
+                                    checked={selected.has(row.productId)}
+                                    disabled={!(row.suggestedPrice || editedPrice(row))}
+                                    onChange={() => toggle(row.productId)}
+                                    aria-label={`Seleccionar ${row.name}`}
                                 />
-                            </th>
-                            <th className="px-3 py-3 font-semibold min-w-[240px]">Producto</th>
-                            <th className="px-3 py-3 font-semibold text-right">Tu precio</th>
-                            <th className="px-3 py-3 font-semibold min-w-[220px]">Costos (c/IVA)</th>
-                            <th className="px-3 py-3 font-semibold text-right">Últ. compra</th>
-                            <th className="px-3 py-3 font-semibold text-right">Margen</th>
-                            <th className="px-3 py-3 font-semibold text-right">Sugerido</th>
-                            <th className="px-3 py-3 font-semibold min-w-[170px]">Nuevo precio</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-800">
-                        {rows.map((row) => {
+                            </label>
+                        ),
+                    },
+                    {
+                        key: "product",
+                        header: "Producto",
+                        mobile: "title",
+                        headerClassName: "min-w-[240px]",
+                        cell: (row) => (
+                            <div className="flex items-start gap-3">
+                                <span className="hidden md:block">
+                                    <ProductImage row={row} />
+                                </span>
+                                <div className="min-w-0">
+                                    <Link
+                                        href={`/admin/products/${row.productId}`}
+                                        className="text-gray-100 hover:underline line-clamp-2"
+                                        title={row.name}
+                                    >
+                                        {row.name}
+                                    </Link>
+                                    <span className="block text-[11px] font-normal font-mono text-gray-500">
+                                        {row.sku}
+                                        {row.status !== "publish" && ` · ${row.status}`}
+                                    </span>
+                                </div>
+                            </div>
+                        ),
+                    },
+                    {
+                        key: "price",
+                        header: "Tu precio",
+                        align: "right",
+                        className: "whitespace-nowrap",
+                        cell: (row) => (
+                            <>
+                                <span className="font-mono font-semibold text-white">{formatArs(row.effectivePrice)}</span>
+                                {row.salePrice && row.salePrice < row.regularPrice && (
+                                    <span className="block text-[10px] text-gray-500">
+                                        oferta · regular {formatArs(row.regularPrice)}
+                                    </span>
+                                )}
+                            </>
+                        ),
+                    },
+                    {
+                        key: "costs",
+                        header: "Costos (c/IVA)",
+                        headerClassName: "min-w-[220px]",
+                        cell: (row) => {
+                            const isExpanded = expanded.has(row.productId) && row.linkSuggestions.length > 0;
+                            return (
+                                <>
+                                    {row.costs.length === 0 ? (
+                                        <Link href={`/admin/products/${row.productId}`} className="text-xs text-gray-500 underline">
+                                            Sin vincular
+                                        </Link>
+                                    ) : (
+                                        <ul className="space-y-0.5">
+                                            {row.costs.map((c) => {
+                                                const isBest = row.bestDistributor === c.distributor && row.bestCost === c.price;
+                                                return (
+                                                    <li
+                                                        key={c.distributor}
+                                                        className={`flex items-center justify-between gap-2 text-xs ${
+                                                            !c.inStock || !c.available ? "opacity-50" : ""
+                                                        }`}
+                                                        title={`${c.name}${c.lastCheckedAt ? ` · ${timeAgo(c.lastCheckedAt)}` : ""}`}
+                                                    >
+                                                        <span className={`font-semibold ${DISTRIBUTOR_TEXT[c.distributor] ?? ""}`}>
+                                                            {DISTRIBUTOR_LABELS[c.distributor]}
+                                                            {isBest && " ★"}
+                                                        </span>
+                                                        <span className="font-mono text-gray-200">
+                                                            {c.recentChange !== null && (
+                                                                <span
+                                                                    className={`mr-1 ${c.recentChange > 0 ? "text-red-400" : "text-emerald-400"}`}
+                                                                    title="Cambio de costo en los últimos 7 días"
+                                                                >
+                                                                    {c.recentChange > 0 ? "▲" : "▼"}
+                                                                    {formatPercent(Math.abs(c.recentChange))}
+                                                                </span>
+                                                            )}
+                                                            {c.price ? formatArs(c.price) : "—"}
+                                                            <span className={`ml-1.5 ${c.inStock ? "text-emerald-400" : "text-red-400"}`}>
+                                                                {!c.available ? "no disp." : c.inStock ? "●" : "sin stock"}
+                                                            </span>
+                                                        </span>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
+                                    {row.linkSuggestions.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleExpanded(row.productId)}
+                                            className="mt-1 text-[11px] font-semibold text-brand hover:underline"
+                                            aria-expanded={isExpanded}
+                                        >
+                                            {row.linkSuggestions.length}{" "}
+                                            {row.linkSuggestions.length === 1 ? "sugerencia" : "sugerencias"} de vínculo{" "}
+                                            {isExpanded ? "▴" : "▾"}
+                                        </button>
+                                    )}
+                                </>
+                            );
+                        },
+                    },
+                    {
+                        key: "lastPurchase",
+                        header: "Últ. compra",
+                        align: "right",
+                        className: "whitespace-nowrap text-xs",
+                        cell: (row) =>
+                            row.lastPurchaseCost ? (
+                                <>
+                                    <span className="font-mono text-gray-200">{formatArs(row.lastPurchaseCost)}</span>
+                                    <span className="block text-[10px] text-gray-500">{timeAgo(row.lastPurchaseAt)}</span>
+                                </>
+                            ) : (
+                                <span className="text-gray-600">—</span>
+                            ),
+                    },
+                    {
+                        key: "margin",
+                        header: "Margen",
+                        align: "right",
+                        className: "whitespace-nowrap",
+                        cell: (row) => (
+                            <>
+                                <span className={`font-mono font-semibold ${STATUS_STYLE[row.marginStatus]}`}>
+                                    {row.margin === null ? "—" : formatPercent(row.margin)}
+                                </span>
+                                <span
+                                    className="block text-[10px] text-gray-500"
+                                    title={row.marginSource ? `Margen de la categoría ${row.marginSource}` : "Margen general"}
+                                >
+                                    obj. {row.targetMarginPercent}% · mín. {row.minMarginPercent}%
+                                </span>
+                            </>
+                        ),
+                    },
+                    {
+                        key: "suggested",
+                        header: "Sugerido",
+                        align: "right",
+                        className: "whitespace-nowrap",
+                        cell: (row) =>
+                            row.suggestedPrice ? (
+                                <button
+                                    type="button"
+                                    onClick={() => apply([{ productId: row.productId, price: row.suggestedPrice! }])}
+                                    disabled={applying || row.suggestedPrice === row.effectivePrice}
+                                    className="font-mono text-brand hover:underline disabled:text-gray-500 disabled:no-underline"
+                                    title="Aplicar este precio"
+                                >
+                                    {formatArs(row.suggestedPrice)}
+                                </button>
+                            ) : (
+                                <span className="text-gray-600">—</span>
+                            ),
+                    },
+                    {
+                        key: "newPrice",
+                        header: "Nuevo precio",
+                        headerClassName: "min-w-[170px]",
+                        mobile: "actions",
+                        cell: (row) => {
                             const typed = editedPrice(row);
                             const typedMargin = typed && row.bestCost ? (typed - row.bestCost) / row.bestCost : null;
                             const typedStatus = getMarginStatus(typedMargin, row.minMarginPercent, row.targetMarginPercent);
-                            const canSelect = Boolean(row.suggestedPrice || typed);
-                            const isExpanded = expanded.has(row.productId) && row.linkSuggestions.length > 0;
                             return (
-                                <Fragment key={row.productId}>
-                                    <tr className={`hover:bg-gray-800/30 align-top ${isExpanded ? "bg-gray-800/20" : ""}`}>
-                                        <td className="px-3 py-3">
-                                            <input
-                                                type="checkbox"
-                                                checked={selected.has(row.productId)}
-                                                disabled={!canSelect}
-                                                onChange={() => toggle(row.productId)}
-                                                aria-label={`Seleccionar ${row.name}`}
-                                            />
-                                        </td>
-                                        <td className="px-3 py-3">
-                                            <div className="flex items-start gap-3">
-                                                <div className="w-10 h-10 shrink-0 rounded-lg bg-gray-900 border border-gray-700 overflow-hidden flex items-center justify-center">
-                                                    {row.image ? (
-                                                        // eslint-disable-next-line @next/next/no-img-element
-                                                        <img src={row.image} alt="" className="w-full h-full object-contain p-0.5" />
-                                                    ) : (
-                                                        <span className="text-gray-600">📦</span>
-                                                    )}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <Link
-                                                        href={`/admin/products/${row.productId}`}
-                                                        className="text-gray-100 hover:underline line-clamp-2"
-                                                        title={row.name}
-                                                    >
-                                                        {row.name}
-                                                    </Link>
-                                                    <span className="text-[11px] font-mono text-gray-500">
-                                                        {row.sku}
-                                                        {row.status !== "publish" && ` · ${row.status}`}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                                            <span className="font-mono font-semibold text-white">{formatArs(row.effectivePrice)}</span>
-                                            {row.salePrice && row.salePrice < row.regularPrice && (
-                                                <span className="block text-[10px] text-gray-500">
-                                                    oferta · regular {formatArs(row.regularPrice)}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-3">
-                                            {row.costs.length === 0 ? (
-                                                <Link href={`/admin/products/${row.productId}`} className="text-xs text-gray-500 underline">
-                                                    Sin vincular
-                                                </Link>
-                                            ) : (
-                                                <ul className="space-y-0.5">
-                                                    {row.costs.map((c) => {
-                                                        const isBest = row.bestDistributor === c.distributor && row.bestCost === c.price;
-                                                        return (
-                                                            <li
-                                                                key={c.distributor}
-                                                                className={`flex items-center justify-between gap-2 text-xs ${
-                                                                    !c.inStock || !c.available ? "opacity-50" : ""
-                                                                }`}
-                                                                title={`${c.name}${c.lastCheckedAt ? ` · ${timeAgo(c.lastCheckedAt)}` : ""}`}
-                                                            >
-                                                                <span className={`font-semibold ${DISTRIBUTOR_TEXT[c.distributor] ?? ""}`}>
-                                                                    {DISTRIBUTOR_LABELS[c.distributor]}
-                                                                    {isBest && " ★"}
-                                                                </span>
-                                                                <span className="font-mono text-gray-200">
-                                                                    {c.recentChange !== null && (
-                                                                        <span
-                                                                            className={`mr-1 ${c.recentChange > 0 ? "text-red-400" : "text-emerald-400"}`}
-                                                                            title="Cambio de costo en los últimos 7 días"
-                                                                        >
-                                                                            {c.recentChange > 0 ? "▲" : "▼"}
-                                                                            {formatPercent(Math.abs(c.recentChange))}
-                                                                        </span>
-                                                                    )}
-                                                                    {c.price ? formatArs(c.price) : "—"}
-                                                                    <span className={`ml-1.5 ${c.inStock ? "text-emerald-400" : "text-red-400"}`}>
-                                                                        {!c.available ? "no disp." : c.inStock ? "●" : "sin stock"}
-                                                                    </span>
-                                                                </span>
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
-                                            )}
-                                            {row.linkSuggestions.length > 0 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleExpanded(row.productId)}
-                                                    className="mt-1 text-[11px] font-semibold text-brand hover:underline"
-                                                    aria-expanded={isExpanded}
-                                                >
-                                                    {row.linkSuggestions.length}{" "}
-                                                    {row.linkSuggestions.length === 1 ? "sugerencia" : "sugerencias"} de vínculo{" "}
-                                                    {isExpanded ? "▴" : "▾"}
-                                                </button>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-3 text-right whitespace-nowrap text-xs">
-                                            {row.lastPurchaseCost ? (
-                                                <>
-                                                    <span className="font-mono text-gray-200">{formatArs(row.lastPurchaseCost)}</span>
-                                                    <span className="block text-[10px] text-gray-500">{timeAgo(row.lastPurchaseAt)}</span>
-                                                </>
-                                            ) : (
-                                                <span className="text-gray-600">—</span>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                                            <span className={`font-mono font-semibold ${STATUS_STYLE[row.marginStatus]}`}>
-                                                {row.margin === null ? "—" : formatPercent(row.margin)}
-                                            </span>
-                                            <span
-                                                className="block text-[10px] text-gray-500"
-                                                title={row.marginSource ? `Margen de la categoría ${row.marginSource}` : "Margen general"}
+                                <div className="w-full md:w-auto">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            min={0}
+                                            step={100}
+                                            value={edited[row.productId] ?? ""}
+                                            onChange={(e) => setEdited((prev) => ({ ...prev, [row.productId]: e.target.value }))}
+                                            placeholder={row.suggestedPrice ? String(row.suggestedPrice) : "Nuevo precio"}
+                                            aria-label={`Nuevo precio de ${row.name}`}
+                                            className="flex-1 md:flex-none md:w-28 bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 md:py-1.5 text-sm text-white font-mono text-right outline-none focus:border-brand"
+                                        />
+                                        {typed && (
+                                            <button
+                                                type="button"
+                                                onClick={() => apply([{ productId: row.productId, price: typed }])}
+                                                disabled={applying}
+                                                className="px-3 py-2 md:px-2 md:py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-gray-200 border border-gray-700"
                                             >
-                                                obj. {row.targetMarginPercent}% · mín. {row.minMarginPercent}%
-                                            </span>
-                                        </td>
-                                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                                            {row.suggestedPrice ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => apply([{ productId: row.productId, price: row.suggestedPrice! }])}
-                                                    disabled={applying || row.suggestedPrice === row.effectivePrice}
-                                                    className="font-mono text-brand hover:underline disabled:text-gray-500 disabled:no-underline"
-                                                    title="Aplicar este precio"
-                                                >
-                                                    {formatArs(row.suggestedPrice)}
-                                                </button>
-                                            ) : (
-                                                <span className="text-gray-600">—</span>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    step={100}
-                                                    value={edited[row.productId] ?? ""}
-                                                    onChange={(e) =>
-                                                        setEdited((prev) => ({ ...prev, [row.productId]: e.target.value }))
-                                                    }
-                                                    placeholder={row.suggestedPrice ? String(row.suggestedPrice) : ""}
-                                                    className="w-28 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white font-mono text-right outline-none focus:border-brand"
-                                                />
-                                                {typed && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => apply([{ productId: row.productId, price: typed }])}
-                                                        disabled={applying}
-                                                        className="px-2 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-gray-200 border border-gray-700"
-                                                    >
-                                                        Aplicar
-                                                    </button>
-                                                )}
-                                            </div>
-                                            {typedMargin !== null && (
-                                                <span className={`text-[10px] font-mono ${STATUS_STYLE[typedStatus]}`}>
-                                                    margen {formatPercent(typedMargin)}
-                                                </span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                    {isExpanded && (
-                                        <tr className="bg-gray-800/20">
-                                            <td />
-                                            <td colSpan={7} className="px-3 pb-4">
-                                                <LinkSuggestionsList row={row} />
-                                            </td>
-                                        </tr>
+                                                Aplicar
+                                            </button>
+                                        )}
+                                    </div>
+                                    {typedMargin !== null && (
+                                        <span className={`text-[10px] font-mono ${STATUS_STYLE[typedStatus]}`}>
+                                            margen {formatPercent(typedMargin)}
+                                        </span>
                                     )}
-                                </Fragment>
+                                </div>
                             );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                        },
+                    },
+                ]}
+            />
+        </div>
+    );
+}
+
+function ProductImage({ row }: { row: PriceReviewRow }) {
+    return (
+        <div className="w-10 h-10 shrink-0 rounded-lg bg-gray-900 border border-gray-700 overflow-hidden flex items-center justify-center">
+            {row.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={row.image} alt="" className="w-full h-full object-contain p-0.5" />
+            ) : (
+                <span className="text-gray-600">📦</span>
+            )}
         </div>
     );
 }

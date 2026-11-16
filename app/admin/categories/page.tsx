@@ -8,6 +8,8 @@ import { CategoryModel } from "@/models/Category";
 import Image from "next/image";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 import { buttonClass } from "@/components/admin/ui/styles";
+import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
+import { ViewDetailLink } from "@/components/admin/ui/ViewDetailLink";
 
 async function getAdminCategories(
     page: number,
@@ -80,151 +82,102 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                 }
             />
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
-                <table className="w-full min-w-[760px]">
-                    <thead>
-                        <tr className="border-b border-gray-800">
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Nombre de categoría
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Slug
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Categoría Padre
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Atributos
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Fecha
-                            </th>
-                            <th className="text-right text-xs text-gray-400 font-medium px-6 py-4">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {categories.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={6}
-                                    className="px-6 py-12 text-center text-gray-400 text-sm"
-                                >
-                                    No se encontraron categorías
-                                    {search ? ` para "${search}"` : ""}
-                                </td>
-                            </tr>
-                        ) : (
-                            categories.map((category: any) => {
-                                return (
-                                    <tr
-                                        key={category._id}
-                                        className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
-                                    >
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-800 shrink-0">
-                                                    {category.image ? (
-                                                        <Image
-                                                            src={category.image}
-                                                            alt={category.name}
-                                                            fill
-                                                            sizes="40px"
-                                                            className="object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">
-                                                            📁
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="text-sm text-white font-medium line-clamp-1">
-                                                            {category.name}
-                                                        </p>
-                                                    </div>
-                                                    <p className="text-xs text-gray-500 font-mono">
-                                                        #{category._id.slice(-6)}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="text-xs font-mono px-2.5 py-1 rounded-full border border-gray-800 text-gray-300 bg-gray-800/40">
-                                                {category.slug}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-300">
-                                            {category.parentId?.name || "—"}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {category.attributesCount > 0 ? (
-                                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-brand/15 text-brand border border-brand/30">
-                                                    {category.attributesCount}{" "}
-                                                    {category.attributesCount === 1
-                                                        ? "atributo"
-                                                        : "atributos"}
-                                                </span>
-                                            ) : (
-                                                <span className="text-xs text-gray-500">
-                                                    —
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-400">
-                                            {category.createdAt
-                                                ? new Date(
-                                                      category.createdAt,
-                                                  ).toLocaleDateString("es-AR", {
-                                                      day: "2-digit",
-                                                      month: "short",
-                                                      year: "numeric",
-                                                  })
-                                                : "—"}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                                <Link
-                                                    href={`/admin/categories/${category._id}`}
-                                                    title="Editar categoría"
-                                                    aria-label="Editar categoría"
-                                                    className="w-8 h-8 rounded-lg border bg-gray-800/80 border-gray-700/80 text-gray-300 hover:text-brand hover:bg-brand/10 hover:border-brand/40 flex items-center justify-center transition-all"
-                                                >
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="w-4 h-4"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                        strokeWidth={1.8}
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                                                        />
-                                                    </svg>
-                                                </Link>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
+            <ResponsiveTable
+                rows={categories as any[]}
+                getRowKey={(category) => category._id}
+                rowHref={(category) => `/admin/categories/${category._id}`}
+                empty={`No se encontraron categorías${search ? ` para "${search}"` : ""}`}
+                columns={[
+                    {
+                        key: "image",
+                        header: "",
+                        mobile: "media",
+                        desktop: false,
+                        cell: (category) => <CategoryThumb category={category} />,
+                    },
+                    {
+                        key: "name",
+                        header: "Nombre de categoría",
+                        mobile: "title",
+                        cell: (category) => (
+                            <div className="flex items-center gap-3">
+                                <span className="hidden md:block">
+                                    <CategoryThumb category={category} />
+                                </span>
+                                <div className="min-w-0">
+                                    <p className="text-sm text-white font-medium line-clamp-1">{category.name}</p>
+                                    <p className="hidden md:block text-xs text-gray-500 font-mono">#{category._id.slice(-6)}</p>
+                                </div>
+                            </div>
+                        ),
+                    },
+                    {
+                        key: "slug",
+                        header: "Slug",
+                        mobile: "subtitle",
+                        cell: (category) => (
+                            <span className="text-xs font-mono md:px-2.5 md:py-1 md:rounded-full md:border md:border-gray-800 text-gray-300 md:bg-gray-800/40 break-all">
+                                {category.slug}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: "parent",
+                        header: "Categoría padre",
+                        className: "text-gray-300",
+                        cell: (category) => category.parentId?.name || "—",
+                    },
+                    {
+                        key: "attributes",
+                        header: "Atributos",
+                        cell: (category) =>
+                            category.attributesCount > 0 ? (
+                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-brand/15 text-brand border border-brand/30 whitespace-nowrap">
+                                    {category.attributesCount} {category.attributesCount === 1 ? "atributo" : "atributos"}
+                                </span>
+                            ) : (
+                                <span className="text-xs text-gray-500">—</span>
+                            ),
+                    },
+                    {
+                        key: "createdAt",
+                        header: "Fecha",
+                        mobile: "hidden",
+                        className: "text-gray-400 whitespace-nowrap",
+                        cell: (category) => (category.createdAt ? new Date(category.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }) : "—"),
+                    },
+                    {
+                        key: "actions",
+                        header: "Acciones",
+                        align: "right",
+                        mobile: "hidden",
+                        cell: (category) => (
+                            <ViewDetailLink href={`/admin/categories/${category._id}`} label="Editar categoría" icon="edit" />
+                        ),
+                    },
+                ]}
+            />
 
-                <div className="px-6 py-4 border-t border-gray-800">
-                    <AdminPagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        totalItems={total}
-                        limit={perPage}
-                    />
-                </div>
+            <div className="mt-4">
+                <AdminPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={total}
+                    limit={perPage}
+                />
             </div>
+        </div>
+    );
+}
+
+function CategoryThumb({ category }: { category: { name: string; image?: string | null } }) {
+    return (
+        <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-800 shrink-0">
+            {category.image ? (
+                <Image src={category.image} alt={category.name} fill sizes="40px" className="object-cover" />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">📁</div>
+            )}
         </div>
     );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { QuoteDTO, QuoteStatus } from "@/types/shared/quote";
+import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
 
 interface Props {
     quotes: QuoteDTO[];
@@ -179,208 +180,200 @@ export function QuotesTable({ quotes, search, status, priceAlerts }: Props) {
                 </div>
             )}
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                    <thead>
-                        <tr className="border-b border-gray-800 text-xs font-medium text-gray-400">
-                            <th className="px-6 py-4">N° Presupuesto</th>
-                            <th className="px-6 py-4">Cliente</th>
-                            <th className="px-6 py-4">Emisión</th>
-                            <th className="px-6 py-4">Vencimiento</th>
-                            <th className="px-6 py-4 text-center">Ítems</th>
-                            <th className="px-6 py-4 text-right">Total</th>
-                            <th className="px-6 py-4 text-center">Estado</th>
-                            <th className="px-6 py-4 text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-800">
-                        {quotes.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={8}
-                                    className="px-6 py-12 text-center text-gray-400"
-                                >
-                                    No se encontraron presupuestos
-                                    {search ? ` para "${search}"` : ""}
-                                    {status && status !== "all"
-                                        ? ` con filtro "${status}"`
-                                        : ""}
-                                </td>
-                            </tr>
-                        ) : (
-                            quotes.map((quote) => {
-                                const statusCfg = STATUS_LABELS[quote.status] || {
-                                    label: quote.status,
-                                    color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-                                };
-                                const expired = isExpired(quote);
-                                const isLoading = actionLoadingId === quote.id;
-
-                                return (
-                                    <tr
-                                        key={quote.id}
-                                        className="hover:bg-gray-800/40 transition-colors"
+            <ResponsiveTable
+                rows={quotes}
+                getRowKey={(quote) => quote.id}
+                minWidth="900px"
+                empty={
+                    <>
+                        No se encontraron presupuestos
+                        {search ? ` para "${search}"` : ""}
+                        {status && status !== "all" ? ` con filtro "${status}"` : ""}
+                    </>
+                }
+                columns={[
+                    {
+                        key: "number",
+                        header: "N° Presupuesto",
+                        mobile: "subtitle",
+                        className: "font-mono font-medium text-white whitespace-nowrap",
+                        cell: (quote) => (
+                            <span className="font-mono">
+                                {quote.number}
+                                {(priceAlerts?.[quote.id] ?? 0) > 0 && (
+                                    <span
+                                        className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-sans font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30"
+                                        title="Cambió el costo o el dólar de ítems de distribuidores"
                                     >
-                                        <td className="px-6 py-4 font-mono font-medium text-white whitespace-nowrap">
-                                            {quote.number}
-                                            {(priceAlerts?.[quote.id] ?? 0) > 0 && (
-                                                <span
-                                                    className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-sans font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30"
-                                                    title="Cambió el costo o el dólar de ítems de distribuidores"
-                                                >
-                                                    ⚠ {priceAlerts![quote.id]} precio
-                                                    {priceAlerts![quote.id] > 1 ? "s" : ""}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="font-medium text-white">
-                                                {quote.customer?.name || "Sin nombre"}
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                {quote.customer?.documentType && quote.customer?.documentNumber
-                                                    ? `${quote.customer.documentType}: ${quote.customer.documentNumber}`
-                                                    : quote.customer?.email || ""}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-300 whitespace-nowrap text-xs">
-                                            {formatDate(quote.date)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-xs">
-                                            <span
-                                                className={
-                                                    expired && quote.status !== "converted"
-                                                        ? "text-red-400 font-medium inline-flex items-center gap-1"
-                                                        : "text-gray-300"
-                                                }
-                                            >
-                                                {formatDate(quote.expirationDate)}
-                                                {expired && quote.status !== "converted" && (
-                                                    <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">
-                                                        Vencido
-                                                    </span>
-                                                )}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center text-gray-300 text-xs">
-                                            {quote.items?.length || 0}
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-medium text-white whitespace-nowrap">
-                                            {formatCurrency(quote.total)}
-                                        </td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">
-                                            <span
-                                                className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${statusCfg.color}`}
-                                            >
-                                                {statusCfg.label}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right whitespace-nowrap">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {/* Ver PDF */}
-                                                <a
-                                                    href={`/api/admin/quotes/${quote.id}/pdf`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    title="Ver / Imprimir comprobante PDF (Letra X)"
-                                                    className="p-1.5 text-gray-400 hover:text-brand hover:bg-brand/10 rounded-lg transition"
-                                                >
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="w-4 h-4"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                                        />
-                                                    </svg>
-                                                </a>
+                                        ⚠ {priceAlerts![quote.id]} precio{priceAlerts![quote.id] > 1 ? "s" : ""}
+                                    </span>
+                                )}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: "customer",
+                        header: "Cliente",
+                        mobile: "title",
+                        cell: (quote) => (
+                            <Link href={`/admin/quotes/${quote.id}`} className="block hover:underline md:no-underline">
+                                <span className="font-medium text-white">{quote.customer?.name || "Sin nombre"}</span>
+                                <span className="block text-xs font-normal text-gray-400">
+                                    {quote.customer?.documentType && quote.customer?.documentNumber
+                                        ? `${quote.customer.documentType}: ${quote.customer.documentNumber}`
+                                        : quote.customer?.email || ""}
+                                </span>
+                            </Link>
+                        ),
+                    },
+                    {
+                        key: "date",
+                        header: "Emisión",
+                        className: "text-gray-300 whitespace-nowrap text-xs",
+                        cell: (quote) => formatDate(quote.date),
+                    },
+                    {
+                        key: "expiration",
+                        header: "Vencimiento",
+                        className: "whitespace-nowrap text-xs",
+                        cell: (quote) => {
+                            const expired = isExpired(quote) && quote.status !== "converted";
+                            return (
+                                <span
+                                    className={
+                                        expired ? "text-red-400 font-medium inline-flex items-center gap-1" : "text-gray-300"
+                                    }
+                                >
+                                    {formatDate(quote.expirationDate)}
+                                    {expired && (
+                                        <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">
+                                            Vencido
+                                        </span>
+                                    )}
+                                </span>
+                            );
+                        },
+                    },
+                    {
+                        key: "items",
+                        header: "Ítems",
+                        align: "center",
+                        mobile: "hidden",
+                        className: "text-gray-300 text-xs",
+                        cell: (quote) => quote.items?.length || 0,
+                    },
+                    {
+                        key: "total",
+                        header: "Total",
+                        align: "right",
+                        className: "font-medium text-white whitespace-nowrap",
+                        cell: (quote) => formatCurrency(quote.total),
+                    },
+                    {
+                        key: "status",
+                        header: "Estado",
+                        align: "center",
+                        mobile: "badge",
+                        className: "whitespace-nowrap",
+                        cell: (quote) => {
+                            const statusCfg = STATUS_LABELS[quote.status] || {
+                                label: quote.status,
+                                color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
+                            };
+                            return (
+                                <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${statusCfg.color}`}>
+                                    {statusCfg.label}
+                                </span>
+                            );
+                        },
+                    },
+                    {
+                        key: "actions",
+                        header: "Acciones",
+                        align: "right",
+                        mobile: "actions",
+                        className: "whitespace-nowrap",
+                        cell: (quote) => {
+                            const isLoading = actionLoadingId === quote.id;
+                            return (
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                    <a
+                                        href={`/api/admin/quotes/${quote.id}/pdf`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Ver / Imprimir comprobante PDF (Letra X)"
+                                        className="inline-flex items-center gap-1.5 rounded-lg p-2 md:p-1.5 transition disabled:opacity-50 text-gray-400 hover:text-brand hover:bg-brand/10"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                            />
+                                        </svg>
+                                        <span className="text-xs md:hidden">PDF</span>
+                                    </a>
 
-                                                {/* Editar */}
-                                                <Link
-                                                    href={`/admin/quotes/${quote.id}`}
-                                                    title="Editar presupuesto"
-                                                    className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition"
-                                                >
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="w-4 h-4"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                        />
-                                                    </svg>
-                                                </Link>
+                                    <Link
+                                        href={`/admin/quotes/${quote.id}`}
+                                        title="Editar presupuesto"
+                                        className="inline-flex items-center gap-1.5 rounded-lg p-2 md:p-1.5 transition disabled:opacity-50 text-gray-400 hover:text-white hover:bg-gray-800"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                            />
+                                        </svg>
+                                        <span className="text-xs md:hidden">Editar</span>
+                                    </Link>
 
-                                                {/* Convertir a Orden */}
-                                                {quote.status !== "converted" && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleConvert(quote)}
-                                                        disabled={isLoading}
-                                                        title="Convertir a Orden de venta"
-                                                        className="p-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition disabled:opacity-50"
-                                                    >
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="w-4 h-4"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                                                            />
-                                                        </svg>
-                                                    </button>
-                                                )}
+                                    {quote.status !== "converted" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleConvert(quote)}
+                                            disabled={isLoading}
+                                            title="Convertir a Orden de venta"
+                                            className="inline-flex items-center gap-1.5 rounded-lg p-2 md:p-1.5 transition disabled:opacity-50 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                                                />
+                                            </svg>
+                                            <span className="text-xs md:hidden">A orden</span>
+                                        </button>
+                                    )}
 
-                                                {/* Eliminar */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(quote)}
-                                                    disabled={isLoading}
-                                                    title="Eliminar presupuesto"
-                                                    className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition disabled:opacity-50"
-                                                >
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="w-4 h-4"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                        />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDelete(quote)}
+                                        disabled={isLoading}
+                                        title="Eliminar presupuesto"
+                                        className="inline-flex items-center gap-1.5 rounded-lg p-2 md:p-1.5 transition disabled:opacity-50 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                            />
+                                        </svg>
+                                        <span className="text-xs md:hidden">Eliminar</span>
+                                    </button>
+                                </div>
+                            );
+                        },
+                    },
+                ]}
+            />
         </div>
     );
 }

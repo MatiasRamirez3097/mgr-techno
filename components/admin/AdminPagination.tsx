@@ -213,8 +213,10 @@ export function AdminPagination({
                     className="
                     flex
                     items-center
+                    justify-between
+                    sm:justify-start
                     gap-1
-                    flex-wrap
+                    sm:flex-wrap
                 "
                 >
                     {/* PREVIOUS */}
@@ -226,8 +228,10 @@ export function AdminPagination({
                                 handleNavigation(e, buildUrl(currentPage - 1))
                             }
                             className="
-                                px-3
-                                py-1.5
+                                px-4
+                                py-2.5
+                                sm:px-3
+                                sm:py-1.5
                                 rounded-lg
                                 text-sm
                                 text-gray-400
@@ -241,8 +245,10 @@ export function AdminPagination({
                     ) : (
                         <span
                             className="
-                            px-3
-                            py-1.5
+                            px-4
+                            py-2.5
+                            sm:px-3
+                            sm:py-1.5
                             rounded-lg
                             text-sm
                             text-gray-600
@@ -261,6 +267,8 @@ export function AdminPagination({
                                 <span
                                     key={`dots-${index}`}
                                     className="
+                                            hidden
+                                            sm:inline
                                             px-2
                                             text-sm
                                             text-gray-600
@@ -279,18 +287,20 @@ export function AdminPagination({
                                 href={url}
                                 onClick={(e: any) => handleNavigation(e, url)}
                                 className={`
-                                        w-8
-                                        h-8
+                                        min-w-10
+                                        h-10
+                                        sm:min-w-8
+                                        sm:h-8
+                                        px-2
                                         rounded-lg
                                         text-sm
-                                        flex
                                         items-center
                                         justify-center
                                         transition-colors
                                         ${
                                             page === currentPage
-                                                ? "bg-brand text-white font-bold"
-                                                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                                                ? "flex bg-brand text-white font-bold"
+                                                : "hidden sm:flex text-gray-400 hover:text-white hover:bg-gray-800"
                                         }
                                     `}
                             >
@@ -308,8 +318,10 @@ export function AdminPagination({
                                 handleNavigation(e, buildUrl(currentPage + 1))
                             }
                             className="
-                                px-3
-                                py-1.5
+                                px-4
+                                py-2.5
+                                sm:px-3
+                                sm:py-1.5
                                 rounded-lg
                                 text-sm
                                 text-gray-400
@@ -323,8 +335,10 @@ export function AdminPagination({
                     ) : (
                         <span
                             className="
-                            px-3
-                            py-1.5
+                            px-4
+                            py-2.5
+                            sm:px-3
+                            sm:py-1.5
                             rounded-lg
                             text-sm
                             text-gray-600

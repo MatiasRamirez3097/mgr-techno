@@ -109,7 +109,7 @@ export function AdminProductFilters({ categories }: Props) {
     );
 
     return (
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center max-md:[&>div]:justify-between">
             {/* Filtro por Categoría con Jerarquía */}
             <div className="flex items-center gap-2">
                 <label

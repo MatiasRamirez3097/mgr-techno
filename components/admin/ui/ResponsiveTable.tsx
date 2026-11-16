@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { cardClass } from "./styles";
+import { MediaOnly } from "./MediaOnly";
 
 /**
  * Lugar de una columna en la tarjeta del celular:
@@ -18,6 +19,8 @@ export interface Column<T> {
     header: ReactNode;
     cell: (row: T) => ReactNode;
     mobile?: MobileSlot;
+    // false = sólo en la tarjeta del celular (ej: un dato que en la tabla ya va dentro de otra columna)
+    desktop?: boolean;
     // Etiqueta en la tarjeta (por defecto, el encabezado)
     mobileLabel?: ReactNode;
     align?: "left" | "right" | "center";
@@ -31,11 +34,14 @@ interface Props<T> {
     getRowKey: (row: T) => string;
     // Toda la tarjeta del celular lleva a este link (las acciones siguen funcionando aparte)
     rowHref?: (row: T) => string | null;
-    // Fila extra debajo (ej: edición rápida desplegada); en el celular va al pie de la tarjeta
+    // Fila extra debajo (ej: edición rápida desplegada); en el celular va al pie de la tarjeta.
+    // Se monta una sola vez, en el diseño visible (MediaOnly).
     renderExpanded?: (row: T) => ReactNode;
     empty?: ReactNode;
     // Ancho mínimo de la tabla de escritorio (scroll horizontal si no entra)
     minWidth?: string;
+    // "bare": sin tarjeta propia, para usar dentro de un contenedor que ya la tiene
+    variant?: "card" | "bare";
     className?: string;
 }
 
@@ -53,19 +59,24 @@ export function ResponsiveTable<T>({
     renderExpanded,
     empty = "No hay resultados.",
     minWidth = "720px",
+    variant = "card",
     className = "",
 }: Props<T>) {
+    const bare = variant === "bare";
     if (rows.length === 0) {
-        return <div className={`${cardClass} p-10 text-center text-sm text-gray-500 ${className}`}>{empty}</div>;
+        return (
+            <div className={`${bare ? "" : cardClass} p-10 text-center text-sm text-gray-500 ${className}`}>{empty}</div>
+        );
     }
 
     const slot = (c: Column<T>) => c.mobile ?? "field";
+    const desktopColumns = columns.filter((c) => c.desktop !== false);
     const bySlot = (s: MobileSlot) => columns.filter((c) => slot(c) === s);
 
     return (
         <div className={className}>
             {/* Celular: tarjetas */}
-            <ul className="flex flex-col gap-3 md:hidden">
+            <ul className={`flex flex-col gap-3 md:hidden ${bare ? "p-3" : ""}`}>
                 {rows.map((row) => {
                     const key = getRowKey(row);
                     const href = rowHref?.(row) ?? null;
@@ -126,18 +137,22 @@ export function ResponsiveTable<T>({
                                     ))}
                                 </div>
                             )}
-                            {expanded && <div className="mt-3">{expanded}</div>}
+                            {expanded && (
+                                <MediaOnly on="mobile">
+                                    <div className="mt-3">{expanded}</div>
+                                </MediaOnly>
+                            )}
                         </li>
                     );
                 })}
             </ul>
 
             {/* Escritorio: tabla */}
-            <div className={`${cardClass} hidden overflow-x-auto md:block`}>
+            <div className={`${bare ? "" : cardClass} hidden overflow-x-auto md:block`}>
                 <table className="w-full border-collapse text-left text-sm" style={{ minWidth }}>
                     <thead className="border-b border-gray-800 bg-gray-800/50 text-gray-400">
                         <tr>
-                            {columns.map((c) => (
+                            {desktopColumns.map((c) => (
                                 <th
                                     key={c.key}
                                     className={`px-4 py-3 font-semibold ${ALIGN[c.align ?? "left"]} ${c.headerClassName ?? ""}`}
@@ -153,7 +168,7 @@ export function ResponsiveTable<T>({
                             return (
                                 <Fragment key={getRowKey(row)}>
                                     <tr className="align-middle hover:bg-gray-800/30">
-                                        {columns.map((c) => (
+                                        {desktopColumns.map((c) => (
                                             <td
                                                 key={c.key}
                                                 className={`px-4 py-3 ${ALIGN[c.align ?? "left"]} ${c.className ?? ""}`}
@@ -163,11 +178,13 @@ export function ResponsiveTable<T>({
                                         ))}
                                     </tr>
                                     {expanded && (
-                                        <tr className="bg-gray-800/30">
-                                            <td colSpan={columns.length} className="px-4 py-4">
-                                                {expanded}
-                                            </td>
-                                        </tr>
+                                        <MediaOnly on="desktop">
+                                            <tr className="bg-gray-800/30">
+                                                <td colSpan={desktopColumns.length} className="px-4 py-4">
+                                                    {expanded}
+                                                </td>
+                                            </tr>
+                                        </MediaOnly>
                                     )}
                                 </Fragment>
                             );
