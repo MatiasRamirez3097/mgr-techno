@@ -125,6 +125,10 @@ export function candidatesFromIndex<I extends CodeMatchItem>(
     return [...new Set(keys.flatMap((k) => index.get(k) ?? []))];
 }
 
+// Invid puede informar sólo una leyenda ("Stock bajo"); AIR, "Sin stock en ROS (...)"
+export const hasDistributorStock = (stock: number | null | undefined, label: string | null | undefined) =>
+    (stock ?? 0) > 0 || Boolean(label && !/^sin stock/i.test(label));
+
 /** Margen sobre el costo: (precio − costo) / costo. null si no hay costo. */
 export function marginOverCost(price: number, cost: number | null | undefined): number | null {
     if (!cost || cost <= 0) return null;

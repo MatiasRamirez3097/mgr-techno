@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DISTRIBUTOR_LABELS, marginOverCost, toDistributorKey } from "@/lib/distributors/productLinks";
+import {
+    DISTRIBUTOR_LABELS,
+    hasDistributorStock,
+    marginOverCost,
+    toDistributorKey,
+} from "@/lib/distributors/productLinks";
 import type { NormalizedProduct } from "@/types/shared/distributor";
 import type {
     CreateDistributorLinkInput,
@@ -29,8 +34,7 @@ const formatArs = (n: number) => `$${Math.round(n).toLocaleString("es-AR")}`;
 const formatPercent = (n: number) =>
     `${n > 0 ? "+" : ""}${(n * 100).toLocaleString("es-AR", { maximumFractionDigits: 1 })}%`;
 
-const hasStock = (stock: number | null, label: string | null | undefined) =>
-    (stock ?? 0) > 0 || Boolean(label && !/^sin stock/i.test(label));
+const hasStock = hasDistributorStock;
 
 async function fetchLinks(productId: string): Promise<ProductDistributorLinkDTO[]> {
     const res = await fetch(`/api/admin/products/${productId}/distributor-links`, { cache: "no-store" });

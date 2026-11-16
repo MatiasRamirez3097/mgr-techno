@@ -177,6 +177,14 @@ const LINKS = [
                 href: "/admin/comparator/categories",
                 label: "Categorías",
             },
+            {
+                href: "/admin/comparator/pricing",
+                label: "Revisión de precios",
+            },
+            {
+                href: "/admin/comparator/margins",
+                label: "Márgenes",
+            },
         ],
         icon: (
             <svg
