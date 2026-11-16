@@ -5,6 +5,7 @@ import {
     getCustomersByIdWIthOrders,
 } from "@/services/customers/getCustomersById";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
+import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -37,6 +38,8 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     },
 };
 
+type CustomerOrder = { id: string; status: string; total: string | number; createdAt: string | Date };
+
 export default async function AdminCustomerDetailPage({
     params,
 }: {
@@ -46,6 +49,14 @@ export default async function AdminCustomerDetailPage({
     const customer = await getCustomersByIdWIthOrders(id);
 
     if (!customer) notFound();
+
+    const orders = customer.orders as CustomerOrder[];
+    // Sin contar canceladas, fallidas ni devueltas
+    const totalSpent = orders
+        .filter((o) => !["cancelled", "failed", "refunded"].includes(o.status))
+        .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+    const formatDate = (d: string | Date) =>
+        new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 
     return (
         <div className="max-w-5xl">
@@ -57,17 +68,17 @@ export default async function AdminCustomerDetailPage({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="flex flex-col gap-6">
                     {/* Info personal */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                    <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
                         <div className="flex items-center gap-4 mb-5">
-                            <div className="w-14 h-14 rounded-full bg-brand flex items-center justify-center text-white text-xl font-bold shrink-0">
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-brand flex items-center justify-center text-white text-xl font-bold shrink-0">
                                 {customer.firstName?.charAt(0)?.toUpperCase() ||
                                     customer.email?.charAt(0)?.toUpperCase()}
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 <p className="text-white font-medium">
                                     {customer.firstName} {customer.lastName}
                                 </p>
-                                <p className="text-sm text-gray-400">
+                                <p className="text-sm text-gray-400 break-all">
                                     {customer.email}
                                 </p>
                             </div>
@@ -98,30 +109,21 @@ export default async function AdminCustomerDetailPage({
                                 <span className="text-gray-400">
                                     Total pedidos
                                 </span>
-                                {/* 
-                                <span className="text-white">
-                                    {customer.orders_count}
-                                </span>
-                                */}
+                                <span className="text-white">{customer.orders.length}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-400">
                                     Total gastado
                                 </span>
-                                {/*
                                 <span className="text-white font-medium">
-                                    $
-                                    {parseFloat(
-                                        customer.total_spent || "0",
-                                    ).toLocaleString("es-AR")}
+                                    ${totalSpent.toLocaleString("es-AR")}
                                 </span>
-                                */}
                             </div>
                         </div>
                     </section>
 
                     {/* Dirección */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                    <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
                             Dirección de envío
                         </h2>
@@ -145,7 +147,7 @@ export default async function AdminCustomerDetailPage({
                 {/* Pedidos del cliente */}
                 <div className="lg:col-span-2">
                     <section className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-800">
+                        <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-800">
                             <h2 className="text-base font-bold text-white">
                                 Pedidos
                             </h2>
@@ -156,80 +158,64 @@ export default async function AdminCustomerDetailPage({
                                 Este cliente no tiene pedidos aún
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                            <table className="w-full min-w-[640px]">
-                                <thead>
-                                    <tr className="border-b border-gray-800">
-                                        <th className="text-left text-xs text-gray-400 font-medium px-6 py-3">
-                                            #
-                                        </th>
-                                        <th className="text-left text-xs text-gray-400 font-medium px-6 py-3">
-                                            Estado
-                                        </th>
-                                        <th className="text-left text-xs text-gray-400 font-medium px-6 py-3">
-                                            Total
-                                        </th>
-                                        <th className="text-left text-xs text-gray-400 font-medium px-6 py-3">
-                                            Fecha
-                                        </th>
-                                        <th className="text-left text-xs text-gray-400 font-medium px-6 py-3"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {customer.orders.map((order: any) => {
-                                        const status = STATUS_LABELS[
-                                            order.status
-                                        ] || {
-                                            label: order.status,
-                                            color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-                                        };
-                                        return (
-                                            <tr
-                                                key={order.id}
-                                                className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
+                            <ResponsiveTable
+                                variant="bare"
+                                minWidth="560px"
+                                rows={orders}
+                                getRowKey={(order) => String(order.id)}
+                                rowHref={(order) => `/admin/orders/${order.id}`}
+                                columns={[
+                                    {
+                                        key: "id",
+                                        header: "#",
+                                        mobile: "title",
+                                        className: "text-sm text-white font-medium",
+                                        cell: (order) => `#${String(order.id).slice(-6).toUpperCase()}`,
+                                    },
+                                    {
+                                        key: "status",
+                                        header: "Estado",
+                                        mobile: "badge",
+                                        cell: (order) => {
+                                            const status = STATUS_LABELS[order.status] || {
+                                                label: order.status,
+                                                color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
+                                            };
+                                            return (
+                                                <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status.color}`}>
+                                                    {status.label}
+                                                </span>
+                                            );
+                                        },
+                                    },
+                                    {
+                                        key: "total",
+                                        header: "Total",
+                                        className: "text-sm text-white",
+                                        cell: (order) => `$${Number(order.total).toLocaleString("es-AR")}`,
+                                    },
+                                    {
+                                        key: "date",
+                                        header: "Fecha",
+                                        className: "text-sm text-gray-400",
+                                        cell: (order) => formatDate(order.createdAt),
+                                    },
+                                    {
+                                        key: "view",
+                                        header: "",
+                                        mobile: "hidden",
+                                        align: "right",
+                                        cell: (order) => (
+                                            <Link
+                                                href={`/admin/orders/${order.id}`}
+                                                className="text-xs text-brand hover:brightness-125 transition-all"
                                             >
-                                                <td className="px-6 py-3 text-sm text-white font-medium">
-                                                    #{order.id}
-                                                </td>
-                                                <td className="px-6 py-3">
-                                                    <span
-                                                        className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status.color}`}
-                                                    >
-                                                        {status.label}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-3 text-sm text-white">
-                                                    $
-                                                    {parseFloat(
-                                                        order.total,
-                                                    ).toLocaleString("es-AR")}
-                                                </td>
-                                                <td className="px-6 py-3 text-sm text-gray-400">
-                                                    {new Date(
-                                                        order.createdAt,
-                                                    ).toLocaleDateString(
-                                                        "es-AR",
-                                                        {
-                                                            day: "2-digit",
-                                                            month: "short",
-                                                            year: "numeric",
-                                                        },
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-3">
-                                                    <Link
-                                                        href={`/admin/orders/${order.id}`}
-                                                        className="text-xs text-brand hover:brightness-125 transition-all"
-                                                    >
-                                                        Ver →
-                                                    </Link>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                            </div>
+                                                Ver →
+                                            </Link>
+                                        ),
+                                    },
+                                ]}
+                            />
                         )}
                     </section>
                 </div>

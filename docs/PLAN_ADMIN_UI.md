@@ -1,6 +1,6 @@
 # Plan: rediseño del panel de administración (orden de formularios + responsive)
 
-Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1): `feat/admin-ui-foundation` · PR 2 (fase 2): `feat/admin-ui-lists` · PR 3 (fase 3): `feat/admin-ui-product-form` · PR 4 (fase 4): `feat/admin-ui-order-forms` · PR 5 (fase 5): `feat/admin-ui-settings-forms` · sigue la fase 6
+Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1): `feat/admin-ui-foundation` · PR 2 (fase 2): `feat/admin-ui-lists` · PR 3 (fase 3): `feat/admin-ui-product-form` · PR 4 (fase 4): `feat/admin-ui-order-forms` · PR 5 (fase 5): `feat/admin-ui-settings-forms` · PR 6 (fase 6): `feat/admin-ui-detail-pages` · plan completo
 
 Objetivos:
 1. Formularios más cortos de recorrer y ordenados: secciones claras, navegación entre secciones y
@@ -192,11 +192,23 @@ Notas de la fase 5:
 
 ## Fase 6 — Páginas de detalle y dashboard
 
-- [ ] Detalle de orden (`orders/[id]`, 478 líneas), de compra, de cliente y de presupuesto:
+- [x] Detalle de orden (`orders/[id]`, 478 líneas), de compra, de cliente y de presupuesto:
       acciones principales arriba y agrupadas, bloques apilados en el celular.
-- [ ] Dashboard: tarjetas de métricas en 2 columnas en el celular, gráficos con alto adaptable.
+- [x] Dashboard: tarjetas de métricas en 2 columnas en el celular, gráficos con alto adaptable.
 
 **PR 6**.
+
+Notas de la fase 6:
+- Venta: arriba un resumen (total, pagado / restante, cliente, envío) y el cambio de estado a todo
+  el ancho; debajo las dos columnas (productos + cliente | inventario, pagos, documentos). El método
+  de envío pasó a los datos del cliente (era una tarjeta suelta). Arreglado un `col-span-2` que en el
+  celular creaba una columna fantasma.
+- Compra y presupuesto: su detalle es el formulario, ya resuelto en la fase 4.
+- Cliente: pedidos con `ResponsiveTable` (tarjetas en el celular, toda la tarjeta lleva al pedido);
+  "Total pedidos" y "Total gastado" estaban comentados y ahora se calculan de sus pedidos (sin
+  canceladas, fallidas ni devueltas).
+- Dashboard: tarjetas de 2 columnas en el celular con montos más chicos; gráficos de 224 px de alto
+  en el celular (288 en escritorio) y ejes con letra más chica.
 
 ## Verificación (en cada PR)
 

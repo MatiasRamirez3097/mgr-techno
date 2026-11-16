@@ -92,6 +92,7 @@ export default async function AdminOrderDetailPage({
     const paymentStatus =
         order.paymentStatus ||
         computePaymentStatus(order.total, sumPaidPayments(payments));
+    const paidTotal = sumPaidPayments(payments);
     const paymentMethodType = payments[0]?.method || "bank_transfer"; // Sacamos el método de pago
 
     const allocationSuggestions =
@@ -128,10 +129,63 @@ export default async function AdminOrderDetailPage({
                 }
             />
 
+            {/* Resumen rápido: lo que más se mira al abrir una venta */}
+            <dl className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {[
+                    { label: "Total", value: `$${order.total.toLocaleString("es-AR")}`, strong: true },
+                    {
+                        label: "Pagado",
+                        value: `$${paidTotal.toLocaleString("es-AR")}`,
+                        hint:
+                            order.total - paidTotal > 0
+                                ? `Resta $${(order.total - paidTotal).toLocaleString("es-AR")}`
+                                : "Pago completo",
+                    },
+                    {
+                        label: "Cliente",
+                        value: `${order.billing?.firstName || ""} ${order.billing?.lastName || ""}`.trim() || "—",
+                    },
+                    {
+                        label: "Envío",
+                        value: SHIPPING_METHOD_LABELS[order.shippingMethod?.method] || order.shippingMethod?.method || "—",
+                    },
+                ].map((kpi) => (
+                    <div key={kpi.label} className="min-w-0 rounded-2xl border border-gray-800 bg-gray-900 p-3 sm:p-4">
+                        <dt className="text-xs text-gray-400">{kpi.label}</dt>
+                        <dd className={`mt-1 truncate ${kpi.strong ? "text-lg font-bold text-brand" : "text-sm font-medium text-white"}`}>
+                            {kpi.value}
+                        </dd>
+                        {kpi.hint && <dd className="mt-0.5 text-xs text-gray-500">{kpi.hint}</dd>}
+                    </div>
+                ))}
+            </dl>
+
+            {/* Estado: la acción principal, arriba de todo */}
+            <section className="mb-6 bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
+                <h2 className="text-base font-bold text-white mb-4">Estado de la orden</h2>
+                {paymentStatus !== "paid" && paymentMethodType !== "cash" && (
+                    <div className="mb-4 bg-amber-400/10 border border-amber-400/20 p-3 rounded-xl flex items-start gap-2">
+                        <span className="text-amber-400 text-sm mt-0.5">⚠️</span>
+                        <p className="text-xs text-amber-400/90 leading-relaxed">
+                            El pago aún no está confirmado. El sistema <strong>bloqueará</strong> el avance a estados
+                            de envío (Enviado, Listo para retirar, etc.) hasta que se registre el pago.
+                        </p>
+                    </div>
+                )}
+                <StatusSelector
+                    name="status"
+                    keyToChange="status"
+                    apiUrl="/api/admin/orders/"
+                    statusOptions={ORDER_STATUSES}
+                    orderId={order.id.toString()}
+                    currentStatus={order.status}
+                />
+            </section>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-6">
+                <div className="flex min-w-0 flex-col gap-6">
                     {/* Productos */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                    <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
                             Productos
                         </h2>
@@ -306,7 +360,7 @@ export default async function AdminOrderDetailPage({
                     </section>
 
                     {/* Datos del cliente */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                    <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
                         <h2 className="text-base font-bold text-white mb-4">
                             Cliente
                         </h2>
@@ -337,7 +391,7 @@ export default async function AdminOrderDetailPage({
                                     {order.billing?.document?.number || "—"}
                                 </p>
                             </div>
-                            <div className="col-span-2">
+                            <div className="sm:col-span-2">
                                 <p className="text-gray-400 mb-1">Dirección</p>
                                 <p className="text-white">
                                     {order.billing?.address},{" "}
@@ -346,45 +400,20 @@ export default async function AdminOrderDetailPage({
                                     {order.billing?.postcode})
                                 </p>
                             </div>
+                            <div className="sm:col-span-2">
+                                <p className="text-gray-400 mb-1">Envío</p>
+                                <p className="text-white">
+                                    {SHIPPING_METHOD_LABELS[order.shippingMethod?.method] || order.shippingMethod?.method}
+                                    {order.shippingMethod?.cost > 0 &&
+                                        ` · $${order.shippingMethod.cost.toLocaleString("es-AR")}`}
+                                </p>
+                            </div>
                         </div>
                     </section>
                 </div>
 
                 {/* Panel derecho */}
-                <div className="flex flex-col gap-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800 md:col-span-2">
-                            <h2 className="text-base font-bold text-white mb-4">
-                                Cambiar estado de la orden
-                            </h2>
-
-                            {/* NUEVO: Advertencia de bloqueo si no está pagado */}
-                            {paymentStatus !== "paid" &&
-                                paymentMethodType !== "cash" && (
-                                    <div className="mb-4 bg-amber-400/10 border border-amber-400/20 p-3 rounded-xl flex items-start gap-2">
-                                        <span className="text-amber-400 text-sm mt-0.5">
-                                            ⚠️
-                                        </span>
-                                        <p className="text-xs text-amber-400/90 leading-relaxed">
-                                            El pago aún no está confirmado. El
-                                            sistema <strong>bloqueará</strong>{" "}
-                                            el avance a estados de envío
-                                            (Enviado, Listo para retirar, etc.)
-                                            hasta que se registre el pago.
-                                        </p>
-                                    </div>
-                                )}
-
-                            <StatusSelector
-                                name="status"
-                                keyToChange="status"
-                                apiUrl="/api/admin/orders/"
-                                statusOptions={ORDER_STATUSES}
-                                orderId={order.id.toString()}
-                                currentStatus={order.status}
-                            />
-                        </section>
-                    </div>
+                <div className="flex min-w-0 flex-col gap-6">
                     {paymentStatus === "paid" &&
                         order.status !== "cancelled" && (
                             <InventoryAllocationSection
@@ -403,13 +432,13 @@ export default async function AdminOrderDetailPage({
                         payments={order.payments || []}
                         paymentStatus={paymentStatus}
                     />
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="flex items-center justify-between mb-4">
+                    <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                             <h2 className="text-base font-bold text-white">
                                 Documentos
                             </h2>
 
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 <GenerateVoucherButton
                                     orderId={order.id}
                                     type="non_fiscal_receipt"
@@ -441,28 +470,6 @@ export default async function AdminOrderDetailPage({
                                 <div className="text-sm text-gray-400">
                                     No hay comprobantes generados
                                 </div>
-                            )}
-                        </div>
-                    </section>
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="border-t border-gray-700 mt-4 pt-4">
-                            <p className="text-sm text-gray-400">
-                                Método de envío
-                            </p>
-
-                            <p className="text-sm text-white">
-                                {SHIPPING_METHOD_LABELS[
-                                    order.shippingMethod?.method
-                                ] || order.shippingMethod?.method}
-                            </p>
-
-                            {order.shippingMethod?.cost > 0 && (
-                                <p className="text-sm text-gray-400 mt-1">
-                                    $
-                                    {order.shippingMethod.cost.toLocaleString(
-                                        "es-AR",
-                                    )}
-                                </p>
                             )}
                         </div>
                     </section>
