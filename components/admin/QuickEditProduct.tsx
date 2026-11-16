@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductDTO } from "@/types/shared/product";
+import { getFinalPrice } from "@/lib/pricing";
+import { ProductDistributorLinksPanel } from "@/components/admin/distributors/ProductDistributorLinksPanel";
 
 interface Props {
     product: ProductDTO;
@@ -79,162 +81,176 @@ export function QuickEditProduct({ product, onClose }: Props) {
         }
     };
 
+    // Margen de los distribuidores con el precio que se está editando (o el vigente)
+    const typedRegular = Number(form.regularPrice);
+    const typedSale = form.salePrice !== "" && form.salePrice !== null ? Number(form.salePrice) : null;
+    const priceEdited = typedRegular !== product.regularPrice || typedSale !== (product.salePrice ?? null);
+    const sellingPrice =
+        priceEdited && typedRegular > 0
+            ? getFinalPrice({ regularPrice: typedRegular, salePrice: typedSale && typedSale > 0 ? typedSale : null })
+            : product.effectivePrice;
+
     const inputClass =
         "w-full bg-gray-700 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 focus:border-brand outline-none transition-colors";
 
     return (
-        <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
-            <div className="p-5 bg-gray-900 border border-gray-700 rounded-2xl shadow-xl w-full max-w-4xl">
-                <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-800">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-brand uppercase tracking-wider">
-                            Edición rápida
-                        </span>
-                        <span className="text-xs text-gray-400 font-medium">
-                            — {product.name} {product.sku ? `(${product.sku})` : ""}
-                        </span>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded"
-                    >
-                        ✕ Cerrar
-                    </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-                    <div>
-                        <label className="text-xs text-gray-400 mb-1 block font-medium">
-                            Precio regular {isBundle ? "(suma combo)" : "*"}
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={form.regularPrice}
-                            readOnly={isBundle}
-                            disabled={isBundle}
-                            onChange={(e) =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    regularPrice: e.target.value,
-                                }))
-                            }
-                            className={`${inputClass} ${isBundle ? "opacity-60 cursor-not-allowed" : ""}`}
-                            placeholder="0.00"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-xs text-gray-400 mb-1 block font-medium">
-                            Precio oferta
-                            <span className="text-gray-500 font-normal ml-1">
-                                {isBundle ? "(obligatorio)" : "(opcional)"}
+        <div className="space-y-4 w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleSubmit}>
+                <div className="p-5 bg-gray-900 border border-gray-700 rounded-2xl shadow-xl w-full">
+                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-800">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-brand uppercase tracking-wider">
+                                Edición rápida
                             </span>
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={form.salePrice}
-                            required={isBundle}
-                            onChange={(e) =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    salePrice: e.target.value,
-                                }))
-                            }
-                            className={inputClass}
-                            placeholder={isBundle ? "Precio del combo" : "Vacío = sin oferta"}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-xs text-gray-400 mb-1 block font-medium">
-                            Estado
-                        </label>
-                        <select
-                            value={form.status}
-                            onChange={(e) =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    status: e.target.value as
-                                        | "private"
-                                        | "publish"
-                                        | "draft"
-                                        | "pending_review",
-                                }))
-                            }
-                            className={inputClass}
+                            <span className="text-xs text-gray-400 font-medium">
+                                — {product.name} {product.sku ? `(${product.sku})` : ""}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded"
                         >
-                            <option value="publish">Publicado</option>
-                            <option value="pending_review">
-                                Pendiente revisión
-                            </option>
-                            <option value="draft">Borrador</option>
-                            <option value="private">Privado</option>
-                        </select>
+                            ✕ Cerrar
+                        </button>
                     </div>
 
-                    <div className="flex flex-col gap-2.5 pt-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block font-medium">
+                                Precio regular {isBundle ? "(suma combo)" : "*"}
+                            </label>
                             <input
-                                type="checkbox"
-                                checked={form.featured}
+                                type="number"
+                                step="0.01"
+                                value={form.regularPrice}
+                                readOnly={isBundle}
+                                disabled={isBundle}
                                 onChange={(e) =>
                                     setForm((prev) => ({
                                         ...prev,
-                                        featured: e.target.checked,
+                                        regularPrice: e.target.value,
                                     }))
                                 }
-                                className="w-4 h-4 accent-brand rounded"
+                                className={`${inputClass} ${isBundle ? "opacity-60 cursor-not-allowed" : ""}`}
+                                placeholder="0.00"
                             />
-                            <span className="text-xs text-gray-300 font-medium">
-                                Destacado en inicio
-                            </span>
-                        </label>
+                        </div>
 
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block font-medium">
+                                Precio oferta
+                                <span className="text-gray-500 font-normal ml-1">
+                                    {isBundle ? "(obligatorio)" : "(opcional)"}
+                                </span>
+                            </label>
                             <input
-                                type="checkbox"
-                                checked={form.hasFreeShipping}
+                                type="number"
+                                step="0.01"
+                                value={form.salePrice}
+                                required={isBundle}
                                 onChange={(e) =>
                                     setForm((prev) => ({
                                         ...prev,
-                                        hasFreeShipping: e.target.checked,
+                                        salePrice: e.target.value,
                                     }))
                                 }
-                                className="w-4 h-4 accent-brand rounded"
+                                className={inputClass}
+                                placeholder={isBundle ? "Precio del combo" : "Vacío = sin oferta"}
                             />
-                            <span className="text-xs text-gray-300 font-medium">
-                                Envío gratis
-                            </span>
-                        </label>
+                        </div>
+
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1 block font-medium">
+                                Estado
+                            </label>
+                            <select
+                                value={form.status}
+                                onChange={(e) =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        status: e.target.value as
+                                            | "private"
+                                            | "publish"
+                                            | "draft"
+                                            | "pending_review",
+                                    }))
+                                }
+                                className={inputClass}
+                            >
+                                <option value="publish">Publicado</option>
+                                <option value="pending_review">
+                                    Pendiente revisión
+                                </option>
+                                <option value="draft">Borrador</option>
+                                <option value="private">Privado</option>
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col gap-2.5 pt-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={form.featured}
+                                    onChange={(e) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            featured: e.target.checked,
+                                        }))
+                                    }
+                                    className="w-4 h-4 accent-brand rounded"
+                                />
+                                <span className="text-xs text-gray-300 font-medium">
+                                    Destacado en inicio
+                                </span>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={form.hasFreeShipping}
+                                    onChange={(e) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            hasFreeShipping: e.target.checked,
+                                        }))
+                                    }
+                                    className="w-4 h-4 accent-brand rounded"
+                                />
+                                <span className="text-xs text-gray-300 font-medium">
+                                    Envío gratis
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="mt-3 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-800">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 rounded-xl text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="px-5 py-2 rounded-xl text-xs font-medium text-white bg-brand hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-2"
+                        >
+                            {loading ? "Guardando..." : "Guardar cambios"}
+                        </button>
                     </div>
                 </div>
+            </form>
 
-                {error && (
-                    <div className="mt-3 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
-                        {error}
-                    </div>
-                )}
-
-                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-800">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 rounded-xl text-xs font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="px-5 py-2 rounded-xl text-xs font-medium text-white bg-brand hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-2"
-                    >
-                        {loading ? "Guardando..." : "Guardar cambios"}
-                    </button>
-                </div>
-            </div>
-        </form>
+            {/* Los combos no se comparan con distribuidores */}
+            {!isBundle && <ProductDistributorLinksPanel productId={product.id} sellingPrice={sellingPrice} />}
+        </div>
     );
 }

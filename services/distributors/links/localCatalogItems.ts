@@ -203,18 +203,26 @@ export async function getLocalCatalogPriceChanges(
     ];
 }
 
-/** Todos los ítems disponibles con part number o EAN, para la vinculación automática. */
-export async function getAllLocalCatalogItemsWithCodes(): Promise<LocalCatalogItem[]> {
+/**
+ * Todos los ítems disponibles de los catálogos locales; con `withCodesOnly`, sólo los que tienen
+ * part number o EAN (vinculación automática por código).
+ */
+export async function getAllLocalCatalogItemsWithCodes({ withCodesOnly = true } = {}): Promise<LocalCatalogItem[]> {
     await connectDB();
     const rate = await getRate();
     if (!rate) return [];
 
     const [invid, air] = await Promise.all([
         InvidCatalogItemModel.find(
-            { available: true, $or: [{ partNumber: { $ne: "" } }, { ean: { $ne: "" } }] },
+            withCodesOnly
+                ? { available: true, $or: [{ partNumber: { $ne: "" } }, { ean: { $ne: "" } }] }
+                : { available: true },
             INVID_FIELDS,
         ).lean<InvidLean[]>(),
-        AirCatalogItemModel.find({ available: true, partNumber: { $ne: "" } }, AIR_FIELDS).lean<AirLean[]>(),
+        AirCatalogItemModel.find(
+            withCodesOnly ? { available: true, partNumber: { $ne: "" } } : { available: true },
+            AIR_FIELDS,
+        ).lean<AirLean[]>(),
     ]);
 
     return [...invid.map((i) => fromInvid(i, rate)), ...air.map((i) => fromAir(i, rate))];

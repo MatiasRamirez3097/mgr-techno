@@ -8,11 +8,13 @@ import {
     toDistributorKey,
 } from "@/lib/distributors/productLinks";
 import type { NormalizedProduct } from "@/types/shared/distributor";
-import type {
-    CreateDistributorLinkInput,
-    DistributorKey,
-    DistributorLinkSuggestion,
-    ProductDistributorLinkDTO,
+import type { ComparatorCategoryDTO } from "@/types/shared/comparatorCategory";
+import {
+    DISTRIBUTOR_KEYS,
+    type CreateDistributorLinkInput,
+    type DistributorKey,
+    type DistributorLinkSuggestion,
+    type ProductDistributorLinkDTO,
 } from "@/types/shared/distributorLink";
 
 interface Props {
@@ -71,8 +73,27 @@ export function ProductDistributorLinksPanel({ productId, sellingPrice }: Props)
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
     const [query, setQuery] = useState("");
+    const [category, setCategory] = useState("");
+    const [categories, setCategories] = useState<{ key: string; name: string }[]>([]);
     const [results, setResults] = useState<NormalizedProduct[] | null>(null);
     const [searching, setSearching] = useState(false);
+
+    // Categorías del comparador para acotar la búsqueda (si falla, se busca sin categoría)
+    useEffect(() => {
+        let cancelled = false;
+        fetch("/api/admin/distributors/categories", { cache: "no-store" })
+            .then((res) => (res.ok ? res.json() : { categories: [] }))
+            .then((data: { categories?: ComparatorCategoryDTO[] }) => {
+                if (cancelled) return;
+                setCategories(
+                    (data.categories ?? []).filter((c) => c.active).map((c) => ({ key: c.key, name: c.name })),
+                );
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     // `loading` sólo cubre la carga inicial; las recargas posteriores no ocultan la lista
     const loadLinks = useCallback(async () => {
@@ -161,12 +182,14 @@ export function ProductDistributorLinksPanel({ productId, sellingPrice }: Props)
         }
     }
 
-    async function search() {
-        if (!query.trim()) return;
+    async function search(nextCategory = category) {
+        if (!query.trim() && !nextCategory) return;
         setSearching(true);
         setError("");
         try {
-            const res = await fetch(`/api/admin/distributors/search?q=${encodeURIComponent(query.trim())}`, {
+            const params = new URLSearchParams({ q: query.trim() });
+            if (nextCategory) params.set("category", nextCategory);
+            const res = await fetch(`/api/admin/distributors/search?${params.toString()}`, {
                 cache: "no-store",
             });
             const data = await res.json();
@@ -178,6 +201,61 @@ export function ProductDistributorLinksPanel({ productId, sellingPrice }: Props)
             setSearching(false);
         }
     }
+
+    // Lo ya vinculado no se vuelve a ofrecer (al reemplazar un vínculo, el anterior reaparece)
+    const linkedKeys = new Set(links.map((l) => `${l.distributor}:${l.distributorProductId}`));
+    const linkedByDistributor = new Map(links.map((l) => [l.distributor, l]));
+
+    const suggestionCandidates: Candidate[] = (suggestions ?? []).map((s) => ({
+        key: `${s.distributor}:${s.distributorProductId}`,
+        distributor: s.distributor,
+        sku: s.distributorSku,
+        name: s.name,
+        price: s.price,
+        stock: s.stock,
+        stockLabel: s.stockLabel,
+        note: `${MATCH_LABEL[s.matchMethod]}: ${s.matchedValue}`,
+        input: {
+            distributor: s.distributor,
+            distributorProductId: s.distributorProductId,
+            distributorSku: s.distributorSku,
+            name: s.name,
+            link: s.link,
+            image: s.image,
+            price: s.price,
+            stock: s.stock,
+            stockLabel: s.stockLabel ?? null,
+            matchMethod: s.matchMethod,
+        },
+    }));
+
+    const resultCandidates: Candidate[] = (results ?? []).flatMap((p) => {
+        const distributor = toDistributorKey(p.distributor);
+        if (!distributor) return [];
+        return [
+            {
+                key: `${distributor}:${p.id}`,
+                distributor,
+                sku: p.sku,
+                name: p.name,
+                price: p.price,
+                stock: p.stock,
+                stockLabel: p.stockLabel,
+                input: {
+                    distributor,
+                    distributorProductId: String(p.id),
+                    distributorSku: p.sku,
+                    name: p.name,
+                    link: p.link,
+                    image: p.image,
+                    price: p.price,
+                    stock: p.stock,
+                    stockLabel: p.stockLabel ?? null,
+                    matchMethod: "manual" as const,
+                },
+            },
+        ];
+    });
 
     const cheapest = links
         .filter((l) => l.available && l.lastPrice && hasStock(l.lastStock, l.lastStockLabel))
@@ -292,6 +370,7 @@ export function ProductDistributorLinksPanel({ productId, sellingPrice }: Props)
                 </div>
             )}
 
+
             {/* Sugerencias */}
             {suggestions && (
                 <div className="space-y-2">
@@ -301,41 +380,22 @@ export function ProductDistributorLinksPanel({ productId, sellingPrice }: Props)
                             No hay coincidencias por part number o EAN. Revisá el MPN/EAN del producto o buscá a mano.
                         </p>
                     ) : (
-                        suggestions.map((s) => (
-                            <CandidateRow
-                                key={`${s.distributor}-${s.distributorProductId}`}
-                                distributor={s.distributor}
-                                sku={s.distributorSku}
-                                name={s.name}
-                                price={s.price}
-                                stock={s.stock}
-                                stockLabel={s.stockLabel}
-                                sellingPrice={sellingPrice}
-                                note={`${MATCH_LABEL[s.matchMethod]}: ${s.matchedValue}`}
-                                disabled={busy}
-                                onLink={() =>
-                                    createLink({
-                                        distributor: s.distributor,
-                                        distributorProductId: s.distributorProductId,
-                                        distributorSku: s.distributorSku,
-                                        name: s.name,
-                                        link: s.link,
-                                        image: s.image,
-                                        price: s.price,
-                                        stock: s.stock,
-                                        stockLabel: s.stockLabel ?? null,
-                                        matchMethod: s.matchMethod,
-                                    })
-                                }
-                            />
-                        ))
+                        <GroupedCandidates
+                            candidates={suggestionCandidates}
+                            linkedKeys={linkedKeys}
+                            linkedByDistributor={linkedByDistributor}
+                            sellingPrice={sellingPrice}
+                            disabled={busy}
+                            onLink={createLink}
+                            emptyMessage="Ya vinculaste todas las coincidencias."
+                        />
                     )}
                 </div>
             )}
 
             {/* Búsqueda manual */}
             <div className="space-y-2">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <input
                         type="text"
                         value={query}
@@ -349,51 +409,47 @@ export function ProductDistributorLinksPanel({ productId, sellingPrice }: Props)
                         placeholder="Buscar en distribuidores por nombre o código…"
                         className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-brand"
                     />
+                    <select
+                        value={category}
+                        onChange={(e) => {
+                            setCategory(e.target.value);
+                            // Con algo escrito (o sólo la categoría) se vuelve a buscar al cambiarla
+                            if (query.trim() || e.target.value) search(e.target.value);
+                            else setResults(null);
+                        }}
+                        className="sm:w-48 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                        aria-label="Categoría del comparador"
+                    >
+                        <option value="">Todas las categorías</option>
+                        {categories.map((c) => (
+                            <option key={c.key} value={c.key}>
+                                {c.name}
+                            </option>
+                        ))}
+                    </select>
                     <button
                         type="button"
-                        onClick={search}
-                        disabled={searching || !query.trim()}
+                        onClick={() => search()}
+                        disabled={searching || (!query.trim() && !category)}
                         className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 border border-gray-700 transition disabled:opacity-50"
                     >
                         {searching ? "Buscando…" : "Buscar"}
                     </button>
                 </div>
                 {results && (
-                    <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                    <div className="max-h-[28rem] overflow-y-auto pr-1">
                         {results.length === 0 ? (
                             <p className="text-xs text-gray-500">Sin resultados.</p>
                         ) : (
-                            results.flatMap((p) => {
-                                const distributor = toDistributorKey(p.distributor);
-                                if (!distributor) return [];
-                                return [
-                                    <CandidateRow
-                                        key={`${distributor}-${p.id}`}
-                                        distributor={distributor}
-                                        sku={p.sku}
-                                        name={p.name}
-                                        price={p.price}
-                                        stock={p.stock}
-                                        stockLabel={p.stockLabel}
-                                        sellingPrice={sellingPrice}
-                                        disabled={busy}
-                                        onLink={() =>
-                                            createLink({
-                                                distributor,
-                                                distributorProductId: String(p.id),
-                                                distributorSku: p.sku,
-                                                name: p.name,
-                                                link: p.link,
-                                                image: p.image,
-                                                price: p.price,
-                                                stock: p.stock,
-                                                stockLabel: p.stockLabel ?? null,
-                                                matchMethod: "manual",
-                                            })
-                                        }
-                                    />,
-                                ];
-                            })
+                            <GroupedCandidates
+                                candidates={resultCandidates}
+                                linkedKeys={linkedKeys}
+                                linkedByDistributor={linkedByDistributor}
+                                sellingPrice={sellingPrice}
+                                disabled={busy}
+                                onLink={createLink}
+                                emptyMessage="Todos los resultados ya están vinculados."
+                            />
                         )}
                     </div>
                 )}
@@ -402,43 +458,125 @@ export function ProductDistributorLinksPanel({ productId, sellingPrice }: Props)
     );
 }
 
-function CandidateRow(props: {
+interface Candidate {
+    // distribuidor:id, para no ofrecer lo que ya está vinculado
+    key: string;
     distributor: DistributorKey;
     sku: string;
     name: string;
     price: number;
     stock: number;
     stockLabel?: string;
-    sellingPrice: number;
     note?: string;
+    input: CreateDistributorLinkInput;
+}
+
+/**
+ * Candidatos agrupados por distribuidor (se vincula uno por distribuidor), conservando el
+ * orden recibido dentro de cada grupo. Oculta los que ya están vinculados.
+ */
+function GroupedCandidates(props: {
+    candidates: Candidate[];
+    linkedKeys: Set<string>;
+    linkedByDistributor: Map<DistributorKey, ProductDistributorLinkDTO>;
+    sellingPrice: number;
+    disabled: boolean;
+    onLink: (input: CreateDistributorLinkInput) => void;
+    emptyMessage: string;
+}) {
+    const [collapsed, setCollapsed] = useState<Set<DistributorKey>>(new Set());
+
+    const groups = DISTRIBUTOR_KEYS.map((distributor) => ({
+        distributor,
+        items: props.candidates.filter((c) => c.distributor === distributor && !props.linkedKeys.has(c.key)),
+    })).filter((g) => g.items.length > 0);
+
+    if (groups.length === 0) return <p className="text-xs text-gray-500">{props.emptyMessage}</p>;
+
+    const toggle = (distributor: DistributorKey) =>
+        setCollapsed((prev) => {
+            const next = new Set(prev);
+            if (next.has(distributor)) next.delete(distributor);
+            else next.add(distributor);
+            return next;
+        });
+
+    return (
+        <div className="space-y-3">
+            {groups.map(({ distributor, items }) => {
+                const current = props.linkedByDistributor.get(distributor);
+                const isCollapsed = collapsed.has(distributor);
+                return (
+                    <div key={distributor} className="space-y-1.5">
+                        <button
+                            type="button"
+                            onClick={() => toggle(distributor)}
+                            className="w-full flex flex-wrap items-center gap-2 text-left"
+                            aria-expanded={!isCollapsed}
+                        >
+                            <span className="text-gray-500 text-[10px] w-3">{isCollapsed ? "▶" : "▼"}</span>
+                            <Badge distributor={distributor} />
+                            <span className="text-xs text-gray-400">
+                                {items.length} {items.length === 1 ? "resultado" : "resultados"}
+                            </span>
+                            {current && (
+                                <span className="text-[11px] text-amber-300/80 line-clamp-1">
+                                    Ya vinculado con “{current.name}”: elegir otro lo reemplaza
+                                </span>
+                            )}
+                        </button>
+                        {!isCollapsed &&
+                            items.map((c) => (
+                                <CandidateRow
+                                    key={c.key}
+                                    candidate={c}
+                                    sellingPrice={props.sellingPrice}
+                                    disabled={props.disabled}
+                                    onLink={() => props.onLink(c.input)}
+                                />
+                            ))}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function CandidateRow({
+    candidate,
+    sellingPrice,
+    disabled,
+    onLink,
+}: {
+    candidate: Candidate;
+    sellingPrice: number;
     disabled: boolean;
     onLink: () => void;
 }) {
-    const inStock = hasStock(props.stock, props.stockLabel);
+    const inStock = hasStock(candidate.stock, candidate.stockLabel);
     return (
         <div className="flex flex-col md:flex-row md:items-center gap-2 rounded-lg border border-gray-800 bg-gray-800/20 px-3 py-2">
             <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                    <Badge distributor={props.distributor} />
-                    <span className="text-[11px] font-mono text-gray-400">{props.sku}</span>
-                    {props.note && <span className="text-[10px] text-brand">{props.note}</span>}
+                    <span className="text-[11px] font-mono text-gray-400">{candidate.sku}</span>
+                    {candidate.note && <span className="text-[10px] text-brand">{candidate.note}</span>}
                 </div>
-                <p className="text-sm text-gray-200 line-clamp-1" title={props.name}>
-                    {props.name}
+                <p className="text-sm text-gray-200 line-clamp-1" title={candidate.name}>
+                    {candidate.name}
                 </p>
             </div>
             <div className="flex items-center gap-4 text-xs shrink-0">
-                <span className="font-mono text-white">{formatArs(props.price)}</span>
+                <span className="font-mono text-white">{formatArs(candidate.price)}</span>
                 <span className={`w-24 text-right ${inStock ? "text-emerald-400" : "text-red-400"}`}>
-                    {props.stockLabel || (inStock ? `${props.stock} un.` : "Sin stock")}
+                    {candidate.stockLabel || (inStock ? `${candidate.stock} un.` : "Sin stock")}
                 </span>
                 <span className="w-16 text-right">
-                    <MarginBadge price={props.sellingPrice} cost={props.price} />
+                    <MarginBadge price={sellingPrice} cost={candidate.price} />
                 </span>
                 <button
                     type="button"
-                    onClick={props.onLink}
-                    disabled={props.disabled}
+                    onClick={onLink}
+                    disabled={disabled}
                     className="px-3 py-1.5 rounded-lg bg-brand text-white font-semibold hover:brightness-110 transition disabled:opacity-50"
                 >
                     Vincular

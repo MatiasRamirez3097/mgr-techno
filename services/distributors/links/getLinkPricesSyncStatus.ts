@@ -5,10 +5,13 @@ import { LINK_PRICES_STATE_ID } from "./refreshRemoteLinkPrices";
 
 const toIso = (date?: Date | null) => (date ? new Date(date).toISOString() : null);
 
-/** Estado de la última actualización de costos de Elit y NewBytes. */
-export async function getLinkPricesSyncStatus(): Promise<LinkPricesSyncStatusDTO> {
+/**
+ * Estado de la última actualización de costos de Elit y NewBytes (o de otro proceso que guarda
+ * su estado en DistributorSyncState, como la búsqueda de sugerencias de vínculo).
+ */
+export async function getLinkPricesSyncStatus(stateId: string = LINK_PRICES_STATE_ID): Promise<LinkPricesSyncStatusDTO> {
     await connectDB();
-    const state = await DistributorSyncStateModel.findById(LINK_PRICES_STATE_ID).lean<{
+    const state = await DistributorSyncStateModel.findById(stateId).lean<{
         lastSuccessfulSyncAt?: Date | null;
         lastSyncStatus?: LinkPricesSyncStatusDTO["lastSyncStatus"];
         lastSyncError?: string | null;

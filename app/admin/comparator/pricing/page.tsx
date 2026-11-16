@@ -7,17 +7,20 @@ import { getPriceReview } from "@/services/pricing/getPriceReview";
 import { getCategoryMargins } from "@/services/pricing/getCategoryMargins";
 import { getLinkPricesSyncStatus } from "@/services/distributors/links/getLinkPricesSyncStatus";
 import { RefreshCostsButton } from "@/components/admin/pricing/RefreshCostsButton";
+import { LinkSuggestionsButton } from "@/components/admin/pricing/LinkSuggestionsButton";
+import { LINK_SUGGESTIONS_STATE_ID } from "@/services/distributors/links/generateLinkSuggestions";
 import type { PriceReviewView } from "@/types/shared/priceReview";
 
 export const dynamic = "force-dynamic";
 
-const VIEWS: PriceReviewView[] = ["linked", "below_min", "below_target", "no_stock", "unlinked", "all"];
+const VIEWS: PriceReviewView[] = ["linked", "below_min", "below_target", "no_stock", "unlinked", "suggested", "all"];
 
 interface Props {
     searchParams: Promise<{
         search?: string;
         category?: string;
         status?: string;
+        stock?: string;
         view?: string;
         page?: string;
         limit?: string;
@@ -30,17 +33,19 @@ export default async function PriceReviewPage({ searchParams }: Props) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 20;
 
-    const [review, categories, syncStatus] = await Promise.all([
+    const [review, categories, syncStatus, suggestionsStatus] = await Promise.all([
         getPriceReview({
             search: params.search,
             categoryId: params.category,
             status: params.status === "all" ? "all" : "publish",
+            stock: params.stock === "in" || params.stock === "out" ? params.stock : undefined,
             view,
             page,
             limit,
         }),
         getCategoryMargins(),
         getLinkPricesSyncStatus(),
+        getLinkPricesSyncStatus(LINK_SUGGESTIONS_STATE_ID),
     ]);
 
     const viewHref = (v: PriceReviewView) => {
@@ -60,6 +65,7 @@ export default async function PriceReviewPage({ searchParams }: Props) {
         { view: "below_target", label: "Bajo el objetivo", count: summary.belowMin + summary.belowTarget, tone: "text-amber-300" },
         { view: "no_stock", label: "Sin stock en distribuidores", count: summary.noStock, tone: "text-gray-300" },
         { view: "unlinked", label: "Sin vincular", count: summary.unlinked, tone: "text-gray-400" },
+        { view: "suggested", label: "Con sugerencias de vínculo", count: summary.withSuggestions, tone: "text-brand" },
     ];
 
     return (
@@ -80,11 +86,12 @@ export default async function PriceReviewPage({ searchParams }: Props) {
                 </div>
             </div>
 
-            <div className="mb-4">
+            <div className="mb-4 space-y-2">
                 <RefreshCostsButton status={syncStatus} />
+                <LinkSuggestionsButton status={suggestionsStatus} />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
                 {cards.map((card) => (
                     <Link
                         key={card.view}
