@@ -1,6 +1,8 @@
 "use client";
 import React, { useState } from "react";
 import type { NormalizedProduct } from "@/types/shared/distributor";
+import { distributorItemKey, type LinkedProductRef } from "@/lib/distributors/productLinks";
+import { LinkToProductButton } from "./LinkToProductButton";
 
 const BADGE_STYLES: Record<string, { pill: string; solid: string }> = {
     Elit: {
@@ -33,9 +35,11 @@ const hasStock = (prod: NormalizedProduct) =>
 interface Props {
     products: NormalizedProduct[];
     search: string;
+    // Productos propios vinculados a cada resultado (clave distributorItemKey)
+    linkedProducts?: Record<string, LinkedProductRef[]>;
 }
 
-export const DistributorsTable = ({ products, search }: Props) => {
+export const DistributorsTable = ({ products, search, linkedProducts = {} }: Props) => {
     const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
     return (
@@ -117,6 +121,9 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                         </th>
                                         <th className="px-6 py-4 text-sm font-semibold text-gray-400 text-center">
                                             Enlace
+                                        </th>
+                                        <th className="px-6 py-4 text-sm font-semibold text-gray-400">
+                                            Tu producto
                                         </th>
                                     </tr>
                                 </thead>
@@ -218,6 +225,14 @@ export const DistributorsTable = ({ products, search }: Props) => {
                                                         -
                                                     </span>
                                                 )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <LinkToProductButton
+                                                    item={prod}
+                                                    linkedProducts={
+                                                        linkedProducts[distributorItemKey(prod.distributor, prod.id)] ?? []
+                                                    }
+                                                />
                                             </td>
                                         </tr>
                                     ))}
