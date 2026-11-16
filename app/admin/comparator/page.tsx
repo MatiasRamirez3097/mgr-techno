@@ -9,6 +9,8 @@ import { getInvidCategories } from "@/services/distributors/invid/getInvidCatego
 import { getAirSyncStatus } from "@/services/distributors/air/getAirSyncStatus";
 import { getAirCategories } from "@/services/distributors/air/getAirCategories";
 import { getComparatorCategories } from "@/services/distributors/categories/getComparatorCategories";
+import { getLinksForDistributorItems } from "@/services/distributors/links/getLinksForDistributorItems";
+import { AutoLinkButton } from "@/components/admin/distributors/AutoLinkButton";
 import Link from "next/link";
 
 // Si el catálogo de Invid quedó viejo se sincroniza con `after` al terminar el render
@@ -51,6 +53,11 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
         getComparatorCategories({ activeOnly: true }),
     ]);
 
+    const linkedProducts = await getLinksForDistributorItems(products).catch((e) => {
+        console.error("Error obteniendo vínculos de distribuidores:", e);
+        return {};
+    });
+
     return (
         <div>
             {/* HEADER */}
@@ -71,6 +78,7 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
                     >
                         Configurar categorías
                     </Link>
+                    <AutoLinkButton />
 
                     {/* Search by Name/SKU */}
                     <AdminSearch placeholder="Buscar por nombre, SKU..." />
@@ -100,7 +108,7 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
 
             {/* TABLE */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-                <DistributorsTable products={products} search={search} />
+                <DistributorsTable products={products} search={search} linkedProducts={linkedProducts} />
             </div>
         </div>
     );

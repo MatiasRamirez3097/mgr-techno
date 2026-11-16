@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import { ProductModel } from "@/models/Product";
 import { InventoryItemModel } from "@/models/InventoryItem";
+import { ProductDistributorLinkModel } from "@/models/ProductDistributorLink";
 import { revalidateProductsCache } from "./getCatalogProducts";
 
 export async function deleteProductById(id: string) {
@@ -45,6 +46,7 @@ export async function deleteProductById(id: string) {
     }
 
     await ProductModel.findByIdAndDelete(id);
+    await ProductDistributorLinkModel.deleteMany({ productId: id });
     revalidateProductsCache();
 
     return product;

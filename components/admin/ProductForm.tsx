@@ -11,6 +11,8 @@ import { CreateBrandModal } from "./CreateBrandModal";
 import { ProductSelector } from "./ProductSelector";
 import { useBrands } from "./products/hooks/useBrands";
 import { RichTextEditor } from "@/components/admin/editor/RichTextEditor";
+import { ProductDistributorLinksPanel } from "@/components/admin/distributors/ProductDistributorLinksPanel";
+import { getFinalPrice } from "@/lib/pricing";
 import type { ProductFormState } from "@/types/admin/productForm";
 import type { CategoryDTO } from "@/types/shared/category";
 import type {
@@ -1347,6 +1349,17 @@ export function ProductForm({
                             </div>
                         </div>
                     </section>
+
+                    {/* Vínculos con distribuidores (sólo productos ya guardados; los combos no se vinculan) */}
+                    {mode === "edit" && product?.id && !isBundle && (
+                        <ProductDistributorLinksPanel
+                            productId={product.id}
+                            sellingPrice={getFinalPrice({
+                                regularPrice: Number(form.regularPrice) || 0,
+                                salePrice: Number(form.salePrice) > 0 ? Number(form.salePrice) : null,
+                            })}
+                        />
+                    )}
 
                     {/* Stock */}
                     <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
