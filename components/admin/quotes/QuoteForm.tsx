@@ -8,10 +8,18 @@ import { SearchableEntitySelect } from "@/components/admin/SearchableEntitySelec
 import { FormModal } from "@/components/admin/FormModal";
 import { CustomerForm } from "@/components/admin/CustomerForm";
 import { DistributorProductSelectorModal } from "./DistributorProductSelectorModal";
-import type { QuoteDTO, QuoteItemDTO, QuoteCustomerSnapshot } from "@/types/shared/quote";
+import { CustomPcQuoteItem } from "./CustomPcQuoteItem";
+import type {
+    QuoteComponentDTO,
+    QuoteDTO,
+    QuoteItemDTO,
+    QuoteCustomerSnapshot,
+} from "@/types/shared/quote";
 import {
     acknowledgeQuoteItemAlerts,
+    getCustomPcComponentAlerts,
     getQuoteItemPriceAlerts,
+    resolveCustomPcComponentAlert,
     isQuoteOpen,
     refreshQuoteItemCost,
     type QuoteItemPriceAlert,
@@ -59,6 +67,8 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
 
     // Modal de distribuidores
     const [showDistributorModal, setShowDistributorModal] = useState(false);
+    // Índice de la PC Armada a la que se suma el componente (null = ítem suelto)
+    const [distributorTarget, setDistributorTarget] = useState<number | null>(null);
 
     // Estado del selector inline de producto interno
     const [showInternalSelector, setShowInternalSelector] = useState(false);
@@ -188,17 +198,62 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
     }, [form.items]);
 
     // Items handlers
+    const withSubtotal = (item: QuoteItemDTO): QuoteItemDTO => {
+        const qty = Math.max(1, Number(item.quantity) || 1);
+        const unit = Math.max(0, Number(item.unitPrice) || 0);
+        const disc = Math.max(0, Number(item.discount) || 0);
+        return { ...item, subtotal: Math.max(0, unit * qty - disc) };
+    };
+
     const updateItem = (index: number, field: keyof QuoteItemDTO, value: any) => {
         setForm((prev) => {
             const items = [...prev.items];
-            const updated = { ...items[index], [field]: value };
-            const qty = Math.max(1, Number(updated.quantity) || 1);
-            const unit = Math.max(0, Number(updated.unitPrice) || 0);
-            const disc = Math.max(0, Number(updated.discount) || 0);
-            updated.subtotal = Math.max(0, unit * qty - disc);
-            items[index] = updated;
+            items[index] = withSubtotal({ ...items[index], [field]: value });
             return { ...prev, items };
         });
+    };
+
+    const replaceItem = (index: number, item: QuoteItemDTO) => {
+        setForm((prev) => {
+            const items = [...prev.items];
+            items[index] = withSubtotal(item);
+            return { ...prev, items };
+        });
+    };
+
+    const resolveComponentAlert = (
+        index: number,
+        componentIndex: number,
+        action: "refresh" | "ignore",
+    ) => {
+        if (!priceContext) return;
+        setForm((prev) => {
+            const items = [...prev.items];
+            items[index] = resolveCustomPcComponentAlert(items[index], componentIndex, action, priceContext);
+            return { ...prev, items };
+        });
+    };
+
+    const addCustomPcItem = () => {
+        const newItem: QuoteItemDTO = {
+            origin: "manual",
+            isCustomPc: true,
+            components: [],
+            name: "PC Armada",
+            sku: "",
+            quantity: 1,
+            unitPrice: 0,
+            taxRate: 10.5,
+            discount: 0,
+            subtotal: 0,
+        };
+        setForm((prev) => ({ ...prev, items: [...prev.items, newItem] }));
+    };
+
+    // El modal de mayoristas agrega una línea suelta (null) o un componente a la PC indicada
+    const openDistributorModal = (customPcIndex: number | null) => {
+        setDistributorTarget(customPcIndex);
+        setShowDistributorModal(true);
     };
 
     // Acciones sobre una alerta de precio: se aplican al guardar el presupuesto
@@ -257,6 +312,32 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
         costPriceUsd?: number;
         costExchangeRate?: number;
     }) => {
+        if (distributorTarget !== null) {
+            const component: QuoteComponentDTO = {
+                origin: "distributor",
+                name: distItem.name,
+                sku: distItem.sku,
+                image: distItem.image,
+                distributor: distItem.distributor,
+                distributorSku: distItem.distributorSku,
+                costPrice: distItem.costPrice,
+                costPriceUsd: distItem.costPriceUsd,
+                costExchangeRate: distItem.costExchangeRate,
+                unitPrice: distItem.unitPrice,
+                quantity: distItem.quantity,
+                taxRate: distItem.taxRate,
+            };
+            const target = distributorTarget;
+            setForm((prev) => {
+                const items = [...prev.items];
+                const pc = items[target];
+                if (!pc?.isCustomPc) return prev;
+                items[target] = { ...pc, components: [...(pc.components || []), component] };
+                return { ...prev, items };
+            });
+            return;
+        }
+
         const newItem: QuoteItemDTO = {
             origin: "distributor",
             name: distItem.name,
@@ -318,6 +399,16 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
             if (!it.name.trim()) {
                 setError("Todos los ítems deben tener un nombre o descripción");
                 return;
+            }
+            if (it.isCustomPc) {
+                if (!it.components?.length) {
+                    setError(`La PC Armada "${it.name}" debe tener al menos un componente`);
+                    return;
+                }
+                if (it.components.some((c) => !c.name.trim())) {
+                    setError(`Todos los componentes de "${it.name}" deben tener nombre`);
+                    return;
+                }
             }
         }
 
@@ -590,7 +681,7 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setShowDistributorModal(true)}
+                                    onClick={() => openDistributorModal(null)}
                                     className="px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-xs font-semibold text-blue-300 border border-blue-500/30 transition flex items-center gap-1.5"
                                 >
                                     <span>🚚</span>
@@ -603,6 +694,14 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                 >
                                     <span>✍️</span>
                                     <span>+ Manual / Servicio</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={addCustomPcItem}
+                                    className="px-3 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-xs font-semibold text-purple-300 border border-purple-500/30 transition flex items-center gap-1.5"
+                                >
+                                    <span>🖥️</span>
+                                    <span>+ PC Armada</span>
                                 </button>
                             </div>
                         </div>
@@ -646,6 +745,31 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                         ) : (
                             <div className="space-y-3">
                                 {form.items.map((item, idx) => {
+                                    // Sólo se avisa en presupuestos guardados y abiertos
+                                    const showAlerts = Boolean(priceContext && quote && isQuoteOpen(quote));
+
+                                    if (item.isCustomPc) {
+                                        return (
+                                            <CustomPcQuoteItem
+                                                key={item.id || `pc-${idx}`}
+                                                item={item}
+                                                onChange={(updated) => replaceItem(idx, updated)}
+                                                onRemove={() => removeItem(idx)}
+                                                onAddDistributorComponent={() => openDistributorModal(idx)}
+                                                componentAlerts={
+                                                    showAlerts && priceContext
+                                                        ? getCustomPcComponentAlerts(item, priceContext)
+                                                        : []
+                                                }
+                                                onResolveComponentAlert={(ci, action) =>
+                                                    resolveComponentAlert(idx, ci, action)
+                                                }
+                                                describeAlert={describeAlert}
+                                                distributorBadge={DISTRIBUTOR_BADGE}
+                                            />
+                                        );
+                                    }
+
                                     const originBadge =
                                         item.origin === "distributor" ? (
                                             <span
@@ -1081,7 +1205,10 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
             {/* Modal de Mayoristas */}
             <DistributorProductSelectorModal
                 isOpen={showDistributorModal}
-                onClose={() => setShowDistributorModal(false)}
+                onClose={() => {
+                    setShowDistributorModal(false);
+                    setDistributorTarget(null);
+                }}
                 onSelect={addDistributorItem}
             />
         </>

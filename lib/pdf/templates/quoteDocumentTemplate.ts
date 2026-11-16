@@ -224,6 +224,15 @@ export function quoteDocumentTemplate(quote: QuoteDTO): string {
                 background: #e2e8f0;
                 color: #475569;
             }
+            .pc-components {
+                margin: 3px 0 0;
+                padding-left: 14px;
+                font-size: 9px;
+                color: #475569;
+            }
+            .pc-components li {
+                margin: 1px 0;
+            }
 
             /* FOOTER / TOTALS */
             .footer {
@@ -371,10 +380,22 @@ export function quoteDocumentTemplate(quote: QuoteDTO): string {
                                     ? `<span class="origin-badge">${it.distributor || "DISTRIB"}</span>`
                                     : "";
 
+                            // PC Armada: detalle de componentes sin precios individuales
+                            const componentsList =
+                                it.isCustomPc && (it.components?.length || 0) > 0
+                                    ? `<ul class="pc-components">${it
+                                          .components!.map(
+                                              (c) =>
+                                                  `<li>${c.quantity}x ${c.name}</li>`,
+                                          )
+                                          .join("")}</ul>`
+                                    : "";
+
                             return `
                         <tr>
                             <td class="text-left">
                                 ${originLabel}<strong>${it.name}</strong>
+                                ${componentsList}
                             </td>
                             <td class="text-center font-mono" style="color: #64748b;">
                                 ${it.sku || it.distributorSku || "-"}

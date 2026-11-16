@@ -3,17 +3,12 @@ import { QuoteModel } from "@/models/Quote";
 import { CustomerModel } from "@/models/Customer";
 import { createAdminOrder } from "@/services/orders/createAdminOrder";
 
-const NON_CONVERTIBLE_STATUSES = ["rejected", "expired"];
+import {
+    mapQuoteItemsToOrderItems,
+    type QuoteItemForOrder,
+} from "@/lib/quotes/mapQuoteItemsToOrderItems";
 
-type QuoteItemDoc = {
-    origin?: string;
-    productId?: { toString(): string } | null;
-    name: string;
-    quantity: number;
-    unitPrice: number;
-    taxRate?: number;
-    subtotal: number;
-};
+const NON_CONVERTIBLE_STATUSES = ["rejected", "expired"];
 
 /**
  * Convierte un presupuesto en un pedido manual reutilizando createAdminOrder
@@ -44,20 +39,17 @@ export async function convertQuoteToOrder(quoteId: string): Promise<{
         );
     }
 
-    const items: QuoteItemDoc[] = quote.items || [];
+    const items: QuoteItemForOrder[] = quote.items || [];
 
     if (items.length === 0) {
         throw new Error("El presupuesto no tiene ítems");
     }
 
-    // Un pedido necesita productos del catálogo para reservar stock y facturar
-    const itemsWithoutProduct = items.filter((it) => !it.productId);
-    if (itemsWithoutProduct.length > 0) {
-        const names = itemsWithoutProduct.map((it) => `"${it.name}"`).join(", ");
-        throw new Error(
-            `Antes de convertir, dá de alta en el catálogo estos ítems (alta rápida) y reemplazalos en el presupuesto: ${names}`,
-        );
-    }
+    // Los precios del presupuesto ya incluyen IVA; en USD se pasan a pesos.
+    // Lanza si hay ítems o componentes de PC Armada fuera del catálogo.
+    const rate =
+        quote.currency === "USD" ? Number(quote.exchangeRate) || 1 : 1;
+    const orderItems = mapQuoteItemsToOrderItems(items, rate);
 
     // Cliente: el del presupuesto o, si no tiene, el registrado con su email
     let customer = quote.customerId
@@ -75,25 +67,6 @@ export async function convertQuoteToOrder(quoteId: string): Promise<{
             "El presupuesto no tiene un cliente registrado. Asigná un cliente existente antes de convertirlo.",
         );
     }
-
-    // Los precios del presupuesto ya incluyen IVA; en USD se pasan a pesos
-    const rate =
-        quote.currency === "USD" ? Number(quote.exchangeRate) || 1 : 1;
-
-    const orderItems = items.map((it) => {
-        const quantity = Math.max(1, Number(it.quantity) || 1);
-        // subtotal = total de la línea con IVA y descuento aplicado
-        const lineTotal = (Number(it.subtotal) || 0) * rate;
-        return {
-            productId: it.productId!.toString(),
-            name: it.name,
-            quantity,
-            unitPrice: Math.round((lineTotal / quantity) * 100) / 100,
-            taxRate: it.taxRate ?? 10.5,
-            isCustomPc: false,
-            customComponents: [],
-        };
-    });
 
     const quoteAddress = quote.customer?.address;
     const billing = customer.billing || {};

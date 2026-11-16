@@ -3,6 +3,8 @@ import { QuoteModel } from "@/models/Quote";
 import { generateQuoteNumber } from "./generateQuoteNumber";
 import { calculateQuoteTotals } from "./calculateQuoteTotals";
 import { mapQuoteToDTO } from "./mapQuoteToDTO";
+import { assertNoBundleComponents } from "./assertNoBundleComponents";
+import { parseQuoteItems } from "@/lib/validators/quoteItemsSchema";
 import type { CreateQuoteDTO, QuoteDTO } from "@/types/shared/quote";
 
 export async function createQuote(dto: CreateQuoteDTO): Promise<QuoteDTO> {
@@ -20,9 +22,12 @@ export async function createQuote(dto: CreateQuoteDTO): Promise<QuoteDTO> {
         throw new Error("La fecha de vencimiento es obligatoria");
     }
 
+    const items = parseQuoteItems(dto.items);
+    await assertNoBundleComponents(items);
+
     const number = await generateQuoteNumber();
     const { itemsWithSubtotals, subtotal, ivaTotal, discountTotal, total } =
-        calculateQuoteTotals(dto.items);
+        calculateQuoteTotals(items);
 
     const doc = new QuoteModel({
         number,

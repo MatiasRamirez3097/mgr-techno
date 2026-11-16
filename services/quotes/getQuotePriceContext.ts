@@ -13,7 +13,11 @@ export async function getQuotePriceContext(quotes: QuoteDTO[]): Promise<QuotePri
     const idsByDistributor: Record<string, Set<string>> = { invid: new Set(), air: new Set() };
     for (const quote of quotes) {
         if (!isQuoteOpen(quote)) continue;
-        for (const item of quote.items) {
+        // Los componentes de las PC Armadas también pueden ser de distribuidores en dólares
+        const lines = quote.items.flatMap((item) =>
+            item.isCustomPc ? (item.components ?? []) : [item],
+        );
+        for (const item of lines) {
             const ids = item.distributor ? idsByDistributor[item.distributor] : undefined;
             if (ids && item.distributorSku && item.costPriceUsd) {
                 ids.add(item.distributorSku);
