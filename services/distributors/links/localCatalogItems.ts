@@ -157,6 +157,52 @@ export async function findLocalCatalogItemsByCodes(
     return [...invid.map((i) => fromInvid(i, rate)), ...air.map((i) => fromAir(i, rate))];
 }
 
+export interface LocalPriceChange {
+    distributor: "invid" | "air";
+    distributorProductId: string;
+    name: string;
+    // Variación del costo en USD (la sincronización registra cambios de 2% o más)
+    change: number;
+    changedAt: Date;
+}
+
+/** Cambios de costo registrados por la sincronización de Invid/AIR desde `since`, para los IDs dados. */
+export async function getLocalCatalogPriceChanges(
+    ids: { invid: string[]; air: string[] },
+    since: Date,
+): Promise<LocalPriceChange[]> {
+    await connectDB();
+    type ChangeLean = { title: string; finalPrice: number; previousFinalPrice: number; priceChangedAt: Date };
+    const filter = { priceChangedAt: { $gte: since }, previousFinalPrice: { $gt: 0 } };
+    const fields = { title: 1, finalPrice: 1, previousFinalPrice: 1, priceChangedAt: 1 };
+
+    const [invid, air] = await Promise.all([
+        ids.invid.length > 0
+            ? InvidCatalogItemModel.find({ ...filter, invidId: { $in: ids.invid } }, { ...fields, invidId: 1 }).lean<
+                  (ChangeLean & { invidId: string })[]
+              >()
+            : [],
+        ids.air.length > 0
+            ? AirCatalogItemModel.find({ ...filter, airId: { $in: ids.air } }, { ...fields, airId: 1 }).lean<
+                  (ChangeLean & { airId: string })[]
+              >()
+            : [],
+    ]);
+
+    const toChange = (distributor: "invid" | "air", id: string, i: ChangeLean): LocalPriceChange => ({
+        distributor,
+        distributorProductId: id,
+        name: i.title,
+        change: (i.finalPrice - i.previousFinalPrice) / i.previousFinalPrice,
+        changedAt: i.priceChangedAt,
+    });
+
+    return [
+        ...invid.map((i) => toChange("invid", i.invidId, i)),
+        ...air.map((i) => toChange("air", i.airId, i)),
+    ];
+}
+
 /** Todos los ítems disponibles con part number o EAN, para la vinculación automática. */
 export async function getAllLocalCatalogItemsWithCodes(): Promise<LocalCatalogItem[]> {
     await connectDB();

@@ -32,6 +32,11 @@ const ProductDistributorLinkSchema = new Schema(
         lastStock: { type: Number, default: null },
         lastStockLabel: { type: String, default: null },
         lastCheckedAt: { type: Date, default: null },
+        // Último cambio de costo registrado por la actualización diaria (Elit, NewBytes)
+        previousPrice: { type: Number, default: null },
+        priceChangedAt: { type: Date, default: null },
+        // Desde cuándo el ítem no aparece en el catálogo del distribuidor (null = está)
+        missingSince: { type: Date, default: null },
     },
     { timestamps: true },
 );

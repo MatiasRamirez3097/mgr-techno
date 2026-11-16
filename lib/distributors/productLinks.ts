@@ -129,6 +129,63 @@ export function candidatesFromIndex<I extends CodeMatchItem>(
 export const hasDistributorStock = (stock: number | null | undefined, label: string | null | undefined) =>
     (stock ?? 0) > 0 || Boolean(label && !/^sin stock/i.test(label));
 
+// Variación mínima de costo que se registra como cambio (evita ruido por redondeos)
+export const LINK_PRICE_CHANGE_RECORD_THRESHOLD = 0.005;
+
+export interface LinkSnapshotState {
+    lastPrice?: number | null;
+    missingSince?: Date | null;
+}
+
+export interface LinkSnapshotItem {
+    name: string;
+    price: number;
+    stock: number;
+    link: string | null;
+    image: string | null;
+}
+
+/**
+ * Campos a guardar en un vínculo tras consultar el catálogo del distribuidor. `item` null =
+ * el producto ya no está (sólo debe pasarse si la consulta fue completa). Devuelve también el
+ * cambio de costo, si lo hubo.
+ */
+export function buildLinkSnapshotUpdate(
+    link: LinkSnapshotState,
+    item: LinkSnapshotItem | null,
+    now: Date,
+): { set: Record<string, unknown>; priceChange: { previous: number; current: number; change: number } | null } {
+    if (!item) {
+        return {
+            set: { lastStock: 0, lastStockLabel: null, lastCheckedAt: now, missingSince: link.missingSince ?? now },
+            priceChange: null,
+        };
+    }
+
+    const set: Record<string, unknown> = {
+        name: item.name,
+        lastPrice: item.price,
+        lastStock: item.stock,
+        lastStockLabel: null,
+        lastCheckedAt: now,
+        missingSince: null,
+        ...(item.link ? { link: item.link } : {}),
+        ...(item.image ? { image: item.image } : {}),
+    };
+
+    const previous = Number(link.lastPrice) || 0;
+    let priceChange = null;
+    if (previous > 0 && item.price > 0) {
+        const change = (item.price - previous) / previous;
+        if (Math.abs(change) >= LINK_PRICE_CHANGE_RECORD_THRESHOLD) {
+            set.previousPrice = previous;
+            set.priceChangedAt = now;
+            priceChange = { previous, current: item.price, change };
+        }
+    }
+    return { set, priceChange };
+}
+
 /** Margen sobre el costo: (precio − costo) / costo. null si no hay costo. */
 export function marginOverCost(price: number, cost: number | null | undefined): number | null {
     if (!cost || cost <= 0) return null;

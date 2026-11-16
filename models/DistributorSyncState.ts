@@ -23,6 +23,9 @@ const DistributorSyncStateSchema = new Schema(
         lastSyncError: { type: String, default: null },
         lastSyncItems: { type: Number, default: 0 },
         lastSyncRequests: { type: Number, default: 0 },
+        // Sólo "price-alerts": productos bajo el margen mínimo ya avisados y fecha del último aviso
+        alertedProductIds: { type: [String], default: undefined },
+        lastDigestAt: { type: Date, default: null },
 
         rateLimitRemaining: { type: Number, default: null },
         rateLimitResetAt: { type: Date, default: null },

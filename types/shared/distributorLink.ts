@@ -21,7 +21,10 @@ export interface ProductDistributorLinkDTO {
     lastStock: number | null;
     lastStockLabel: string | null;
     lastCheckedAt: string | null;
-    // false si el ítem ya no está en el catálogo local del distribuidor (Invid, AIR)
+    // Último cambio de costo registrado (Elit, NewBytes)
+    previousPrice: number | null;
+    priceChangedAt: string | null;
+    // false si el ítem ya no está en el catálogo del distribuidor
     available: boolean;
     createdAt: string;
 }
@@ -54,6 +57,15 @@ export interface DistributorLinkSuggestion {
     matchMethod: Exclude<DistributorLinkMatchMethod, "manual">;
     // Valor que coincidió (part number o EAN)
     matchedValue: string;
+}
+
+// Estado de la actualización diaria de costos de Elit y NewBytes
+export interface LinkPricesSyncStatusDTO {
+    lastSuccessfulSyncAt: string | null;
+    lastSyncStatus: "ok" | "partial" | "error" | "skipped" | null;
+    lastSyncError: string | null;
+    lastSyncItems: number;
+    syncing: boolean;
 }
 
 export interface AutoLinkReport {

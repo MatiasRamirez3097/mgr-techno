@@ -17,6 +17,9 @@ export interface ProductDistributorLinkDoc {
     lastStock?: number | null;
     lastStockLabel?: string | null;
     lastCheckedAt?: Date | null;
+    previousPrice?: number | null;
+    priceChangedAt?: Date | null;
+    missingSince?: Date | null;
     createdAt?: Date;
 }
 
@@ -35,7 +38,9 @@ export function mapProductDistributorLinkToDTO(doc: ProductDistributorLinkDoc): 
         lastStock: doc.lastStock ?? null,
         lastStockLabel: doc.lastStockLabel || null,
         lastCheckedAt: doc.lastCheckedAt ? new Date(doc.lastCheckedAt).toISOString() : null,
-        available: true,
+        previousPrice: doc.previousPrice ?? null,
+        priceChangedAt: doc.priceChangedAt ? new Date(doc.priceChangedAt).toISOString() : null,
+        available: !doc.missingSince,
         createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
     };
 }
