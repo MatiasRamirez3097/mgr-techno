@@ -9,6 +9,8 @@ import { ProductsTable } from "@/components/admin/ProductsTable";
 import { getCatalogProducts } from "@/services/products/getCatalogProducts";
 import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { AdminProductFilters } from "@/components/admin/AdminProductFilters";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
+import { buttonClass } from "@/components/admin/ui/styles";
 
 interface Props {
     searchParams: Promise<{
@@ -57,61 +59,17 @@ export default async function AdminProductsPage({ searchParams }: Props) {
             {/* HEADER */}
             {/* ========================= */}
 
-            <div
-                className="
-                flex
-                items-center
-                justify-between
-                mb-6
-                gap-4
-                flex-wrap
-            "
-            >
-                <h1
-                    className="
-                    text-2xl
-                    font-bold
-                    text-white
-                "
-                >
-                    Productos
-                </h1>
-
-                <div
-                    className="
-                    flex
-                    items-center
-                    gap-3
-                    w-full
-                    sm:w-auto
-                "
-                >
-                    <AdminSearch
-                        placeholder="
-                            Buscar por nombre,
-                            SKU o GTIN...
-                        "
-                    />
-
-                    <Link
-                        href="/admin/products/new"
-                        className="
-                            px-4
-                            py-2
-                            rounded-xl
-                            bg-brand
-                            text-white
-                            text-sm
-                            font-medium
-                            hover:brightness-110
-                            transition-all
-                            shrink-0
-                        "
-                    >
-                        + Nuevo
-                    </Link>
-                </div>
-            </div>
+            <AdminPageHeader
+                title="Productos"
+                actions={
+                    <>
+                        <AdminSearch placeholder="Buscar por nombre, SKU o GTIN..." />
+                        <Link href="/admin/products/new" className={buttonClass.primary}>
+                            + Nuevo
+                        </Link>
+                    </>
+                }
+            />
 
             {/* ========================= */}
             {/* FILTERS */}
@@ -130,7 +88,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                 rounded-2xl
                 border
                 border-gray-800
-                overflow-hidden
+                overflow-x-auto
             "
             >
                 <ProductsTable products={products} categories={categories} />

@@ -270,6 +270,19 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
         setMobileOpen(false);
     }, [pathname, searchParams]);
 
+    // Con el menú del celular abierto: sin scroll de fondo y Escape lo cierra
+    useEffect(() => {
+        if (!mobileOpen) return;
+        const previous = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
+        window.addEventListener("keydown", onKey);
+        return () => {
+            document.body.style.overflow = previous;
+            window.removeEventListener("keydown", onKey);
+        };
+    }, [mobileOpen]);
+
     const renderNavContent = (isMobileDrawer: boolean) => (
         <>
             {/* Header */}
@@ -299,7 +312,8 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                         {isMobileDrawer && (
                             <button
                                 onClick={() => setMobileOpen(false)}
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800"
+                                className="p-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800"
+                                aria-label="Cerrar menú"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -459,8 +473,9 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                 </Link>
                 <button
                     onClick={() => setMobileOpen(true)}
-                    className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800"
+                    className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800"
                     aria-label="Abrir menú"
+                    aria-expanded={mobileOpen}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -489,7 +504,8 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
 
             {/* Drawer móvil */}
             <aside
-                className={`fixed inset-y-0 left-0 w-64 bg-gray-900 border-r border-gray-800 z-50 flex flex-col md:hidden transform transition-transform duration-300 ease-in-out ${
+                aria-hidden={!mobileOpen}
+                className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-gray-900 border-r border-gray-800 z-50 flex flex-col md:hidden transform transition-transform duration-300 ease-in-out ${
                     mobileOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
             >
@@ -498,7 +514,8 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
 
             {/* Sidebar Desktop fijo */}
             <aside
-                className={`hidden md:flex relative bg-gray-900 border-r border-gray-800 flex-col min-h-screen shrink-0 transition-all duration-300 ${
+                // Pegada al costado: no se va con el scroll en páginas largas
+                className={`hidden md:flex sticky top-0 h-screen bg-gray-900 border-r border-gray-800 flex-col shrink-0 transition-all duration-300 ${
                     collapsed ? "w-20" : "w-60"
                 }`}
             >

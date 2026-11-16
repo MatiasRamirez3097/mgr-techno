@@ -3,8 +3,8 @@ import { getCategoriesById } from "@/services/categories/getCategoriesById";
 import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { CategoryForm } from "@/components/admin/CategoryForm";
 import type { CategoryDTO } from "@/types/shared/category";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -27,17 +27,10 @@ export default async function AdminEditCategoryPage({
     if (!category) notFound();
     return (
         <div>
-            <div className="flex items-center gap-4 mb-6">
-                <Link
-                    href="/admin/categories"
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                    ← Volver a categorías
-                </Link>
-                <h1 className="text-2xl font-bold text-white">
-                    Editar Categoría
-                </h1>
-            </div>
+            <AdminPageHeader
+                back={{ href: "/admin/categories", label: "Categorías" }}
+                title="Editar Categoría"
+            />
             <CategoryForm
                 category={category}
                 categories={categories}

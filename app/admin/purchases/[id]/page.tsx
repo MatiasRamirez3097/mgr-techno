@@ -1,9 +1,9 @@
 import { connectDB } from "@/lib/mongodb";
 import { PurchaseForm } from "@/components/admin/PurchaseForm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { PurchaseDTO } from "@/types/shared/purchase";
 import { getPurchasesById } from "@/services/purchases/getPurchasesById";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -26,17 +26,10 @@ export default async function AdminEditPurchasePage({
 
     return (
         <div>
-            <div className="flex items-center gap-4 mb-6">
-                <Link
-                    href="/admin/purchases"
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                    ← Volver a compras
-                </Link>
-                <h1 className="text-2xl font-bold text-white">
-                    {isReadOnly ? "Detalle de compra" : "Editar compra"}
-                </h1>
-            </div>
+            <AdminPageHeader
+                back={{ href: "/admin/purchases", label: "Compras" }}
+                title={<>{isReadOnly ? "Detalle de compra" : "Editar compra"}</>}
+            />
             <PurchaseForm purchase={purchase} mode="edit" />
         </div>
     );

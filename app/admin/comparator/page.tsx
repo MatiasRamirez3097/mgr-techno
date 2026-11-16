@@ -12,6 +12,9 @@ import { getComparatorCategories } from "@/services/distributors/categories/getC
 import { getLinksForDistributorItems } from "@/services/distributors/links/getLinksForDistributorItems";
 import { AutoLinkButton } from "@/components/admin/distributors/AutoLinkButton";
 import Link from "next/link";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
+import { FiltersDrawer } from "@/components/admin/ui/FiltersDrawer";
+import { buttonClass } from "@/components/admin/ui/styles";
 
 // Si el catálogo de Invid quedó viejo se sincroniza con `after` al terminar el render
 export const maxDuration = 300;
@@ -60,36 +63,30 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
 
     return (
         <div>
-            {/* HEADER */}
-            <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-                <h1 className="text-2xl font-bold text-white">
-                    Precios de Distribuidores
-                </h1>
+            <AdminPageHeader
+                title="Precios de distribuidores"
+                className="!mb-4"
+                actions={
+                    <>
+                        <Link href="/admin/comparator/pricing" className={buttonClass.secondary}>
+                            Revisión de precios
+                        </Link>
+                        <Link href="/admin/comparator/categories" className={buttonClass.ghost}>
+                            Configurar categorías
+                        </Link>
+                        <AutoLinkButton />
+                    </>
+                }
+            />
 
-                <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
-                    <DistributorSelect />
-                    {/* Filter by Category */}
-                    <CategorySelect
-                        categories={categories.map((c) => ({ value: c.key, label: c.name }))}
-                    />
-                    <Link
-                        href="/admin/comparator/categories"
-                        className="text-xs text-gray-400 hover:text-white underline"
-                    >
-                        Configurar categorías
-                    </Link>
-                    <Link
-                        href="/admin/comparator/pricing"
-                        className="text-xs text-gray-400 hover:text-white underline"
-                    >
-                        Revisión de precios
-                    </Link>
-                    <AutoLinkButton />
-
-                    {/* Search by Name/SKU */}
-                    <AdminSearch placeholder="Buscar por nombre, SKU..." />
-                </div>
-            </div>
+            <FiltersDrawer
+                className="mb-6"
+                activeCount={[params.category, params.distributors, params.search].filter(Boolean).length}
+            >
+                <AdminSearch placeholder="Buscar por nombre, SKU..." />
+                <DistributorSelect />
+                <CategorySelect categories={categories.map((c) => ({ value: c.key, label: c.name }))} />
+            </FiltersDrawer>
 
             {invidStatus && (
                 <DistributorSyncStatus

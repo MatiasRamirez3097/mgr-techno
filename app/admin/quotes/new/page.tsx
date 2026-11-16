@@ -1,18 +1,10 @@
-import Link from "next/link";
 import { QuoteForm } from "@/components/admin/quotes/QuoteForm";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 export default function AdminNewQuotePage() {
     return (
         <div>
-            <div className="flex items-center gap-4 mb-6">
-                <Link
-                    href="/admin/quotes"
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                    ← Volver a Presupuestos
-                </Link>
-                <h1 className="text-2xl font-bold text-white">Nuevo Presupuesto</h1>
-            </div>
+            <AdminPageHeader back={{ href: "/admin/quotes", label: "Presupuestos" }} title="Nuevo presupuesto" />
             <QuoteForm mode="create" />
         </div>
     );

@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic";
 import { connectDB } from "@/lib/mongodb";
 import { StatusSelector } from "@/components/admin/StatusSelector";
 import { ORDER_STATUSES, ORDER_PAYMENT_STATUSES } from "@/constants/status";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrdersById } from "@/services/orders/getOrdersById";
 import { getAllocationSuggestions } from "@/services/inventory/getAllocationSuggestions";
@@ -15,6 +14,7 @@ import {
 import { OrderPaymentsSection } from "@/components/admin/OrderPaymentsSection";
 import { GenerateVoucherButton } from "@/components/admin/documents/GenerateVoucherButton";
 import { VoucherCard } from "@/components/admin/VoucherCard";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
     mercadopago: "MercadoPago",
@@ -116,22 +116,17 @@ export default async function AdminOrderDetailPage({
 
     return (
         <div className="max-w-7xl w-full">
-            <div className="flex items-center gap-4 mb-6">
-                <Link
-                    href="/admin/orders"
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                    ← Volver
-                </Link>
-                <h1 className="text-2xl font-bold text-white">
-                    Orden #{orderId}
-                </h1>
-                <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status.color}`}
-                >
-                    {status.label}
-                </span>
-            </div>
+            <AdminPageHeader
+                back={{ href: "/admin/orders", label: "Órdenes" }}
+                title={
+                    <span className="flex flex-wrap items-center gap-3">
+                        <span className="break-all">Orden #{orderId}</span>
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status.color}`}>
+                            {status.label}
+                        </span>
+                    </span>
+                }
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-6">
@@ -315,7 +310,7 @@ export default async function AdminOrderDetailPage({
                         <h2 className="text-base font-bold text-white mb-4">
                             Cliente
                         </h2>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                             <div>
                                 <p className="text-gray-400 mb-1">Nombre</p>
                                 <p className="text-white">

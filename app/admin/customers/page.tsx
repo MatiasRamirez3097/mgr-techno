@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { getCustomersWithOrders } from "@/services/customers/getCustomers";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 interface Props {
     searchParams: Promise<{
@@ -25,13 +26,10 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-white">Clientes</h1>
-                <AdminSearch placeholder="Buscar por nombre o email..." />
-            </div>
+            <AdminPageHeader title="Clientes" actions={<AdminSearch placeholder="Buscar por nombre o email..." />} />
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-                <table className="w-full">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
+                <table className="w-full min-w-[760px]">
                     <thead>
                         <tr className="border-b border-gray-800">
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">

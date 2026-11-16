@@ -10,6 +10,9 @@ import { RefreshCostsButton } from "@/components/admin/pricing/RefreshCostsButto
 import { LinkSuggestionsButton } from "@/components/admin/pricing/LinkSuggestionsButton";
 import { LINK_SUGGESTIONS_STATE_ID } from "@/services/distributors/links/generateLinkSuggestions";
 import type { PriceReviewView } from "@/types/shared/priceReview";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
+import { FiltersDrawer } from "@/components/admin/ui/FiltersDrawer";
+import { buttonClass } from "@/components/admin/ui/styles";
 
 export const dynamic = "force-dynamic";
 
@@ -70,21 +73,24 @@ export default async function PriceReviewPage({ searchParams }: Props) {
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Revisión de precios</h1>
-                    <p className="text-sm text-gray-400">
-                        Tu precio (transferencia/efectivo) contra el mejor costo con stock de los distribuidores vinculados.
-                    </p>
-                </div>
-                <div className="flex items-center gap-3 flex-wrap">
-                    <PriceReviewFilters categories={categories} />
-                    <AdminSearch placeholder="Buscar por nombre, SKU, MPN..." />
-                    <Link href="/admin/comparator/margins" className="text-xs text-gray-400 hover:text-white underline">
+            <AdminPageHeader
+                title="Revisión de precios"
+                description="Tu precio (transferencia/efectivo) contra el mejor costo con stock de los distribuidores vinculados."
+                className="!mb-4"
+                actions={
+                    <Link href="/admin/comparator/margins" className={buttonClass.secondary}>
                         Configurar márgenes
                     </Link>
-                </div>
-            </div>
+                }
+            />
+
+            <FiltersDrawer
+                className="mb-6"
+                activeCount={[params.category, params.status, params.stock, params.search].filter(Boolean).length}
+            >
+                <AdminSearch placeholder="Buscar por nombre, SKU, MPN..." />
+                <PriceReviewFilters categories={categories} />
+            </FiltersDrawer>
 
             <div className="mb-4 space-y-2">
                 <RefreshCostsButton status={syncStatus} />

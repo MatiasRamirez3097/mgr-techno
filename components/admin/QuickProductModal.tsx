@@ -116,8 +116,8 @@ export function QuickProductModal({
     const labelClass = "text-xs font-medium text-gray-300 mb-1 block";
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="w-full max-w-xl bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-stretch justify-center sm:items-center sm:p-4">
+            <div className="w-full max-w-xl bg-gray-900 border-gray-800 p-4 shadow-2xl overflow-y-auto sm:max-h-[90vh] sm:rounded-2xl sm:border sm:p-6">
                 {/* Header */}
                 <div className="flex items-center justify-between pb-3 border-b border-gray-800 mb-4">
                     <div className="flex items-center gap-2">

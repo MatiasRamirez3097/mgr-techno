@@ -61,7 +61,7 @@ export function AdminSearch({ placeholder, searchKey = "search" }: Props) {
     }, [value, pathname, router, searchParams, searchKey]);
 
     return (
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -97,7 +97,8 @@ export function AdminSearch({ placeholder, searchKey = "search" }: Props) {
                     focus:border-brand
                     outline-none
                     transition-colors
-                    w-72
+                    w-full
+                    sm:w-72
                     placeholder:text-gray-500
                 "
             />

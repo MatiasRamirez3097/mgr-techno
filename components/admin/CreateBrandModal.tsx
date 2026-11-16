@@ -68,17 +68,18 @@ export function CreateBrandModal({
                 fixed inset-0 z-50
                 bg-black/70
                 backdrop-blur-sm
-                flex items-center justify-center
-                p-4
+                flex items-stretch justify-center
+                sm:items-center sm:p-4
             "
         >
             <div
                 className="
                     w-full max-w-md
                     bg-gray-900
-                    border border-gray-800
-                    rounded-2xl
-                    p-6
+                    border-gray-800
+                    overflow-y-auto
+                    p-4
+                    sm:max-h-[90vh] sm:rounded-2xl sm:border sm:p-6
                 "
             >
                 {/* Header */}

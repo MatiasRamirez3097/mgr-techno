@@ -6,6 +6,8 @@ import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { CategoryModel } from "@/models/Category";
 import Image from "next/image";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
+import { buttonClass } from "@/components/admin/ui/styles";
 
 async function getAdminCategories(
     page: number,
@@ -66,21 +68,20 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                <h1 className="text-2xl font-bold text-white">Categorías</h1>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <AdminSearch placeholder="Buscar categoría..." />
-                    <Link
-                        href="/admin/categories/new"
-                        className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-medium hover:brightness-110 transition-all shrink-0"
-                    >
-                        + Nueva categoría
-                    </Link>
-                </div>
-            </div>
+            <AdminPageHeader
+                title="Categorías"
+                actions={
+                    <>
+                        <AdminSearch placeholder="Buscar categoría..." />
+                        <Link href="/admin/categories/new" className={buttonClass.primary}>
+                            + Nueva categoría
+                        </Link>
+                    </>
+                }
+            />
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-                <table className="w-full">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
+                <table className="w-full min-w-[760px]">
                     <thead>
                         <tr className="border-b border-gray-800">
                             <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">

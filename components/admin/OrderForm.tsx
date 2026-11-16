@@ -515,7 +515,7 @@ export function OrderForm({ order, mode }: Props) {
                         <h2 className="text-base font-bold text-white mb-4">
                             Información básica
                         </h2>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClass}>Cliente</label>
                                 <div className="flex gap-2">
@@ -639,7 +639,7 @@ export function OrderForm({ order, mode }: Props) {
                         </div>
 
                         {form.items.some((it) => !it.isCustomPc) && (
-                            <div className="grid grid-cols-12 gap-2 mb-2 text-xs font-medium text-gray-400 px-1">
+                            <div className="hidden md:grid grid-cols-12 gap-2 mb-2 text-xs font-medium text-gray-400 px-1">
                                 <div className="col-span-6">Producto</div>
                                 <div className="col-span-2">Cantidad</div>
                                 <div className="col-span-3">Precio unitario</div>
@@ -947,9 +947,9 @@ export function OrderForm({ order, mode }: Props) {
                             return (
                                 <div
                                     key={i}
-                                    className="grid grid-cols-12 gap-2 items-center mb-2"
+                                    className="grid grid-cols-12 gap-2 items-center mb-3 max-md:rounded-xl max-md:border max-md:border-gray-800 max-md:p-3"
                                 >
-                                    <div className="col-span-6">
+                                    <div className="col-span-12 md:col-span-6">
                                         <ProductSelector
                                             value={
                                                 item.productId
@@ -1039,7 +1039,8 @@ export function OrderForm({ order, mode }: Props) {
                                         />
                                     </div>
 
-                                    <div className="col-span-2">
+                                    <div className="col-span-4 md:col-span-2">
+                                        <span className="md:hidden mb-1 block text-[11px] text-gray-500">Cantidad</span>
                                         <input
                                             type="number"
                                             min="1"
@@ -1055,7 +1056,8 @@ export function OrderForm({ order, mode }: Props) {
                                         />
                                     </div>
 
-                                    <div className="col-span-3">
+                                    <div className="col-span-6 md:col-span-3">
+                                        <span className="md:hidden mb-1 block text-[11px] text-gray-500">Precio unitario</span>
                                         <input
                                             min="0"
                                             type="number"
@@ -1071,7 +1073,7 @@ export function OrderForm({ order, mode }: Props) {
                                         />
                                     </div>
 
-                                    <div className="col-span-1 flex justify-center">
+                                    <div className="col-span-2 md:col-span-1 flex justify-center">
                                         <button
                                             type="button"
                                             onClick={() => removeItem(i)}
@@ -1223,7 +1225,7 @@ export function OrderForm({ order, mode }: Props) {
                                     className="grid grid-cols-12 gap-2 items-end bg-gray-800/50 border border-gray-700 rounded-xl p-3"
                                 >
                                     {/* Método */}
-                                    <div className="col-span-3">
+                                    <div className="col-span-6 md:col-span-3">
                                         <label className={labelClass}>
                                             Método
                                         </label>
@@ -1252,7 +1254,7 @@ export function OrderForm({ order, mode }: Props) {
                                     </div>
 
                                     {/* Monto */}
-                                    <div className="col-span-3">
+                                    <div className="col-span-6 md:col-span-3">
                                         <label className={labelClass}>
                                             Monto
                                         </label>
@@ -1273,7 +1275,7 @@ export function OrderForm({ order, mode }: Props) {
                                     </div>
 
                                     {/* Estado */}
-                                    <div className="col-span-3">
+                                    <div className="col-span-6 md:col-span-3">
                                         <label className={labelClass}>
                                             Estado
                                         </label>
@@ -1303,7 +1305,7 @@ export function OrderForm({ order, mode }: Props) {
                                     </div>
 
                                     {/* Referencia */}
-                                    <div className="col-span-2">
+                                    <div className="col-span-4 md:col-span-2">
                                         <label className={labelClass}>
                                             Referencia
                                         </label>
@@ -1323,7 +1325,7 @@ export function OrderForm({ order, mode }: Props) {
                                     </div>
 
                                     {/* Delete */}
-                                    <div className="col-span-1 flex justify-end">
+                                    <div className="col-span-2 md:col-span-1 flex justify-end">
                                         <button
                                             type="button"
                                             onClick={() => {

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { getPurchases } from "@/services/purchases/getPurchases";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
+import { buttonClass } from "@/components/admin/ui/styles";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     draft: {
@@ -67,18 +69,18 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h1 className="text-2xl font-bold text-white">Compras</h1>
-                <div className="flex items-center gap-3">
-                    <AdminSearch placeholder="Buscar compra..." />
-                    <Link
-                        href="/admin/purchases/new"
-                        className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-medium hover:brightness-110 transition-all shrink-0"
-                    >
-                        + Nueva compra
-                    </Link>
-                </div>
-            </div>
+            <AdminPageHeader
+                title="Compras"
+                className="!mb-0"
+                actions={
+                    <>
+                        <AdminSearch placeholder="Buscar compra..." />
+                        <Link href="/admin/purchases/new" className={buttonClass.primary}>
+                            + Nueva compra
+                        </Link>
+                    </>
+                }
+            />
 
             {/* Filtros por estado */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
@@ -106,8 +108,8 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
                 })}
             </div>
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-                <table className="w-full text-left">
+            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
+                <table className="w-full min-w-[860px] text-left">
                     <thead>
                         <tr className="border-b border-gray-800 text-xs font-medium text-gray-400">
                             <th className="px-6 py-4">#</th>

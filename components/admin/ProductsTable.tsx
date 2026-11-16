@@ -70,7 +70,7 @@ export function ProductsTable({ products, categories = [] }: Props) {
     };
 
     return (
-        <table className="w-full">
+        <table className="w-full min-w-[900px]">
             <thead>
                 <tr className="border-b border-gray-800">
                     <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">

@@ -148,8 +148,8 @@ export function DistributorProductSelectorModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-stretch justify-center sm:items-center sm:p-4">
+            <div className="bg-gray-900 border-gray-800 w-full max-w-3xl flex flex-col shadow-2xl overflow-hidden sm:max-h-[90vh] sm:rounded-2xl sm:border">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between shrink-0 bg-gray-900/50">
                     <div className="flex items-center gap-2">
