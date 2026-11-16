@@ -11,6 +11,7 @@ import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { AdminProductFilters } from "@/components/admin/AdminProductFilters";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 import { buttonClass } from "@/components/admin/ui/styles";
+import { FiltersDrawer } from "@/components/admin/ui/FiltersDrawer";
 
 interface Props {
     searchParams: Promise<{
@@ -74,37 +75,17 @@ export default async function AdminProductsPage({ searchParams }: Props) {
             {/* ========================= */}
             {/* FILTERS */}
             {/* ========================= */}
-            <div className="mb-6">
-                <AdminProductFilters categories={categories} />
-            </div>
-
-            {/* ========================= */}
-            {/* TABLE */}
-            {/* ========================= */}
-
-            <div
-                className="
-                bg-gray-900
-                rounded-2xl
-                border
-                border-gray-800
-                overflow-x-auto
-            "
+            <FiltersDrawer
+                className="mb-6"
+                activeCount={[params.category, params.stock, params.quality, params.status].filter(Boolean).length}
             >
-                <ProductsTable products={products} categories={categories} />
+                <AdminProductFilters categories={categories} />
+            </FiltersDrawer>
 
-                {/* PAGINATION */}
+            <ProductsTable products={products} categories={categories} />
 
-                <div
-                    className="
-                    px-6
-                    py-4
-                    border-t
-                    border-gray-800
-                "
-                >
-                    <AdminPagination {...pagination} />
-                </div>
+            <div className="mt-4">
+                <AdminPagination {...pagination} />
             </div>
         </div>
     );

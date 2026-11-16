@@ -6,6 +6,8 @@ import { AdminSearch } from "@/components/admin/AdminSearch";
 import { getPurchases } from "@/services/purchases/getPurchases";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 import { buttonClass } from "@/components/admin/ui/styles";
+import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
+import { ViewDetailLink } from "@/components/admin/ui/ViewDetailLink";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     draft: {
@@ -108,208 +110,142 @@ export default async function AdminPurchasesPage({ searchParams }: Props) {
                 })}
             </div>
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
-                <table className="w-full min-w-[860px] text-left">
-                    <thead>
-                        <tr className="border-b border-gray-800 text-xs font-medium text-gray-400">
-                            <th className="px-6 py-4">#</th>
-                            <th className="px-6 py-4">Proveedor</th>
-                            <th className="px-6 py-4">Comprobante</th>
-                            <th className="px-6 py-4">Estado</th>
-                            <th className="px-6 py-4 text-center">Items</th>
-                            <th className="px-6 py-4 text-right">Total</th>
-                            <th className="px-6 py-4">Fecha</th>
-                            <th className="px-6 py-4 text-right">Acciones</th>
-                        </tr>
-                    </thead>
-
-                    <tbody className="divide-y divide-gray-800 text-sm">
-                        {purchases.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={8}
-                                    className="px-6 py-12 text-center text-gray-400"
-                                >
-                                    No se encontraron compras
-                                </td>
-                            </tr>
-                        ) : (
-                            purchases.map((purchase) => {
-                                const statusConfig = STATUS_LABELS[
-                                    purchase.status
-                                ] || {
-                                    label: purchase.status,
-                                    color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-                                };
-
-                                const purchaseId = purchase.id
-                                    .toString()
-                                    .slice(-6)
-                                    .toUpperCase();
-
-                                const canReceive =
-                                    purchase.status === "confirmed" ||
-                                    purchase.status === "partially_received";
-
-                                const isReadOnly =
-                                    purchase.status === "received" ||
-                                    purchase.status === "cancelled";
-
-                                return (
-                                    <tr
-                                        key={purchase.id.toString()}
-                                        className="hover:bg-gray-800/50 transition-colors"
-                                    >
-                                        <td className="px-6 py-4 font-mono text-gray-300">
-                                            #{purchaseId}
-                                        </td>
-
-                                        <td className="px-6 py-4 font-medium text-white">
-                                            {purchase.supplierName ||
-                                                "Sin proveedor"}
-                                        </td>
-
-                                        <td className="px-6 py-4 text-xs font-mono text-gray-300">
-                                            {purchase.document?.number ? (
-                                                <span>
-                                                    {purchase.document.type ===
-                                                    "invoice"
-                                                        ? "FAC "
-                                                        : ""}
-                                                    {purchase.document.number}
-                                                </span>
-                                            ) : (
-                                                <span className="text-gray-500 italic">
-                                                    Sin número
-                                                </span>
-                                            )}
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={`text-xs px-2.5 py-1 rounded-full border inline-block ${statusConfig.color}`}
+            <ResponsiveTable
+                rows={purchases}
+                getRowKey={(purchase) => purchase.id.toString()}
+                rowHref={(purchase) => `/admin/purchases/${purchase.id}`}
+                minWidth="860px"
+                empty="No se encontraron compras"
+                columns={[
+                    {
+                        key: "number",
+                        header: "#",
+                        mobile: "hidden",
+                        className: "font-mono text-gray-300",
+                        cell: (purchase) => `#${purchase.id.toString().slice(-6).toUpperCase()}`,
+                    },
+                    {
+                        key: "supplier",
+                        header: "Proveedor",
+                        mobile: "title",
+                        className: "font-medium text-white",
+                        cell: (purchase) => (
+                            <>
+                                <span className="md:hidden font-mono font-normal text-gray-400">
+                                    #{purchase.id.toString().slice(-6).toUpperCase()} ·{" "}
+                                </span>
+                                {purchase.supplierName || "Sin proveedor"}
+                            </>
+                        ),
+                    },
+                    {
+                        key: "document",
+                        header: "Comprobante",
+                        mobile: "subtitle",
+                        className: "text-xs font-mono text-gray-300",
+                        cell: (purchase) =>
+                            purchase.document?.number ? (
+                                <span className="font-mono">
+                                    {purchase.document.type === "invoice" ? "FAC " : ""}
+                                    {purchase.document.number}
+                                </span>
+                            ) : (
+                                <span className="text-gray-500 italic">Sin número</span>
+                            ),
+                    },
+                    {
+                        key: "status",
+                        header: "Estado",
+                        mobile: "badge",
+                        cell: (purchase) => {
+                            const s = STATUS_LABELS[purchase.status] || {
+                                label: purchase.status,
+                                color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
+                            };
+                            return (
+                                <span className={`text-xs px-2.5 py-1 rounded-full border inline-block whitespace-nowrap ${s.color}`}>
+                                    {s.label}
+                                </span>
+                            );
+                        },
+                    },
+                    {
+                        key: "items",
+                        header: "Items",
+                        align: "center",
+                        className: "text-gray-300 font-mono",
+                        cell: (purchase) =>
+                            purchase.itemsCount ??
+                            purchase.items?.reduce((acc, i) => acc + (i.quantity || 0), 0) ??
+                            "—",
+                    },
+                    {
+                        key: "total",
+                        header: "Total",
+                        align: "right",
+                        className: "font-mono font-medium text-white whitespace-nowrap",
+                        cell: (purchase) => formatMoney(purchase.total, purchase.currency),
+                    },
+                    {
+                        key: "date",
+                        header: "Fecha",
+                        className: "text-xs text-gray-400 whitespace-nowrap",
+                        cell: (purchase) => new Date(purchase.createdAt).toLocaleDateString("es-AR"),
+                    },
+                    {
+                        key: "actions",
+                        header: "Acciones",
+                        align: "right",
+                        mobile: "actions",
+                        cell: (purchase) => {
+                            const canReceive = purchase.status === "confirmed" || purchase.status === "partially_received";
+                            const isReadOnly = purchase.status === "received" || purchase.status === "cancelled";
+                            return (
+                                <div className="flex items-center justify-end gap-1.5">
+                                    {canReceive && (
+                                        <Link
+                                            href={`/admin/purchases/${purchase.id}/receive`}
+                                            title="Recepcionar mercadería"
+                                            aria-label="Recepcionar mercadería"
+                                            className="h-9 rounded-lg border bg-emerald-500/10 border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/40 flex items-center justify-center gap-1.5 px-2 md:w-9 md:px-0 transition-all"
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="w-4 h-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                strokeWidth={1.8}
                                             >
-                                                {statusConfig.label}
-                                            </span>
-                                        </td>
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
+                                                />
+                                            </svg>
+                                            <span className="text-xs md:hidden">Recepcionar</span>
+                                        </Link>
+                                    )}
+                                    <span className="hidden md:block">
+                                        <ViewDetailLink
+                                            href={`/admin/purchases/${purchase.id}`}
+                                            label={isReadOnly ? "Ver detalle de compra" : "Editar compra"}
+                                            icon={isReadOnly ? "view" : "edit"}
+                                        />
+                                    </span>
+                                </div>
+                            );
+                        },
+                    },
+                ]}
+            />
 
-                                        <td className="px-6 py-4 text-center text-gray-300 font-mono">
-                                            {purchase.itemsCount ??
-                                                purchase.items?.reduce(
-                                                    (acc, i) =>
-                                                        acc + (i.quantity || 0),
-                                                    0,
-                                                ) ??
-                                                "—"}
-                                        </td>
-
-                                        <td className="px-6 py-4 text-right font-mono font-medium text-white">
-                                            {formatMoney(
-                                                purchase.total,
-                                                purchase.currency,
-                                            )}
-                                        </td>
-
-                                        <td className="px-6 py-4 text-xs text-gray-400 whitespace-nowrap">
-                                            {new Date(
-                                                purchase.createdAt,
-                                            ).toLocaleDateString("es-AR")}
-                                        </td>
-
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                                {canReceive && (
-                                                    <Link
-                                                        href={`/admin/purchases/${purchase.id}/receive`}
-                                                        title="Recepcionar mercadería"
-                                                        aria-label="Recepcionar mercadería"
-                                                        className="w-8 h-8 rounded-lg border bg-emerald-500/10 border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/40 flex items-center justify-center transition-all"
-                                                    >
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="w-4 h-4"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                            strokeWidth={1.8}
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-                                                            />
-                                                        </svg>
-                                                    </Link>
-                                                )}
-                                                <Link
-                                                    href={`/admin/purchases/${purchase.id}`}
-                                                    title={
-                                                        isReadOnly
-                                                            ? "Ver detalle de compra"
-                                                            : "Editar compra"
-                                                    }
-                                                    aria-label={
-                                                        isReadOnly
-                                                            ? "Ver detalle de compra"
-                                                            : "Editar compra"
-                                                    }
-                                                    className="w-8 h-8 rounded-lg border bg-gray-800/80 border-gray-700/80 text-gray-300 hover:text-brand hover:bg-brand/10 hover:border-brand/40 flex items-center justify-center transition-all"
-                                                >
-                                                    {isReadOnly ? (
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="w-4 h-4"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                            strokeWidth={1.8}
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                                                            />
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                            />
-                                                        </svg>
-                                                    ) : (
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="w-4 h-4"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                            strokeWidth={1.8}
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                                                            />
-                                                        </svg>
-                                                    )}
-                                                </Link>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
-
-                <div className="px-6 py-4 border-t border-gray-800">
-                    <AdminPagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        totalItems={total}
-                        limit={perPage}
-                    />
-                </div>
-            </div>
+            <AdminPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={total}
+                limit={perPage}
+            />
         </div>
     );
 }

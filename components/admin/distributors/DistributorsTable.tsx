@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import type { NormalizedProduct } from "@/types/shared/distributor";
 import { distributorItemKey, type LinkedProductRef } from "@/lib/distributors/productLinks";
 import { LinkToProductButton } from "./LinkToProductButton";
+import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
 
 const BADGE_STYLES: Record<string, { pill: string; solid: string }> = {
     Elit: {
@@ -100,148 +101,117 @@ export const DistributorsTable = ({ products, search, linkedProducts = {} }: Pro
                     {/* TABLE VIEW */}
                     {/* ========================= */}
                     {viewMode === "table" && (
-                        <div className="w-full overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-800/50 border-b border-gray-800">
-                                    <tr>
-                                        <th className="px-6 py-4 text-sm font-semibold text-gray-400">
-                                            Distribuidor
-                                        </th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-gray-400">
-                                            SKU
-                                        </th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-gray-400 min-w-[300px]">
-                                            Producto
-                                        </th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-gray-400">
-                                            Stock
-                                        </th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-gray-400">
-                                            Precio
-                                        </th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-gray-400 text-center">
-                                            Enlace
-                                        </th>
-                                        <th className="px-6 py-4 text-sm font-semibold text-gray-400">
-                                            Tu producto
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-800">
-                                    {products.map((prod) => (
-                                        <tr
-                                            key={`${prod.distributor}-${prod.id}`}
-                                            className="hover:bg-gray-800/30 transition-colors"
+                        <ResponsiveTable
+                            variant="bare"
+                            rows={products}
+                            getRowKey={(prod) => `${prod.distributor}-${prod.id}`}
+                            minWidth="960px"
+                            columns={[
+                                {
+                                    key: "distributor",
+                                    header: "Distribuidor",
+                                    mobile: "badge",
+                                    cell: (prod) => (
+                                        <span
+                                            className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${badgeFor(prod.distributor).pill}`}
                                         >
-                                            <td className="px-6 py-4">
-                                                <span
-                                                    className={`px-3 py-1 rounded-full text-xs font-bold ${badgeFor(prod.distributor).pill}`}
-                                                >
-                                                    {prod.distributor}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-400">
-                                                {prod.sku}
-                                            </td>
-                                            <td className="px-6 py-4 font-medium text-gray-200">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 shrink-0 bg-gray-900 rounded-lg border border-gray-700 flex items-center justify-center overflow-hidden">
-                                                        {prod.image ? (
-                                                            <img
-                                                                src={prod.image} alt={prod.name} loading="lazy" referrerPolicy="no-referrer" className="w-full h-full object-contain p-1"
-                                                            />
-                                                        ) : (
-                                                            <svg
-                                                                className="w-6 h-6 text-gray-500"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={
-                                                                        1.5
-                                                                    }
-                                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                                                />
-                                                            </svg>
-                                                        )}
-                                                    </div>
-                                                    <span
-                                                        className="line-clamp-2"
-                                                        title={prod.name}
-                                                    >
-                                                        {prod.name}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span
-                                                    className={
-                                                        hasStock(prod)
-                                                            ? "text-emerald-400"
-                                                            : "text-red-400"
-                                                    }
-                                                >
-                                                    {stockText(prod)}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 font-bold text-white whitespace-nowrap">
-                                                $
-                                                {prod.price.toLocaleString(
-                                                    "en-US",
-                                                    {
-                                                        minimumFractionDigits: 2,
-                                                        maximumFractionDigits: 2,
-                                                    },
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                {prod.link ? (
-                                                    <a
-                                                        href={prod.link}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"
-                                                        title="View on distributor site"
-                                                    >
-                                                        <svg
-                                                            className="w-5 h-5"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                                            />
-                                                        </svg>
-                                                    </a>
-                                                ) : (
-                                                    <span className="text-gray-600">
-                                                        -
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <LinkToProductButton
-                                                    item={prod}
-                                                    linkedProducts={
-                                                        linkedProducts[distributorItemKey(prod.distributor, prod.id)] ?? []
-                                                    }
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                            {prod.distributor}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    key: "sku",
+                                    header: "SKU",
+                                    mobile: "subtitle",
+                                    className: "text-sm text-gray-400",
+                                    cell: (prod) => <span className="font-mono">{prod.sku}</span>,
+                                },
+                                {
+                                    key: "image",
+                                    header: "",
+                                    mobile: "media",
+                                    desktop: false,
+                                    cell: (prod) => <ProductImage prod={prod} />,
+                                },
+                                {
+                                    key: "product",
+                                    header: "Producto",
+                                    mobile: "title",
+                                    headerClassName: "min-w-[300px]",
+                                    className: "font-medium text-gray-200",
+                                    cell: (prod) => (
+                                        <div className="flex items-center gap-4">
+                                            <span className="hidden md:block">
+                                                <ProductImage prod={prod} />
+                                            </span>
+                                            <span className="line-clamp-2" title={prod.name}>
+                                                {prod.name}
+                                            </span>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    key: "stock",
+                                    header: "Stock",
+                                    cell: (prod) => (
+                                        <span className={hasStock(prod) ? "text-emerald-400" : "text-red-400"}>
+                                            {stockText(prod)}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    key: "price",
+                                    header: "Precio",
+                                    className: "font-bold text-white whitespace-nowrap",
+                                    cell: (prod) =>
+                                        `$${prod.price.toLocaleString("es-AR", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}`,
+                                },
+                                {
+                                    key: "link",
+                                    header: "Enlace",
+                                    align: "center",
+                                    mobile: "actions",
+                                    cell: (prod) =>
+                                        prod.link ? (
+                                            <a
+                                                href={prod.link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"
+                                                title="Ver en el sitio del distribuidor"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                                    />
+                                                </svg>
+                                                <span className="text-xs md:hidden">Ver</span>
+                                            </a>
+                                        ) : (
+                                            <span className="hidden md:inline text-gray-600">-</span>
+                                        ),
+                                },
+                                {
+                                    key: "linked",
+                                    header: "Tu producto",
+                                    mobile: "actions",
+                                    cell: (prod) => (
+                                        <LinkToProductButton
+                                            item={prod}
+                                            linkedProducts={linkedProducts[distributorItemKey(prod.distributor, prod.id)] ?? []}
+                                        />
+                                    ),
+                                },
+                            ]}
+                        />
                     )}
 
-                    {/* ========================= */}
                     {/* CATALOG / GRID VIEW */}
                     {/* ========================= */}
                     {viewMode === "grid" && (
@@ -344,3 +314,29 @@ export const DistributorsTable = ({ products, search, linkedProducts = {} }: Pro
         </div>
     );
 };
+
+function ProductImage({ prod }: { prod: NormalizedProduct }) {
+    return (
+        <div className="w-12 h-12 shrink-0 bg-gray-900 rounded-lg border border-gray-700 flex items-center justify-center overflow-hidden">
+            {prod.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                    src={prod.image}
+                    alt={prod.name}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-contain p-1"
+                />
+            ) : (
+                <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                </svg>
+            )}
+        </div>
+    );
+}

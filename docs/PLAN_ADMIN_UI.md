@@ -1,6 +1,6 @@
 # Plan: rediseño del panel de administración (orden de formularios + responsive)
 
-Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1) terminado en la rama `feat/admin-ui-foundation`; sigue la fase 2
+Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1): `feat/admin-ui-foundation` · PR 2 (fase 2): `feat/admin-ui-lists` · sigue la fase 3
 
 Objetivos:
 1. Formularios más cortos de recorrer y ordenados: secciones claras, navegación entre secciones y
@@ -93,13 +93,21 @@ Notas de la fase 1:
 
 Con `ResponsiveTable` + `FiltersDrawer`:
 
-- [ ] Productos (`ProductsTable`, `AdminProductFilters`), incluida la edición rápida en el celular.
-- [ ] Órdenes, Clientes, Categorías, Compras, Presupuestos (`QuotesTable`).
-- [ ] Comparador (`DistributorsTable`) y Revisión de precios (`PriceReviewTable`: en el celular,
+- [x] Productos (`ProductsTable`, `AdminProductFilters`), incluida la edición rápida en el celular.
+- [x] Órdenes, Clientes, Categorías, Compras, Presupuestos (`QuotesTable`).
+- [x] Comparador (`DistributorsTable`) y Revisión de precios (`PriceReviewTable`: en el celular,
       tarjeta con precio, mejor costo, margen y acción aplicar; sugerencias de vínculo dentro).
-- [ ] Paginación (`AdminPagination`) compacta en el celular.
+- [x] Paginación (`AdminPagination`) compacta en el celular.
 
 **PR 2**.
+
+Notas de la fase 2:
+- `ResponsiveTable` dibuja tabla y tarjetas a la vez (una oculta por CSS); lo desplegado
+  (`renderExpanded`, ej: edición rápida, sugerencias de vínculo) se monta sólo en el diseño visible
+  con `MediaOnly`, para no duplicar estado ni pedidos.
+- Columnas con `desktop: false` sólo aparecen en la tarjeta; `variant="bare"` para usarla dentro de
+  una tarjeta existente (comparador, revisión de precios).
+- `ViewDetailLink`: botón de ícono ver/editar compartido por los listados.
 
 ## Fase 3 — Formulario de producto (el más usado)
 

@@ -8,6 +8,7 @@ import { getOrders } from "@/services/orders/getOrders";
 import type { OrderDTO } from "@/types/shared/order";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 import { buttonClass } from "@/components/admin/ui/styles";
+import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -87,175 +88,157 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                 <OrderStatusFilter />
             </div>
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
-                <table className="w-full min-w-[760px]">
-                    <thead>
-                        <tr className="border-b border-gray-800">
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                #
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Cliente
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Estado
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Facturación
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Total
-                            </th>
-                            <th className="text-left text-xs text-gray-400 font-medium px-6 py-4">
-                                Fecha
-                            </th>
-                            <th className="text-right text-xs text-gray-400 font-medium px-6 py-4">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {orders.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={7}
-                                    className="px-6 py-12 text-center text-gray-400 text-sm"
+            <ResponsiveTable
+                rows={orders}
+                getRowKey={(order) => order.id.toString()}
+                rowHref={(order) => `/admin/orders/${order.id.toString()}`}
+                minWidth="820px"
+                empty={
+                    <>
+                        No se encontraron órdenes
+                        {search ? ` para "${search}"` : ""}
+                        {status && status !== "all"
+                            ? ` con estado "${STATUS_LABELS[status]?.label || status}"`
+                            : ""}
+                    </>
+                }
+                columns={[
+                    {
+                        key: "number",
+                        header: "#",
+                        mobile: "hidden",
+                        className: "text-white font-medium whitespace-nowrap",
+                        cell: (order) => `#${shortId(order)}`,
+                    },
+                    {
+                        key: "customer",
+                        header: "Cliente",
+                        mobile: "title",
+                        cell: (order) => (
+                            <>
+                                <span className="md:hidden text-gray-400 font-normal">#{shortId(order)} · </span>
+                                <span className="text-white">
+                                    {order.billing?.firstName} {order.billing?.lastName}
+                                </span>
+                                <span className="hidden md:block text-xs text-gray-400">{order.customerEmail}</span>
+                            </>
+                        ),
+                    },
+                    {
+                        key: "email",
+                        header: "Email",
+                        mobile: "subtitle",
+                        desktop: false,
+                        cell: (order) => order.customerEmail,
+                    },
+                    {
+                        key: "status",
+                        header: "Estado",
+                        mobile: "badge",
+                        cell: (order) => {
+                            const s = statusOf(order.status);
+                            return (
+                                <span className={`whitespace-nowrap text-xs font-medium px-2.5 py-1 rounded-full border ${s.color}`}>
+                                    {s.label}
+                                </span>
+                            );
+                        },
+                    },
+                    {
+                        key: "billing",
+                        header: "Facturación",
+                        mobile: "badge",
+                        cell: (order) => <BillingBadge order={order} />,
+                    },
+                    {
+                        key: "total",
+                        header: "Total",
+                        className: "text-white whitespace-nowrap",
+                        cell: (order) => `$${order.total.toLocaleString("es-AR")}`,
+                    },
+                    {
+                        key: "date",
+                        header: "Fecha",
+                        className: "text-gray-400 whitespace-nowrap",
+                        cell: (order) =>
+                            new Date(order.createdAt).toLocaleDateString("es-AR", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                            }),
+                    },
+                    {
+                        key: "actions",
+                        header: "Acciones",
+                        align: "right",
+                        mobile: "hidden",
+                        cell: (order) => (
+                            <Link
+                                href={`/admin/orders/${order.id.toString()}`}
+                                title="Ver detalle de orden"
+                                aria-label="Ver detalle de orden"
+                                className="ml-auto w-8 h-8 rounded-lg border bg-gray-800/80 border-gray-700/80 text-gray-300 hover:text-brand hover:bg-brand/10 hover:border-brand/40 flex items-center justify-center transition-all"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={1.8}
                                 >
-                                    No se encontraron órdenes
-                                    {search ? ` para "${search}"` : ""}
-                                    {status && status !== "all"
-                                        ? ` con estado "${STATUS_LABELS[status]?.label || status}"`
-                                        : ""}
-                                </td>
-                            </tr>
-                        ) : (
-                            orders.map((order: OrderDTO) => {
-                                const orderStatus = STATUS_LABELS[
-                                    order.status
-                                ] || {
-                                    label: order.status,
-                                    color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-                                };
-                                const orderId = order.id
-                                    .toString()
-                                    .slice(-6)
-                                    .toUpperCase();
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                                    />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </Link>
+                        ),
+                    },
+                ]}
+            />
 
-                                const fiscalInvoice = order.vouchers?.find(
-                                    (v) => v.type === "fiscal_invoice",
-                                );
-                                const receipt = order.vouchers?.find(
-                                    (v) => v.type === "non_fiscal_receipt",
-                                );
-
-                                return (
-                                    <tr
-                                        key={order.id.toString()}
-                                        className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
-                                    >
-                                        <td className="px-6 py-4 text-sm text-white font-medium">
-                                            #{orderId}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm text-white">
-                                                {order.billing?.firstName}{" "}
-                                                {order.billing?.lastName}
-                                            </p>
-                                            <p className="text-xs text-gray-400">
-                                                {order.customerEmail}
-                                            </p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${orderStatus.color}`}
-                                            >
-                                                {orderStatus.label}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {fiscalInvoice ? (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border text-emerald-400 bg-emerald-400/10 border-emerald-400/20">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                                    Factura AFIP
-                                                    {fiscalInvoice.number
-                                                        ? ` #${fiscalInvoice.number}`
-                                                        : ""}
-                                                </span>
-                                            ) : receipt ? (
-                                                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border text-sky-400 bg-sky-400/10 border-sky-400/20">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                                                    Comprobante
-                                                    {receipt.number
-                                                        ? ` #${receipt.number}`
-                                                        : ""}
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full border text-gray-400 bg-gray-400/10 border-gray-400/20">
-                                                    Sin facturar
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-white">
-                                            $
-                                            {order.total.toLocaleString(
-                                                "es-AR",
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-400">
-                                            {new Date(
-                                                order.createdAt,
-                                            ).toLocaleDateString("es-AR", {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric",
-                                            })}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                                <Link
-                                                    href={`/admin/orders/${order.id.toString()}`}
-                                                    title="Ver detalle de orden"
-                                                    aria-label="Ver detalle de orden"
-                                                    className="w-8 h-8 rounded-lg border bg-gray-800/80 border-gray-700/80 text-gray-300 hover:text-brand hover:bg-brand/10 hover:border-brand/40 flex items-center justify-center transition-all"
-                                                >
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="w-4 h-4"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                        strokeWidth={1.8}
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                                                        />
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                        />
-                                                    </svg>
-                                                </Link>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
-
-                <div className="px-6 py-4 border-t border-gray-800">
-                    <AdminPagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        totalItems={total}
-                        limit={perPage}
-                    />
-                </div>
+            <div className="mt-4">
+                <AdminPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={total}
+                    limit={perPage}
+                />
             </div>
         </div>
+    );
+}
+
+const shortId = (order: OrderDTO) => order.id.toString().slice(-6).toUpperCase();
+
+const statusOf = (status: string) =>
+    STATUS_LABELS[status] || { label: status, color: "text-gray-400 bg-gray-400/10 border-gray-400/20" };
+
+function BillingBadge({ order }: { order: OrderDTO }) {
+    const fiscalInvoice = order.vouchers?.find((v) => v.type === "fiscal_invoice");
+    const receipt = order.vouchers?.find((v) => v.type === "non_fiscal_receipt");
+    if (fiscalInvoice) {
+        return (
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium px-2.5 py-1 rounded-full border text-emerald-400 bg-emerald-400/10 border-emerald-400/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Factura AFIP{fiscalInvoice.number ? ` #${fiscalInvoice.number}` : ""}
+            </span>
+        );
+    }
+    if (receipt) {
+        return (
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium px-2.5 py-1 rounded-full border text-sky-400 bg-sky-400/10 border-sky-400/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                Comprobante{receipt.number ? ` #${receipt.number}` : ""}
+            </span>
+        );
+    }
+    return (
+        <span className="inline-flex items-center whitespace-nowrap text-xs font-medium px-2.5 py-1 rounded-full border text-gray-400 bg-gray-400/10 border-gray-400/20">
+            Sin facturar
+        </span>
     );
 }
