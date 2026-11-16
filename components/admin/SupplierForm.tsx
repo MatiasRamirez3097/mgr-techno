@@ -212,7 +212,7 @@ export function SupplierForm({
                 <h2 className="text-base font-bold text-white mb-4">
                     Información básica
                 </h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className={labelClass}>CUIT *</label>
                         <div className="flex gap-2">
@@ -333,7 +333,7 @@ export function SupplierForm({
                 <h2 className="text-base font-bold text-white mb-4">
                     Datos de contacto
                 </h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="col-span">
                         <label className={labelClass}>Nombre Contacto</label>
                         <input
@@ -359,7 +359,7 @@ export function SupplierForm({
                 </div>
             </section>
             <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="col-span-2">
                         <label className={labelClass}>Notas</label>
                         <textarea

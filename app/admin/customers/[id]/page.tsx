@@ -4,6 +4,7 @@ import {
     getCustomersById,
     getCustomersByIdWIthOrders,
 } from "@/services/customers/getCustomersById";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -48,17 +49,10 @@ export default async function AdminCustomerDetailPage({
 
     return (
         <div className="max-w-5xl">
-            <div className="flex items-center gap-4 mb-6">
-                <Link
-                    href="/admin/customers"
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                    ← Volver
-                </Link>
-                <h1 className="text-2xl font-bold text-white">
-                    {customer.firstName} {customer.lastName}
-                </h1>
-            </div>
+            <AdminPageHeader
+                back={{ href: "/admin/customers", label: "Clientes" }}
+                title={`${customer.firstName} ${customer.lastName}`}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="flex flex-col gap-6">
@@ -162,7 +156,8 @@ export default async function AdminCustomerDetailPage({
                                 Este cliente no tiene pedidos aún
                             </div>
                         ) : (
-                            <table className="w-full">
+                            <div className="overflow-x-auto">
+                            <table className="w-full min-w-[640px]">
                                 <thead>
                                     <tr className="border-b border-gray-800">
                                         <th className="text-left text-xs text-gray-400 font-medium px-6 py-3">
@@ -234,6 +229,7 @@ export default async function AdminCustomerDetailPage({
                                     })}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </section>
                 </div>

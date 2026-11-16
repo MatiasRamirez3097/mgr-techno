@@ -1,7 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { CategoryForm } from "@/components/admin/CategoryForm";
-import Link from "next/link";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -11,17 +11,10 @@ export default async function AdminNewCategoryPage() {
 
     return (
         <div>
-            <div className="flex items-center gap-4 mb-6">
-                <Link
-                    href="/admin/categories"
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                    ← Volver a categorías
-                </Link>
-                <h1 className="text-2xl font-bold text-white">
-                    Nueva Categoría
-                </h1>
-            </div>
+            <AdminPageHeader
+                back={{ href: "/admin/categories", label: "Categorías" }}
+                title="Nueva Categoría"
+            />
             <CategoryForm categories={categories} mode="create" />
         </div>
     );

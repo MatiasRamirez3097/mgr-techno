@@ -8,6 +8,8 @@ import { getQuotes } from "@/services/quotes/getQuotes";
 import { getQuotePriceContext } from "@/services/quotes/getQuotePriceContext";
 import { countQuotePriceAlerts } from "@/lib/quotes/priceAlerts";
 import type { QuoteStatus } from "@/types/shared/quote";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
+import { buttonClass } from "@/components/admin/ui/styles";
 
 const STATUS_TABS: { id: QuoteStatus | "all"; label: string }[] = [
     { id: "all", label: "Todos" },
@@ -49,23 +51,19 @@ export default async function AdminQuotesPage({ searchParams }: Props) {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Presupuestos</h1>
-                    <p className="text-xs text-gray-400 mt-1">
-                        Cotizaciones a clientes con productos de tienda, distribuidores o manuales (Comprobante X).
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <AdminSearch placeholder="Buscar presupuesto..." />
-                    <Link
-                        href="/admin/quotes/new"
-                        className="px-4 py-2 rounded-xl bg-brand text-white text-sm font-medium hover:brightness-110 transition-all shrink-0"
-                    >
-                        + Nuevo presupuesto
-                    </Link>
-                </div>
-            </div>
+            <AdminPageHeader
+                title="Presupuestos"
+                description="Cotizaciones a clientes con productos de tienda, distribuidores o manuales (Comprobante X)."
+                className="!mb-0"
+                actions={
+                    <>
+                        <AdminSearch placeholder="Buscar presupuesto..." />
+                        <Link href="/admin/quotes/new" className={buttonClass.primary}>
+                            + Nuevo presupuesto
+                        </Link>
+                    </>
+                }
+            />
 
             {/* Filtros por estado */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-thin scrollbar-thumb-gray-800">

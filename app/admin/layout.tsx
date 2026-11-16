@@ -27,7 +27,11 @@ export default async function AdminLayout({
         <StoreSettingsProvider settings={settings}>
             <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
                 <AdminSidebar pendingReviewCount={pendingReviewCount} />
-                <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto pt-20 md:pt-8">{children}</main>
+                {/* min-w-0: que una tabla ancha no estire la página (scrollea su contenedor);
+                    sin overflow propio para que funcionen los elementos sticky (índice, barra de guardar) */}
+                <main className="flex-1 min-w-0 px-4 pb-6 pt-20 sm:px-6 md:p-8">
+                    <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+                </main>
             </div>
         </StoreSettingsProvider>
     );

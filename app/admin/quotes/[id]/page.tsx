@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getQuoteById } from "@/services/quotes/getQuoteById";
 import { getQuotePriceContext } from "@/services/quotes/getQuotePriceContext";
 import { QuoteForm } from "@/components/admin/quotes/QuoteForm";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -22,17 +22,10 @@ export default async function AdminEditQuotePage({ params }: Props) {
 
     return (
         <div>
-            <div className="flex items-center gap-4 mb-6">
-                <Link
-                    href="/admin/quotes"
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                    ← Volver a Presupuestos
-                </Link>
-                <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-bold text-white">
-                        Presupuesto {quote.number}
-                    </h1>
+            <AdminPageHeader
+                back={{ href: "/admin/quotes", label: "Presupuestos" }}
+                title={`Presupuesto ${quote.number}`}
+                actions={
                     <a
                         href={`/api/admin/quotes/${quote.id}/pdf`}
                         target="_blank"
@@ -55,8 +48,8 @@ export default async function AdminEditQuotePage({ params }: Props) {
                         </svg>
                         Ver PDF
                     </a>
-                </div>
-            </div>
+                }
+            />
             <QuoteForm mode="edit" quote={quote} priceContext={priceContext} />
         </div>
     );

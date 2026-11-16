@@ -2,6 +2,7 @@ import { getPurchasesById } from "@/services/purchases/getPurchasesById";
 import { ReceivePurchaseForm } from "@/components/admin/ReceivePurchaseForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -18,18 +19,11 @@ export default async function Page({
     }
 
     return (
-        <div className="max-w-4xl mx-auto py-6">
-            <div className="flex items-center gap-4 mb-6">
-                <Link
-                    href={`/admin/purchases/${purchase.id}`}
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                >
-                    ← Volver al detalle
-                </Link>
-                <h1 className="text-2xl font-bold text-white">
-                    Recepcionar mercadería
-                </h1>
-            </div>
+        <div className="max-w-4xl mx-auto">
+            <AdminPageHeader
+                back={{ href: `/admin/purchases/${purchase.id}`, label: "Detalle de la compra" }}
+                title="Recepcionar mercadería"
+            />
 
             {purchase.status === "received" ? (
                 <div className="bg-gray-900 border border-emerald-500/30 rounded-2xl p-8 text-center">

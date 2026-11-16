@@ -1,5 +1,6 @@
 import { getMonthlySalesStats } from "@/services/graphs/graph";
 import SalesCharts from "@/components/graphs/SalesCharts";
+import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 export default async function DashboardPage() {
     // 1. Traemos los datos agrupados de la base de datos (una sola consulta)
@@ -44,12 +45,7 @@ export default async function DashboardPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-white">Panel de Control</h1>
-                <span className="text-xs text-gray-500 font-medium">
-                    Actualizado al día de hoy
-                </span>
-            </div>
+            <AdminPageHeader title="Panel de control" description="Actualizado al día de hoy" className="!mb-0" />
 
             {/* Tarjetas de Resumen KPI */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

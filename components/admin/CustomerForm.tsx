@@ -182,7 +182,7 @@ export function CustomerForm({
                 <h2 className="text-base font-bold text-white mb-4">
                     Información básica
                 </h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className={labelClass}>Tipo de documento</label>
                         <select
@@ -324,7 +324,7 @@ export function CustomerForm({
                 <h2 className="text-base font-bold text-white mb-4">
                     Datos de contacto
                 </h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="col-span">
                         <label className={labelClass}>Email</label>
                         <input
