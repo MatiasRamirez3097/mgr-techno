@@ -2,6 +2,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { FormSection } from "@/components/admin/ui/FormSection";
+import { SectionNav, type SectionNavItem } from "@/components/admin/ui/SectionNav";
+import { TotalsActionBar, TotalsCard, type TotalsRow } from "@/components/admin/ui/TotalsSummary";
+import { buttonClass, cardClass } from "@/components/admin/ui/styles";
 import { ProductSelector } from "./ProductSelector";
 import { SearchableEntitySelect } from "./SearchableEntitySelect";
 import { FormModal } from "./FormModal";
@@ -368,13 +372,36 @@ export function PurchaseForm({ purchase, mode }: Props) {
     };
 
     const inputClass =
-        "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
+        "w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2.5 border border-gray-700 focus:border-brand outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
     const labelClass = "text-sm text-gray-400 mb-1 block";
+
+    const totalsRows: TotalsRow[] = [
+        { label: `Subtotal (${form.currency})`, value: formatCurrency(subtotal) },
+        { label: `IVA (${form.currency})`, value: formatCurrency(tax) },
+        ...(form.currency === "USD" && form.exchangeRate > 0
+            ? [
+                  {
+                      label: `En pesos (cambio ${form.exchangeRate})`,
+                      value: formatCurrency(total * form.exchangeRate, "ARS"),
+                      tone: "muted" as const,
+                  },
+              ]
+            : []),
+    ];
+    const totalLabel = `Total (${form.currency})`;
+
+    const sections: SectionNavItem[] = [
+        { id: "proveedor", label: "Proveedor y comprobante" },
+        { id: "productos", label: `Productos${form.items.length ? ` (${form.items.length})` : ""}` },
+        { id: "estado", label: "Estado" },
+    ];
+
+    const submitLabel = loading ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear compra";
 
     return (
         <>
             {isReadOnly && (
-                <div className="mb-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 text-sm flex items-center justify-between">
+                <div className="mb-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 text-sm flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <strong>Modo sólo lectura:</strong> Esta compra está en
                         estado{" "}
@@ -391,7 +418,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
                     {purchase?.status === "partially_received" && (
                         <Link
                             href={`/admin/purchases/${purchase.id}/receive`}
-                            className="ml-4 px-3 py-1.5 bg-yellow-500 text-gray-950 font-medium rounded-lg text-xs hover:bg-yellow-400 transition"
+                            className="px-3 py-1.5 bg-yellow-500 text-gray-950 font-medium rounded-lg text-xs hover:bg-yellow-400 transition"
                         >
                             Continuar recepción →
                         </Link>
@@ -399,17 +426,12 @@ export function PurchaseForm({ purchase, mode }: Props) {
                 </div>
             )}
 
-            <form
-                onSubmit={handleSubmit}
-                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-            >
-                {/* Columna principal */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    {/* Info básica */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Información básica
-                        </h2>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                {/* Contenido */}
+                <div className="min-w-0 flex flex-col gap-6">
+                    <SectionNav sections={sections} />
+
+                    <FormSection id="proveedor" title="Proveedor y comprobante">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className={labelClass}>Proveedor</label>
@@ -564,13 +586,13 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                 </div>
                             )}
                         </div>
-                    </section>
+                    </FormSection>
 
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-white">
-                                Productos
-                            </h2>
+                    <FormSection
+                        id="productos"
+                        title="Productos"
+                        headerActions={
+                            <>
                             {mode === "edit" && purchase?.items && (
                                 <span className="text-xs text-gray-400">
                                     {purchase.items.reduce(
@@ -580,7 +602,9 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                     unidades totales
                                 </span>
                             )}
-                        </div>
+                            </>
+                        }
+                    >
                         {!isReadOnly && (
                             <div className="flex items-center gap-2 mb-4 text-xs">
                                 <span className="text-gray-400">
@@ -796,57 +820,19 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                 </button>
                             </div>
                         )}
-                    </section>
-
-                    {/* Precios y totales */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Totales de la compra
-                        </h2>
-                        <div className="grid grid-cols-2 gap-4 text-gray-300">
-                            <div>Subtotal ({form.currency}):</div>
-                            <div className="text-right font-mono">
-                                {formatCurrency(subtotal)}
-                            </div>
-
-                            <div>IVA ({form.currency}):</div>
-                            <div className="text-right font-mono">
-                                {formatCurrency(tax)}
-                            </div>
-
-                            <div className="font-bold text-white text-lg border-t border-gray-700 pt-2 mt-2">
-                                Total ({form.currency}):
-                            </div>
-                            <div className="font-bold text-brand text-lg text-right border-t border-gray-700 pt-2 mt-2 font-mono">
-                                {formatCurrency(total)}
-                            </div>
-
-                            {form.currency === "USD" &&
-                                form.exchangeRate > 0 && (
-                                    <>
-                                        <div className="text-xs text-gray-400 pt-1">
-                                            Equivalente en ARS (tipo de cambio{" "}
-                                            {form.exchangeRate}):
-                                        </div>
-                                        <div className="text-xs text-right text-gray-400 pt-1 font-mono">
-                                            {formatCurrency(
-                                                total * form.exchangeRate,
-                                                "ARS",
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                        </div>
-                    </section>
+                    </FormSection>
                 </div>
 
-                {/* Columna lateral */}
-                <div className="flex flex-col gap-4">
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Estado y acciones
-                        </h2>
-                        <div className="flex flex-col gap-4">
+                {/* Totales y estado: columna derecha pegada en escritorio; al final en el celular */}
+                <aside className="min-w-0">
+                    <div className="flex flex-col gap-4 lg:sticky lg:top-6">
+                        <div className={isReadOnly ? "" : "hidden lg:block"}>
+                            <TotalsCard title="Totales de la compra" rows={totalsRows} totalLabel={totalLabel} total={formatCurrency(total)} />
+                        </div>
+
+                        <section id="estado" className={`${cardClass} scroll-mt-32 md:scroll-mt-24 p-4 sm:p-6`}>
+                            <h2 className="mb-4 text-base font-bold text-white">Estado y acciones</h2>
+                            <div className="flex flex-col gap-4">
                             <div>
                                 <label className={labelClass}>Estado</label>
                                 {isReadOnly ? (
@@ -903,19 +889,15 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                 </p>
                             )}
 
-                            {!isReadOnly && (
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
-                                >
-                                    {loading
-                                        ? "Guardando..."
-                                        : mode === "edit"
-                                          ? "Guardar cambios"
-                                          : "Crear compra"}
-                                </button>
-                            )}
+                                {!isReadOnly && (
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className={`${buttonClass.primary} hidden w-full py-3 lg:flex`}
+                                    >
+                                        {submitLabel}
+                                    </button>
+                                )}
 
                             {mode === "edit" &&
                                 (purchase?.status === "draft" ||
@@ -931,9 +913,25 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                             : "Eliminar compra"}
                                     </button>
                                 )}
-                        </div>
-                    </section>
-                </div>
+                            </div>
+                        </section>
+                    </div>
+                </aside>
+
+                {/* Celular y tablet: total y "Guardar" siempre a mano */}
+                {!isReadOnly && (
+                    <TotalsActionBar
+                        className="lg:hidden"
+                        rows={totalsRows}
+                        totalLabel={totalLabel}
+                        total={formatCurrency(total)}
+                        message={error ? <span className="text-red-400">{error}</span> : null}
+                    >
+                        <button type="submit" disabled={loading} className={buttonClass.primary}>
+                            {submitLabel}
+                        </button>
+                    </TotalsActionBar>
+                )}
             </form>
 
             {showSupplierModal && (

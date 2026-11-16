@@ -297,8 +297,8 @@ export function InventoryAllocationSection({
     }
 
     return (
-        <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-            <div className="flex items-center justify-between mb-6">
+        <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <div>
                     <h2 className="text-base font-bold text-white">
                         {isAllocated
@@ -364,10 +364,10 @@ export function InventoryAllocationSection({
                     return (
                         <div
                             key={key}
-                            className="border border-gray-800 rounded-2xl p-4 bg-gray-800/20"
+                            className="border border-gray-800 rounded-2xl p-3 sm:p-4 bg-gray-800/20"
                         >
-                            <div className="flex items-start justify-between mb-4">
-                                <div>
+                            <div className="flex items-start justify-between gap-3 mb-4">
+                                <div className="min-w-0">
                                     {itemSuggestion.parentBundleName && (
                                         <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-300 border border-blue-500/20 mb-1.5">
                                             📦 {itemSuggestion.parentBundleName}
@@ -377,7 +377,7 @@ export function InventoryAllocationSection({
                                         {itemSuggestion.productName}
                                     </h3>
 
-                                    <div className="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                                    <div className="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-2">
                                         <span>
                                             Requeridos:{" "}
                                             {itemSuggestion.quantity}
@@ -394,7 +394,7 @@ export function InventoryAllocationSection({
                                     </div>
                                 </div>
 
-                                <span className="text-xs px-2 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
                                     {itemSuggestion.isSerialized
                                         ? "Serializado"
                                         : "Lotes"}

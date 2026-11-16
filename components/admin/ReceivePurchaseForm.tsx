@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { StickyActionBar } from "@/components/admin/ui/StickyActionBar";
+import { buttonClass } from "@/components/admin/ui/styles";
 import type { PurchaseDTO } from "@/types/shared/purchase";
 
 interface Props {
@@ -262,14 +264,14 @@ export function ReceivePurchaseForm({ purchase }: Props) {
                 return (
                     <div
                         key={index}
-                        className={`bg-gray-900 border rounded-xl p-5 transition-all ${
+                        className={`bg-gray-900 border rounded-xl p-4 sm:p-5 transition-all ${
                             isItemDone
                                 ? "border-gray-800/50 opacity-60"
                                 : "border-gray-800"
                         }`}
                     >
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
                                 <p className="text-white font-medium text-base">
                                     {item.name}
                                 </p>
@@ -285,7 +287,7 @@ export function ReceivePurchaseForm({ purchase }: Props) {
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-4 text-xs font-mono">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono">
                                 <span className="text-gray-400">
                                     Comprado:{" "}
                                     <strong className="text-gray-200">
@@ -309,7 +311,7 @@ export function ReceivePurchaseForm({ purchase }: Props) {
                             </p>
                         ) : (
                             <>
-                                <div className="flex items-center gap-3 my-4">
+                                <div className="flex flex-wrap items-center gap-3 my-4">
                                     <label className="text-sm text-gray-300">
                                         Cantidad a recepcionar en esta tanda:
                                     </label>
@@ -416,23 +418,27 @@ export function ReceivePurchaseForm({ purchase }: Props) {
                 </div>
             )}
 
-            <div className="flex items-center justify-between gap-4 pt-2">
-                <Link
-                    href={`/admin/purchases/${purchase.id}`}
-                    className="px-5 py-3 rounded-xl border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-800 transition text-sm"
-                >
-                    ← Volver a la compra
+            {/* Confirmar siempre a mano, aunque la compra tenga muchos productos */}
+            <StickyActionBar
+                info={
+                    <span>
+                        A recibir ahora:{" "}
+                        <strong className="font-mono text-base text-brand">{totalToReceive} u.</strong>
+                    </span>
+                }
+            >
+                <Link href={`/admin/purchases/${purchase.id}`} className={buttonClass.secondary}>
+                    ← Volver
                 </Link>
-
                 <button
                     type="button"
                     onClick={handleSubmit}
                     disabled={submitting || totalToReceive <= 0}
-                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-emerald-900/30 text-sm"
+                    className={`${buttonClass.primary} bg-emerald-600 hover:bg-emerald-500`}
                 >
                     {submitting ? "Procesando ingreso..." : `Confirmar recepción (${totalToReceive} u.)`}
                 </button>
-            </div>
+            </StickyActionBar>
         </div>
     );
 }

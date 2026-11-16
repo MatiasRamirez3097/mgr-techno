@@ -6,6 +6,10 @@ import { SearchableEntitySelect } from "./SearchableEntitySelect";
 import { FormModal } from "./FormModal";
 import { CustomerForm } from "./CustomerForm";
 import { todayInStoreTimeZone } from "@/lib/utils/orderDate";
+import { FormSection } from "@/components/admin/ui/FormSection";
+import { SectionNav, type SectionNavItem } from "@/components/admin/ui/SectionNav";
+import { TotalsActionBar, TotalsCard, TotalsList, type TotalsRow } from "@/components/admin/ui/TotalsSummary";
+import { buttonClass } from "@/components/admin/ui/styles";
 
 interface Props {
     order?: any;
@@ -460,7 +464,7 @@ export function OrderForm({ order, mode }: Props) {
     };
 
     const inputClass =
-        "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
+        "w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2.5 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
 
     const addPayment = () => {
@@ -502,142 +506,96 @@ export function OrderForm({ order, mode }: Props) {
             quoteOrderShipping();
     }, [postcode, form.items, hasValidItemsForShipping]);
 
+    const money = (n: number) => `$${Math.round(n).toLocaleString("es-AR")}`;
+    const paidTotal = form.payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+    const totalsRows: TotalsRow[] = [
+        { label: "Subtotal", value: money(subtotal) },
+        { label: "IVA estimado", value: money(tax), tone: "muted" },
+        { label: "Envío", value: money(Number(form.shippingMethod.cost || 0)) },
+    ];
+    const paymentRows: TotalsRow[] =
+        form.payments.length > 0
+            ? [
+                  { label: "Pagos cargados", value: money(paidTotal) },
+                  {
+                      label: "Restante",
+                      value: money(total - paidTotal),
+                      tone: Math.round(total - paidTotal) === 0 ? "success" : "warning",
+                  },
+              ]
+            : [];
+
+    const sections: SectionNavItem[] = [
+        { id: "cliente", label: "Cliente" },
+        { id: "productos", label: `Productos${form.items.length ? ` (${form.items.length})` : ""}` },
+        { id: "envio", label: "Envío" },
+        { id: "pagos", label: "Pagos" },
+        { id: "estado", label: "Estado" },
+    ];
+
+    const submitLabel = loading ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Guardar venta";
+
     return (
         <>
             <form
                 onSubmit={handleSubmit}
-                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+                className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"
             >
-                {/* Columna principal */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    {/* Info básica */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Información básica
-                        </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label className={labelClass}>Cliente</label>
-                                <div className="flex gap-2">
-                                    <SearchableEntitySelect
-                                        className="flex-1"
-                                        options={customerOptions}
-                                        value={form.customerId}
-                                        onChange={handleSelectCustomer}
-                                        disabled={loadingCustomers}
-                                        placeholder={
-                                            loadingCustomers
-                                                ? "Cargando clientes..."
-                                                : "Seleccionar cliente"
-                                        }
-                                        searchPlaceholder="Buscar por nombre, apellido o documento..."
-                                        emptyText="No se encontraron clientes"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowCustomerModal(true)
-                                        }
-                                        title="Crear nuevo cliente"
-                                        className="px-4 py-3 rounded-lg bg-brand text-white text-sm font-medium hover:brightness-110 transition shrink-0"
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                            </div>
-                            <div>
-                                <label className={labelClass}>Fecha del pedido</label>
-                                <input
-                                    name="date"
-                                    value={form.orderDate}
-                                    max={todayInStoreTimeZone()}
-                                    className={inputClass}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            orderDate: e.target.value,
-                                        })
-                                    }
-                                    type="date"
-                                />
-                            </div>
-                            <div>
-                                <label className={labelClass}>
-                                    Método de envío
-                                </label>
+                {/* Contenido */}
+                <div className="min-w-0 flex flex-col gap-6">
+                    <SectionNav sections={sections} />
 
-                                <select
-                                    disabled={
-                                        form.customerId &&
-                                        hasValidItemsForShipping
-                                            ? false
-                                            : true
-                                    }
-                                    name="shippingMethod"
-                                    className={inputClass}
-                                    value={form.shippingMethod.method}
-                                    onChange={(e) => {
-                                        if (e.target.value === "andreani")
-                                            quoteOrderShipping();
-                                        else
+                    <FormSection id="cliente" title="Cliente y fecha">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className={labelClass}>Cliente</label>
+                                    <div className="flex gap-2">
+                                        <SearchableEntitySelect
+                                            className="flex-1"
+                                            options={customerOptions}
+                                            value={form.customerId}
+                                            onChange={handleSelectCustomer}
+                                            disabled={loadingCustomers}
+                                            placeholder={
+                                                loadingCustomers
+                                                    ? "Cargando clientes..."
+                                                    : "Seleccionar cliente"
+                                            }
+                                            searchPlaceholder="Buscar por nombre, apellido o documento..."
+                                            emptyText="No se encontraron clientes"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowCustomerModal(true)
+                                            }
+                                            title="Crear nuevo cliente"
+                                            className="px-4 py-3 rounded-lg bg-brand text-white text-sm font-medium hover:brightness-110 transition shrink-0"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Fecha del pedido</label>
+                                    <input
+                                        name="date"
+                                        value={form.orderDate}
+                                        max={todayInStoreTimeZone()}
+                                        className={inputClass}
+                                        onChange={(e) =>
                                             setForm({
                                                 ...form,
-                                                shippingMethod: {
-                                                    ...form.shippingMethod,
-                                                    method: e.target.value,
-                                                    cost: 0,
-                                                },
-                                            });
-                                    }}
-                                >
-                                    <option value="local_pickup">
-                                        Retiro en local
-                                    </option>
-
-                                    <option value="local_shipping">
-                                        Envío local
-                                    </option>
-
-                                    <option value="andreani">Andreani</option>
-
-                                    <option value="viacargo">Vía Cargo</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className={labelClass}>
-                                    Costo de envío{" "}
-                                    {quotingShipping && (
-                                        <span className="text-xs text-brand">
-                                            (Cotizando...)
-                                        </span>
-                                    )}
-                                </label>
-
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={form.shippingMethod.cost}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            shippingMethod: {
-                                                ...form.shippingMethod,
-                                                cost: Number(e.target.value),
-                                            },
-                                        })
-                                    }
-                                    className={inputClass}
-                                />
-                            </div>
+                                                orderDate: e.target.value,
+                                            })
+                                        }
+                                        type="date"
+                                    />
+                                </div>
                         </div>
-                    </section>
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-white">
-                                Productos
-                            </h2>
-                        </div>
+                    </FormSection>
 
+                    <FormSection id="productos" title="Productos">
                         {form.items.some((it) => !it.isCustomPc) && (
                             <div className="hidden md:grid grid-cols-12 gap-2 mb-2 text-xs font-medium text-gray-400 px-1">
                                 <div className="col-span-6">Producto</div>
@@ -1106,118 +1064,97 @@ export function OrderForm({ order, mode }: Props) {
                                 <span>+ Agregar PC Armada</span>
                             </button>
                         </div>
-                    </section>
+                    </FormSection>
 
-                    {/* Precios */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Resumen de importes
-                        </h2>
-                        <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
-                            <div>Subtotal:</div>
-                            <div className="text-right font-mono">
-                                ${subtotal.toLocaleString("es-AR")}
-                            </div>
+                    <FormSection
+                        id="envio"
+                        title="Envío"
+                        description="Se habilita con el cliente y al menos un producto cargados."
+                    >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className={labelClass}>
+                                        Método de envío
+                                    </label>
 
-                            <div>IVA estimado:</div>
-                            <div className="text-right font-mono">
-                                ${Math.round(tax).toLocaleString("es-AR")}
-                            </div>
+                                    <select
+                                        disabled={
+                                            form.customerId &&
+                                            hasValidItemsForShipping
+                                                ? false
+                                                : true
+                                        }
+                                        name="shippingMethod"
+                                        className={inputClass}
+                                        value={form.shippingMethod.method}
+                                        onChange={(e) => {
+                                            if (e.target.value === "andreani")
+                                                quoteOrderShipping();
+                                            else
+                                                setForm({
+                                                    ...form,
+                                                    shippingMethod: {
+                                                        ...form.shippingMethod,
+                                                        method: e.target.value,
+                                                        cost: 0,
+                                                    },
+                                                });
+                                        }}
+                                    >
+                                        <option value="local_pickup">
+                                            Retiro en local
+                                        </option>
 
-                            <div>Envío:</div>
-                            <div className="text-right font-mono">
-                                $
-                                {Number(
-                                    form.shippingMethod.cost || 0,
-                                ).toLocaleString("es-AR")}
-                            </div>
+                                        <option value="local_shipping">
+                                            Envío local
+                                        </option>
 
-                            <div className="font-bold text-white text-base border-t border-gray-700 pt-2 mt-1">
-                                Total:
-                            </div>
-                            <div className="font-bold text-brand text-base text-right border-t border-gray-700 pt-2 mt-1 font-mono">
-                                ${total.toLocaleString("es-AR")}
-                            </div>
+                                        <option value="andreani">Andreani</option>
+
+                                        <option value="viacargo">Vía Cargo</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>
+                                        Costo de envío{" "}
+                                        {quotingShipping && (
+                                            <span className="text-xs text-brand">
+                                                (Cotizando...)
+                                            </span>
+                                        )}
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={form.shippingMethod.cost}
+                                        onChange={(e) =>
+                                            setForm({
+                                                ...form,
+                                                shippingMethod: {
+                                                    ...form.shippingMethod,
+                                                    cost: Number(e.target.value),
+                                                },
+                                            })
+                                        }
+                                        className={inputClass}
+                                    />
+                                </div>
                         </div>
-                    </section>
-                </div>
-                {/* Columna lateral */}
-                <div className="flex flex-col gap-4">
-                    {/* Acciones */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Publicación
-                        </h2>
-                        <div className="flex flex-col gap-4">
-                            <div>
-                                <label className={labelClass}>Estado</label>
-                                <select
-                                    name="status"
-                                    value={form.status}
-                                    onChange={handleChange}
-                                    className={inputClass}
-                                >
-                                    <option value="pending">Pendiente</option>
-                                    <option value="on_hold">En espera</option>
-                                    <option value="completed">
-                                        Completada
-                                    </option>
-                                    <option value="cancelled">Cancelada</option>
-                                    <option value="refunded">Devuelta</option>
-                                    <option value="failed">Fallida</option>
-                                </select>
-                            </div>
+                    </FormSection>
 
-                            {error && (
-                                <p className="text-sm text-red-400">{error}</p>
-                            )}
-                            {success && (
-                                <p className="text-sm text-green-400">
-                                    {success}
-                                </p>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full py-3 rounded-xl text-white font-medium bg-brand hover:brightness-110 disabled:opacity-50 transition-all"
-                            >
-                                {loading
-                                    ? "Guardando..."
-                                    : mode === "edit"
-                                      ? "Guardar cambios"
-                                      : "Guardar venta"}
-                            </button>
-
-                            {mode === "edit" && (
-                                <button
-                                    type="button"
-                                    onClick={handleDelete}
-                                    disabled={deleting}
-                                    className="w-full py-2.5 rounded-xl text-red-400 text-sm font-medium border border-red-400/20 hover:bg-red-400/10 disabled:opacity-50 transition-all"
-                                >
-                                    {deleting
-                                        ? "Eliminando..."
-                                        : "Eliminar venta"}
-                                </button>
-                            )}
-                        </div>
-                    </section>
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-white">
-                                Pagos
-                            </h2>
-
-                            <button
-                                type="button"
-                                onClick={addPayment}
-                                className="px-3 py-2 rounded-lg bg-brand text-white text-sm"
-                            >
+                    <FormSection
+                        id="pagos"
+                        title="Pagos"
+                        headerActions={
+                            <button type="button" onClick={addPayment} className={buttonClass.secondary}>
                                 + Agregar pago
                             </button>
-                        </div>
-
+                        }
+                    >
+                        {form.payments.length === 0 && (
+                            <p className="text-sm text-gray-500">Sin pagos cargados.</p>
+                        )}
                         <div className="flex flex-col gap-4">
                             {form.payments.map((payment, i) => (
                                 <div
@@ -1384,8 +1321,89 @@ export function OrderForm({ order, mode }: Props) {
                                 </span>
                             </div>
                         </div>
-                    </section>
+                    </FormSection>
+
+                    <FormSection id="estado" title="Estado">
+                        <div className="flex flex-col gap-4">
+                        <div>
+                            <label className={labelClass}>Estado</label>
+                            <select
+                                name="status"
+                                value={form.status}
+                                onChange={handleChange}
+                                className={inputClass}
+                            >
+                                <option value="pending">Pendiente</option>
+                                <option value="on_hold">En espera</option>
+                                <option value="completed">
+                                    Completada
+                                </option>
+                                <option value="cancelled">Cancelada</option>
+                                <option value="refunded">Devuelta</option>
+                                <option value="failed">Fallida</option>
+                            </select>
+                        </div>
+                            {mode === "edit" && (
+                                <button
+                                    type="button"
+                                    onClick={handleDelete}
+                                    disabled={deleting}
+                                    className={`${buttonClass.danger} lg:hidden`}
+                                >
+                                    {deleting ? "Eliminando..." : "Eliminar venta"}
+                                </button>
+                            )}
+                        </div>
+                    </FormSection>
+
+                    {/* Celular y tablet: total y "Guardar" siempre a mano */}
+                    <TotalsActionBar
+                        className="lg:hidden"
+                        rows={[...totalsRows, ...paymentRows]}
+                        total={money(total)}
+                        message={
+                            error ? (
+                                <span className="text-red-400">{error}</span>
+                            ) : success ? (
+                                <span className="text-green-400">{success}</span>
+                            ) : null
+                        }
+                    >
+                        <button type="submit" disabled={loading} className={buttonClass.primary}>
+                            {submitLabel}
+                        </button>
+                    </TotalsActionBar>
                 </div>
+
+                {/* Escritorio: resumen y guardar en la columna derecha, pegados al hacer scroll */}
+                <aside className="hidden lg:block">
+                    <div className="sticky top-6 flex flex-col gap-4">
+                        <TotalsCard title="Resumen de importes" rows={totalsRows} total={money(total)}>
+                            {paymentRows.length > 0 && (
+                                <div className="mt-4 border-t border-gray-800 pt-4">
+                                    <TotalsList rows={paymentRows.slice(0, 1)} totalLabel="Restante" total={money(total - paidTotal)} />
+                                </div>
+                            )}
+                            <div className="mt-5 flex flex-col gap-3">
+                                {error && <p className="text-sm text-red-400">{error}</p>}
+                                {success && <p className="text-sm text-green-400">{success}</p>}
+                                <button type="submit" disabled={loading} className={`${buttonClass.primary} w-full py-3`}>
+                                    {submitLabel}
+                                </button>
+                                {mode === "edit" && (
+                                    <button
+                                        type="button"
+                                        onClick={handleDelete}
+                                        disabled={deleting}
+                                        className={`${buttonClass.danger} w-full`}
+                                    >
+                                        {deleting ? "Eliminando..." : "Eliminar venta"}
+                                    </button>
+                                )}
+                            </div>
+                        </TotalsCard>
+                    </div>
+                </aside>
             </form>
             {showCustomerModal && (
                 <FormModal title="Nuevo Cliente">
