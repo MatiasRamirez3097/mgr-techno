@@ -1,11 +1,49 @@
 import { Schema, model, models } from "mongoose";
 
+// Componente de una PC Armada (cantidad por PC, precio de referencia c/IVA)
+const QuoteComponentSchema = new Schema(
+    {
+        origin: {
+            type: String,
+            enum: ["internal", "distributor", "manual"],
+            default: "internal",
+        },
+        productId: {
+            type: Schema.Types.ObjectId,
+            ref: "Product",
+            default: null,
+        },
+        distributor: { type: String, default: null },
+        distributorSku: { type: String, default: null },
+        name: { type: String, required: true, trim: true },
+        sku: { type: String, default: "", trim: true },
+        image: { type: String, default: null },
+        quantity: { type: Number, required: true, min: 1, default: 1 },
+        costPrice: { type: Number, default: 0, min: 0 },
+        costPriceUsd: { type: Number, default: null },
+        costExchangeRate: { type: Number, default: null },
+        alertAckPriceUsd: { type: Number, default: null },
+        alertAckExchangeRate: { type: Number, default: null },
+        unitPrice: { type: Number, default: 0, min: 0 },
+        taxRate: { type: Number, default: 10.5 },
+    },
+    { _id: true },
+);
+
 const QuoteItemSchema = new Schema(
     {
         origin: {
             type: String,
             enum: ["internal", "distributor", "manual"],
             default: "internal",
+        },
+        isCustomPc: {
+            type: Boolean,
+            default: false,
+        },
+        components: {
+            type: [QuoteComponentSchema],
+            default: [],
         },
         productId: {
             type: Schema.Types.ObjectId,

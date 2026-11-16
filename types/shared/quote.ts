@@ -8,9 +8,33 @@ export type QuoteStatus =
 
 export type QuoteItemOrigin = "internal" | "distributor" | "manual";
 
+// Componente de una PC Armada: misma forma que un ítem (tienda, distribuidor o manual),
+// con cantidad por PC y precio de referencia (c/IVA); no suma al total por sí mismo
+export interface QuoteComponentDTO {
+    id?: string;
+    origin: QuoteItemOrigin;
+    productId?: string;
+    distributor?: string;
+    distributorSku?: string;
+    name: string;
+    sku?: string;
+    image?: string;
+    quantity: number;
+    costPrice?: number;
+    costPriceUsd?: number;
+    costExchangeRate?: number;
+    alertAckPriceUsd?: number;
+    alertAckExchangeRate?: number;
+    unitPrice: number;
+    taxRate?: number;
+}
+
 export interface QuoteItemDTO {
     id?: string;
     origin: QuoteItemOrigin;
+    // PC Armada: la línea tiene su propio precio y los componentes son el detalle
+    isCustomPc?: boolean;
+    components?: QuoteComponentDTO[];
     productId?: string;
     distributor?: "elit" | "newbytes" | string;
     distributorSku?: string;

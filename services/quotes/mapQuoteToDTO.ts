@@ -1,4 +1,52 @@
-import type { QuoteDTO, QuoteItemDTO } from "@/types/shared/quote";
+import type {
+    QuoteComponentDTO,
+    QuoteDTO,
+    QuoteItemDTO,
+    QuoteItemOrigin,
+} from "@/types/shared/quote";
+
+type IdLike = { toString(): string } | null | undefined;
+
+// Forma del subdocumento en Mongo (models/Quote.ts → QuoteComponentSchema)
+interface QuoteComponentDoc {
+    _id?: IdLike;
+    origin?: QuoteItemOrigin;
+    productId?: IdLike;
+    distributor?: string | null;
+    distributorSku?: string | null;
+    name?: string;
+    sku?: string;
+    image?: string | null;
+    quantity?: number;
+    costPrice?: number;
+    costPriceUsd?: number | null;
+    costExchangeRate?: number | null;
+    alertAckPriceUsd?: number | null;
+    alertAckExchangeRate?: number | null;
+    unitPrice?: number;
+    taxRate?: number | null;
+}
+
+function mapComponentToDTO(c: QuoteComponentDoc): QuoteComponentDTO {
+    return {
+        id: c._id?.toString(),
+        origin: c.origin || "internal",
+        productId: c.productId?.toString() || undefined,
+        distributor: c.distributor || undefined,
+        distributorSku: c.distributorSku || undefined,
+        name: c.name || "",
+        sku: c.sku || "",
+        image: c.image || undefined,
+        quantity: Number(c.quantity) || 1,
+        costPrice: Number(c.costPrice) || 0,
+        costPriceUsd: Number(c.costPriceUsd) || undefined,
+        costExchangeRate: Number(c.costExchangeRate) || undefined,
+        alertAckPriceUsd: Number(c.alertAckPriceUsd) || undefined,
+        alertAckExchangeRate: Number(c.alertAckExchangeRate) || undefined,
+        unitPrice: Number(c.unitPrice) || 0,
+        taxRate: c.taxRate != null ? Number(c.taxRate) : 10.5,
+    };
+}
 
 export function mapQuoteToDTO(quote: any): QuoteDTO {
     const isExpired =
@@ -47,6 +95,10 @@ export function mapQuoteToDTO(quote: any): QuoteDTO {
             taxRate: Number(it.taxRate) ?? 10.5,
             discount: Number(it.discount) || 0,
             subtotal: Number(it.subtotal) || 0,
+            isCustomPc: Boolean(it.isCustomPc),
+            components: it.isCustomPc
+                ? (it.components || []).map(mapComponentToDTO)
+                : [],
         })),
         currency: quote.currency || "ARS",
         exchangeRate: Number(quote.exchangeRate) || 1,

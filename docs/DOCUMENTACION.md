@@ -386,10 +386,11 @@ pending ─(pago confirmado)─► processing ─► shipped / ready_for_pickup 
 ### 6.6 Presupuestos
 - Alta/edición (`createQuote`/`updateQuote`): el admin ingresa el precio **con IVA**; `calculateQuoteTotals` discrimina neto (`subtotal`), `ivaTotal`, `discountTotal` y `total` (redondeo a 2 decimales).
 - Ítems de tres orígenes: `internal` (catálogo), `distributor` (resultado del comparador, con `costPrice`), `manual`.
+- **PC Armada** (`isCustomPc: true`): la línea tiene su propio precio con IVA, alícuota única (10,5 % por defecto, como en pedidos), cantidad y descuento; `components[]` es el detalle, con la misma forma que un ítem (origen tienda, distribuidor o manual), cantidad por PC, costo y precio de referencia. Los componentes no suman al total: el precio de la PC se carga a mano, con un botón para usar la suma de los componentes. `lib/validators/quoteItemsSchema.ts` exige al menos un componente con nombre y `assertNoBundleComponents` rechaza combos. Las alertas de precio también se calculan por componente; "Actualizar costo" no cambia el precio de la PC. En el PDF se listan los componentes sin precios. UI: `components/admin/quotes/CustomPcQuoteItem.tsx`.
 - PDF vía Puppeteer (`generateQuotePdf`, `GET /quotes/[id]/pdf`).
 - `POST /quotes/[id]/convert` (`convertQuoteToOrder`):
-  - Requisitos: estado distinto de `rejected`/`expired`, todos los ítems con `productId` (los de distribuidor o manuales deben darse de alta antes con alta rápida), cliente registrado (`customerId` o email existente) con número de documento.
-  - Arma un pedido manual (retiro en local, sin pagos, precios con IVA y descuento por línea; USD × `exchangeRate`) y lo crea con `createAdminOrder`, que reserva stock.
+  - Requisitos: estado distinto de `rejected`/`expired`, todos los ítems con `productId` (los de distribuidor o manuales deben darse de alta antes con alta rápida; en una PC Armada, todos sus componentes), cliente registrado (`customerId` o email existente) con número de documento.
+  - Arma un pedido manual (retiro en local, sin pagos, precios con IVA y descuento por línea; USD × `exchangeRate`; mapeo en `lib/quotes/mapQuoteItemsToOrderItems.ts`, las PC Armadas pasan como ítems `isCustomPc` con `customComponents`) y lo crea con `createAdminOrder`, que reserva stock.
   - En la misma transacción marca el presupuesto `converted` con su `orderId`. Si ya tenía `orderId`, devuelve ese pedido (idempotente).
 
 ### 6.7 Comprobantes y facturación AFIP

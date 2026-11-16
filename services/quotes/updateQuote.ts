@@ -2,6 +2,8 @@ import { connectDB } from "@/lib/mongodb";
 import { QuoteModel } from "@/models/Quote";
 import { calculateQuoteTotals } from "./calculateQuoteTotals";
 import { mapQuoteToDTO } from "./mapQuoteToDTO";
+import { assertNoBundleComponents } from "./assertNoBundleComponents";
+import { parseQuoteItems } from "@/lib/validators/quoteItemsSchema";
 import type { UpdateQuoteDTO, QuoteDTO } from "@/types/shared/quote";
 
 export async function updateQuote(id: string, dto: UpdateQuoteDTO): Promise<QuoteDTO | null> {
@@ -13,8 +15,11 @@ export async function updateQuote(id: string, dto: UpdateQuoteDTO): Promise<Quot
     }
 
     if (dto.items && dto.items.length > 0) {
+        const items = parseQuoteItems(dto.items);
+        await assertNoBundleComponents(items);
+
         const { itemsWithSubtotals, subtotal, ivaTotal, discountTotal, total } =
-            calculateQuoteTotals(dto.items);
+            calculateQuoteTotals(items);
 
         existing.items = itemsWithSubtotals as any;
         existing.subtotal = subtotal;

@@ -1,5 +1,19 @@
 import { hasSignificantPriceChange, INVID_PRICE_CHANGE_THRESHOLD } from "@/lib/distributors/invidMapper";
-import type { QuoteDTO, QuoteItemDTO } from "@/types/shared/quote";
+import type { QuoteComponentDTO, QuoteDTO, QuoteItemDTO } from "@/types/shared/quote";
+
+// Campos de costo comunes a un ítem y a un componente de PC Armada
+export type QuoteCostLine = Pick<
+    QuoteItemDTO,
+    | "origin"
+    | "distributor"
+    | "distributorSku"
+    | "costPrice"
+    | "costPriceUsd"
+    | "costExchangeRate"
+    | "alertAckPriceUsd"
+    | "alertAckExchangeRate"
+    | "unitPrice"
+>;
 
 // Suba del dólar respecto de la cotización del ítem a partir de la cual se avisa
 export const QUOTE_EXCHANGE_RATE_RISE_THRESHOLD = 0.1;
@@ -26,7 +40,7 @@ export interface QuotePriceContext {
     usdRate: number | null;
 }
 
-const currentPriceFor = (item: QuoteItemDTO, context: QuotePriceContext) =>
+const currentPriceFor = (item: QuoteCostLine, context: QuotePriceContext) =>
     item.distributor && item.distributorSku
         ? context.prices[quotePriceKey(item.distributor, item.distributorSku)]
         : undefined;
@@ -36,7 +50,7 @@ const OPEN_STATUSES = new Set(["draft", "sent", "accepted"]);
 // mapQuoteToDTO ya devuelve "expired" para los presupuestos vencidos
 export const isQuoteOpen = (quote: Pick<QuoteDTO, "status">) => OPEN_STATUSES.has(quote.status);
 
-const isDollarItem = (item: QuoteItemDTO) =>
+const isDollarItem = (item: QuoteCostLine) =>
     item.origin === "distributor" && Boolean(item.costPriceUsd) && Boolean(item.distributorSku);
 
 const rateRose = (previous: number, current: number) =>
@@ -48,7 +62,7 @@ const rateRose = (previous: number, current: number) =>
  * alerta, sólo vuelve a avisar si el valor cambió otra vez por encima del umbral.
  */
 export function getQuoteItemPriceAlerts(
-    item: QuoteItemDTO,
+    item: QuoteCostLine,
     context: QuotePriceContext,
 ): QuoteItemPriceAlert[] {
     if (!isDollarItem(item)) return [];
@@ -93,46 +107,89 @@ export function getQuoteItemPriceAlerts(
     return alerts;
 }
 
+/** Alertas de cada componente de una PC Armada, en el mismo orden que `components`. */
+export function getCustomPcComponentAlerts(
+    item: QuoteItemDTO,
+    context: QuotePriceContext,
+): QuoteItemPriceAlert[][] {
+    if (!item.isCustomPc) return [];
+    return (item.components || []).map((c) => getQuoteItemPriceAlerts(c, context));
+}
+
+// Un ítem tiene alertas si las tiene él o alguno de sus componentes (PC Armada)
+export function quoteItemHasPriceAlerts(item: QuoteItemDTO, context: QuotePriceContext): boolean {
+    return item.isCustomPc
+        ? getCustomPcComponentAlerts(item, context).some((alerts) => alerts.length > 0)
+        : getQuoteItemPriceAlerts(item, context).length > 0;
+}
+
 export function countQuotePriceAlerts(quote: QuoteDTO, context: QuotePriceContext): number {
     if (!isQuoteOpen(quote)) return 0;
-    return quote.items.filter((item) => getQuoteItemPriceAlerts(item, context).length > 0).length;
+    return quote.items.filter((item) => quoteItemHasPriceAlerts(item, context)).length;
 }
 
 /**
- * Actualiza el costo del ítem al vigente y mantiene el margen sobre el precio de venta.
+ * Actualiza el costo de la línea al vigente y mantiene el margen sobre el precio de venta.
  */
-export function refreshQuoteItemCost(item: QuoteItemDTO, context: QuotePriceContext): QuoteItemDTO {
-    const priceUsd = currentPriceFor(item, context) || item.costPriceUsd || 0;
-    const rate = context.usdRate || item.costExchangeRate || 0;
+function refreshLineCost<T extends QuoteCostLine>(line: T, context: QuotePriceContext): T {
+    const priceUsd = currentPriceFor(line, context) || line.costPriceUsd || 0;
+    const rate = context.usdRate || line.costExchangeRate || 0;
     const newCost = Math.round(priceUsd * rate * 100) / 100;
 
-    const oldCost = Number(item.costPrice) || 0;
+    const oldCost = Number(line.costPrice) || 0;
     const unitPrice =
-        oldCost > 0 ? Math.round((newCost * (Number(item.unitPrice) || 0)) / oldCost) : item.unitPrice;
-
-    const quantity = Math.max(1, Number(item.quantity) || 1);
-    const discount = Math.max(0, Number(item.discount) || 0);
+        oldCost > 0 ? Math.round((newCost * (Number(line.unitPrice) || 0)) / oldCost) : line.unitPrice;
 
     return {
-        ...item,
+        ...line,
         costPriceUsd: priceUsd,
         costExchangeRate: rate,
         costPrice: newCost,
         unitPrice,
         alertAckPriceUsd: undefined,
         alertAckExchangeRate: undefined,
-        subtotal: Math.max(0, unitPrice * quantity - discount),
     };
 }
 
-// Ignora las alertas actuales del ítem: se registran los valores vigentes
+// Ignora las alertas actuales de la línea: se registran los valores vigentes
+function acknowledgeLineAlerts<T extends QuoteCostLine>(line: T, context: QuotePriceContext): T {
+    return {
+        ...line,
+        alertAckPriceUsd: currentPriceFor(line, context) || line.alertAckPriceUsd,
+        alertAckExchangeRate: context.usdRate || line.alertAckExchangeRate,
+    };
+}
+
+export function refreshQuoteItemCost(item: QuoteItemDTO, context: QuotePriceContext): QuoteItemDTO {
+    const updated = refreshLineCost(item, context);
+    const quantity = Math.max(1, Number(item.quantity) || 1);
+    const discount = Math.max(0, Number(item.discount) || 0);
+    return { ...updated, subtotal: Math.max(0, updated.unitPrice * quantity - discount) };
+}
+
 export function acknowledgeQuoteItemAlerts(
     item: QuoteItemDTO,
     context: QuotePriceContext,
 ): QuoteItemDTO {
-    return {
-        ...item,
-        alertAckPriceUsd: currentPriceFor(item, context) || item.alertAckPriceUsd,
-        alertAckExchangeRate: context.usdRate || item.alertAckExchangeRate,
-    };
+    return acknowledgeLineAlerts(item, context);
+}
+
+/**
+ * Actualiza o ignora las alertas de un componente de PC Armada. El precio de la PC no se
+ * recalcula solo: se carga a mano (con la opción de usar la suma de los componentes).
+ */
+export function resolveCustomPcComponentAlert(
+    item: QuoteItemDTO,
+    componentIndex: number,
+    action: "refresh" | "ignore",
+    context: QuotePriceContext,
+): QuoteItemDTO {
+    const components = [...(item.components || [])];
+    const component = components[componentIndex];
+    if (!component) return item;
+    components[componentIndex] =
+        action === "refresh"
+            ? refreshLineCost<QuoteComponentDTO>(component, context)
+            : acknowledgeLineAlerts<QuoteComponentDTO>(component, context);
+    return { ...item, components };
 }
