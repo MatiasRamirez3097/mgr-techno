@@ -1,6 +1,6 @@
 # Plan: rediseño del panel de administración (orden de formularios + responsive)
 
-Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1): `feat/admin-ui-foundation` · PR 2 (fase 2): `feat/admin-ui-lists` · PR 3 (fase 3): `feat/admin-ui-product-form` · PR 4 (fase 4): `feat/admin-ui-order-forms` · sigue la fase 5
+Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1): `feat/admin-ui-foundation` · PR 2 (fase 2): `feat/admin-ui-lists` · PR 3 (fase 3): `feat/admin-ui-product-form` · PR 4 (fase 4): `feat/admin-ui-order-forms` · PR 5 (fase 5): `feat/admin-ui-settings-forms` · sigue la fase 6
 
 Objetivos:
 1. Formularios más cortos de recorrer y ordenados: secciones claras, navegación entre secciones y
@@ -170,12 +170,25 @@ Notas de la fase 4:
 
 ## Fase 5 — Resto de formularios y configuración
 
-- [ ] `CategoryForm`: editor de atributos con cada atributo plegable y reordenable cómodo en táctil.
-- [ ] `CustomerForm`, `SupplierForm`.
-- [ ] Configuración (`StoreSettingsForm`), Hero (`HeroSlidesManager`), categorías del comparador
+- [x] `CategoryForm`: editor de atributos con cada atributo plegable y reordenable cómodo en táctil.
+- [x] `CustomerForm`, `SupplierForm`.
+- [x] Configuración (`StoreSettingsForm`), Hero (`HeroSlidesManager`), categorías del comparador
       (`ComparatorCategoriesManager`), márgenes (`PricingMarginsForm`).
 
 **PR 5**.
+
+Notas de la fase 5:
+- Categoría: General (nombre, slug, categoría superior) → Imagen → Atributos. Cada atributo es una
+  fila plegable (acordeón: uno abierto a la vez) con nombre, clave, tipo y cantidad de opciones a
+  la vista, y botones ↑ ↓ grandes para ordenar (sin arrastrar, que en táctil es incómodo).
+  Guardar en barra fija en el celular; columna derecha pegada en escritorio.
+- Cliente y proveedor sólo se usan dentro de `FormModal`: se agruparon los campos (fiscal, nombre,
+  contacto, domicilio) y el pie con Cancelar / Guardar queda pegado abajo del modal
+  (`ui/ModalFormFooter`). El botón ahora dice "Guardar cambios" al editar (antes siempre "Crear").
+- Hero y categorías del comparador: listado con `ResponsiveTable` (tarjetas en el celular) y el
+  modal sin scroll interno, con pie fijo.
+- Márgenes: "Guardar" en barra fija (la lista de categorías es larga); en el celular el margen
+  efectivo va debajo del nombre y la tabla entra sin scroll horizontal.
 
 ## Fase 6 — Páginas de detalle y dashboard
 

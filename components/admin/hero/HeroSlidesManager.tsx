@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { ResponsiveTable, type Column } from "@/components/admin/ui/ResponsiveTable";
+import { ModalFormFooter } from "@/components/admin/ui/ModalFormFooter";
+import { buttonClass } from "@/components/admin/ui/styles";
 import { useRouter } from "next/navigation";
 import { FormModal } from "@/components/admin/FormModal";
 import { useCloudinaryUpload } from "@/components/admin/cloudinary/useCloudinaryUpload";
@@ -162,6 +165,100 @@ export function HeroSlidesManager({ initialSlides }: Props) {
         }
     };
 
+    const toggleClass = (active: boolean) =>
+        `text-xs font-medium px-2.5 py-1 rounded-full border transition ${
+            active ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : "bg-gray-800 text-gray-400 border-gray-700"
+        }`;
+    const moveClass =
+        "w-9 h-9 md:w-7 md:h-6 rounded bg-gray-800 text-gray-300 hover:text-white disabled:opacity-30 transition";
+
+    const columns: Column<HeroSlideDTO>[] = [
+        {
+            key: "order",
+            header: "Orden",
+            mobile: "actions",
+            cell: (s) => {
+                const i = slides.indexOf(s);
+                return (
+                    <div className="flex gap-1 md:flex-col">
+                        <button type="button" onClick={() => handleMove(i, -1)} disabled={i === 0 || reordering} aria-label="Subir" className={moveClass}>
+                            ▲
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleMove(i, 1)}
+                            disabled={i === slides.length - 1 || reordering}
+                            aria-label="Bajar"
+                            className={moveClass}
+                        >
+                            ▼
+                        </button>
+                    </div>
+                );
+            },
+        },
+        {
+            key: "image",
+            header: "Imagen",
+            mobile: "media",
+            cell: (s) => (
+                <div className="relative w-24 md:w-40 aspect-[21/9] rounded-lg overflow-hidden bg-gray-800">
+                    <Image src={s.image} alt={s.title || "Banner"} fill sizes="160px" className="object-cover" />
+                </div>
+            ),
+        },
+        {
+            key: "text",
+            header: "Texto",
+            mobile: "title",
+            cell: (s) => (
+                <>
+                    <div className="font-medium text-white">{s.title || "—"}</div>
+                    {s.subtitle && <div className="text-xs text-gray-400">{s.subtitle}</div>}
+                    {s.ctaLabel && <div className="text-xs text-gray-500 mt-0.5">Botón: {s.ctaLabel}</div>}
+                </>
+            ),
+        },
+        {
+            key: "href",
+            header: "Vínculo",
+            className: "text-xs text-gray-300 font-mono break-all max-w-[220px]",
+            cell: (s) => (
+                <>
+                    {s.href || <span className="text-gray-500 font-sans">Sin vínculo</span>}
+                    {s.href && s.openInNewTab && <span className="block text-gray-500 font-sans">Nueva pestaña</span>}
+                </>
+            ),
+        },
+        {
+            key: "active",
+            header: "Visible",
+            mobile: "badge",
+            cell: (s) => (
+                <button type="button" onClick={() => handleToggleActive(s)} className={toggleClass(s.active)}>
+                    {s.active ? "Visible" : "Oculto"}
+                </button>
+            ),
+        },
+        {
+            key: "actions",
+            header: "",
+            mobile: "actions",
+            align: "right",
+            className: "whitespace-nowrap",
+            cell: (s) => (
+                <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => openForm(s)} className={`${buttonClass.secondary} min-h-9 px-3 text-xs`}>
+                    Editar
+                </button>
+                <button type="button" onClick={() => handleDelete(s)} className={`${buttonClass.danger} min-h-9 px-3 text-xs`}>
+                    Eliminar
+                </button>
+                </div>
+            ),
+        },
+    ];
+
     return (
         <div className="space-y-4">
             <div className="flex justify-end">
@@ -174,118 +271,17 @@ export function HeroSlidesManager({ initialSlides }: Props) {
                 </button>
             </div>
 
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-800/50 border-b border-gray-800 text-gray-400">
-                        <tr>
-                            <th className="px-4 py-3 font-semibold">Orden</th>
-                            <th className="px-4 py-3 font-semibold">Imagen</th>
-                            <th className="px-4 py-3 font-semibold">Texto</th>
-                            <th className="px-4 py-3 font-semibold">Vínculo</th>
-                            <th className="px-4 py-3 font-semibold">Visible</th>
-                            <th className="px-4 py-3" />
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-800">
-                        {slides.map((s, i) => (
-                            <tr key={s.id} className={s.active ? "" : "opacity-50"}>
-                                <td className="px-4 py-3">
-                                    <div className="flex flex-col gap-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleMove(i, -1)}
-                                            disabled={i === 0 || reordering}
-                                            aria-label="Subir"
-                                            className="w-7 h-6 rounded bg-gray-800 text-gray-300 hover:text-white disabled:opacity-30 transition"
-                                        >
-                                            ▲
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleMove(i, 1)}
-                                            disabled={i === slides.length - 1 || reordering}
-                                            aria-label="Bajar"
-                                            className="w-7 h-6 rounded bg-gray-800 text-gray-300 hover:text-white disabled:opacity-30 transition"
-                                        >
-                                            ▼
-                                        </button>
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <div className="relative w-40 aspect-[21/9] rounded-lg overflow-hidden bg-gray-800">
-                                        <Image
-                                            src={s.image}
-                                            alt={s.title || "Banner"}
-                                            fill
-                                            sizes="160px"
-                                            className="object-cover"
-                                        />
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <div className="font-medium text-white">{s.title || "—"}</div>
-                                    {s.subtitle && (
-                                        <div className="text-xs text-gray-400">{s.subtitle}</div>
-                                    )}
-                                    {s.ctaLabel && (
-                                        <div className="text-xs text-gray-500 mt-0.5">
-                                            Botón: {s.ctaLabel}
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="px-4 py-3 text-xs text-gray-300 font-mono break-all max-w-[220px]">
-                                    {s.href || <span className="text-gray-500 font-sans">Sin vínculo</span>}
-                                    {s.href && s.openInNewTab && (
-                                        <span className="block text-gray-500 font-sans">
-                                            Nueva pestaña
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleToggleActive(s)}
-                                        className={`text-xs font-medium px-2.5 py-1 rounded-full border transition ${
-                                            s.active
-                                                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                                                : "bg-gray-800 text-gray-400 border-gray-700"
-                                        }`}
-                                    >
-                                        {s.active ? "Visible" : "Oculto"}
-                                    </button>
-                                </td>
-                                <td className="px-4 py-3 text-right whitespace-nowrap">
-                                    <button
-                                        type="button"
-                                        onClick={() => openForm(s)}
-                                        className="text-xs text-gray-300 hover:text-white underline mr-3"
-                                    >
-                                        Editar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDelete(s)}
-                                        className="text-xs text-red-400 hover:text-red-300 underline"
-                                    >
-                                        Eliminar
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {slides.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
-                                    No hay banners cargados: el carrusel no se muestra en la home.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <ResponsiveTable
+                rows={slides}
+                columns={columns}
+                getRowKey={(s) => s.id}
+                minWidth="760px"
+                empty="No hay banners cargados: el carrusel no se muestra en la home."
+            />
 
             {form && (
                 <FormModal title={editingId ? "Editar banner" : "Nuevo banner"}>
-                    <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-5">
+                    <div className="space-y-5">
                         {/* Vista previa con la misma maqueta que la home */}
                         <div className="relative w-full aspect-[21/9] rounded-2xl overflow-hidden bg-gray-800 border border-gray-700">
                             {form.image ? (
@@ -400,29 +396,16 @@ export function HeroSlidesManager({ initialSlides }: Props) {
                         </div>
                     </div>
 
-                    {error && (
-                        <p className="mt-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg">
-                            {error}
-                        </p>
-                    )}
-
-                    <div className="flex justify-end gap-2 mt-5">
-                        <button
-                            type="button"
-                            onClick={closeForm}
-                            className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 text-sm font-semibold hover:bg-gray-700 transition"
-                        >
+                    <ModalFormFooter
+                        message={error ? <span className="text-red-400">{error}</span> : null}
+                    >
+                        <button type="button" onClick={closeForm} className={buttonClass.ghost}>
                             Cancelar
                         </button>
-                        <button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={saving || uploading || !form.image}
-                            className="px-5 py-2 rounded-lg bg-brand text-white text-sm font-bold hover:brightness-110 disabled:opacity-50 transition"
-                        >
+                        <button type="button" onClick={handleSave} disabled={saving || uploading || !form.image} className={buttonClass.primary}>
                             {saving ? "Guardando..." : "Guardar"}
                         </button>
-                    </div>
+                    </ModalFormFooter>
                 </FormModal>
             )}
         </div>

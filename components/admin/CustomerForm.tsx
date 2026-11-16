@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Field } from "@/components/admin/ui/Field";
+import { ModalFormFooter } from "@/components/admin/ui/ModalFormFooter";
+import { buttonClass, inputClass, selectClass } from "@/components/admin/ui/styles";
 
 interface Props {
     customer?: any;
@@ -172,203 +175,117 @@ export function CustomerForm({
     const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     };
-    const inputClass =
-        "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
-    const labelClass = "text-sm text-gray-400 mb-1 block";
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                <h2 className="text-base font-bold text-white mb-4">
-                    Información básica
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label className={labelClass}>Tipo de documento</label>
-                        <select
-                            name="documentType"
-                            value={form.documentType}
-                            onChange={handleSelectChange}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Identificación fiscal</legend>
+                <Field label="Tipo de documento">
+                    <select name="documentType" value={form.documentType} onChange={handleSelectChange} className={selectClass}>
+                        <option value="DNI">DNI</option>
+                        <option value="CUIL">CUIL</option>
+                        <option value="CUIT">CUIT</option>
+                    </select>
+                </Field>
+                <Field label="Condición frente al IVA">
+                    <select name="ivaCondition" value={form.ivaCondition} onChange={handleSelectChange} className={selectClass}>
+                        <option value="CF">Consumidor final</option>
+                        <option value="MONOTRIBUTO">Monotributo</option>
+                        <option value="RI">Responsable inscripto</option>
+                        <option value="EXENTO">IVA exento</option>
+                    </select>
+                </Field>
+                <Field label="DNI / CUIL / CUIT" className="sm:col-span-2">
+                    <div className="flex gap-2">
+                        <input
                             className={inputClass}
+                            placeholder="Ingresá número..."
+                            name="documentNumber"
+                            value={form.documentNumber}
+                            onChange={handleChange}
+                            inputMode="numeric"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => handleCUITBlur(form.documentNumber)}
+                            disabled={cuitLoading || !form.documentNumber}
+                            className={`${buttonClass.secondary} shrink-0`}
+                            title="Consultar en Padrón AFIP"
                         >
-                            <option value="DNI">DNI</option>
-                            <option value="CUIL">CUIL</option>
-                            <option value="CUIT">CUIT</option>
-                        </select>
+                            {cuitLoading ? (
+                                <>
+                                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <span>Buscando...</span>
+                                </>
+                            ) : (
+                                <span>Consultar AFIP</span>
+                            )}
+                        </button>
                     </div>
-                    <div>
-                        <label className={labelClass}>DNI / CUIL / CUIT</label>
-                        <div className="flex gap-2">
-                            <input
-                                className={inputClass}
-                                placeholder="Ingresá número..."
-                                name="documentNumber"
-                                value={form.documentNumber}
-                                onChange={handleChange}
-                            />
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    handleCUITBlur(form.documentNumber)
-                                }
-                                disabled={cuitLoading || !form.documentNumber}
-                                className="px-4 py-3 rounded-lg bg-brand text-white text-xs font-medium hover:brightness-110 disabled:opacity-50 transition shrink-0 flex items-center gap-1.5"
-                                title="Consultar en Padrón AFIP"
-                            >
-                                {cuitLoading ? (
-                                    <>
-                                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        <span>Buscando...</span>
-                                    </>
-                                ) : (
-                                    <span>Consultar AFIP</span>
-                                )}
-                            </button>
-                        </div>
-                        {cuitFeedback && (
-                            <p
-                                className={`text-xs mt-1.5 font-medium ${
-                                    cuitFeedback.type === "success"
-                                        ? "text-emerald-400"
-                                        : "text-amber-400"
-                                }`}
-                            >
-                                {cuitFeedback.message}
-                            </p>
-                        )}
-                    </div>
-                    <div>
-                        <label className={labelClass}>CONDICION IVA</label>
-                        <select
-                            name="ivaCondition"
-                            value={form.ivaCondition}
-                            onChange={handleSelectChange}
-                            className={inputClass}
+                    {cuitFeedback && (
+                        <p
+                            className={`text-xs mt-1.5 font-medium ${
+                                cuitFeedback.type === "success" ? "text-emerald-400" : "text-amber-400"
+                            }`}
                         >
-                            <option value="CF">CONSUMIDOR FINAL</option>
-                            <option value="MONOTRIBUTO">MONOTRIBUTO</option>
-                            <option value="RI">RESPONSABLE INSCRIPTO</option>
-                            <option value="EXENTO">IVA EXENTO</option>
-                        </select>
-                    </div>
-                    <div />
-                    <div>
-                        <label className={labelClass}>Nombre </label>
-                        <div className="flex gap-2">
-                            <input
-                                name="firstName"
-                                className={inputClass}
-                                placeholder="Nombre"
-                                value={form.firstName}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className={labelClass}>Apellido </label>
-                        <div className="flex gap-2">
-                            <input
-                                name="lastName"
-                                className={inputClass}
-                                placeholder="Apellido"
-                                value={form.lastName}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                    <div className="col-span">
-                        <label className={labelClass}>Cod Postal </label>
-                        <input
-                            className={inputClass}
-                            placeholder="Codigo Postal"
-                            name="postcode"
-                            value={form.postcode}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div>
-                        <label className={labelClass}>Direccion </label>
-                        <div className="flex gap-2">
-                            <input
-                                className={inputClass}
-                                name="address"
-                                placeholder="Direccion"
-                                value={form.address}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                    <div className="col-span">
-                        <label className={labelClass}>Ciudad</label>
-                        <input
-                            className={inputClass}
-                            placeholder="Ciudad"
-                            name="city"
-                            value={form.city}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="col-span">
-                        <label className={labelClass}>Provincia</label>
-                        <input
-                            name="state"
-                            className={inputClass}
-                            placeholder="Provincia"
-                            value={form.state}
-                            onChange={handleChange}
-                        />
-                    </div>
-                </div>
-            </section>
-            <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                <h2 className="text-base font-bold text-white mb-4">
-                    Datos de contacto
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="col-span">
-                        <label className={labelClass}>Email</label>
-                        <input
-                            name="email"
-                            className={inputClass}
-                            placeholder="Email"
-                            value={form.email}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div>
-                        <label className={labelClass}>Tel Contacto </label>
-                        <div className="flex gap-2">
-                            <input
-                                name="phone"
-                                className={inputClass}
-                                placeholder="Tel contacto"
-                                value={form.phone}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                </div>
-            </section>
+                            {cuitFeedback.message}
+                        </p>
+                    )}
+                </Field>
+            </fieldset>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            {success && <p className="text-sm text-green-400">{success}</p>}
-            <div className="flex justify-end gap-2">
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="px-4 py-2 text-sm text-gray-400 hover:text-white"
-                >
+            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Nombre</legend>
+                <Field label="Nombre">
+                    <input name="firstName" className={inputClass} placeholder="Nombre" value={form.firstName} onChange={handleChange} />
+                </Field>
+                <Field label="Apellido">
+                    <input name="lastName" className={inputClass} placeholder="Apellido" value={form.lastName} onChange={handleChange} />
+                </Field>
+            </fieldset>
+
+            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Contacto</legend>
+                <Field label="Email">
+                    <input name="email" className={inputClass} placeholder="correo@ejemplo.com" value={form.email} onChange={handleChange} type="email" />
+                </Field>
+                <Field label="Teléfono">
+                    <input name="phone" className={inputClass} placeholder="Ej: 341 555-1234" value={form.phone} onChange={handleChange} type="tel" />
+                </Field>
+            </fieldset>
+
+            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Domicilio</legend>
+                <Field label="Dirección" className="sm:col-span-2">
+                    <input name="address" className={inputClass} placeholder="Calle y número" value={form.address} onChange={handleChange} />
+                </Field>
+                <Field label="Ciudad">
+                    <input name="city" className={inputClass} placeholder="Ciudad" value={form.city} onChange={handleChange} />
+                </Field>
+                <Field label="Provincia">
+                    <input name="state" className={inputClass} placeholder="Provincia" value={form.state} onChange={handleChange} />
+                </Field>
+                <Field label="Código postal">
+                    <input name="postcode" className={inputClass} placeholder="Ej: 2000" value={form.postcode} onChange={handleChange} />
+                </Field>
+            </fieldset>
+
+            <ModalFormFooter
+                message={
+                    error ? (
+                        <span className="text-red-400">{error}</span>
+                    ) : success ? (
+                        <span className="text-green-400">{success}</span>
+                    ) : null
+                }
+            >
+                <button type="button" onClick={onCancel} className={buttonClass.ghost}>
                     Cancelar
                 </button>
-
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 rounded-lg bg-brand text-white text-sm"
-                >
-                    {loading ? "Creando..." : "Crear"}
+                <button type="submit" disabled={loading} className={buttonClass.primary}>
+                    {loading ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear cliente"}
                 </button>
-            </div>
+            </ModalFormFooter>
         </form>
     );
 }
