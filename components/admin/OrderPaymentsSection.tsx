@@ -226,10 +226,9 @@ export function OrderPaymentsSection({
 
     const inputClass =
         "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-2 border border-gray-700 focus:border-brand outline-none transition-colors";
-    console.log(payments);
     return (
-        <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-            <div className="flex items-center justify-between mb-4">
+        <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <h2 className="text-base font-bold text-white">Pagos</h2>
 
                 <span
@@ -241,15 +240,14 @@ export function OrderPaymentsSection({
 
             <div className="flex flex-col gap-4">
                 {payments.map((payment, index) => {
-                    console.log("payment>>>", payment);
                     const meta = PAYMENT_STATUS_LABELS[payment.status];
 
                     return (
                         <div
                             key={payment.id || index}
-                            className="rounded-xl border border-gray-700 bg-gray-800/40 p-4"
+                            className="rounded-xl border border-gray-700 bg-gray-800/40 p-3 sm:p-4"
                         >
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                                 {/* Método */}
                                 <div>
                                     <label className="text-xs text-gray-400 mb-1 block">
@@ -370,7 +368,7 @@ export function OrderPaymentsSection({
                             </div>
 
                             {/* Badge */}
-                            <div className="mt-3 flex items-center justify-between">
+                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                                 <span
                                     className={`text-[11px] font-medium px-2 py-1 rounded-full border ${meta.color}`}
                                 >

@@ -9,6 +9,10 @@ import { FormModal } from "@/components/admin/FormModal";
 import { CustomerForm } from "@/components/admin/CustomerForm";
 import { DistributorProductSelectorModal } from "./DistributorProductSelectorModal";
 import { CustomPcQuoteItem } from "./CustomPcQuoteItem";
+import { FormSection } from "@/components/admin/ui/FormSection";
+import { SectionNav, type SectionNavItem } from "@/components/admin/ui/SectionNav";
+import { TotalsActionBar, TotalsCard, type TotalsRow } from "@/components/admin/ui/TotalsSummary";
+import { buttonClass, cardClass } from "@/components/admin/ui/styles";
 import type {
     QuoteComponentDTO,
     QuoteDTO,
@@ -491,30 +495,46 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
     }
 
     const inputClass =
-        "w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-3 border border-gray-700 focus:border-brand outline-none transition-colors";
+        "w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2.5 border border-gray-700 focus:border-brand outline-none transition-colors";
     const labelClass = "text-sm text-gray-400 mb-1 block";
 
     const isExpired = new Date(form.expirationDate).getTime() < Date.now();
 
+    const formatMoney = (n: number) => `$${n.toLocaleString("es-AR")}`;
+    const totalsRows: TotalsRow[] = [
+        { label: "Subtotal neto (sin IVA)", value: formatMoney(subtotal) },
+        { label: "IVA discriminado", value: formatMoney(ivaTotal) },
+        ...(form.currency === "USD" && form.exchangeRate > 1
+            ? [{ label: "Aprox. en pesos", value: `${formatMoney(total * form.exchangeRate)} ARS`, tone: "muted" as const }]
+            : []),
+    ];
+    const totalLabel = `Total (${form.currency})`;
+
+    const sections: SectionNavItem[] = [
+        { id: "cliente", label: "Cliente" },
+        { id: "items", label: `Ítems${form.items.length ? ` (${form.items.length})` : ""}` },
+        { id: "condiciones", label: "Condiciones y vigencia" },
+        { id: "acciones", label: "Acciones", hidden: !(mode === "edit" && quote?.id) },
+    ];
+
+    const submitLabel = loading ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear presupuesto";
+
     return (
         <>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Columna Principal (2 columnas) */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    {/* CLIENTE */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-white flex items-center gap-2">
-                                <span>👤</span>
-                                <span>Datos del Cliente</span>
-                            </h2>
-                            {form.customerId && (
-                                <span className="text-xs text-brand font-medium">
-                                    Cliente vinculado del sistema
-                                </span>
-                            )}
-                        </div>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                {/* Contenido */}
+                <div className="min-w-0 flex flex-col gap-6">
+                    <SectionNav sections={sections} />
 
+                    <FormSection
+                        id="cliente"
+                        title="Cliente"
+                        headerActions={
+                            form.customerId && (
+                                <span className="text-xs text-brand font-medium">Cliente vinculado del sistema</span>
+                            )
+                        }
+                    >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-2">
                                 <label className={labelClass}>Seleccionar cliente registrado</label>
@@ -654,56 +674,46 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                 />
                             </div>
                         </div>
-                    </section>
+                    </FormSection>
 
-                    {/* ITEMS DEL PRESUPUESTO */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                            <div>
-                                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                                    <span>📦</span>
-                                    <span>Productos e Ítems del Presupuesto</span>
-                                </h2>
-                                <p className="text-xs text-gray-400">
-                                    Podés combinar productos del catálogo, mayoristas (Elit / NewBytes) o conceptos manuales
-                                </p>
-                            </div>
-
-                            {/* Botones para agregar items */}
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowInternalSelector(true)}
-                                    className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-200 border border-gray-700 transition flex items-center gap-1.5"
-                                >
-                                    <span>🏪</span>
-                                    <span>+ Catálogo Propio</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => openDistributorModal(null)}
-                                    className="px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-xs font-semibold text-blue-300 border border-blue-500/30 transition flex items-center gap-1.5"
-                                >
-                                    <span>🚚</span>
-                                    <span>+ Mayoristas</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={addManualItem}
-                                    className="px-3 py-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-xs font-semibold text-yellow-300 border border-yellow-500/30 transition flex items-center gap-1.5"
-                                >
-                                    <span>✍️</span>
-                                    <span>+ Manual / Servicio</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={addCustomPcItem}
-                                    className="px-3 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-xs font-semibold text-purple-300 border border-purple-500/30 transition flex items-center gap-1.5"
-                                >
-                                    <span>🖥️</span>
-                                    <span>+ PC Armada</span>
-                                </button>
-                            </div>
+                    <FormSection
+                        id="items"
+                        title="Ítems del presupuesto"
+                        description="Productos del catálogo, de mayoristas, conceptos manuales o PCs armadas."
+                    >
+                        <div className="mb-4 flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowInternalSelector(true)}
+                                className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-200 border border-gray-700 transition flex items-center gap-1.5"
+                            >
+                                <span>🏪</span>
+                                <span>+ Catálogo Propio</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => openDistributorModal(null)}
+                                className="px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-xs font-semibold text-blue-300 border border-blue-500/30 transition flex items-center gap-1.5"
+                            >
+                                <span>🚚</span>
+                                <span>+ Mayoristas</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={addManualItem}
+                                className="px-3 py-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-xs font-semibold text-yellow-300 border border-yellow-500/30 transition flex items-center gap-1.5"
+                            >
+                                <span>✍️</span>
+                                <span>+ Manual / Servicio</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={addCustomPcItem}
+                                className="px-3 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-xs font-semibold text-purple-300 border border-purple-500/30 transition flex items-center gap-1.5"
+                            >
+                                <span>🖥️</span>
+                                <span>+ PC Armada</span>
+                            </button>
                         </div>
 
                         {/* Selector inline para catálogo interno */}
@@ -803,7 +813,7 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                     return (
                                         <div key={idx}>
                                         <div
-                                            className={`bg-gray-800/40 border border-gray-800 p-4 flex flex-col md:flex-row items-start md:items-center gap-3 ${
+                                            className={`bg-gray-800/40 border border-gray-800 p-3 sm:p-4 flex flex-wrap md:flex-nowrap items-start md:items-center gap-3 ${
                                                 priceAlerts.length > 0 ? "rounded-t-xl" : "rounded-xl"
                                             }`}
                                         >
@@ -825,8 +835,8 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                             </div>
 
                                             {/* Descripción y SKU */}
-                                            <div className="flex-1 min-w-0 w-full md:w-auto">
-                                                <div className="flex items-center gap-2 mb-1">
+                                            <div className="min-w-0 flex-1 basis-[calc(100%-3.25rem)] md:basis-auto">
+                                                <div className="flex flex-wrap items-center gap-2 mb-1">
                                                     {originBadge}
                                                     {item.sku && (
                                                         <span className="text-[11px] font-mono text-gray-400">
@@ -864,7 +874,7 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                             </div>
 
                                             {/* Precio Unitario */}
-                                            <div className="w-32 shrink-0">
+                                            <div className="min-w-28 flex-1 md:w-32 md:flex-none">
                                                 <label className="text-[11px] text-gray-400 block mb-1">Precio Unit. c/IVA ($)</label>
                                                 <input
                                                     type="number"
@@ -895,7 +905,7 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                             </div>
 
                                             {/* Subtotal calculado */}
-                                            <div className="w-28 shrink-0 text-right">
+                                            <div className="w-28 shrink-0 text-right max-md:ml-auto">
                                                 <span className="text-[11px] text-gray-400 block mb-1">Subtotal</span>
                                                 <span className="text-sm font-bold text-white font-mono block py-0.5">
                                                     ${(item.subtotal || 0).toLocaleString("es-AR")}
@@ -952,191 +962,157 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                 })}
                             </div>
                         )}
-                    </section>
+                    </FormSection>
 
-                    {/* TÉRMINOS Y OBSERVACIONES */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
-                        <h2 className="text-base font-bold text-white flex items-center gap-2">
-                            <span>📝</span>
-                            <span>Notas y Condiciones Comerciales</span>
-                        </h2>
-
-                        <div>
-                            <label className={labelClass}>Cláusula de Validez y Términos (visible en el PDF)</label>
-                            <textarea
-                                rows={2}
-                                value={form.terms}
-                                onChange={(e) => setForm((prev) => ({ ...prev, terms: e.target.value }))}
-                                className={inputClass}
-                            />
-                        </div>
-
-                        <div>
-                            <label className={labelClass}>Observaciones / Notas adicionales (visible en el PDF)</label>
-                            <textarea
-                                rows={2}
-                                value={form.notes}
-                                onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-                                placeholder="Ej: No incluye armado. Entrega en 48hs hábiles. Formas de pago acordadas..."
-                                className={inputClass}
-                            />
-                        </div>
-                    </section>
-                </div>
-
-                {/* Columna Lateral (1 columna) */}
-                <div className="flex flex-col gap-6">
-                    {/* FECHAS Y ESTADO */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
-                        <h2 className="text-base font-bold text-white">Vigencia del Presupuesto</h2>
-
-                        <div>
-                            <label className={labelClass}>Fecha de Emisión</label>
-                            <input
-                                type="date"
-                                value={form.date}
-                                onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-                                className={inputClass}
-                            />
-                        </div>
-
-                        <div>
-                            <div className="flex items-center justify-between mb-1">
-                                <label className={labelClass}>Fecha de Vencimiento *</label>
-                                {isExpired && (
-                                    <span className="text-[11px] font-bold text-red-400">
-                                        ⚠️ VENCIDO
-                                    </span>
-                                )}
-                            </div>
-                            <input
-                                type="date"
-                                required
-                                value={form.expirationDate}
-                                onChange={(e) =>
-                                    setForm((prev) => ({ ...prev, expirationDate: e.target.value }))
-                                }
-                                className={`${inputClass} ${isExpired ? "border-red-500/50 bg-red-500/10" : ""}`}
-                            />
-
-                            {/* Accesos rápidos de vencimiento */}
-                            <div className="flex items-center gap-1.5 mt-2">
-                                <span className="text-[11px] text-gray-500">Sumar:</span>
-                                {[7, 15, 30].map((days) => (
-                                    <button
-                                        key={days}
-                                        type="button"
-                                        onClick={() =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                expirationDate: getDefaultExpirationDate(days),
-                                            }))
-                                        }
-                                        className="px-2 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-[10px] text-gray-300 border border-gray-700 transition"
-                                    >
-                                        +{days}d
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className={labelClass}>Estado</label>
-                            <select
-                                value={form.status}
-                                onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as any }))}
-                                className={inputClass}
-                            >
-                                <option value="draft">Borrador</option>
-                                <option value="sent">Enviado al cliente</option>
-                                <option value="accepted">Aceptado</option>
-                                <option value="rejected">Rechazado</option>
-                                <option value="converted">Convertido a Venta</option>
-                            </select>
-                        </div>
-                    </section>
-
-                    {/* MONEDA Y TOTALES */}
-                    <section className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
-                        <h2 className="text-base font-bold text-white">Totales</h2>
-
-                        <div className="grid grid-cols-2 gap-2">
-                            <div>
-                                <label className={labelClass}>Moneda</label>
-                                <select
-                                    value={form.currency}
-                                    onChange={(e) =>
-                                        setForm((prev) => ({ ...prev, currency: e.target.value as any }))
-                                    }
-                                    className={inputClass}
-                                >
-                                    <option value="ARS">Pesos (ARS)</option>
-                                    <option value="USD">Dólares (USD)</option>
-                                </select>
-                            </div>
-
-                            {form.currency === "USD" && (
+                    <FormSection id="condiciones" title="Condiciones y vigencia">
+                        <div className="flex flex-col gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
-                                    <label className={labelClass}>Cotiz. USD</label>
+                                    <label className={labelClass}>Fecha de Emisión</label>
                                     <input
-                                        type="number"
-                                        step="0.01"
-                                        value={form.exchangeRate}
-                                        onChange={(e) =>
-                                            setForm((prev) => ({ ...prev, exchangeRate: Number(e.target.value) || 1 }))
-                                        }
+                                        type="date"
+                                        value={form.date}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
                                         className={inputClass}
                                     />
                                 </div>
-                            )}
-                        </div>
 
-                        <div className="border-t border-gray-800 pt-3 space-y-2 text-sm text-gray-300">
-                            <div className="flex justify-between">
-                                <span>Subtotal neto (sin IVA):</span>
-                                <span className="font-mono">${subtotal.toLocaleString("es-AR")}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>IVA discriminado:</span>
-                                <span className="font-mono text-blue-400 font-semibold">${ivaTotal.toLocaleString("es-AR")}</span>
-                            </div>
-                            <div className="flex justify-between text-base font-bold text-white border-t border-gray-700 pt-2">
-                                <span>Total final ({form.currency}):</span>
-                                <span className="font-mono text-brand text-lg">
-                                    ${total.toLocaleString("es-AR")}
-                                </span>
-                            </div>
-                            {form.currency === "USD" && form.exchangeRate > 1 && (
-                                <div className="text-xs text-gray-500 text-right font-mono">
-                                    Aprox. ${(total * form.exchangeRate).toLocaleString("es-AR")} ARS
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className={labelClass}>Fecha de Vencimiento *</label>
+                                        {isExpired && (
+                                            <span className="text-[11px] font-bold text-red-400">
+                                                ⚠️ VENCIDO
+                                            </span>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={form.expirationDate}
+                                        onChange={(e) =>
+                                            setForm((prev) => ({ ...prev, expirationDate: e.target.value }))
+                                        }
+                                        className={`${inputClass} ${isExpired ? "border-red-500/50 bg-red-500/10" : ""}`}
+                                    />
+
+                                    {/* Accesos rápidos de vencimiento */}
+                                    <div className="flex items-center gap-1.5 mt-2">
+                                        <span className="text-[11px] text-gray-500">Sumar:</span>
+                                        {[7, 15, 30].map((days) => (
+                                            <button
+                                                key={days}
+                                                type="button"
+                                                onClick={() =>
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        expirationDate: getDefaultExpirationDate(days),
+                                                    }))
+                                                }
+                                                className="px-2 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-[10px] text-gray-300 border border-gray-700 transition"
+                                            >
+                                                +{days}d
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            )}
+                                <div>
+                                    <label className={labelClass}>Estado</label>
+                                    <select
+                                        value={form.status}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as any }))}
+                                        className={inputClass}
+                                    >
+                                        <option value="draft">Borrador</option>
+                                        <option value="sent">Enviado al cliente</option>
+                                        <option value="accepted">Aceptado</option>
+                                        <option value="rejected">Rechazado</option>
+                                        <option value="converted">Convertido a Venta</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className={labelClass}>Moneda</label>
+                                    <select
+                                        value={form.currency}
+                                        onChange={(e) =>
+                                            setForm((prev) => ({ ...prev, currency: e.target.value as any }))
+                                        }
+                                        className={inputClass}
+                                    >
+                                        <option value="ARS">Pesos (ARS)</option>
+                                        <option value="USD">Dólares (USD)</option>
+                                    </select>
+                                </div>
+
+                                {form.currency === "USD" && (
+                                    <div>
+                                        <label className={labelClass}>Cotiz. USD</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={form.exchangeRate}
+                                            onChange={(e) =>
+                                                setForm((prev) => ({ ...prev, exchangeRate: Number(e.target.value) || 1 }))
+                                            }
+                                            className={inputClass}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <label className={labelClass}>Cláusula de Validez y Términos (visible en el PDF)</label>
+                                <textarea
+                                    rows={2}
+                                    value={form.terms}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, terms: e.target.value }))}
+                                    className={inputClass}
+                                />
+                            </div>
+
+                            <div>
+                                <label className={labelClass}>Observaciones / Notas adicionales (visible en el PDF)</label>
+                                <textarea
+                                    rows={2}
+                                    value={form.notes}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                                    placeholder="Ej: No incluye armado. Entrega en 48hs hábiles. Formas de pago acordadas..."
+                                    className={inputClass}
+                                />
+                            </div>
+                        </div>
+                    </FormSection>
+
+                </div>
+
+                {/* Escritorio: totales y acciones en la columna derecha, pegados al hacer scroll.
+                    En el celular sólo quedan las acciones (PDF, convertir…), al final */}
+                <aside className="min-w-0">
+                    <div className="flex flex-col gap-4 lg:sticky lg:top-6">
+                        <div className="hidden lg:block">
+                            <TotalsCard title="Totales" rows={totalsRows} totalLabel={totalLabel} total={formatMoney(total)}>
+                                <div className="mt-5 flex flex-col gap-3">
+                                    {error && (
+                                        <p className="text-xs text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                                            {error}
+                                        </p>
+                                    )}
+                                    {success && (
+                                        <p className="text-xs text-green-400 bg-green-500/10 p-3 rounded-lg border border-green-500/20">
+                                            {success}
+                                        </p>
+                                    )}
+                                    <button type="submit" disabled={loading} className={`${buttonClass.primary} w-full py-3`}>
+                                        {submitLabel}
+                                    </button>
+                                </div>
+                            </TotalsCard>
                         </div>
 
-                        {error && (
-                            <p className="text-xs text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                                {error}
-                            </p>
-                        )}
-                        {success && (
-                            <p className="text-xs text-green-400 bg-green-500/10 p-3 rounded-lg border border-green-500/20">
-                                {success}
-                            </p>
-                        )}
-
-                        {/* BOTÓN GUARDAR */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3.5 rounded-xl bg-brand hover:brightness-110 disabled:opacity-50 text-white font-bold text-sm transition shadow-lg shadow-brand/20 flex items-center justify-center gap-2"
-                        >
-                            <span>💾</span>
-                            <span>{loading ? "Guardando..." : mode === "edit" ? "Guardar Cambios" : "Crear Presupuesto"}</span>
-                        </button>
-
-                        {/* ACCIONES DEL MODO EDIT */}
                         {mode === "edit" && quote?.id && (
-                            <div className="space-y-2 pt-2 border-t border-gray-800">
+                            <section id="acciones" className={`${cardClass} scroll-mt-32 md:scroll-mt-24 space-y-2 p-4 sm:p-6`}>
+                                <h2 className="mb-2 text-base font-bold text-white">Acciones</h2>
                                 {/* DESCARGAR PDF LETRA X */}
                                 <a
                                     href={`/api/admin/quotes/${quote.id}/pdf`}
@@ -1178,10 +1154,29 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                 >
                                     {deleting ? "Eliminando..." : "Eliminar Presupuesto"}
                                 </button>
-                            </div>
+                            </section>
                         )}
-                    </section>
-                </div>
+                    </div>
+                </aside>
+
+                    {/* Celular y tablet: total y "Guardar" siempre a mano */}
+                    <TotalsActionBar
+                        className="lg:hidden lg:col-span-2"
+                        rows={totalsRows}
+                        totalLabel={totalLabel}
+                        total={formatMoney(total)}
+                        message={
+                            error ? (
+                                <span className="text-red-400">{error}</span>
+                            ) : success ? (
+                                <span className="text-green-400">{success}</span>
+                            ) : null
+                        }
+                    >
+                        <button type="submit" disabled={loading} className={buttonClass.primary}>
+                            {submitLabel}
+                        </button>
+                    </TotalsActionBar>
             </form>
 
             {/* Modal de Crear Cliente */}

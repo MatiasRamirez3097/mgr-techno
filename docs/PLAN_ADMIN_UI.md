@@ -1,6 +1,6 @@
 # Plan: rediseño del panel de administración (orden de formularios + responsive)
 
-Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1): `feat/admin-ui-foundation` · PR 2 (fase 2): `feat/admin-ui-lists` · PR 3 (fase 3): `feat/admin-ui-product-form` · sigue la fase 4
+Estado: **aprobado** (2026-11-16) · PR 1 (fases 0 + 1): `feat/admin-ui-foundation` · PR 2 (fase 2): `feat/admin-ui-lists` · PR 3 (fase 3): `feat/admin-ui-product-form` · PR 4 (fase 4): `feat/admin-ui-order-forms` · sigue la fase 5
 
 Objetivos:
 1. Formularios más cortos de recorrer y ordenados: secciones claras, navegación entre secciones y
@@ -145,13 +145,28 @@ Mismo esquema (índice + barra de acciones), con el resumen de importes siempre 
 escritorio en la columna derecha pegada; celular en un resumen plegable sobre la barra de acciones
 ("Total $ 1.234.567 ▲").
 
-- [ ] `OrderForm`: Cliente → Productos (`ItemRow`) → Envío → Pagos → Publicación.
-- [ ] `QuoteForm`: Cliente → Ítems (incluye PC armada, `CustomPcQuoteItem`) → Condiciones y
+- [x] `OrderForm`: Cliente → Productos (`ItemRow`) → Envío → Pagos → Publicación.
+- [x] `QuoteForm`: Cliente → Ítems (incluye PC armada, `CustomPcQuoteItem`) → Condiciones y
       vigencia → Totales.
-- [ ] `PurchaseForm` y `ReceivePurchaseForm`: Proveedor → Ítems → Totales → Estado.
-- [ ] `OrderPaymentsSection` e `InventoryAllocationSection` con `ItemRow`.
+- [x] `PurchaseForm` y `ReceivePurchaseForm`: Proveedor → Ítems → Totales → Estado.
+- [x] `OrderPaymentsSection` e `InventoryAllocationSection` con `ItemRow`.
 
 **PR 4**.
+
+Notas de la fase 4:
+- Componente nuevo `ui/TotalsSummary.tsx`: `TotalsCard` (columna derecha en escritorio) y
+  `TotalsActionBar` (barra fija del celular con el total; tocándolo se despliega el detalle).
+  `StickyActionBar` ganó la ranura `top` para ese detalle.
+- No se creó un `ItemRow` genérico: las filas de cada formulario son distintas (PC armada,
+  alertas de precio, seriales). En el celular ya se apilan como tarjetas (fase 1); en presupuestos
+  la fila pasó a descripción arriba y números en una fila debajo.
+- Venta: "Pagos" pasó de la columna lateral a la principal; el estado es su propia sección.
+- Presupuesto: vigencia, estado, moneda y notas quedaron juntas en "Condiciones y vigencia";
+  PDF / convertir / eliminar en la tarjeta "Acciones" (al final en el celular).
+- Compra: totales y "Estado y acciones" en la columna derecha; en sólo lectura no hay barra fija
+  y los totales se ven también en el celular.
+- Recepción: "Confirmar recepción" en barra fija con las unidades a recibir.
+- Se sacaron dos `console.log` de `OrderPaymentsSection`.
 
 ## Fase 5 — Resto de formularios y configuración
 
