@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { REFERENCE_SOURCE_KEYS } from "@/lib/priceReference/sources";
 import { priceReferenceUploadSchema } from "@/lib/validators/priceReferenceUploadSchema";
 import { finishReferenceRun } from "@/services/priceReference/finishReferenceRun";
+import { autoLinkReferencesByCode } from "@/services/priceReference/links/autoLinkReferencesByCode";
 import { getReferenceQueue } from "@/services/priceReference/getReferenceQueue";
 import { saveReferencePages } from "@/services/priceReference/saveReferencePages";
 import { saveReferenceSitemap } from "@/services/priceReference/saveReferenceSitemap";
@@ -68,8 +69,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(await saveReferenceSitemap(input.source, input.entries));
         case "pages":
             return NextResponse.json(await saveReferencePages(input.source, input.outcomes));
-        case "finish":
+        case "finish": {
             await finishReferenceRun(input.source, input.summary);
-            return NextResponse.json({ ok: true });
+            // Con las páginas nuevas puede haber productos para vincular por part number / EAN
+            const autoLink = await autoLinkReferencesByCode();
+            return NextResponse.json({ ok: true, autoLink });
+        }
     }
 }

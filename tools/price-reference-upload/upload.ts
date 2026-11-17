@@ -51,7 +51,10 @@ async function main() {
                 saveSitemap: (entries) => post({ action: "sitemap", source: source.key, entries }),
                 savePages: (outcomes) => post({ action: "pages", source: source.key, outcomes }),
                 finish: async (summary) => {
-                    await post({ action: "finish", source: source.key, summary });
+                    const res = await post({ action: "finish", source: source.key, summary });
+                    if (res.autoLink?.linked) {
+                        log(`[${source.key}] Vinculados por part number / EAN: ${res.autoLink.linked}`);
+                    }
                 },
             },
             { ...OPTIONS, log: (message) => log(`[${source.key}]`, message) },
