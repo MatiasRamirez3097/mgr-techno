@@ -8,6 +8,8 @@ export type PriceReviewView =
     | "no_stock"
     | "unlinked"
     | "suggested"
+    | "ref_expensive"
+    | "ref_cheaper"
     | "all";
 
 export interface PriceReviewFilters {
@@ -32,6 +34,22 @@ export interface PriceReviewDistributorCost {
     available: boolean;
     lastCheckedAt: string | null;
     // Variación del último cambio de costo, si fue en los últimos días (Elit, NewBytes)
+    recentChange: number | null;
+}
+
+// Precio de venta de un producto vinculado en una tienda de referencia
+export interface PriceReviewReference {
+    source: string;
+    sourceLabel: string;
+    name: string;
+    url: string;
+    // Precio vigente (oferta si la hay) y de lista, en ARS
+    price: number | null;
+    listPrice: number | null;
+    inStock: boolean;
+    available: boolean;
+    fetchedAt: string | null;
+    // Variación del último cambio de precio, si fue en los últimos días
     recentChange: number | null;
 }
 
@@ -81,6 +99,12 @@ export interface PriceReviewRow {
     suggestedPrice: number | null;
     // Sugerencias de vínculo en distribuidores todavía no vinculados
     linkSuggestions: PriceReviewLinkSuggestion[];
+    // Tiendas de referencia vinculadas, de la más barata a la más cara
+    references: PriceReviewReference[];
+    // Precio vigente más bajo entre las referencias con stock (si ninguna tiene, entre todas)
+    bestReferencePrice: number | null;
+    // Nuestro precio contra esa referencia: (nuestro − suyo) / suyo; positivo = somos más caros
+    referenceDiff: number | null;
 }
 
 export interface PriceReviewResult {
@@ -97,6 +121,9 @@ export interface PriceReviewResult {
         noStock: number;
         // Productos con sugerencias de vínculo pendientes
         withSuggestions: number;
+        // Contra las tiendas de referencia (ver REFERENCE_* en lib/priceReview.ts)
+        refExpensive: number;
+        refCheaper: number;
     };
 }
 

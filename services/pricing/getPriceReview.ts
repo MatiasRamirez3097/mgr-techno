@@ -10,6 +10,9 @@ import { buildAdminProductSearchMatch } from "@/lib/search/adminProductSearch";
 import { hasDistributorStock } from "@/lib/distributors/productLinks";
 import {
     comparePriceWithCosts,
+    compareWithReferences,
+    REFERENCE_CHEAPER_THRESHOLD,
+    REFERENCE_EXPENSIVE_THRESHOLD,
     resolveMargins,
     type CategoryMarginNode,
     type MarginStatus,
@@ -19,6 +22,7 @@ import {
     type ProductDistributorLinkDoc,
 } from "@/lib/mappers/productDistributorLinkMapper";
 import { applyLocalCatalogPrices } from "@/services/distributors/links/applyLocalCatalogPrices";
+import { getReferencesForProducts } from "@/services/priceReference/links/getReferencesForProducts";
 import { getPricingSettings } from "@/services/settings/getPricingSettings";
 import type { ProductDistributorLinkDTO } from "@/types/shared/distributorLink";
 import type {
@@ -52,7 +56,8 @@ const STATUS_ORDER: Record<MarginStatus, number> = { below_min: 0, below_target:
 /**
  * Revisión de precios: compara el precio de venta (effectivePrice) de cada producto con el
  * mejor costo con stock de sus distribuidores vinculados, con el margen objetivo/mínimo de
- * su categoría (o el general) y un precio sugerido.
+ * su categoría (o el general) y un precio sugerido. Suma el precio de venta de las tiendas de
+ * referencia vinculadas, para decidir el precio con los dos datos a la vista.
  */
 export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<PriceReviewResult> {
     await connectDB();
@@ -91,12 +96,13 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
     const categories = new Map<string, CategoryMarginNode>(categoryList.map((c) => [c.id, c]));
 
     const productIds = products.map((p) => p._id);
-    const [linkDocs, suggestionRefs] = await Promise.all([
+    const [linkDocs, suggestionRefs, referencesByProduct] = await Promise.all([
         ProductDistributorLinkModel.find({ productId: { $in: productIds } }).lean<ProductDistributorLinkDoc[]>(),
         ProductLinkSuggestionModel.find(
             { dismissedAt: null, productId: { $in: productIds } },
             { productId: 1, distributor: 1 },
         ).lean<{ productId: Types.ObjectId; distributor: string }[]>(),
+        getReferencesForProducts(productIds),
     ]);
     const links = await applyLocalCatalogPrices(linkDocs.map(mapProductDistributorLinkToDTO));
 
@@ -129,6 +135,7 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
                     : null,
         }));
         const effectivePrice = Number(product.effectivePrice) || 0;
+        const references = referencesByProduct.get(productId) ?? [];
         const comparison = comparePriceWithCosts({
             effectivePrice,
             costs,
@@ -154,6 +161,8 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
             minMarginPercent: margins.minMarginPercent,
             marginSource: margins.targetSource,
             linkSuggestions: [],
+            references,
+            ...compareWithReferences(effectivePrice, references),
         };
     });
 
@@ -169,6 +178,10 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
 
     const isLinked = (r: PriceReviewRow) => r.costs.length > 0;
     const isNoStock = (r: PriceReviewRow) => isLinked(r) && r.bestCost === null;
+    const isRefExpensive = (r: PriceReviewRow) =>
+        r.referenceDiff !== null && r.referenceDiff > REFERENCE_EXPENSIVE_THRESHOLD;
+    const isRefCheaper = (r: PriceReviewRow) =>
+        r.referenceDiff !== null && r.referenceDiff <= REFERENCE_CHEAPER_THRESHOLD;
 
     const summary = {
         linked: allRows.filter(isLinked).length,
@@ -177,6 +190,8 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
         belowTarget: allRows.filter((r) => r.marginStatus === "below_target").length,
         noStock: allRows.filter(isNoStock).length,
         withSuggestions: allRows.filter(hasSuggestions).length,
+        refExpensive: allRows.filter(isRefExpensive).length,
+        refCheaper: allRows.filter(isRefCheaper).length,
     };
 
     const filtered = allRows.filter((r) => {
@@ -193,12 +208,20 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
                 return !isLinked(r);
             case "suggested":
                 return hasSuggestions(r);
+            case "ref_expensive":
+                return isRefExpensive(r);
+            case "ref_cheaper":
+                return isRefCheaper(r);
             default:
                 return true;
         }
     });
 
-    filtered.sort(
+    // Contra referencias: primero las diferencias más grandes; el resto, lo más urgente por margen
+    if (view === "ref_expensive" || view === "ref_cheaper") {
+        const sign = view === "ref_expensive" ? -1 : 1;
+        filtered.sort((a, b) => sign * (a.referenceDiff! - b.referenceDiff!) || a.name.localeCompare(b.name, "es"));
+    } else filtered.sort(
         (a, b) =>
             STATUS_ORDER[a.marginStatus] - STATUS_ORDER[b.marginStatus] ||
             (a.margin ?? Infinity) - (b.margin ?? Infinity) ||
