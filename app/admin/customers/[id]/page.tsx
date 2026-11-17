@@ -6,6 +6,7 @@ import {
 } from "@/services/customers/getCustomersById";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
+import { Tabs } from "@/components/admin/ui/Tabs";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     pending: {
@@ -57,6 +58,11 @@ export default async function AdminCustomerDetailPage({
         .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
     const formatDate = (d: string | Date) =>
         new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+    // Pedido más reciente (la lista puede venir en cualquier orden)
+    const lastOrderDate = orders.reduce<Date | null>((latest, o) => {
+        const d = new Date(o.createdAt);
+        return !latest || d > latest ? d : latest;
+    }, null);
 
     return (
         <div className="max-w-5xl">
@@ -65,161 +71,187 @@ export default async function AdminCustomerDetailPage({
                 title={`${customer.firstName} ${customer.lastName}`}
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="flex flex-col gap-6">
-                    {/* Info personal */}
-                    <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
-                        <div className="flex items-center gap-4 mb-5">
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-brand flex items-center justify-center text-white text-xl font-bold shrink-0">
-                                {customer.firstName?.charAt(0)?.toUpperCase() ||
-                                    customer.email?.charAt(0)?.toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-white font-medium">
-                                    {customer.firstName} {customer.lastName}
-                                </p>
-                                <p className="text-sm text-gray-400 break-all">
-                                    {customer.email}
-                                </p>
-                            </div>
-                        </div>
+            {/* Resumen rápido */}
+            <dl className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {[
+                    { label: "Pedidos", value: String(orders.length) },
+                    { label: "Total gastado", value: `$${totalSpent.toLocaleString("es-AR")}`, strong: true },
+                    { label: "Último pedido", value: lastOrderDate ? formatDate(lastOrderDate) : "—" },
+                    { label: "Cliente desde", value: formatDate(customer.createdAt) },
+                ].map((kpi) => (
+                    <div key={kpi.label} className="min-w-0 rounded-2xl border border-gray-800 bg-gray-900 p-3 sm:p-4">
+                        <dt className="text-xs text-gray-400">{kpi.label}</dt>
+                        <dd className={`mt-1 truncate ${kpi.strong ? "text-lg font-bold text-brand" : "text-sm font-medium text-white"}`}>
+                            {kpi.value}
+                        </dd>
+                    </div>
+                ))}
+            </dl>
 
-                        <div className="flex flex-col gap-3 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">Teléfono</span>
-                                <span className="text-white">
-                                    {customer.billing?.phone || "—"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">
-                                    Registrado
-                                </span>
-                                <span className="text-white">
-                                    {new Date(
-                                        customer.createdAt,
-                                    ).toLocaleDateString("es-AR", {
-                                        day: "2-digit",
-                                        month: "short",
-                                        year: "numeric",
-                                    })}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">
-                                    Total pedidos
-                                </span>
-                                <span className="text-white">{customer.orders.length}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">
-                                    Total gastado
-                                </span>
-                                <span className="text-white font-medium">
-                                    ${totalSpent.toLocaleString("es-AR")}
-                                </span>
-                            </div>
-                        </div>
-                    </section>
+            <Tabs
+                ariaLabel="Secciones del cliente"
+                tabs={[
+                    {
+                        id: "datos",
+                        label: "Datos",
+                        content: (
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
+                                <div className="flex items-center gap-4 mb-5">
+                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-brand flex items-center justify-center text-white text-xl font-bold shrink-0">
+                                        {customer.firstName?.charAt(0)?.toUpperCase() ||
+                                            customer.email?.charAt(0)?.toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-white font-medium">
+                                            {customer.firstName} {customer.lastName}
+                                        </p>
+                                        <p className="text-sm text-gray-400 break-all">
+                                            {customer.email}
+                                        </p>
+                                    </div>
+                                </div>
 
-                    {/* Dirección */}
-                    <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
-                        <h2 className="text-base font-bold text-white mb-4">
-                            Dirección de envío
-                        </h2>
-                        <div className="flex flex-col gap-2 text-sm">
-                            <p className="text-white">
-                                {customer.billing?.address || "—"}
-                            </p>
-                            <p className="text-gray-400">
-                                {[
-                                    customer.billing?.city,
-                                    customer.billing?.state,
-                                    customer.billing?.postcode,
-                                ]
-                                    .filter(Boolean)
-                                    .join(", ")}
-                            </p>
-                        </div>
-                    </section>
-                </div>
-
-                {/* Pedidos del cliente */}
-                <div className="lg:col-span-2">
-                    <section className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-                        <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-800">
-                            <h2 className="text-base font-bold text-white">
-                                Pedidos
-                            </h2>
-                        </div>
-
-                        {customer.orders.length === 0 ? (
-                            <div className="px-6 py-12 text-center text-gray-400 text-sm">
-                                Este cliente no tiene pedidos aún
+                                <div className="flex flex-col gap-3 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">Teléfono</span>
+                                        <span className="text-white">
+                                            {customer.billing?.phone || "—"}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">
+                                            Registrado
+                                        </span>
+                                        <span className="text-white">
+                                            {new Date(
+                                                customer.createdAt,
+                                            ).toLocaleDateString("es-AR", {
+                                                day: "2-digit",
+                                                month: "short",
+                                                year: "numeric",
+                                            })}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">
+                                            Total pedidos
+                                        </span>
+                                        <span className="text-white">{customer.orders.length}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">
+                                            Total gastado
+                                        </span>
+                                        <span className="text-white font-medium">
+                                            ${totalSpent.toLocaleString("es-AR")}
+                                        </span>
+                                    </div>
+                                </div>
+                            </section>
+                            <section className="bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-800">
+                                <h2 className="text-base font-bold text-white mb-4">
+                                    Dirección de envío
+                                </h2>
+                                <div className="flex flex-col gap-2 text-sm">
+                                    <p className="text-white">
+                                        {customer.billing?.address || "—"}
+                                    </p>
+                                    <p className="text-gray-400">
+                                        {[
+                                            customer.billing?.city,
+                                            customer.billing?.state,
+                                            customer.billing?.postcode,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(", ")}
+                                    </p>
+                                </div>
+                            </section>
                             </div>
-                        ) : (
-                            <ResponsiveTable
-                                variant="bare"
-                                minWidth="560px"
-                                rows={orders}
-                                getRowKey={(order) => String(order.id)}
-                                rowHref={(order) => `/admin/orders/${order.id}`}
-                                columns={[
-                                    {
-                                        key: "id",
-                                        header: "#",
-                                        mobile: "title",
-                                        className: "text-sm text-white font-medium",
-                                        cell: (order) => `#${String(order.id).slice(-6).toUpperCase()}`,
-                                    },
-                                    {
-                                        key: "status",
-                                        header: "Estado",
-                                        mobile: "badge",
-                                        cell: (order) => {
-                                            const status = STATUS_LABELS[order.status] || {
-                                                label: order.status,
-                                                color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-                                            };
-                                            return (
-                                                <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status.color}`}>
-                                                    {status.label}
-                                                </span>
-                                            );
+                        ),
+                    },
+                    {
+                        id: "pedidos",
+                        label: "Pedidos",
+                        badge: orders.length,
+                        content: (
+                        <section className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+                            <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-800">
+                                <h2 className="text-base font-bold text-white">
+                                    Pedidos
+                                </h2>
+                            </div>
+
+                            {customer.orders.length === 0 ? (
+                                <div className="px-6 py-12 text-center text-gray-400 text-sm">
+                                    Este cliente no tiene pedidos aún
+                                </div>
+                            ) : (
+                                <ResponsiveTable
+                                    variant="bare"
+                                    minWidth="560px"
+                                    rows={orders}
+                                    getRowKey={(order) => String(order.id)}
+                                    rowHref={(order) => `/admin/orders/${order.id}`}
+                                    columns={[
+                                        {
+                                            key: "id",
+                                            header: "#",
+                                            mobile: "title",
+                                            className: "text-sm text-white font-medium",
+                                            cell: (order) => `#${String(order.id).slice(-6).toUpperCase()}`,
                                         },
-                                    },
-                                    {
-                                        key: "total",
-                                        header: "Total",
-                                        className: "text-sm text-white",
-                                        cell: (order) => `$${Number(order.total).toLocaleString("es-AR")}`,
-                                    },
-                                    {
-                                        key: "date",
-                                        header: "Fecha",
-                                        className: "text-sm text-gray-400",
-                                        cell: (order) => formatDate(order.createdAt),
-                                    },
-                                    {
-                                        key: "view",
-                                        header: "",
-                                        mobile: "hidden",
-                                        align: "right",
-                                        cell: (order) => (
-                                            <Link
-                                                href={`/admin/orders/${order.id}`}
-                                                className="text-xs text-brand hover:brightness-125 transition-all"
-                                            >
-                                                Ver →
-                                            </Link>
-                                        ),
-                                    },
-                                ]}
-                            />
-                        )}
-                    </section>
-                </div>
-            </div>
+                                        {
+                                            key: "status",
+                                            header: "Estado",
+                                            mobile: "badge",
+                                            cell: (order) => {
+                                                const status = STATUS_LABELS[order.status] || {
+                                                    label: order.status,
+                                                    color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
+                                                };
+                                                return (
+                                                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status.color}`}>
+                                                        {status.label}
+                                                    </span>
+                                                );
+                                            },
+                                        },
+                                        {
+                                            key: "total",
+                                            header: "Total",
+                                            className: "text-sm text-white",
+                                            cell: (order) => `$${Number(order.total).toLocaleString("es-AR")}`,
+                                        },
+                                        {
+                                            key: "date",
+                                            header: "Fecha",
+                                            className: "text-sm text-gray-400",
+                                            cell: (order) => formatDate(order.createdAt),
+                                        },
+                                        {
+                                            key: "view",
+                                            header: "",
+                                            mobile: "hidden",
+                                            align: "right",
+                                            cell: (order) => (
+                                                <Link
+                                                    href={`/admin/orders/${order.id}`}
+                                                    className="text-xs text-brand hover:brightness-125 transition-all"
+                                                >
+                                                    Ver →
+                                                </Link>
+                                            ),
+                                        },
+                                    ]}
+                                />
+                            )}
+                        </section>
+                        ),
+                    },
+                ]}
+            />
         </div>
     );
 }
