@@ -4,15 +4,15 @@ import {
     REFERENCE_ITEM_PROJECTION,
     type ReferenceCatalogItemDoc,
 } from "@/lib/mappers/priceReferenceMapper";
+import { looseWordPattern } from "@/lib/priceReference/search";
 import { normalizeSearch } from "@/lib/search/normalize";
 import { ReferenceCatalogItemModel } from "@/models/ReferenceCatalogItem";
 import type { ReferenceCandidateDTO } from "@/types/shared/priceReference";
 
-const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 /**
  * Búsqueda manual en los catálogos de referencia: todas las palabras deben aparecer en el nombre,
- * la marca, el SKU o el GTIN (searchText, normalizado como en la tienda).
+ * la marca, el SKU o el GTIN (searchText, normalizado como en la tienda), sin importar espacios
+ * dentro de cada palabra. Sólo encuentra ítems cuya página ya se leyó (antes no hay nombre ni precio).
  */
 export async function searchReferenceCatalog(
     query: string,
@@ -27,7 +27,7 @@ export async function searchReferenceCatalog(
             inSitemap: true,
             price: { $ne: null },
             ...(source ? { source } : {}),
-            $and: words.map((w) => ({ searchText: { $regex: escapeRegex(w) } })),
+            $and: words.map((w) => ({ searchText: { $regex: looseWordPattern(w) } })),
         },
         REFERENCE_ITEM_PROJECTION,
     )

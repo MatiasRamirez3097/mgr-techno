@@ -1,6 +1,7 @@
 // Lee los catálogos de las tiendas de referencia de precio y sube lo leído al sitio. Las tiendas
 // bloquean las IPs de Vercel, así que esto corre en una PC con una tarea programada (ver README.md).
 // Uso: npx tsx tools/price-reference-upload/upload.ts  (desde la raíz del repo)
+//      Con --all encadena pasadas hasta vaciar la cola (para la carga inicial).
 // Variables (en .env.local): PRICE_REFERENCE_TOKEN y, opcional, PRICE_REFERENCE_URL.
 import { loadEnvConfig } from "@next/env";
 
@@ -10,6 +11,8 @@ const DEFAULT_URL = "https://mgrtechno.com.ar/api/cron/price-reference-upload";
 
 // Por pasada (la tarea corre cada hora): 2 lecturas en paralelo con pausa, unas 400 páginas
 const OPTIONS = { maxPages: 400, concurrency: 2, delayMs: 700, batchSize: 50 };
+// Con --all: tope de pasadas seguidas (unas 8.000 páginas), por si la cola no se vacía
+const MAX_PASSES = 20;
 
 const log = (...args: unknown[]) => console.log(new Date().toISOString(), ...args);
 
@@ -41,30 +44,35 @@ async function main() {
     };
     const post = (payload: object) => call({ method: "POST", body: JSON.stringify(payload) });
 
+    const all = process.argv.includes("--all");
     let failed = false;
     for (const source of REFERENCE_SOURCES) {
-        const result = await runReferencePass(
-            source,
-            {
-                getQueue: (limit) =>
-                    call({ method: "GET", query: `?source=${source.key}&limit=${limit}` }),
-                saveSitemap: (entries) => post({ action: "sitemap", source: source.key, entries }),
-                savePages: (outcomes) => post({ action: "pages", source: source.key, outcomes }),
-                finish: async (summary) => {
-                    const res = await post({ action: "finish", source: source.key, summary });
-                    if (res.autoLink?.linked) {
-                        log(`[${source.key}] Vinculados por part number / EAN: ${res.autoLink.linked}`);
-                    }
+        for (let pass = 1; pass <= (all ? MAX_PASSES : 1); pass++) {
+            const result = await runReferencePass(
+                source,
+                {
+                    getQueue: (limit) =>
+                        call({ method: "GET", query: `?source=${source.key}&limit=${limit}` }),
+                    saveSitemap: (entries) => post({ action: "sitemap", source: source.key, entries }),
+                    savePages: (outcomes) => post({ action: "pages", source: source.key, outcomes }),
+                    finish: async (summary) => {
+                        const res = await post({ action: "finish", source: source.key, summary });
+                        if (res.autoLink?.linked) {
+                            log(`[${source.key}] Vinculados por part number / EAN: ${res.autoLink.linked}`);
+                        }
+                    },
                 },
-            },
-            { ...OPTIONS, log: (message) => log(`[${source.key}]`, message) },
-        );
+                { ...OPTIONS, log: (message) => log(`[${source.key}]`, message) },
+            );
 
-        log(
-            `[${source.key}] ${result.status}: ${result.fetched} páginas leídas de ${result.queued}, ` +
-                `${result.pending} pendientes${result.message ? ` — ${result.message}` : ""}`,
-        );
-        if (result.status === "error") failed = true;
+            log(
+                `[${source.key}] ${result.status}: ${result.fetched} páginas leídas de ${result.queued}, ` +
+                    `${result.pending} pendientes${result.message ? ` — ${result.message}` : ""}`,
+            );
+            if (result.status === "error") failed = true;
+            // Sigue sólo si quedan pendientes y esta pasada avanzó
+            if (result.status !== "partial" || result.fetched === 0) break;
+        }
     }
     // process.exitCode en vez de process.exit: en Windows cortar con conexiones abiertas
     // dispara "Assertion failed ... async.c"
