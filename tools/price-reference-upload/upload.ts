@@ -29,7 +29,13 @@ async function main() {
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-            throw new Error(`El sitio respondió HTTP ${res.status}: ${body.error || "sin detalle"}`);
+            const hint =
+                res.status === 429 || res.status === 403
+                    ? " (¿falta la regla Bypass del firewall de Vercel para esta ruta?)"
+                    : "";
+            throw new Error(
+                `${new URL(endpoint).host} respondió HTTP ${res.status}: ${body.error || "sin detalle"}${hint}`,
+            );
         }
         return body;
     };
@@ -57,10 +63,12 @@ async function main() {
         );
         if (result.status === "error") failed = true;
     }
-    if (failed) process.exit(1);
+    // process.exitCode en vez de process.exit: en Windows cortar con conexiones abiertas
+    // dispara "Assertion failed ... async.c"
+    if (failed) process.exitCode = 1;
 }
 
 main().catch((error) => {
     log("ERROR:", error instanceof Error ? error.message : error);
-    process.exit(1);
+    process.exitCode = 1;
 });

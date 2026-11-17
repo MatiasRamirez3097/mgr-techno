@@ -42,7 +42,7 @@ export async function fetchReferencePage(url: string): Promise<ReferencePageResu
         throw new ReferenceBlockedError(
             challenged
                 ? "Cloudflare pidió verificación (challenge): el sitio bloquea las consultas desde este servidor"
-                : `El sitio respondió ${response.status}: bloqueó las consultas o pidió bajar el ritmo`,
+                : `${new URL(url).host} respondió ${response.status}: bloqueó las consultas o pidió bajar el ritmo`,
         );
     }
 
