@@ -7,6 +7,8 @@ Las tiendas que se usan como referencia de precio (`lib/priceReference/sources.t
 3. Lee hasta 400 páginas por pasada (2 en paralelo, con pausa), extrae los datos del JSON-LD y los sube de a 50 (`POST` a la misma ruta).
 4. El sitio guarda todo en `reference_catalog_items` y registra los cambios de precio.
 
+Las fuentes de tipo `catalog-json` (las que publican el catálogo completo en un archivo) no usan cola: en cada ejecución se descarga el archivo, se sube en tandas de 500 (`action: "catalog"`) y al final (`catalog-finish`) se dan de baja los productos que ya no vinieron. Si el archivo llega con menos de la mitad de los productos que había, no se da de baja ninguno.
+
 Todos los pedidos al sitio llevan `Authorization: Bearer <PRICE_REFERENCE_TOKEN>`. Si la PC está apagada no se rompe nada: quedan los últimos datos leídos.
 
 ## Requisitos de la PC

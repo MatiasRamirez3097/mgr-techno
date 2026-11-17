@@ -15,7 +15,10 @@ export type ReferencePageResult =
     | { status: "not_found" }
     | { status: "error"; message: string };
 
-export async function fetchReferencePage(url: string): Promise<ReferencePageResult> {
+export async function fetchReferencePage(
+    url: string,
+    { timeoutMs = TIMEOUT_MS }: { timeoutMs?: number } = {},
+): Promise<ReferencePageResult> {
     let response: Response;
     try {
         response = await fetch(url, {
@@ -26,7 +29,7 @@ export async function fetchReferencePage(url: string): Promise<ReferencePageResu
             },
             redirect: "follow",
             cache: "no-store",
-            signal: AbortSignal.timeout(TIMEOUT_MS),
+            signal: AbortSignal.timeout(timeoutMs),
         });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Error de red";

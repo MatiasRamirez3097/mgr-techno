@@ -43,6 +43,22 @@ export const priceReferenceUploadSchema = z.discriminatedUnion("action", [
             )
             .max(200),
     }),
+    // Fuentes catalog-json: tandas del catálogo completo, todas con el mismo seenAt
+    z.object({
+        action: z.literal("catalog"),
+        source: sourceKey,
+        seenAt: z.coerce.date(),
+        entries: z
+            .array(z.object({ externalId: text(100).min(1), url, data: productData }))
+            .min(1)
+            .max(1000),
+    }),
+    z.object({
+        action: z.literal("catalog-finish"),
+        source: sourceKey,
+        seenAt: z.coerce.date(),
+        total: z.number().int().min(0),
+    }),
     z.object({
         action: z.literal("finish"),
         source: sourceKey,

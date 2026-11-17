@@ -5,6 +5,10 @@ import { priceReferenceUploadSchema } from "@/lib/validators/priceReferenceUploa
 import { finishReferenceRun } from "@/services/priceReference/finishReferenceRun";
 import { autoLinkReferencesByCode } from "@/services/priceReference/links/autoLinkReferencesByCode";
 import { getReferenceQueue } from "@/services/priceReference/getReferenceQueue";
+import {
+    finishReferenceCatalog,
+    saveReferenceCatalogBatch,
+} from "@/services/priceReference/saveReferenceCatalog";
 import { saveReferencePages } from "@/services/priceReference/saveReferencePages";
 import { saveReferenceSitemap } from "@/services/priceReference/saveReferenceSitemap";
 
@@ -69,6 +73,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(await saveReferenceSitemap(input.source, input.entries));
         case "pages":
             return NextResponse.json(await saveReferencePages(input.source, input.outcomes));
+        case "catalog":
+            return NextResponse.json(
+                await saveReferenceCatalogBatch(input.source, input.seenAt, input.entries),
+            );
+        case "catalog-finish":
+            return NextResponse.json(
+                await finishReferenceCatalog(input.source, input.seenAt, input.total),
+            );
         case "finish": {
             await finishReferenceRun(input.source, input.summary);
             // Con las páginas nuevas puede haber productos para vincular por part number / EAN

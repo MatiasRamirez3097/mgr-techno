@@ -7,6 +7,9 @@ const ReferenceCatalogItemSchema = new Schema(
         // Clave de la fuente (lib/priceReference/sources.ts)
         source: { type: String, required: true },
         url: { type: String, required: true },
+        // ID propio de la tienda, en las fuentes que lo tienen (catálogo JSON): la URL puede
+        // cambiar si editan el nombre, así que esas se identifican por acá
+        externalId: { type: String, default: undefined },
 
         name: { type: String, default: "" },
         sku: { type: String, default: "" },
@@ -45,6 +48,10 @@ const ReferenceCatalogItemSchema = new Schema(
 );
 
 ReferenceCatalogItemSchema.index({ source: 1, url: 1 }, { unique: true });
+ReferenceCatalogItemSchema.index(
+    { source: 1, externalId: 1 },
+    { unique: true, partialFilterExpression: { externalId: { $type: "string" } } },
+);
 ReferenceCatalogItemSchema.index({ source: 1, sku: 1 });
 ReferenceCatalogItemSchema.index({ source: 1, inSitemap: 1, fetchedAt: 1 });
 

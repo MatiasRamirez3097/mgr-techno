@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ReferenceSource } from "@/lib/priceReference/sources";
+import type { SitemapReferenceSource } from "@/lib/priceReference/sources";
 import { ReferenceBlockedError } from "@/services/priceReference/fetchReferencePage";
 import type { ReferencePageOutcome } from "@/services/priceReference/fetchReferenceProduct";
 import type { ReferencePassStore } from "@/services/priceReference/runReferencePass";
@@ -15,7 +15,7 @@ vi.mock("@/services/priceReference/fetchReferenceSitemap", () => ({
 
 const { runReferencePass } = await import("@/services/priceReference/runReferencePass");
 
-const source = { key: "test" } as ReferenceSource;
+const source = { key: "test" } as SitemapReferenceSource;
 const options = { maxPages: 10, concurrency: 2, delayMs: 0, batchSize: 2 };
 const ok = (url: string): ReferencePageOutcome => ({
     url,
