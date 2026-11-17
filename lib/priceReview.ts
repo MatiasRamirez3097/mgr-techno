@@ -122,6 +122,36 @@ export function comparePriceWithCosts<D extends string>(input: {
     };
 }
 
+// Más caro que la referencia: más de 1% por encima (debajo de eso es ruido de redondeo)
+export const REFERENCE_EXPENSIVE_THRESHOLD = 0.01;
+// Más barato que la referencia: 5% o más por debajo (hay margen para subir)
+export const REFERENCE_CHEAPER_THRESHOLD = -0.05;
+
+export interface ReferencePriceCandidate {
+    price: number | null;
+    inStock: boolean;
+    available: boolean;
+}
+
+/**
+ * Referencia contra la que comparar: el precio más bajo entre las tiendas que lo tienen en
+ * stock; si ninguna tiene stock, el más bajo entre las publicadas. Devuelve también la
+ * diferencia de nuestro precio contra esa referencia.
+ */
+export function compareWithReferences(
+    effectivePrice: number,
+    references: ReferencePriceCandidate[],
+): { bestReferencePrice: number | null; referenceDiff: number | null } {
+    const published = references.filter((r) => r.available && r.price && r.price > 0);
+    const pool = published.some((r) => r.inStock) ? published.filter((r) => r.inStock) : published;
+    const bestReferencePrice = pool.length ? Math.min(...pool.map((r) => r.price!)) : null;
+    const referenceDiff =
+        bestReferencePrice && effectivePrice > 0
+            ? (effectivePrice - bestReferencePrice) / bestReferencePrice
+            : null;
+    return { bestReferencePrice, referenceDiff };
+}
+
 /**
  * Cómo aplicar un nuevo precio final: si el producto tiene una oferta vigente y el precio
  * nuevo sigue por debajo del regular, se cambia la oferta; si no, se cambia el regular y se

@@ -16,7 +16,17 @@ import { buttonClass } from "@/components/admin/ui/styles";
 
 export const dynamic = "force-dynamic";
 
-const VIEWS: PriceReviewView[] = ["linked", "below_min", "below_target", "no_stock", "unlinked", "suggested", "all"];
+const VIEWS: PriceReviewView[] = [
+    "linked",
+    "below_min",
+    "below_target",
+    "no_stock",
+    "unlinked",
+    "suggested",
+    "ref_expensive",
+    "ref_cheaper",
+    "all",
+];
 
 interface Props {
     searchParams: Promise<{
@@ -69,13 +79,15 @@ export default async function PriceReviewPage({ searchParams }: Props) {
         { view: "no_stock", label: "Sin stock en distribuidores", count: summary.noStock, tone: "text-gray-300" },
         { view: "unlinked", label: "Sin vincular", count: summary.unlinked, tone: "text-gray-400" },
         { view: "suggested", label: "Con sugerencias de vínculo", count: summary.withSuggestions, tone: "text-brand" },
+        { view: "ref_expensive", label: "Más caro que referencias", count: summary.refExpensive, tone: "text-red-400" },
+        { view: "ref_cheaper", label: "Más barato que referencias (5%+)", count: summary.refCheaper, tone: "text-emerald-300" },
     ];
 
     return (
         <div>
             <AdminPageHeader
                 title="Revisión de precios"
-                description="Tu precio (transferencia/efectivo) contra el mejor costo con stock de los distribuidores vinculados."
+                description="Tu precio (transferencia/efectivo) contra el mejor costo con stock de los distribuidores vinculados y contra el precio de venta de las tiendas de referencia."
                 className="!mb-4"
                 actions={
                     <Link href="/admin/comparator/margins" className={buttonClass.secondary}>
@@ -97,7 +109,7 @@ export default async function PriceReviewPage({ searchParams }: Props) {
                 <LinkSuggestionsButton status={suggestionsStatus} />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-6">
                 {cards.map((card) => (
                     <Link
                         key={card.view}

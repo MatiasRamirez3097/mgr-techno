@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     buildPriceUpdate,
     comparePriceWithCosts,
+    compareWithReferences,
     getMarginStatus,
     resolveMargins,
     suggestPrice,
@@ -166,5 +167,24 @@ describe("validadores", () => {
         expect(applyPricesSchema.safeParse({ updates: [] }).success).toBe(false);
         expect(applyPricesSchema.safeParse({ updates: [{ productId: "x", price: 0 }] }).success).toBe(false);
         expect(applyPricesSchema.safeParse({ updates: [{ productId: "x", price: 10 }] }).success).toBe(true);
+    });
+});
+
+describe("compareWithReferences", () => {
+    const ref = (price: number | null, inStock = true, available = true) => ({ price, inStock, available });
+
+    it("compara contra la referencia más barata con stock", () => {
+        const result = compareWithReferences(110, [ref(120), ref(100), ref(90, false)]);
+        expect(result.bestReferencePrice).toBe(100);
+        expect(result.referenceDiff).toBeCloseTo(0.1);
+    });
+
+    it("sin stock en ninguna, usa la más barata publicada", () => {
+        expect(compareWithReferences(100, [ref(120, false), ref(110, false)]).bestReferencePrice).toBe(110);
+    });
+
+    it("ignora las que ya no están en la tienda o no tienen precio", () => {
+        const result = compareWithReferences(100, [ref(50, true, false), ref(null)]);
+        expect(result).toEqual({ bestReferencePrice: null, referenceDiff: null });
     });
 });

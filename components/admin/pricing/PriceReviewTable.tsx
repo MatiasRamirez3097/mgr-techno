@@ -4,8 +4,17 @@ import { Fragment, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DISTRIBUTOR_LABELS, hasDistributorStock } from "@/lib/distributors/productLinks";
-import { getMarginStatus, type MarginStatus } from "@/lib/priceReview";
-import type { PriceReviewLinkSuggestion, PriceReviewRow } from "@/types/shared/priceReview";
+import {
+    getMarginStatus,
+    REFERENCE_CHEAPER_THRESHOLD,
+    REFERENCE_EXPENSIVE_THRESHOLD,
+    type MarginStatus,
+} from "@/lib/priceReview";
+import type {
+    PriceReviewLinkSuggestion,
+    PriceReviewReference,
+    PriceReviewRow,
+} from "@/types/shared/priceReview";
 import { DISTRIBUTOR_KEYS } from "@/types/shared/distributorLink";
 import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
 
@@ -30,6 +39,15 @@ const DISTRIBUTOR_TEXT: Record<string, string> = {
     invid: "text-purple-300",
     air: "text-orange-300",
 };
+
+// Nuestro precio contra la referencia: rojo si somos más caros, verde si hay margen para subir
+const referenceDiffClass = (diff: number) =>
+    diff > REFERENCE_EXPENSIVE_THRESHOLD
+        ? "text-red-400"
+        : diff <= REFERENCE_CHEAPER_THRESHOLD
+          ? "text-emerald-300"
+          : "text-gray-400";
+const formatSignedPercent = (n: number) => `${n > 0 ? "+" : ""}${formatPercent(n)}`;
 
 const timeAgo = (iso: string | null) => {
     if (!iso) return "";
@@ -144,7 +162,7 @@ export function PriceReviewTable({ rows }: Props) {
                 variant="bare"
                 rows={rows}
                 getRowKey={(row) => row.productId}
-                minWidth="1100px"
+                minWidth="1300px"
                 renderExpanded={(row) =>
                     expanded.has(row.productId) && row.linkSuggestions.length > 0 ? (
                         <LinkSuggestionsList row={row} />
@@ -298,6 +316,33 @@ export function PriceReviewTable({ rows }: Props) {
                         },
                     },
                     {
+                        key: "references",
+                        header: "Referencias",
+                        headerClassName: "min-w-[200px]",
+                        cell: (row) =>
+                            row.references.length === 0 ? (
+                                <Link
+                                    href={`/admin/products/${row.productId}#referencias`}
+                                    className="text-xs text-gray-500 underline"
+                                >
+                                    Sin vincular
+                                </Link>
+                            ) : (
+                                <ul className="space-y-0.5">
+                                    {row.references.map((r) => (
+                                        <ReferenceLine
+                                            key={r.source}
+                                            reference={r}
+                                            effectivePrice={row.effectivePrice}
+                                            onUse={(price) =>
+                                                setEdited((prev) => ({ ...prev, [row.productId]: String(price) }))
+                                            }
+                                        />
+                                    ))}
+                                </ul>
+                            ),
+                    },
+                    {
                         key: "lastPurchase",
                         header: "Últ. compra",
                         align: "right",
@@ -360,6 +405,10 @@ export function PriceReviewTable({ rows }: Props) {
                             const typed = editedPrice(row);
                             const typedMargin = typed && row.bestCost ? (typed - row.bestCost) / row.bestCost : null;
                             const typedStatus = getMarginStatus(typedMargin, row.minMarginPercent, row.targetMarginPercent);
+                            const typedRefDiff =
+                                typed && row.bestReferencePrice
+                                    ? (typed - row.bestReferencePrice) / row.bestReferencePrice
+                                    : null;
                             return (
                                 <div className="w-full md:w-auto">
                                     <div className="flex items-center gap-2">
@@ -385,9 +434,24 @@ export function PriceReviewTable({ rows }: Props) {
                                             </button>
                                         )}
                                     </div>
-                                    {typedMargin !== null && (
-                                        <span className={`text-[10px] font-mono ${STATUS_STYLE[typedStatus]}`}>
-                                            margen {formatPercent(typedMargin)}
+                                    {(typedMargin !== null || typedRefDiff !== null) && (
+                                        <span className="block text-[10px] font-mono">
+                                            {typedMargin !== null && (
+                                                <span className={STATUS_STYLE[typedStatus]}>
+                                                    margen {formatPercent(typedMargin)}
+                                                </span>
+                                            )}
+                                            {typedMargin !== null && typedRefDiff !== null && (
+                                                <span className="text-gray-600"> · </span>
+                                            )}
+                                            {typedRefDiff !== null && (
+                                                <span
+                                                    className={referenceDiffClass(typedRefDiff)}
+                                                    title="Contra la referencia más barata"
+                                                >
+                                                    vs ref. {formatSignedPercent(typedRefDiff)}
+                                                </span>
+                                            )}
                                         </span>
                                     )}
                                 </div>
@@ -397,6 +461,79 @@ export function PriceReviewTable({ rows }: Props) {
                 ]}
             />
         </div>
+    );
+}
+
+/**
+ * Precio de una tienda de referencia: diferencia de nuestro precio contra el suyo y, al
+ * tocar el precio, se carga como nuevo precio (no se aplica solo).
+ */
+function ReferenceLine({
+    reference: r,
+    effectivePrice,
+    onUse,
+}: {
+    reference: PriceReviewReference;
+    effectivePrice: number;
+    onUse: (price: number) => void;
+}) {
+    const usable = r.available && r.price !== null && r.price > 0;
+    const diff = usable && effectivePrice > 0 ? (effectivePrice - r.price!) / r.price! : null;
+    const tooltip = [
+        r.name,
+        r.listPrice && r.listPrice !== r.price ? `lista ${formatArs(r.listPrice)}` : null,
+        r.fetchedAt ? `leído ${timeAgo(r.fetchedAt)}` : null,
+    ]
+        .filter(Boolean)
+        .join(" · ");
+
+    return (
+        <li
+            className={`flex items-center justify-between gap-2 text-xs ${
+                !r.inStock || !r.available ? "opacity-60" : ""
+            }`}
+            title={tooltip}
+        >
+            <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="font-semibold text-sky-300 hover:underline truncate"
+            >
+                {r.sourceLabel}
+            </a>
+            <span className="font-mono text-gray-200 whitespace-nowrap">
+                {r.recentChange !== null && (
+                    <span
+                        className={`mr-1 ${r.recentChange > 0 ? "text-red-400" : "text-emerald-400"}`}
+                        title="Cambio de precio en los últimos 7 días"
+                    >
+                        {r.recentChange > 0 ? "▲" : "▼"}
+                        {formatPercent(Math.abs(r.recentChange))}
+                    </span>
+                )}
+                {usable ? (
+                    <button
+                        type="button"
+                        onClick={() => onUse(Math.round(r.price!))}
+                        className="hover:underline"
+                        title="Usar este precio como nuevo precio"
+                    >
+                        {formatArs(r.price!)}
+                    </button>
+                ) : (
+                    "—"
+                )}
+                {diff !== null && (
+                    <span className={`ml-1.5 ${referenceDiffClass(diff)}`} title="Nuestro precio contra el suyo">
+                        {formatSignedPercent(diff)}
+                    </span>
+                )}
+                <span className={`ml-1.5 ${r.inStock ? "text-emerald-400" : "text-red-400"}`}>
+                    {!r.available ? "no disp." : r.inStock ? "●" : "sin stock"}
+                </span>
+            </span>
+        </li>
     );
 }
 
