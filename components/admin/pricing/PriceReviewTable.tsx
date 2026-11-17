@@ -43,10 +43,10 @@ const DISTRIBUTOR_TEXT: Record<string, string> = {
 // Nuestro precio contra la referencia: rojo si somos más caros, verde si hay margen para subir
 const referenceDiffClass = (diff: number) =>
     diff > REFERENCE_EXPENSIVE_THRESHOLD
-        ? "text-red-400"
+        ? "text-red-300"
         : diff <= REFERENCE_CHEAPER_THRESHOLD
           ? "text-emerald-300"
-          : "text-gray-400";
+          : "text-gray-300";
 const formatSignedPercent = (n: number) => `${n > 0 ? "+" : ""}${formatPercent(n)}`;
 
 const timeAgo = (iso: string | null) => {
@@ -485,23 +485,22 @@ function ReferenceLine({
 
     return (
         <li
-            className={`flex items-center justify-between gap-2 text-xs ${
-                !r.inStock || !r.available ? "opacity-60" : ""
-            }`}
+            // Sin stock no se atenúa (lo indica el punto); sólo lo que ya no está en la tienda
+            className={`flex items-center justify-between gap-2 text-xs ${!r.available ? "opacity-50" : ""}`}
             title={tooltip}
         >
             <a
                 href={r.url}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="font-semibold text-sky-300 hover:underline truncate"
+                className="font-semibold text-sky-200 hover:underline truncate"
             >
                 {r.sourceShortLabel}
             </a>
-            <span className="font-mono text-gray-200 whitespace-nowrap">
+            <span className="font-mono text-white whitespace-nowrap">
                 {r.recentChange !== null && (
                     <span
-                        className={`mr-1 ${r.recentChange > 0 ? "text-red-400" : "text-emerald-400"}`}
+                        className={`mr-1 ${r.recentChange > 0 ? "text-red-300" : "text-emerald-300"}`}
                         title="Cambio de precio en los últimos 7 días"
                     >
                         {r.recentChange > 0 ? "▲" : "▼"}
@@ -526,7 +525,7 @@ function ReferenceLine({
                     </span>
                 )}
                 <span
-                    className={`ml-1.5 ${!r.available ? "text-gray-500" : r.inStock ? "text-emerald-400" : "text-red-400"}`}
+                    className={`ml-1.5 ${!r.available ? "text-gray-400" : r.inStock ? "text-emerald-400" : "text-red-500"}`}
                     aria-label={!r.available ? "Ya no está en la tienda" : r.inStock ? "Con stock" : "Sin stock"}
                 >
                     {!r.available ? "✕" : "●"}
