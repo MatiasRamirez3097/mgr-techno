@@ -39,8 +39,11 @@ async function main() {
                 res.status === 429 || res.status === 403
                     ? " (¿falta la regla Bypass del firewall de Vercel para esta ruta?)"
                     : "";
+            // Con datos rechazados, el primer problema (campo y motivo) ayuda a saber qué pasó
+            const issue = Array.isArray(body.issues) && body.issues[0];
+            const detail = issue ? ` (${(issue.path || []).join(".") || "cuerpo"}: ${issue.message})` : "";
             throw new Error(
-                `${new URL(endpoint).host} respondió HTTP ${res.status}: ${body.error || "sin detalle"}${hint}`,
+                `${new URL(endpoint).host} respondió HTTP ${res.status}: ${body.error || "sin detalle"}${detail}${hint}`,
             );
         }
         return body;
