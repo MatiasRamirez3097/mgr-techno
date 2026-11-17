@@ -246,5 +246,6 @@ El usuario aprobó reutilizar el estilo del detalle de orden. Tres ramas apilada
       Presupuesto: Borrador → "Marcar como enviado" → "Marcar como aceptado" → "Convertir a venta".
       Compra: Borrador → "Confirmar compra" → "Recepcionar" / "Continuar recepción". El cambio guarda
       sólo el estado (PUT parcial) y sincroniza el formulario; el selector de estado queda sólo al crear.
-- [ ] `feat/admin-ui-customer-tabs`: detalle de cliente con pestañas Datos / Pedidos.
+- [x] `feat/admin-ui-customer-tabs`: detalle de cliente con resumen (pedidos, total gastado, último
+      pedido, cliente desde) y pestañas Datos / Pedidos.
 - [ ] `feat/admin-ui-orders-list-status`: cambiar el estado desde el listado de órdenes.
