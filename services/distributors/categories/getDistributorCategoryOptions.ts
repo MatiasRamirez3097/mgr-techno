@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import { DistributorCategorySeenModel } from "@/models/DistributorCategorySeen";
 import { getInvidCategories } from "@/services/distributors/invid/getInvidCategories";
 import { getAirCategories } from "@/services/distributors/air/getAirCategories";
+import { getPcmoddCategories } from "@/services/distributors/pcmodd/getPcmoddCategories";
 import { getNewBytesToken } from "@/services/distributors/newbytes/getNewBytesToken";
 import type {
     DistributorCategoryOption,
@@ -53,7 +54,7 @@ async function getElitSeenCategories(): Promise<DistributorCategoryOptions["elit
 export async function getDistributorCategoryOptions(): Promise<DistributorCategoryOptions> {
     const errors: string[] = [];
 
-    const [elit, newbytes, invid, air] = await Promise.all([
+    const [elit, newbytes, invid, air, pcmodd] = await Promise.all([
         getElitSeenCategories().catch((e) => {
             console.error("Error leyendo categorías de Elit:", e);
             errors.push("Elit");
@@ -90,7 +91,14 @@ export async function getDistributorCategoryOptions(): Promise<DistributorCatego
                 errors.push("AIR");
                 return [];
             }),
+        getPcmoddCategories()
+            .then((brands) => brands.map((b) => ({ value: b.id, label: b.name, detail: `${b.count} art.` })))
+            .catch((e) => {
+                console.error("Error leyendo marcas de PCMODD:", e);
+                errors.push("PCMODD");
+                return [];
+            }),
     ]);
 
-    return { elit, newbytes, invid, air, errors };
+    return { elit, newbytes, invid, air, pcmodd, errors };
 }

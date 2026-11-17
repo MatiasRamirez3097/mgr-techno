@@ -34,6 +34,8 @@ const ComparatorCategorySchema = new Schema(
         invid: { type: [String], default: [] },
         // Códigos de rubro de AIR (ej: "001-0331")
         air: { type: [String], default: [] },
+        // Marcas de la hoja de PCMODD (no tiene categorías)
+        pcmodd: { type: [String], default: [] },
     },
     { timestamps: true },
 );

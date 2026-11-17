@@ -10,6 +10,7 @@ const BADGE_STYLES: Record<string, string> = {
     newbytes: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
     invid: "bg-purple-500/10 text-purple-300 border border-purple-500/20",
     air: "bg-orange-500/10 text-orange-300 border border-orange-500/20",
+    pcmodd: "bg-pink-500/10 text-pink-300 border border-pink-500/20",
 };
 const badgeFor = (distributor: string) =>
     BADGE_STYLES[distributor.toLowerCase()] || BADGE_STYLES.newbytes;
@@ -33,7 +34,7 @@ interface Props {
         unitPrice: number;
         quantity: number;
         taxRate: number;
-        // Distribuidores en dólares (Invid, AIR): costo en USD y cotización usada
+        // Distribuidores en dólares (Invid, AIR, PCMODD): costo en USD y cotización usada
         costPriceUsd?: number;
         costExchangeRate?: number;
     }) => void;
@@ -106,7 +107,7 @@ export function DistributorProductSelectorModal({
             setResults(products);
 
             if (products.length === 0) {
-                setError("No se encontraron productos con ese término en Elit, NewBytes, Invid ni AIR.");
+                setError("No se encontraron productos con ese término en Elit, NewBytes, Invid, AIR ni PCMODD.");
             }
         } catch (err: any) {
             setError(err.message || "Error al conectar con los distribuidores.");
@@ -126,7 +127,7 @@ export function DistributorProductSelectorModal({
             sku: selectedProduct.sku,
             image: selectedProduct.image || undefined,
             distributor,
-            // En Invid y AIR el código propio es el ID (el SKU es el part number del fabricante);
+            // En Invid, AIR y PCMODD el código propio es el ID (el SKU es el part number del fabricante);
             // con él se buscan los cambios de precio en el catálogo local
             distributorSku: (USD_CATALOG_DISTRIBUTORS as readonly string[]).includes(distributor)
                 ? String(selectedProduct.id)
@@ -159,7 +160,7 @@ export function DistributorProductSelectorModal({
                                 Buscar en Distribuidores Mayoristas
                             </h2>
                             <p className="text-xs text-gray-400">
-                                Catálogos de <strong>Elit</strong>, <strong>NewBytes</strong>, <strong>Invid</strong> y <strong>AIR</strong> (Invid y AIR se actualizan cada hora)
+                                Catálogos de <strong>Elit</strong>, <strong>NewBytes</strong>, <strong>Invid</strong>, <strong>AIR</strong> y <strong>PCMODD</strong> (Invid y PCMODD se actualizan cada hora)
                             </p>
                         </div>
                     </div>

@@ -83,7 +83,7 @@ export async function generateLinkSuggestions(): Promise<GenerateLinkSuggestions
                 { productId: 1, distributor: 1, distributorProductId: 1 },
             ).lean<{ productId: { toString(): string }; distributor: string; distributorProductId: string }[]>(),
             getAllLocalCatalogItemsWithCodes({ withCodesOnly: false }).catch((err) => {
-                result.errors.push(`Invid/AIR: ${err instanceof Error ? err.message : String(err)}`);
+                result.errors.push(`Invid/AIR/PCMODD: ${err instanceof Error ? err.message : String(err)}`);
                 return null;
             }),
             fetchElitCatalog().catch((err) => ({
@@ -103,7 +103,7 @@ export async function generateLinkSuggestions(): Promise<GenerateLinkSuggestions
         const items: SuggestionCatalogItem[] = [];
         if (local) {
             items.push(...local);
-            result.distributors.push("invid", "air");
+            result.distributors.push("invid", "air", "pcmodd");
         }
         for (const [key, source] of [["elit", elit], ["newbytes", newbytes]] as const) {
             if (source.error) {

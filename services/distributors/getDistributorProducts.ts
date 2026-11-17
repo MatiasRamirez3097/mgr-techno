@@ -15,6 +15,8 @@ import { mapNewBytesProduct } from "@/lib/distributors/newbytesMapper";
 import { searchInvidCatalog } from "./invid/searchInvidCatalog";
 import { scheduleInvidSyncIfStale } from "./invid/scheduleInvidSyncIfStale";
 import { searchAirCatalog } from "./air/searchAirCatalog";
+import { searchPcmoddCatalog } from "./pcmodd/searchPcmoddCatalog";
+import { isPcmoddConfigured } from "./pcmodd/syncPcmoddCatalog";
 
 /**
  * Busca en los distribuidores habilitados. `category` es la clave de una categoría del
@@ -23,7 +25,7 @@ import { searchAirCatalog } from "./air/searchAirCatalog";
 export async function getDistributorProducts(
     searchQuery: string,
     category: string = "",
-    enabledDistributors: string[] = ["elit", "newbytes", "invid", "air"],
+    enabledDistributors: string[] = ["elit", "newbytes", "invid", "air", "pcmodd"],
 ): Promise<NormalizedProduct[]> {
     if (!searchQuery && !category) return []; // Optional: return empty if neither is provided
 
@@ -71,6 +73,20 @@ export async function getDistributorProducts(
         fetchPromises.push(
             fetchAir(searchQuery, mapping?.air ?? []).catch((e) => {
                 console.error("Failed to fetch from AIR:", e);
+                return [];
+            }),
+        );
+    }
+
+    // PCMODD: hoja de Google Sheets copiada cada hora (services/distributors/pcmodd); por marca
+    if (
+        enabledDistributors.includes("pcmodd") &&
+        isPcmoddConfigured() &&
+        (!mapping || mapping.pcmodd.length > 0)
+    ) {
+        fetchPromises.push(
+            searchPcmoddCatalog(searchQuery, mapping?.pcmodd ?? []).catch((e) => {
+                console.error("Failed to fetch from PCMODD:", e);
                 return [];
             }),
         );

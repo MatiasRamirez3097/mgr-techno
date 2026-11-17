@@ -10,7 +10,7 @@ const ProductLinkSuggestionSchema = new Schema(
         productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
         distributor: {
             type: String,
-            enum: ["elit", "newbytes", "invid", "air"],
+            enum: ["elit", "newbytes", "invid", "air", "pcmodd"],
             required: true,
         },
         distributorProductId: { type: String, required: true },

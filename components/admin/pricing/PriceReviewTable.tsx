@@ -38,6 +38,7 @@ const DISTRIBUTOR_TEXT: Record<string, string> = {
     newbytes: "text-emerald-300",
     invid: "text-purple-300",
     air: "text-orange-300",
+    pcmodd: "text-pink-300",
 };
 
 // Nuestro precio contra la referencia: rojo si somos más caros, verde si hay margen para subir

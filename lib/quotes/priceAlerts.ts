@@ -28,7 +28,7 @@ export interface QuoteItemPriceAlert {
 }
 
 // Distribuidores en dólares con catálogo local, cuyos ítems pueden tener alertas
-export const USD_CATALOG_DISTRIBUTORS = ["invid", "air"] as const;
+export const USD_CATALOG_DISTRIBUTORS = ["invid", "air", "pcmodd"] as const;
 
 // Clave de `prices`: distribuidor y su código (distributorSku), ej: "air:39580"
 export const quotePriceKey = (distributor: string, sku: string) =>

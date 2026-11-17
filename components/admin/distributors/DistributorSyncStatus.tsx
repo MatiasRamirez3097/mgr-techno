@@ -12,6 +12,10 @@ const THEMES = {
         box: "border-purple-500/20 bg-purple-500/5",
         badge: "bg-purple-500/20 text-purple-300 border-purple-500/30",
     },
+    pink: {
+        box: "border-pink-500/20 bg-pink-500/5",
+        badge: "bg-pink-500/20 text-pink-300 border-pink-500/30",
+    },
     orange: {
         box: "border-orange-500/20 bg-orange-500/5",
         badge: "bg-orange-500/20 text-orange-300 border-orange-500/30",

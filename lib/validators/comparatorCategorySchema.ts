@@ -39,6 +39,7 @@ export const comparatorCategorySchema = z.object({
     newbytes: z.array(z.string()).default([]).transform(cleanList),
     invid: z.array(z.string()).default([]).transform(cleanList),
     air: z.array(z.string()).default([]).transform(cleanList),
+    pcmodd: z.array(z.string()).default([]).transform(cleanList),
 });
 
 export type ComparatorCategoryInput = z.infer<typeof comparatorCategorySchema>;

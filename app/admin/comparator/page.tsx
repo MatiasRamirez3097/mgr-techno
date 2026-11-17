@@ -8,6 +8,9 @@ import { getInvidSyncStatus } from "@/services/distributors/invid/getInvidSyncSt
 import { getInvidCategories } from "@/services/distributors/invid/getInvidCategories";
 import { getAirSyncStatus } from "@/services/distributors/air/getAirSyncStatus";
 import { getAirCategories } from "@/services/distributors/air/getAirCategories";
+import { getPcmoddSyncStatus } from "@/services/distributors/pcmodd/getPcmoddSyncStatus";
+import { getPcmoddCategories } from "@/services/distributors/pcmodd/getPcmoddCategories";
+import { isPcmoddConfigured } from "@/services/distributors/pcmodd/syncPcmoddCatalog";
 import { getComparatorCategories } from "@/services/distributors/categories/getComparatorCategories";
 import { getLinksForDistributorItems } from "@/services/distributors/links/getLinksForDistributorItems";
 import { AutoLinkButton } from "@/components/admin/distributors/AutoLinkButton";
@@ -36,10 +39,10 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
 
     const enabledDistributors = params.distributors
         ? params.distributors.split(",")
-        : ["elit", "newbytes", "invid", "air"];
+        : ["elit", "newbytes", "invid", "air", "pcmodd"];
 
     // Pasamos el array de distribuidores habilitados
-    const [products, invidStatus, airStatus, categories] = await Promise.all([
+    const [products, invidStatus, airStatus, pcmoddStatus, categories] = await Promise.all([
         getDistributorProducts(search, category, enabledDistributors),
         enabledDistributors.includes("invid")
             ? Promise.all([getInvidSyncStatus(), getInvidCategories()]).catch((e) => {
@@ -50,6 +53,12 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
         enabledDistributors.includes("air")
             ? Promise.all([getAirSyncStatus(), getAirCategories()]).catch((e) => {
                   console.error("Error obteniendo el estado de AIR:", e);
+                  return null;
+              })
+            : null,
+        enabledDistributors.includes("pcmodd") && isPcmoddConfigured()
+            ? Promise.all([getPcmoddSyncStatus(), getPcmoddCategories()]).catch((e) => {
+                  console.error("Error obteniendo el estado de PCMODD:", e);
                   return null;
               })
             : null,
@@ -106,6 +115,16 @@ export default async function AdminDistributorsPage({ searchParams }: Props) {
                     staleHint="La lista la sube la tarea programada de la PC (tools/air-upload): revisá que esté corriendo."
                     status={airStatus[0]}
                     categories={airStatus[1]}
+                />
+            )}
+            {pcmoddStatus && (
+                <DistributorSyncStatus
+                    label="PCMODD"
+                    theme="pink"
+                    staleAfterHours={3}
+                    staleHint="La hoja se lee cada hora con el cron de Invid: revisá que siga siendo pública y que PCMODD_SHEET_URL esté bien."
+                    status={pcmoddStatus[0]}
+                    categories={pcmoddStatus[1]}
                 />
             )}
 
