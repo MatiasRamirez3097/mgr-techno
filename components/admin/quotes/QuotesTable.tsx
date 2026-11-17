@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { QuoteDTO, QuoteStatus } from "@/types/shared/quote";
+import type { QuoteDTO } from "@/types/shared/quote";
 import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
+import { QUOTE_STATUS_META } from "./quoteStatusMeta";
 
 interface Props {
     quotes: QuoteDTO[];
@@ -14,32 +15,7 @@ interface Props {
     priceAlerts?: Record<string, number>;
 }
 
-const STATUS_LABELS: Record<QuoteStatus, { label: string; color: string }> = {
-    draft: {
-        label: "Borrador",
-        color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-    },
-    sent: {
-        label: "Enviado",
-        color: "text-blue-400 bg-blue-400/10 border-blue-400/20",
-    },
-    accepted: {
-        label: "Aceptado",
-        color: "text-green-400 bg-green-400/10 border-green-400/20",
-    },
-    expired: {
-        label: "Vencido",
-        color: "text-red-400 bg-red-400/10 border-red-400/20",
-    },
-    rejected: {
-        label: "Rechazado",
-        color: "text-orange-400 bg-orange-400/10 border-orange-400/20",
-    },
-    converted: {
-        label: "Convertido a Orden",
-        color: "text-purple-400 bg-purple-400/10 border-purple-400/20",
-    },
-};
+const STATUS_LABELS = QUOTE_STATUS_META;
 
 export function QuotesTable({ quotes, search, status, priceAlerts }: Props) {
     const router = useRouter();
