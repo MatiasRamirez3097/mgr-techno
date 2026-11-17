@@ -5,6 +5,7 @@ import { PcmoddCatalogItemModel } from "@/models/PcmoddCatalogItem";
 import { buildSheetCsvUrl, parsePcmoddSheet } from "@/lib/distributors/pcmoddMapper";
 import { isIncompleteAirList } from "@/lib/distributors/airMapper";
 import { hasSignificantPriceChange } from "@/lib/distributors/invidMapper";
+import { getDistributorSettings } from "@/services/settings/getDistributorSettings";
 import { acquireSyncLock, releaseSyncLock } from "../syncLock";
 
 export const PCMODD_STATE_ID = "pcmodd";
@@ -61,7 +62,8 @@ export async function syncPcmoddCatalog(): Promise<PcmoddSyncResult> {
             throw new Error("La hoja de PCMODD no se pudo leer como CSV (¿dejó de ser pública?)");
         }
 
-        const { items, skipped } = parsePcmoddSheet(csv);
+        const { pcmoddApplyIva } = await getDistributorSettings();
+        const { items, skipped } = parsePcmoddSheet(csv, { applyIva: pcmoddApplyIva });
         if (items.length === 0) throw new Error("La hoja de PCMODD no tiene productos con precio");
 
         const state = await DistributorSyncStateModel.findById(PCMODD_STATE_ID, { lastSyncItems: 1 }).lean<{

@@ -63,6 +63,11 @@ describe("parsePcmoddSheet", () => {
         expect(items[0]).toMatchObject({ price: 1, ivaPercent: 21, finalPrice: 1.21 });
     });
 
+    it("sin tomar en cuenta la columna de IVA, el costo es el precio tal cual", () => {
+        const sinIva = parsePcmoddSheet(sheet, { applyIva: false }).items.find((i) => i.title === "DX360 MAX")!;
+        expect(sinIva).toMatchObject({ price: 1234.56, finalPrice: 1234.56, ivaPercent: 10.5 });
+    });
+
     it("la búsqueda incluye la marca aunque el nombre no la tenga", () => {
         expect(items.find((i) => i.title === "DX360 MAX")!.searchText).toBe("idcooling dx360 max");
         expect(items[0].searchText).toBe("idcooling frost x55 core 4g");
