@@ -5,6 +5,7 @@ import {
     parseSchemaPrice,
 } from "@/lib/priceReference/jsonLdProduct";
 import { parseSitemap } from "@/lib/priceReference/sitemap";
+import { looseWordPattern } from "@/lib/priceReference/search";
 
 const page = (...blocks: unknown[]) =>
     `<html><head>${blocks
@@ -143,5 +144,19 @@ describe("parseSitemap", () => {
         expect(entries[0].loc).toBe("https://t.test/producto/a/?x=1&y=2");
         expect(entries[0].lastmod?.toISOString()).toBe("2026-11-13T18:11:30.000Z");
         expect(entries[1].lastmod).toBeNull();
+    });
+});
+
+describe("looseWordPattern", () => {
+    const matches = (word: string, text: string) => new RegExp(looseWordPattern(word)).test(text);
+
+    it("encuentra la palabra aunque la tienda la separe con espacios", () => {
+        expect(matches("rtx4060", "placa de video rtx 4060 8 gb")).toBe(true);
+        expect(matches("8gb", "memoria ddr4 8 gb")).toBe(true);
+        expect(matches("tplink", "switch tplink 8 puertos")).toBe(true);
+    });
+
+    it("no encuentra otra palabra", () => {
+        expect(matches("rtx4070", "placa rtx 4060")).toBe(false);
     });
 });

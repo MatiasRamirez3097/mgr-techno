@@ -34,6 +34,14 @@ npx tsx tools/price-reference-upload/upload.ts
 
 La primera vez lee el sitemap (unos 3.000 productos) y después 400 páginas, en unos 5 minutos. Al final imprime algo como `[hardcore] partial: 400 páginas leídas de 400, 2580 pendientes`. Con la tarea cada hora, el catálogo completo queda cargado en unas 8 horas.
 
+Para la **carga inicial** (o después de mucho tiempo con la PC apagada), `--all` encadena pasadas hasta vaciar la cola: unas 3.000 páginas en alrededor de una hora, al mismo ritmo de siempre (2 en paralelo, con pausa).
+
+```
+npx tsx tools/price-reference-upload/upload.ts --all
+```
+
+Hasta que una página se lee, su producto no aparece en la búsqueda ni en las sugerencias del panel (todavía no tiene nombre ni precio). Si la tarea programada arranca mientras corre `--all`, algunas páginas se leen dos veces: no rompe nada.
+
 ## Crear la tarea programada (Windows)
 
 En una terminal, desde la raíz del repo (ajustá la ruta si el repo está en otra carpeta):
