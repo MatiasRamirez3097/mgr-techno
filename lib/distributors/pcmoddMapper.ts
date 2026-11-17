@@ -25,6 +25,14 @@ export interface PcmoddCatalogItemData {
     searchText: string;
 }
 
+/**
+ * Costo en USD de un producto: precio + IVA de la columna C, o el precio tal cual si la
+ * configuración dice que no se tome en cuenta esa columna.
+ */
+export function pcmoddFinalPrice(price: number, ivaPercent: number, applyIva: boolean): number {
+    return applyIva ? Math.round(price * (1 + ivaPercent / 100) * 100) / 100 : price;
+}
+
 /** CSV (RFC 4180): comillas dobles, comas y saltos de línea dentro de campos entre comillas */
 export function parseCsv(text: string): string[][] {
     const rows: string[][] = [];
@@ -88,7 +96,10 @@ export const pcmoddItemId = (brand: string, title: string) =>
  * en A pero no precio en B, es el encabezado de una marca. Las filas con precio pero sin marca
  * previa quedan con marca vacía. `skipped` cuenta filas con nombre y algo en B que no se pudo leer.
  */
-export function parsePcmoddSheet(csv: string): { items: PcmoddCatalogItemData[]; skipped: number } {
+export function parsePcmoddSheet(
+    csv: string,
+    { applyIva = true }: { applyIva?: boolean } = {},
+): { items: PcmoddCatalogItemData[]; skipped: number } {
     const items: PcmoddCatalogItemData[] = [];
     const seen = new Set<string>();
     let brand = "";
@@ -126,7 +137,7 @@ export function parsePcmoddSheet(csv: string): { items: PcmoddCatalogItemData[];
             title: name,
             brand,
             price,
-            finalPrice: Math.round(price * (1 + ivaPercent / 100) * 100) / 100,
+            finalPrice: pcmoddFinalPrice(price, ivaPercent, applyIva),
             ivaPercent,
             currency: "USD",
             row: index + 1,

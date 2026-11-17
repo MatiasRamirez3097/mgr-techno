@@ -21,6 +21,9 @@ export const StoreSettingsSchema = new Schema(
         minMarginPercent: { type: Number, default: 10, min: 0, max: 1000 },
         // Los precios sugeridos se redondean hacia arriba a un múltiplo de este valor
         priceRoundingStep: { type: Number, default: 100, min: 1 },
+        // Distribuidores (sólo admin): si al precio de la hoja de PCMODD se le suma el IVA de su
+        // columna C. Apagado, el costo es el precio tal cual.
+        pcmoddApplyIva: { type: Boolean, default: true },
     },
     { timestamps: true },
 );

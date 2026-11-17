@@ -6,6 +6,10 @@ export const storeSettingsSchema = z.object({
 
 export type StoreSettingsInput = z.infer<typeof storeSettingsSchema>;
 
+export const distributorSettingsSchema = z.object({
+    pcmoddApplyIva: z.boolean(),
+});
+
 export const pricingSettingsSchema = z
     .object({
         targetMarginPercent: z.number().min(0).max(1000),
