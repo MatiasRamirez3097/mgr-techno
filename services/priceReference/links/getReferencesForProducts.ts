@@ -6,6 +6,7 @@ import {
 } from "@/lib/mappers/priceReferenceMapper";
 import { ProductReferenceLinkModel } from "@/models/ProductReferenceLink";
 import { ReferenceCatalogItemModel } from "@/models/ReferenceCatalogItem";
+import { getReferenceSource } from "@/lib/priceReference/sources";
 import type { PriceReviewReference } from "@/types/shared/priceReview";
 
 // Un cambio de precio se marca en la revisión durante esta ventana
@@ -44,6 +45,7 @@ export async function getReferencesForProducts(
             {
                 source: item.source,
                 sourceLabel: item.sourceLabel,
+                sourceShortLabel: getReferenceSource(item.source)?.shortLabel ?? item.sourceLabel,
                 name: item.name,
                 url: item.url,
                 price: item.price,

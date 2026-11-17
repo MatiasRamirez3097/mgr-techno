@@ -7,6 +7,8 @@ export type ReferenceSourceType = "sitemap-jsonld";
 export interface ReferenceSource {
     key: string;
     label: string;
+    /** Sigla para tablas angostas (el nombre completo va en el tooltip) */
+    shortLabel: string;
     type: ReferenceSourceType;
     baseUrl: string;
     /** Índice de sitemaps del sitio */
@@ -19,6 +21,7 @@ export const REFERENCE_SOURCES: ReferenceSource[] = [
     {
         key: "hardcore",
         label: "Hardcore Computación",
+        shortLabel: "HC",
         type: "sitemap-jsonld",
         baseUrl: "https://hardcorecomputacion.com.ar",
         sitemapUrl: "https://hardcorecomputacion.com.ar/wp-sitemap.xml",

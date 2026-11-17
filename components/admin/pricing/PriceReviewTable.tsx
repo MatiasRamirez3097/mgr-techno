@@ -162,7 +162,7 @@ export function PriceReviewTable({ rows }: Props) {
                 variant="bare"
                 rows={rows}
                 getRowKey={(row) => row.productId}
-                minWidth="1300px"
+                minWidth="1050px"
                 renderExpanded={(row) =>
                     expanded.has(row.productId) && row.linkSuggestions.length > 0 ? (
                         <LinkSuggestionsList row={row} />
@@ -213,7 +213,7 @@ export function PriceReviewTable({ rows }: Props) {
                         key: "product",
                         header: "Producto",
                         mobile: "title",
-                        headerClassName: "min-w-[240px]",
+                        headerClassName: "min-w-[220px]",
                         cell: (row) => (
                             <div className="flex items-start gap-3">
                                 <span className="hidden md:block">
@@ -254,7 +254,7 @@ export function PriceReviewTable({ rows }: Props) {
                     {
                         key: "costs",
                         header: "Costos (c/IVA)",
-                        headerClassName: "min-w-[220px]",
+                        headerClassName: "min-w-[190px]",
                         cell: (row) => {
                             const isExpanded = expanded.has(row.productId) && row.linkSuggestions.length > 0;
                             return (
@@ -299,6 +299,15 @@ export function PriceReviewTable({ rows }: Props) {
                                             })}
                                         </ul>
                                     )}
+                                    {row.lastPurchaseCost && (
+                                        <p
+                                            className="mt-0.5 flex justify-between gap-2 text-[11px] text-gray-500"
+                                            title={`Último costo de compra propio, c/IVA (${timeAgo(row.lastPurchaseAt)})`}
+                                        >
+                                            <span>Últ. compra</span>
+                                            <span className="font-mono text-gray-300">{formatArs(row.lastPurchaseCost)}</span>
+                                        </p>
+                                    )}
                                     {row.linkSuggestions.length > 0 && (
                                         <button
                                             type="button"
@@ -318,7 +327,7 @@ export function PriceReviewTable({ rows }: Props) {
                     {
                         key: "references",
                         header: "Referencias",
-                        headerClassName: "min-w-[200px]",
+                        headerClassName: "min-w-[150px]",
                         cell: (row) =>
                             row.references.length === 0 ? (
                                 <Link
@@ -340,21 +349,6 @@ export function PriceReviewTable({ rows }: Props) {
                                         />
                                     ))}
                                 </ul>
-                            ),
-                    },
-                    {
-                        key: "lastPurchase",
-                        header: "Últ. compra",
-                        align: "right",
-                        className: "whitespace-nowrap text-xs",
-                        cell: (row) =>
-                            row.lastPurchaseCost ? (
-                                <>
-                                    <span className="font-mono text-gray-200">{formatArs(row.lastPurchaseCost)}</span>
-                                    <span className="block text-[10px] text-gray-500">{timeAgo(row.lastPurchaseAt)}</span>
-                                </>
-                            ) : (
-                                <span className="text-gray-600">—</span>
                             ),
                     },
                     {
@@ -480,7 +474,9 @@ function ReferenceLine({
     const usable = r.available && r.price !== null && r.price > 0;
     const diff = usable && effectivePrice > 0 ? (effectivePrice - r.price!) / r.price! : null;
     const tooltip = [
+        r.sourceLabel,
         r.name,
+        !r.available ? "ya no está en la tienda" : r.inStock ? "con stock" : "sin stock",
         r.listPrice && r.listPrice !== r.price ? `lista ${formatArs(r.listPrice)}` : null,
         r.fetchedAt ? `leído ${timeAgo(r.fetchedAt)}` : null,
     ]
@@ -500,7 +496,7 @@ function ReferenceLine({
                 rel="noopener noreferrer nofollow"
                 className="font-semibold text-sky-300 hover:underline truncate"
             >
-                {r.sourceLabel}
+                {r.sourceShortLabel}
             </a>
             <span className="font-mono text-gray-200 whitespace-nowrap">
                 {r.recentChange !== null && (
@@ -529,8 +525,11 @@ function ReferenceLine({
                         {formatSignedPercent(diff)}
                     </span>
                 )}
-                <span className={`ml-1.5 ${r.inStock ? "text-emerald-400" : "text-red-400"}`}>
-                    {!r.available ? "no disp." : r.inStock ? "●" : "sin stock"}
+                <span
+                    className={`ml-1.5 ${!r.available ? "text-gray-500" : r.inStock ? "text-emerald-400" : "text-red-400"}`}
+                    aria-label={!r.available ? "Ya no está en la tienda" : r.inStock ? "Con stock" : "Sin stock"}
+                >
+                    {!r.available ? "✕" : "●"}
                 </span>
             </span>
         </li>
