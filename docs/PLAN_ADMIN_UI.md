@@ -248,4 +248,5 @@ El usuario aprobó reutilizar el estilo del detalle de orden. Tres ramas apilada
       sólo el estado (PUT parcial) y sincroniza el formulario; el selector de estado queda sólo al crear.
 - [x] `feat/admin-ui-customer-tabs`: detalle de cliente con resumen (pedidos, total gastado, último
       pedido, cliente desde) y pestañas Datos / Pedidos.
-- [ ] `feat/admin-ui-orders-list-status`: cambiar el estado desde el listado de órdenes.
+- [x] `feat/admin-ui-orders-list-status`: botón del siguiente paso en cada fila del listado de
+      órdenes (con confirmación y aviso "Falta el pago"); etiquetas de estado compartidas con el detalle.

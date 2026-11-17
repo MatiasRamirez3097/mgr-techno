@@ -9,45 +9,9 @@ import type { OrderDTO } from "@/types/shared/order";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 import { buttonClass } from "@/components/admin/ui/styles";
 import { ResponsiveTable } from "@/components/admin/ui/ResponsiveTable";
+import { OrderNextStepButton } from "@/components/admin/orders/OrderNextStepButton";
+import { getOrderStatusMeta } from "@/components/admin/orders/orderStatusMeta";
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-    pending: {
-        label: "Pendiente",
-        color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
-    },
-    processing: {
-        label: "En proceso",
-        color: "text-blue-400 bg-blue-400/10 border-blue-400/20",
-    },
-    ready_for_pickup: {
-        label: "Listo para retiro",
-        color: "text-purple-400 bg-purple-400/10 border-purple-400/20",
-    },
-    shipped: {
-        label: "Enviado",
-        color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20",
-    },
-    on_hold: {
-        label: "En espera",
-        color: "text-orange-400 bg-orange-400/10 border-orange-400/20",
-    },
-    completed: {
-        label: "Completado",
-        color: "text-green-400 bg-green-400/10 border-green-400/20",
-    },
-    cancelled: {
-        label: "Cancelado",
-        color: "text-red-400 bg-red-400/10 border-red-400/20",
-    },
-    refunded: {
-        label: "Reembolsado",
-        color: "text-gray-400 bg-gray-400/10 border-gray-400/20",
-    },
-    failed: {
-        label: "Fallido",
-        color: "text-red-400 bg-red-400/10 border-red-400/20",
-    },
-};
 
 interface Props {
     searchParams: Promise<{
@@ -92,13 +56,13 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                 rows={orders}
                 getRowKey={(order) => order.id.toString()}
                 rowHref={(order) => `/admin/orders/${order.id.toString()}`}
-                minWidth="820px"
+                minWidth="960px"
                 empty={
                     <>
                         No se encontraron órdenes
                         {search ? ` para "${search}"` : ""}
                         {status && status !== "all"
-                            ? ` con estado "${STATUS_LABELS[status]?.label || status}"`
+                            ? ` con estado "${getOrderStatusMeta(status).label}"`
                             : ""}
                     </>
                 }
@@ -168,6 +132,20 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                             }),
                     },
                     {
+                        key: "next",
+                        header: "Siguiente paso",
+                        mobile: "actions",
+                        align: "right",
+                        cell: (order) => (
+                            <OrderNextStepButton
+                                orderId={order.id.toString()}
+                                status={order.status}
+                                shippingMethod={order.shippingMethod?.method}
+                                paymentBlocked={isPaymentBlocked(order)}
+                            />
+                        ),
+                    },
+                    {
                         key: "actions",
                         header: "Acciones",
                         align: "right",
@@ -214,8 +192,11 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
 const shortId = (order: OrderDTO) => order.id.toString().slice(-6).toUpperCase();
 
-const statusOf = (status: string) =>
-    STATUS_LABELS[status] || { label: status, color: "text-gray-400 bg-gray-400/10 border-gray-400/20" };
+const statusOf = getOrderStatusMeta;
+
+// Igual que PUT /api/admin/orders/[id]: sin pago confirmado (y sin efectivo) no se puede avanzar
+const isPaymentBlocked = (order: OrderDTO) =>
+    order.paymentStatus !== "paid" && !(order.payments || []).some((p) => p.method === "cash");
 
 function BillingBadge({ order }: { order: OrderDTO }) {
     const fiscalInvoice = order.vouchers?.find((v) => v.type === "fiscal_invoice");
