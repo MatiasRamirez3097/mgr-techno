@@ -1,5 +1,5 @@
 import type { SitemapEntry } from "@/lib/priceReference/sitemap";
-import type { ReferenceSource } from "@/lib/priceReference/sources";
+import type { SitemapReferenceSource } from "@/lib/priceReference/sources";
 import { ReferenceBlockedError } from "./fetchReferencePage";
 import { fetchReferenceProduct, type ReferencePageOutcome } from "./fetchReferenceProduct";
 import { fetchReferenceSitemap } from "./fetchReferenceSitemap";
@@ -37,7 +37,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Una pasada: relee el sitemap si toca y lee las páginas que la cola indica */
 export async function runReferencePass(
-    source: ReferenceSource,
+    source: SitemapReferenceSource,
     store: ReferencePassStore,
     options: ReferencePassOptions,
 ): Promise<ReferencePassResult> {

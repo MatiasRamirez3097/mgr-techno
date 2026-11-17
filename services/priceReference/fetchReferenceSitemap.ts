@@ -1,12 +1,12 @@
 import { parseSitemap, type SitemapEntry } from "@/lib/priceReference/sitemap";
-import type { ReferenceSource } from "@/lib/priceReference/sources";
+import type { SitemapReferenceSource } from "@/lib/priceReference/sources";
 import { fetchReferencePage } from "./fetchReferencePage";
 
 /**
  * Lee el índice de sitemaps de la tienda y todos sus sitemaps de productos.
  * Si alguno falla, lanza error: con la lista incompleta no se puede saber qué productos salieron.
  */
-export async function fetchReferenceSitemap(source: ReferenceSource): Promise<SitemapEntry[]> {
+export async function fetchReferenceSitemap(source: SitemapReferenceSource): Promise<SitemapEntry[]> {
     const index = await fetchReferencePage(source.sitemapUrl);
     if (index.status !== "ok") {
         throw new Error(

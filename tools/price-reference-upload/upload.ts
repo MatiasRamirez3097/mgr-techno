@@ -13,6 +13,8 @@ const DEFAULT_URL = "https://mgrtechno.com.ar/api/cron/price-reference-upload";
 const OPTIONS = { maxPages: 400, concurrency: 2, delayMs: 700, batchSize: 50 };
 // Con --all: tope de pasadas seguidas (unas 8.000 páginas), por si la cola no se vacía
 const MAX_PASSES = 20;
+// Catálogos JSON: productos por envío al sitio
+const CATALOG_BATCH_SIZE = 500;
 
 const log = (...args: unknown[]) => console.log(new Date().toISOString(), ...args);
 
@@ -23,6 +25,7 @@ async function main() {
 
     const { REFERENCE_SOURCES } = await import("@/lib/priceReference/sources");
     const { runReferencePass } = await import("@/services/priceReference/runReferencePass");
+    const { runCatalogSync } = await import("@/services/priceReference/runCatalogSync");
 
     const call = async (init: RequestInit & { query?: string }) => {
         const res = await fetch(`${endpoint}${init.query ?? ""}`, {
@@ -45,8 +48,39 @@ async function main() {
     const post = (payload: object) => call({ method: "POST", body: JSON.stringify(payload) });
 
     const all = process.argv.includes("--all");
+    const finish = (sourceKey: string) => async (summary: object) => {
+        const res = await post({ action: "finish", source: sourceKey, summary });
+        if (res.autoLink?.linked) {
+            log(`[${sourceKey}] Vinculados por part number / EAN: ${res.autoLink.linked}`);
+        }
+    };
+
     let failed = false;
     for (const source of REFERENCE_SOURCES) {
+        const prefix = `[${source.key}]`;
+
+        // Catálogo en un solo archivo: se lee completo en cada ejecución
+        if (source.type === "catalog-json") {
+            const result = await runCatalogSync(
+                source,
+                {
+                    saveBatch: (seenAt, entries) =>
+                        post({ action: "catalog", source: source.key, seenAt, entries }),
+                    finishCatalog: (seenAt, total) =>
+                        post({ action: "catalog-finish", source: source.key, seenAt, total }),
+                    finish: finish(source.key),
+                },
+                { batchSize: CATALOG_BATCH_SIZE, log: (message) => log(prefix, message) },
+            );
+            log(
+                `${prefix} ${result.status}: ${result.fetched} productos guardados, ` +
+                    `${result.removed} dados de baja${result.message ? ` — ${result.message}` : ""}`,
+            );
+            if (result.status === "error") failed = true;
+            continue;
+        }
+
+        // Sitemap + una página por producto: por tandas, según la cola del sitio
         for (let pass = 1; pass <= (all ? MAX_PASSES : 1); pass++) {
             const result = await runReferencePass(
                 source,
@@ -55,18 +89,13 @@ async function main() {
                         call({ method: "GET", query: `?source=${source.key}&limit=${limit}` }),
                     saveSitemap: (entries) => post({ action: "sitemap", source: source.key, entries }),
                     savePages: (outcomes) => post({ action: "pages", source: source.key, outcomes }),
-                    finish: async (summary) => {
-                        const res = await post({ action: "finish", source: source.key, summary });
-                        if (res.autoLink?.linked) {
-                            log(`[${source.key}] Vinculados por part number / EAN: ${res.autoLink.linked}`);
-                        }
-                    },
+                    finish: finish(source.key),
                 },
-                { ...OPTIONS, log: (message) => log(`[${source.key}]`, message) },
+                { ...OPTIONS, log: (message) => log(prefix, message) },
             );
 
             log(
-                `[${source.key}] ${result.status}: ${result.fetched} páginas leídas de ${result.queued}, ` +
+                `${prefix} ${result.status}: ${result.fetched} páginas leídas de ${result.queued}, ` +
                     `${result.pending} pendientes${result.message ? ` — ${result.message}` : ""}`,
             );
             if (result.status === "error") failed = true;
