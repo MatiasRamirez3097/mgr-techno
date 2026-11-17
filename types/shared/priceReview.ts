@@ -41,6 +41,7 @@ export interface PriceReviewDistributorCost {
 export interface PriceReviewReference {
     source: string;
     sourceLabel: string;
+    sourceShortLabel: string;
     name: string;
     url: string;
     // Precio vigente (oferta si la hay) y de lista, en ARS
