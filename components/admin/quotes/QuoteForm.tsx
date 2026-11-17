@@ -13,6 +13,8 @@ import { FormSection } from "@/components/admin/ui/FormSection";
 import { SectionNav, type SectionNavItem } from "@/components/admin/ui/SectionNav";
 import { TotalsActionBar, TotalsCard, type TotalsRow } from "@/components/admin/ui/TotalsSummary";
 import { buttonClass, cardClass } from "@/components/admin/ui/styles";
+import { StatusControl } from "@/components/admin/ui/StatusControl";
+import { QUOTE_MANUAL_STATUSES, getNextQuoteStatus, getQuoteStatusMeta } from "./quoteStatusMeta";
 import type {
     QuoteComponentDTO,
     QuoteDTO,
@@ -524,6 +526,61 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
             <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                 {/* Contenido */}
                 <div className="min-w-0 flex flex-col gap-6">
+                    {mode === "edit" && quote?.id && (
+                        <StatusControl
+                            status={form.status}
+                            meta={getQuoteStatusMeta}
+                            options={QUOTE_MANUAL_STATUSES}
+                            readOnly={form.status === "converted"}
+                            nextSteps={(s) => {
+                                const next = getNextQuoteStatus(s);
+                                if (next === "convert")
+                                    return [
+                                        {
+                                            key: "convert",
+                                            label: converting ? "Convirtiendo..." : "Convertir a venta",
+                                            onClick: handleConvert,
+                                            disabled: converting,
+                                        },
+                                    ];
+                                if (next)
+                                    return [
+                                        {
+                                            key: next,
+                                            status: next,
+                                            label: next === "sent" ? "Marcar como enviado" : "Marcar como aceptado",
+                                        },
+                                    ];
+                                return [];
+                            }}
+                            confirmFor={(s) =>
+                                s === "rejected" ? "¿Marcar el presupuesto como rechazado?" : null
+                            }
+                            onChange={async (s) => {
+                                // Sólo el estado: los demás cambios del formulario se guardan con "Guardar"
+                                const res = await fetch(`/api/admin/quotes/${quote.id}`, {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ status: s }),
+                                });
+                                const data = await res.json().catch(() => ({}));
+                                if (!res.ok) throw new Error(data.error || "No se pudo cambiar el estado");
+                                setForm((prev) => ({ ...prev, status: s as typeof prev.status }));
+                                router.refresh();
+                            }}
+                            notice={
+                                form.status === "converted" && quote.orderId ? (
+                                    <Link
+                                        href={`/admin/orders/${quote.orderId}`}
+                                        className="mt-3 inline-block text-sm text-emerald-400 hover:underline"
+                                    >
+                                        Ver la venta generada →
+                                    </Link>
+                                ) : null
+                            }
+                        />
+                    )}
+
                     <SectionNav sections={sections} />
 
                     <FormSection
@@ -1016,6 +1073,7 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                         ))}
                                     </div>
                                 </div>
+                                {mode === "create" && (
                                 <div>
                                     <label className={labelClass}>Estado</label>
                                     <select
@@ -1030,6 +1088,7 @@ export function QuoteForm({ quote, mode, priceContext }: Props) {
                                         <option value="converted">Convertido a Venta</option>
                                     </select>
                                 </div>
+                                )}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>

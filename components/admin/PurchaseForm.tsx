@@ -6,6 +6,7 @@ import { FormSection } from "@/components/admin/ui/FormSection";
 import { SectionNav, type SectionNavItem } from "@/components/admin/ui/SectionNav";
 import { TotalsActionBar, TotalsCard, type TotalsRow } from "@/components/admin/ui/TotalsSummary";
 import { buttonClass, cardClass } from "@/components/admin/ui/styles";
+import { StatusControl } from "@/components/admin/ui/StatusControl";
 import { ProductSelector } from "./ProductSelector";
 import { SearchableEntitySelect } from "./SearchableEntitySelect";
 import { FormModal } from "./FormModal";
@@ -53,6 +54,16 @@ interface SupplierOption {
     contactName?: string;
     email?: string;
 }
+
+const PURCHASE_STATUS_META: Record<string, { label: string; color: string }> = {
+    draft: { label: "Borrador", color: "text-gray-400 bg-gray-400/10 border-gray-400/20" },
+    confirmed: { label: "Confirmada", color: "text-blue-400 bg-blue-400/10 border-blue-400/20" },
+    partially_received: { label: "Parcialmente recibida", color: "text-amber-400 bg-amber-400/10 border-amber-400/20" },
+    received: { label: "Recibida", color: "text-green-400 bg-green-400/10 border-green-400/20" },
+    cancelled: { label: "Cancelada", color: "text-red-400 bg-red-400/10 border-red-400/20" },
+};
+const getPurchaseStatusMeta = (status: string) =>
+    PURCHASE_STATUS_META[status] || { label: status, color: "text-gray-400 bg-gray-400/10 border-gray-400/20" };
 
 export function PurchaseForm({ purchase, mode }: Props) {
     const router = useRouter();
@@ -393,7 +404,7 @@ export function PurchaseForm({ purchase, mode }: Props) {
     const sections: SectionNavItem[] = [
         { id: "proveedor", label: "Proveedor y comprobante" },
         { id: "productos", label: `Productos${form.items.length ? ` (${form.items.length})` : ""}` },
-        { id: "estado", label: "Estado" },
+        { id: "estado", label: mode === "edit" ? "Acciones" : "Estado" },
     ];
 
     const submitLabel = loading ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear compra";
@@ -429,6 +440,53 @@ export function PurchaseForm({ purchase, mode }: Props) {
             <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                 {/* Contenido */}
                 <div className="min-w-0 flex flex-col gap-6">
+                    {mode === "edit" && purchase?.id && (
+                        <StatusControl
+                            status={form.status}
+                            meta={getPurchaseStatusMeta}
+                            options={[
+                                { value: "draft", label: "Borrador" },
+                                { value: "confirmed", label: "Confirmada" },
+                                { value: "cancelled", label: "Cancelada" },
+                            ]}
+                            // Recibida o cancelada: el servidor ya no permite cambios
+                            readOnly={form.status === "received" || form.status === "cancelled"}
+                            isBlocked={(s) => form.status === "partially_received" && s !== "partially_received"}
+                            nextSteps={(s) =>
+                                s === "draft"
+                                    ? [{ key: "confirmed", status: "confirmed", label: "Confirmar compra" }]
+                                    : s === "confirmed" || s === "partially_received"
+                                      ? [
+                                            {
+                                                key: "receive",
+                                                label: s === "confirmed" ? "Recepcionar" : "Continuar recepción",
+                                                href: `/admin/purchases/${purchase.id}/receive`,
+                                            },
+                                        ]
+                                      : []
+                            }
+                            confirmFor={(s) =>
+                                s === "cancelled"
+                                    ? "¿Cancelar la compra? Una compra cancelada ya no se puede editar."
+                                    : s === "confirmed"
+                                      ? "¿Confirmar la compra? Después se podrá recepcionar la mercadería."
+                                      : null
+                            }
+                            onChange={async (s) => {
+                                // Sólo el estado: los demás cambios del formulario se guardan con "Guardar"
+                                const res = await fetch(`/api/admin/purchases/${purchase.id}`, {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ status: s }),
+                                });
+                                const data = await res.json().catch(() => ({}));
+                                if (!res.ok) throw new Error(data.error || "No se pudo cambiar el estado");
+                                setForm((prev) => ({ ...prev, status: s }));
+                                router.refresh();
+                            }}
+                        />
+                    )}
+
                     <SectionNav sections={sections} />
 
                     <FormSection id="proveedor" title="Proveedor y comprobante">
@@ -831,8 +889,12 @@ export function PurchaseForm({ purchase, mode }: Props) {
                         </div>
 
                         <section id="estado" className={`${cardClass} scroll-mt-32 md:scroll-mt-24 p-4 sm:p-6`}>
-                            <h2 className="mb-4 text-base font-bold text-white">Estado y acciones</h2>
+                            <h2 className="mb-4 text-base font-bold text-white">
+                                {mode === "edit" ? "Acciones" : "Estado y acciones"}
+                            </h2>
                             <div className="flex flex-col gap-4">
+                            {/* Al editar, el estado se cambia con el control de arriba */}
+                            {mode === "create" && (
                             <div>
                                 <label className={labelClass}>Estado</label>
                                 {isReadOnly ? (
@@ -856,27 +918,10 @@ export function PurchaseForm({ purchase, mode }: Props) {
                                         <option value="confirmed">
                                             Confirmada
                                         </option>
-                                        {mode === "edit" && (
-                                            <option value="cancelled">
-                                                Cancelada
-                                            </option>
-                                        )}
                                     </select>
                                 )}
                             </div>
-
-                            {mode === "edit" &&
-                                (purchase?.status === "confirmed" ||
-                                    purchase?.status ===
-                                        "partially_received") && (
-                                    <Link
-                                        href={`/admin/purchases/${purchase.id}/receive`}
-                                        className="w-full py-3 rounded-xl text-center text-white font-medium bg-emerald-600 hover:bg-emerald-500 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <span>📦</span>
-                                        <span>Recepcionar compra</span>
-                                    </Link>
-                                )}
+                            )}
 
                             {error && (
                                 <p className="text-sm text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">

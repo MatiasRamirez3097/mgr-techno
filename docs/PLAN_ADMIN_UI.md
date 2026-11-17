@@ -237,3 +237,14 @@ ocupaba demasiado.
 - [x] Pestañas (`ui/Tabs`): Resumen (productos + cliente y envío) · Pagos · Inventario (sólo
       pagada) · Documentos. Con contador/aviso en cada pestaña; la elegida queda en el `#` de la URL.
 - [x] Flujo de estados en `components/admin/orders/orderStatusMeta.ts` con tests.
+
+## Ajuste posterior — Mismo estilo en el resto del panel
+
+El usuario aprobó reutilizar el estilo del detalle de orden. Tres ramas apiladas:
+
+- [x] `feat/admin-ui-status-controls`: `ui/StatusControl` genérico (el de órdenes pasa a usarlo).
+      Presupuesto: Borrador → "Marcar como enviado" → "Marcar como aceptado" → "Convertir a venta".
+      Compra: Borrador → "Confirmar compra" → "Recepcionar" / "Continuar recepción". El cambio guarda
+      sólo el estado (PUT parcial) y sincroniza el formulario; el selector de estado queda sólo al crear.
+- [ ] `feat/admin-ui-customer-tabs`: detalle de cliente con pestañas Datos / Pedidos.
+- [ ] `feat/admin-ui-orders-list-status`: cambiar el estado desde el listado de órdenes.
