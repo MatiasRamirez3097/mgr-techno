@@ -223,3 +223,17 @@ Notas de la fase 6:
 1. Formularios largos: **índice de secciones con anclas** (no pestañas).
 2. Orden de secciones del producto: el propuesto en la fase 3.
 3. Listados en el celular: **tarjetas** (la tabla con scroll horizontal queda sólo como arreglo de la fase 1).
+
+## Ajuste posterior — Detalle de orden (revisión del usuario)
+
+Después de revisar las 6 fases: el detalle de la orden seguía muy largo y la lista de 9 estados
+ocupaba demasiado.
+
+- [x] `OrderStatusControl` reemplaza a `StatusSelector`: estado actual + botón del siguiente paso
+      habitual (pendiente → en proceso → listo para retirar / enviado según el envío → completado)
+      + "Otro estado" (desplegable) para el resto. Confirma antes de cancelar/reembolsar/fallar y
+      avisa cuando el cambio envía email. Muestra el error real del servidor (antes decía "Estado
+      actualizado" aunque el servidor lo rechazara por pago sin confirmar).
+- [x] Pestañas (`ui/Tabs`): Resumen (productos + cliente y envío) · Pagos · Inventario (sólo
+      pagada) · Documentos. Con contador/aviso en cada pestaña; la elegida queda en el `#` de la URL.
+- [x] Flujo de estados en `components/admin/orders/orderStatusMeta.ts` con tests.
