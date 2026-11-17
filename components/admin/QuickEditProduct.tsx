@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ProductDTO } from "@/types/shared/product";
 import { getFinalPrice } from "@/lib/pricing";
 import { ProductDistributorLinksPanel } from "@/components/admin/distributors/ProductDistributorLinksPanel";
+import { ProductPriceReferencesPanel } from "@/components/admin/priceReference/ProductPriceReferencesPanel";
 
 interface Props {
     product: ProductDTO;
@@ -251,6 +252,7 @@ export function QuickEditProduct({ product, onClose }: Props) {
 
             {/* Los combos no se comparan con distribuidores */}
             {!isBundle && <ProductDistributorLinksPanel productId={product.id} sellingPrice={sellingPrice} />}
+            {!isBundle && <ProductPriceReferencesPanel productId={product.id} sellingPrice={sellingPrice} />}
         </div>
     );
 }

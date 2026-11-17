@@ -19,6 +19,7 @@ import { ProductSelector } from "./ProductSelector";
 import { useBrands } from "./products/hooks/useBrands";
 import { RichTextEditor } from "@/components/admin/editor/RichTextEditor";
 import { ProductDistributorLinksPanel } from "@/components/admin/distributors/ProductDistributorLinksPanel";
+import { ProductPriceReferencesPanel } from "@/components/admin/priceReference/ProductPriceReferencesPanel";
 import { getFinalPrice } from "@/lib/pricing";
 import type { ProductFormState } from "@/types/admin/productForm";
 import type { CategoryDTO } from "@/types/shared/category";
@@ -496,6 +497,7 @@ export function ProductForm({
         { id: "combo", label: "Combo", hidden: !isBundle, hasError: sectionErrors.combo },
         { id: "precios", label: "Precios y stock", hasError: sectionErrors.precios },
         { id: "distribuidores", label: "Distribuidores", hidden: !(mode === "edit" && product?.id && !isBundle) },
+        { id: "referencias", label: "Referencias", hidden: !(mode === "edit" && product?.id && !isBundle) },
         { id: "descripcion", label: "Descripción", hasError: sectionErrors.descripcion },
         { id: "imagenes", label: "Imágenes y categorías", hasError: sectionErrors.imagenes },
         { id: "atributos", label: "Atributos", hasError: sectionErrors.atributos },
@@ -1027,6 +1029,19 @@ export function ProductForm({
                     <div id="distribuidores" className="scroll-mt-32 md:scroll-mt-24 empty:hidden">
                     {mode === "edit" && product?.id && !isBundle && (
                         <ProductDistributorLinksPanel
+                            productId={product.id}
+                            sellingPrice={getFinalPrice({
+                                regularPrice: Number(form.regularPrice) || 0,
+                                salePrice: Number(form.salePrice) > 0 ? Number(form.salePrice) : null,
+                            })}
+                        />
+                    )}
+                    </div>
+
+                    {/* Precio de venta en tiendas de referencia (mismas condiciones que distribuidores) */}
+                    <div id="referencias" className="scroll-mt-32 md:scroll-mt-24 empty:hidden">
+                    {mode === "edit" && product?.id && !isBundle && (
+                        <ProductPriceReferencesPanel
                             productId={product.id}
                             sellingPrice={getFinalPrice({
                                 regularPrice: Number(form.regularPrice) || 0,

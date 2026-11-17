@@ -29,7 +29,13 @@ async function main() {
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-            throw new Error(`El sitio respondió HTTP ${res.status}: ${body.error || "sin detalle"}`);
+            const hint =
+                res.status === 429 || res.status === 403
+                    ? " (¿falta la regla Bypass del firewall de Vercel para esta ruta?)"
+                    : "";
+            throw new Error(
+                `${new URL(endpoint).host} respondió HTTP ${res.status}: ${body.error || "sin detalle"}${hint}`,
+            );
         }
         return body;
     };
@@ -45,7 +51,10 @@ async function main() {
                 saveSitemap: (entries) => post({ action: "sitemap", source: source.key, entries }),
                 savePages: (outcomes) => post({ action: "pages", source: source.key, outcomes }),
                 finish: async (summary) => {
-                    await post({ action: "finish", source: source.key, summary });
+                    const res = await post({ action: "finish", source: source.key, summary });
+                    if (res.autoLink?.linked) {
+                        log(`[${source.key}] Vinculados por part number / EAN: ${res.autoLink.linked}`);
+                    }
                 },
             },
             { ...OPTIONS, log: (message) => log(`[${source.key}]`, message) },
@@ -57,10 +66,12 @@ async function main() {
         );
         if (result.status === "error") failed = true;
     }
-    if (failed) process.exit(1);
+    // process.exitCode en vez de process.exit: en Windows cortar con conexiones abiertas
+    // dispara "Assertion failed ... async.c"
+    if (failed) process.exitCode = 1;
 }
 
 main().catch((error) => {
     log("ERROR:", error instanceof Error ? error.message : error);
-    process.exit(1);
+    process.exitCode = 1;
 });
