@@ -19,6 +19,8 @@ export interface ComparatorCategoryDTO {
     invid: string[];
     // Códigos de rubro de AIR (ej: "001-0331")
     air: string[];
+    // Marcas de la hoja de PCMODD (no tiene categorías)
+    pcmodd: string[];
 }
 
 // Opciones para los selectores del formulario de mapeo
@@ -34,6 +36,7 @@ export interface DistributorCategoryOptions {
     newbytes: DistributorCategoryOption[];
     invid: DistributorCategoryOption[];
     air: DistributorCategoryOption[];
+    pcmodd: DistributorCategoryOption[];
     // Distribuidores cuyo listado no se pudo obtener
     errors: string[];
 }

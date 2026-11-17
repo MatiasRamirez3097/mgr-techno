@@ -1,16 +1,25 @@
 import { connectDB } from "@/lib/mongodb";
 import { InvidCatalogItemModel } from "@/models/InvidCatalogItem";
 import { AirCatalogItemModel } from "@/models/AirCatalogItem";
+import { PcmoddCatalogItemModel } from "@/models/PcmoddCatalogItem";
 import { buildInvidProductUrl, convertToArs } from "@/lib/distributors/invidMapper";
 import { getAirStockLabel, type AirWarehouse } from "@/lib/distributors/airMapper";
+import { PCMODD_STOCK_LABEL, pcmoddDisplayName } from "@/lib/distributors/pcmoddMapper";
 import { getUsdExchangeRate } from "@/services/exchangeRates/getUsdExchangeRate";
 
+// Distribuidores con copia local del catálogo
+export const LOCAL_DISTRIBUTORS = ["invid", "air", "pcmodd"] as const;
+export type LocalDistributor = (typeof LOCAL_DISTRIBUTORS)[number];
+export type LocalIds = Record<LocalDistributor, string[]>;
+export const emptyLocalIds = (): LocalIds => ({ invid: [], air: [], pcmodd: [] });
+const hasAnyId = (ids: LocalIds) => LOCAL_DISTRIBUTORS.some((d) => ids[d].length > 0);
+
 /**
- * Ítem de los catálogos locales (Invid y AIR) con el costo ya en ARS con IVA. Se usa para
+ * Ítem de los catálogos locales (Invid, AIR y PCMODD) con el costo ya en ARS con IVA. Se usa para
  * sugerir vínculos y para mostrar el costo vigente de los productos vinculados.
  */
 export interface LocalCatalogItem {
-    distributor: "invid" | "air";
+    distributor: LocalDistributor;
     distributorProductId: string;
     distributorSku: string;
     partNumber: string;
@@ -48,6 +57,17 @@ interface AirLean {
     stockByWarehouse?: Partial<Record<AirWarehouse, number>>;
     available: boolean;
 }
+
+interface PcmoddLean {
+    pcmoddId: string;
+    title: string;
+    brand: string;
+    finalPrice: number;
+    currency: string;
+    available: boolean;
+}
+
+const PCMODD_FIELDS = { pcmoddId: 1, title: 1, brand: 1, finalPrice: 1, currency: 1, available: 1 };
 
 const INVID_FIELDS = {
     invidId: 1, title: 1, partNumber: 1, ean: 1, finalPrice: 1, currency: 1,
@@ -96,6 +116,24 @@ function fromAir(item: AirLean, usdRate: number): LocalCatalogItem {
     };
 }
 
+// La hoja no tiene códigos ni stock: se compara por nombre y se toma como disponible
+function fromPcmodd(item: PcmoddLean, usdRate: number): LocalCatalogItem {
+    return {
+        distributor: "pcmodd",
+        distributorProductId: item.pcmoddId,
+        distributorSku: item.pcmoddId,
+        partNumber: "",
+        ean: "",
+        name: pcmoddDisplayName(item.title, item.brand),
+        link: null,
+        image: null,
+        price: convertToArs(item.finalPrice, item.currency, usdRate),
+        stock: 0,
+        stockLabel: PCMODD_STOCK_LABEL,
+        available: item.available,
+    };
+}
+
 async function getRate(): Promise<number | null> {
     const usd = await getUsdExchangeRate();
     if (!usd) console.error("Vínculos de distribuidores: sin cotización del dólar");
@@ -103,25 +141,29 @@ async function getRate(): Promise<number | null> {
 }
 
 /** Ítems de los catálogos locales por ID propio del distribuidor (incluye los no disponibles). */
-export async function getLocalCatalogItemsByIds(ids: {
-    invid: string[];
-    air: string[];
-}): Promise<LocalCatalogItem[]> {
-    if (ids.invid.length === 0 && ids.air.length === 0) return [];
+export async function getLocalCatalogItemsByIds(ids: LocalIds): Promise<LocalCatalogItem[]> {
+    if (!hasAnyId(ids)) return [];
     await connectDB();
     const rate = await getRate();
     if (!rate) return [];
 
-    const [invid, air] = await Promise.all([
+    const [invid, air, pcmodd] = await Promise.all([
         ids.invid.length > 0
             ? InvidCatalogItemModel.find({ invidId: { $in: ids.invid } }, INVID_FIELDS).lean<InvidLean[]>()
             : [],
         ids.air.length > 0
             ? AirCatalogItemModel.find({ airId: { $in: ids.air } }, AIR_FIELDS).lean<AirLean[]>()
             : [],
+        ids.pcmodd.length > 0
+            ? PcmoddCatalogItemModel.find({ pcmoddId: { $in: ids.pcmodd } }, PCMODD_FIELDS).lean<PcmoddLean[]>()
+            : [],
     ]);
 
-    return [...invid.map((i) => fromInvid(i, rate)), ...air.map((i) => fromAir(i, rate))];
+    return [
+        ...invid.map((i) => fromInvid(i, rate)),
+        ...air.map((i) => fromAir(i, rate)),
+        ...pcmodd.map((i) => fromPcmodd(i, rate)),
+    ];
 }
 
 /**
@@ -158,7 +200,7 @@ export async function findLocalCatalogItemsByCodes(
 }
 
 export interface LocalPriceChange {
-    distributor: "invid" | "air";
+    distributor: LocalDistributor;
     distributorProductId: string;
     name: string;
     // Variación del costo en USD (la sincronización registra cambios de 2% o más)
@@ -166,9 +208,9 @@ export interface LocalPriceChange {
     changedAt: Date;
 }
 
-/** Cambios de costo registrados por la sincronización de Invid/AIR desde `since`, para los IDs dados. */
+/** Cambios de costo registrados por la sincronización de Invid/AIR/PCMODD desde `since`, para los IDs dados. */
 export async function getLocalCatalogPriceChanges(
-    ids: { invid: string[]; air: string[] },
+    ids: LocalIds,
     since: Date,
 ): Promise<LocalPriceChange[]> {
     await connectDB();
@@ -176,7 +218,7 @@ export async function getLocalCatalogPriceChanges(
     const filter = { priceChangedAt: { $gte: since }, previousFinalPrice: { $gt: 0 } };
     const fields = { title: 1, finalPrice: 1, previousFinalPrice: 1, priceChangedAt: 1 };
 
-    const [invid, air] = await Promise.all([
+    const [invid, air, pcmodd] = await Promise.all([
         ids.invid.length > 0
             ? InvidCatalogItemModel.find({ ...filter, invidId: { $in: ids.invid } }, { ...fields, invidId: 1 }).lean<
                   (ChangeLean & { invidId: string })[]
@@ -187,9 +229,15 @@ export async function getLocalCatalogPriceChanges(
                   (ChangeLean & { airId: string })[]
               >()
             : [],
+        ids.pcmodd.length > 0
+            ? PcmoddCatalogItemModel.find(
+                  { ...filter, pcmoddId: { $in: ids.pcmodd } },
+                  { ...fields, pcmoddId: 1 },
+              ).lean<(ChangeLean & { pcmoddId: string })[]>()
+            : [],
     ]);
 
-    const toChange = (distributor: "invid" | "air", id: string, i: ChangeLean): LocalPriceChange => ({
+    const toChange = (distributor: LocalDistributor, id: string, i: ChangeLean): LocalPriceChange => ({
         distributor,
         distributorProductId: id,
         name: i.title,
@@ -200,6 +248,7 @@ export async function getLocalCatalogPriceChanges(
     return [
         ...invid.map((i) => toChange("invid", i.invidId, i)),
         ...air.map((i) => toChange("air", i.airId, i)),
+        ...pcmodd.map((i) => toChange("pcmodd", i.pcmoddId, i)),
     ];
 }
 
@@ -212,7 +261,7 @@ export async function getAllLocalCatalogItemsWithCodes({ withCodesOnly = true } 
     const rate = await getRate();
     if (!rate) return [];
 
-    const [invid, air] = await Promise.all([
+    const [invid, air, pcmodd] = await Promise.all([
         InvidCatalogItemModel.find(
             withCodesOnly
                 ? { available: true, $or: [{ partNumber: { $ne: "" } }, { ean: { $ne: "" } }] }
@@ -223,7 +272,15 @@ export async function getAllLocalCatalogItemsWithCodes({ withCodesOnly = true } 
             withCodesOnly ? { available: true, partNumber: { $ne: "" } } : { available: true },
             AIR_FIELDS,
         ).lean<AirLean[]>(),
+        // PCMODD no tiene códigos: sólo entra en las sugerencias por nombre
+        withCodesOnly
+            ? ([] as PcmoddLean[])
+            : PcmoddCatalogItemModel.find({ available: true }, PCMODD_FIELDS).lean<PcmoddLean[]>(),
     ]);
 
-    return [...invid.map((i) => fromInvid(i, rate)), ...air.map((i) => fromAir(i, rate))];
+    return [
+        ...invid.map((i) => fromInvid(i, rate)),
+        ...air.map((i) => fromAir(i, rate)),
+        ...pcmodd.map((i) => fromPcmodd(i, rate)),
+    ];
 }

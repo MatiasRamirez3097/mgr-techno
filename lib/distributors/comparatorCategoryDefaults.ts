@@ -12,6 +12,7 @@ export const DEFAULT_COMPARATOR_CATEGORIES: ComparatorCategoryInput[] = [
         newbytes: ["ACCESORIOS"],
         invid: ["Accesorios"],
         air: ["001-0010", "001-0030"],
+        pcmodd: [],
     },
     {
         key: "CONECTIVIDAD",
@@ -22,6 +23,7 @@ export const DEFAULT_COMPARATOR_CATEGORIES: ComparatorCategoryInput[] = [
         newbytes: ["CONECTIVIDAD"],
         invid: ["Conectividad"],
         air: ["001-0055", "001-1055", "001-0430", "001-0432", "001-0054", "001-0612"],
+        pcmodd: [],
     },
     {
         key: "SSD-INTERNOS",
@@ -32,6 +34,7 @@ export const DEFAULT_COMPARATOR_CATEGORIES: ComparatorCategoryInput[] = [
         newbytes: ["DISCOS-SSD"],
         invid: ["SSD"],
         air: ["001-0137", "002-0137"],
+        pcmodd: [],
     },
     {
         key: "GABINETES",
@@ -42,6 +45,7 @@ export const DEFAULT_COMPARATOR_CATEGORIES: ComparatorCategoryInput[] = [
         newbytes: ["GABINETES"],
         invid: ["Gabinetes"],
         air: ["001-0190", "002-0190"],
+        pcmodd: [],
     },
     {
         key: "MEMORIAS",
@@ -52,6 +56,7 @@ export const DEFAULT_COMPARATOR_CATEGORIES: ComparatorCategoryInput[] = [
         newbytes: ["Memorias"],
         invid: ["Memorias"],
         air: ["001-0280", "002-0280"],
+        pcmodd: [],
     },
     {
         key: "MOTHERBOARDS",
@@ -62,6 +67,7 @@ export const DEFAULT_COMPARATOR_CATEGORIES: ComparatorCategoryInput[] = [
         newbytes: ["MOTHER-ASUS", "MOTHER-ASROCK", "MOTHER-GIGABYTE"],
         invid: ["Mother", "Placas Madre"],
         air: ["001-0331"],
+        pcmodd: [],
     },
     {
         key: "PROCESADORES",
@@ -72,6 +78,7 @@ export const DEFAULT_COMPARATOR_CATEGORIES: ComparatorCategoryInput[] = [
         newbytes: ["PROCESADORES"],
         invid: ["Procesadores"],
         air: ["001-0330"],
+        pcmodd: [],
     },
     {
         key: "VIDEO",
@@ -82,6 +89,7 @@ export const DEFAULT_COMPARATOR_CATEGORIES: ComparatorCategoryInput[] = [
         newbytes: ["PLACA-DE-VIDEO"],
         invid: ["120", "172", "Placas de Video"],
         air: ["002-0553"],
+        pcmodd: [],
     },
     {
         key: "CASA-INTELIGENTE",
@@ -92,6 +100,7 @@ export const DEFAULT_COMPARATOR_CATEGORIES: ComparatorCategoryInput[] = [
         newbytes: ["CASA-INTELIGENTE"],
         invid: ["Smart Home", "Casa Inteligente", "Domotica"],
         air: ["001-0212"],
+        pcmodd: [],
     },
 ];
 

@@ -14,7 +14,7 @@ const ProductDistributorLinkSchema = new Schema(
         },
         distributor: {
             type: String,
-            enum: ["elit", "newbytes", "invid", "air"],
+            enum: ["elit", "newbytes", "invid", "air", "pcmodd"],
             required: true,
         },
         distributorProductId: { type: String, required: true },

@@ -10,7 +10,12 @@ import {
     type DigestCostChange,
 } from "@/lib/priceAlertsDigest";
 import { sendDiscordNotification } from "@/lib/notifications/discord/sendDiscordNotification";
-import { getLocalCatalogPriceChanges } from "@/services/distributors/links/localCatalogItems";
+import {
+    getLocalCatalogPriceChanges,
+    LOCAL_DISTRIBUTORS,
+    type LocalDistributor,
+    type LocalIds,
+} from "@/services/distributors/links/localCatalogItems";
 import type { LinkPriceChange } from "@/services/distributors/links/refreshRemoteLinkPrices";
 import type { DistributorKey } from "@/types/shared/distributorLink";
 import { getPriceReview } from "./getPriceReview";
@@ -80,15 +85,17 @@ export async function notifyPriceAlerts(remoteChanges: LinkPriceChange[]): Promi
 
 async function collectCostChanges(remoteChanges: LinkPriceChange[], since: Date): Promise<DigestCostChange[]> {
     const localLinks = await ProductDistributorLinkModel.find(
-        { distributor: { $in: ["invid", "air"] } },
+        { distributor: { $in: LOCAL_DISTRIBUTORS } },
         { productId: 1, distributor: 1, distributorProductId: 1 },
-    ).lean<{ productId: { toString(): string }; distributor: "invid" | "air"; distributorProductId: string }[]>();
+    ).lean<{ productId: { toString(): string }; distributor: LocalDistributor; distributorProductId: string }[]>();
 
     const localChanges = await getLocalCatalogPriceChanges(
-        {
-            invid: localLinks.filter((l) => l.distributor === "invid").map((l) => l.distributorProductId),
-            air: localLinks.filter((l) => l.distributor === "air").map((l) => l.distributorProductId),
-        },
+        Object.fromEntries(
+            LOCAL_DISTRIBUTORS.map((d) => [
+                d,
+                localLinks.filter((l) => l.distributor === d).map((l) => l.distributorProductId),
+            ]),
+        ) as LocalIds,
         since,
     );
 

@@ -28,6 +28,7 @@ const BADGE: Record<DistributorKey, string> = {
     newbytes: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
     invid: "bg-purple-500/20 text-purple-300 border-purple-500/30",
     air: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+    pcmodd: "bg-pink-500/20 text-pink-300 border-pink-500/30",
 };
 
 const MATCH_LABEL = { part_number: "Part number", ean: "EAN", manual: "Manual" } as const;

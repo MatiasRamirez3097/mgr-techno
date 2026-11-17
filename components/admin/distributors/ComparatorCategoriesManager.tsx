@@ -31,6 +31,7 @@ const EMPTY_FORM: FormState = {
     newbytes: [],
     invid: [],
     air: [],
+    pcmodd: [],
 };
 
 // NewBytes usa guiones en lugar de espacios: "PLACA DE VIDEO" equivale a "PLACA-DE-VIDEO"
@@ -62,6 +63,7 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
                 newbytes: category.newbytes,
                 invid: category.invid,
                 air: category.air,
+                pcmodd: category.pcmodd,
             });
         } else {
             const nextOrder = Math.max(0, ...categories.map((c) => c.order)) + 10;
@@ -168,6 +170,7 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
         { key: "newbytes", header: "NewBytes", className: "text-gray-300 text-xs", cell: (c) => c.newbytes.join(", ") || "—" },
         { key: "invid", header: "Invid", className: "text-gray-300 text-xs", cell: (c) => summary(c.invid, options.invid) || "—" },
         { key: "air", header: "AIR", className: "text-gray-300 text-xs", cell: (c) => summary(c.air, options.air) || "—" },
+        { key: "pcmodd", header: "PCMODD", className: "text-gray-300 text-xs", cell: (c) => c.pcmodd.join(", ") || "—" },
         {
             key: "actions",
             header: "",
@@ -360,6 +363,20 @@ export function ComparatorCategoriesManager({ initialCategories, options }: Prop
                             <p className="text-xs text-gray-500">
                                 Se mapea por código de rubro (ej: 001-0331); AIR suele repetir un
                                 rubro con dos códigos, conviene elegir ambos.
+                            </p>
+                        </section>
+
+                        <section className="space-y-2">
+                            <h3 className="text-sm font-semibold text-pink-300">PCMODD</h3>
+                            <CategoryValuePicker
+                                options={options.pcmodd}
+                                selected={form.pcmodd}
+                                onChange={(pcmodd) => setForm({ ...form, pcmodd })}
+                                emptyMessage="Todavía no hay lista de PCMODD sincronizada."
+                            />
+                            <p className="text-xs text-gray-500">
+                                Su lista no tiene categorías: se mapea por marca (ej: la categoría Coolers →
+                                ID-COOLING). Es opcional: sin marcas, PCMODD no se consulta al filtrar por esta categoría.
                             </p>
                         </section>
                     </div>

@@ -7,6 +7,7 @@ const DISTRIBUTORS = [
     { id: "newbytes", label: "NewBytes", color: "emerald" },
     { id: "invid", label: "INVID", color: "purple" },
     { id: "air", label: "AIR", color: "orange" },
+    { id: "pcmodd", label: "PCMODD", color: "pink" },
 ];
 
 export const DistributorSelect = () => {
@@ -55,7 +56,9 @@ export const DistributorSelect = () => {
                           ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 hover:bg-emerald-500/30"
                           : dist.color === "orange"
                             ? "bg-orange-500/20 text-orange-300 border-orange-500/50 hover:bg-orange-500/30"
-                            : "bg-purple-500/20 text-purple-400 border-purple-500/50 hover:bg-purple-500/30";
+                            : dist.color === "pink"
+                              ? "bg-pink-500/20 text-pink-300 border-pink-500/50 hover:bg-pink-500/30"
+                              : "bg-purple-500/20 text-purple-400 border-purple-500/50 hover:bg-purple-500/30";
                 const inactiveClasses =
                     "bg-gray-800 text-gray-500 border-gray-700 hover:bg-gray-700";
 

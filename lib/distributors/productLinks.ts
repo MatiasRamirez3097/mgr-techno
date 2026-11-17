@@ -21,6 +21,7 @@ export const DISTRIBUTOR_LABELS: Record<DistributorKey, string> = {
     newbytes: "NewBytes",
     invid: "Invid",
     air: "AIR",
+    pcmodd: "PCMODD",
 };
 
 // Por debajo de este largo un código es demasiado genérico para vincular solo

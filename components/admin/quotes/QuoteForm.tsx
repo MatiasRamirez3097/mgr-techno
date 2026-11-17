@@ -56,6 +56,7 @@ const DISTRIBUTOR_BADGE: Record<string, string> = {
     newbytes: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
     invid: "bg-purple-500/20 text-purple-300 border-purple-500/30",
     air: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+    pcmodd: "bg-pink-500/20 text-pink-300 border-pink-500/30",
 };
 
 export function QuoteForm({ quote, mode, priceContext }: Props) {

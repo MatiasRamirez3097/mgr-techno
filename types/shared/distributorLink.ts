@@ -1,4 +1,4 @@
-export const DISTRIBUTOR_KEYS = ["elit", "newbytes", "invid", "air"] as const;
+export const DISTRIBUTOR_KEYS = ["elit", "newbytes", "invid", "air", "pcmodd"] as const;
 export type DistributorKey = (typeof DISTRIBUTOR_KEYS)[number];
 
 // Cómo se vinculó: coincidencia exacta de part number / EAN, o elegido a mano

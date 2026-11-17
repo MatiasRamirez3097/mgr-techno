@@ -14,6 +14,7 @@ export interface ComparatorCategoryDocument {
     newbytes?: string[];
     invid?: string[];
     air?: string[];
+    pcmodd?: string[];
 }
 
 export function mapComparatorCategoryToDTO(
@@ -32,5 +33,6 @@ export function mapComparatorCategoryToDTO(
         newbytes: doc.newbytes || [],
         invid: doc.invid || [],
         air: doc.air || [],
+        pcmodd: doc.pcmodd || [],
     };
 }
