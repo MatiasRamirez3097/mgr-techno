@@ -283,7 +283,37 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
         };
     }, [mobileOpen]);
 
-    const renderNavContent = (isMobileDrawer: boolean) => (
+    const renderChild = (child: SidebarChild, inline: boolean) => {
+        const isPendingReview = Boolean(child.pendingReviewBadge);
+        const childActive = isPendingReview
+            ? pathname === "/admin/products" &&
+              searchParams.get("status") === "pending_review"
+            : pathname === child.href || pathname.startsWith(`${child.href}/`);
+
+        return (
+            <Link
+                key={child.href}
+                href={child.href}
+                onClick={() => setMobileOpen(false)}
+                className={`${inline ? "ml-8 mt-0.5" : ""} flex items-center gap-2 whitespace-nowrap px-3 py-2 rounded-lg text-xs transition-colors ${
+                    childActive
+                        ? `bg-gray-800 font-medium ${isPendingReview ? "text-yellow-400" : "text-white"}`
+                        : `${inline ? "text-gray-500" : "text-gray-300"} hover:text-white hover:bg-gray-800`
+                }`}
+            >
+                {isPendingReview && <span>⚠</span>}
+                <span>{child.label}</span>
+
+                {isPendingReview && pendingReviewCount > 0 && (
+                    <span className="ml-auto min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full bg-yellow-500 text-black text-[10px] font-bold">
+                        {pendingReviewCount}
+                    </span>
+                )}
+            </Link>
+        );
+    };
+
+    const renderNavContent =(isMobileDrawer: boolean) => (
         <>
             {/* Header */}
             <div
@@ -335,13 +365,31 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                 )}
             </div>
 
-            {/* Navigation Links */}
-            <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
+            {/* Navigation Links.
+                En escritorio no scrollea (así los submenús flotantes no quedan recortados):
+                los submenús sólo se despliegan en línea en la sección actual; el resto aparece
+                a la derecha al pasar el mouse. Sólo en pantallas muy bajas vuelve a scrollear. */}
+            <nav
+                className={`flex-1 min-h-0 px-3 py-4 flex flex-col gap-0.5 ${
+                    isMobileDrawer
+                        ? "overflow-y-auto"
+                        : "[@media(max-height:620px)]:overflow-y-auto"
+                }`}
+            >
                 {LINKS.map((link) => {
                     const isActive =
                         pathname === link.href ||
                         pathname.startsWith(`${link.href}/`);
                     const isCollapsedDesktop = !isMobileDrawer && collapsed;
+                    const children: SidebarChild[] = link.children ?? [];
+                    const showInline =
+                        children.length > 0 && !isCollapsedDesktop && (isMobileDrawer || isActive);
+                    const showFlyout = children.length > 0 && !isMobileDrawer && !showInline;
+                    // Si "Pendientes revisión" no está a la vista, el contador va en el padre
+                    const parentBadge =
+                        !showInline &&
+                        pendingReviewCount > 0 &&
+                        children.some((c) => c.pendingReviewBadge);
 
                     return (
                         <div key={link.href} className="relative group">
@@ -350,7 +398,7 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                                 onClick={() => setMobileOpen(false)}
                                 className={`flex items-center ${
                                     isCollapsedDesktop ? "justify-center" : "gap-3"
-                                } px-4 py-2.5 rounded-xl text-sm transition-colors ${
+                                } px-4 py-2 rounded-xl text-sm transition-colors ${
                                     isActive
                                         ? "bg-brand text-white font-medium shadow-sm"
                                         : "text-gray-400 hover:text-white hover:bg-gray-800"
@@ -360,53 +408,55 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
 
                                 {!isCollapsedDesktop && <span>{link.label}</span>}
 
-                                {isCollapsedDesktop &&
-                                    link.href === "/admin/products" &&
-                                    pendingReviewCount > 0 && (
+                                {parentBadge &&
+                                    (isCollapsedDesktop ? (
                                         <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-yellow-500 px-1 text-[9px] font-bold text-black">
                                             {pendingReviewCount}
                                         </span>
-                                    )}
+                                    ) : (
+                                        <span className="ml-auto min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full bg-yellow-500 text-black text-[10px] font-bold">
+                                            {pendingReviewCount}
+                                        </span>
+                                    ))}
+
+                                {!isCollapsedDesktop && showFlyout && (
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className={`${parentBadge ? "" : "ml-auto"} h-3.5 w-3.5 shrink-0 opacity-50`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                        aria-hidden
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                )}
                             </Link>
 
-                            {/* Tooltip hover en modo colapsado */}
-                            {isCollapsedDesktop && (
+                            {/* Tooltip hover en modo colapsado (secciones sin submenú) */}
+                            {isCollapsedDesktop && children.length === 0 && (
                                 <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-gray-900 border border-gray-700 px-2.5 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                                     {link.label}
                                 </span>
                             )}
 
-                            {!isCollapsedDesktop &&
-                                link.children?.map((child: SidebarChild) => {
-                                    const isPendingReview = Boolean(child.pendingReviewBadge);
-                                    const childActive = isPendingReview
-                                        ? pathname === "/admin/products" &&
-                                          searchParams.get("status") === "pending_review"
-                                        : pathname === child.href ||
-                                          pathname.startsWith(`${child.href}/`);
-
-                                    return (
+                            {/* Submenú flotante a la derecha. El pl hace de puente para no perder el hover */}
+                            {showFlyout && (
+                                <div className="invisible absolute left-full top-0 z-50 pl-4 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                                    <div className="min-w-52 rounded-xl border border-gray-700 bg-gray-900 p-1.5 shadow-xl">
                                         <Link
-                                            key={child.href}
-                                            href={child.href}
-                                            onClick={() => setMobileOpen(false)}
-                                            className={`ml-8 mt-1 flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
-                                                childActive
-                                                    ? `bg-gray-800 font-medium ${isPendingReview ? "text-yellow-400" : "text-white"}`
-                                                    : "text-gray-500 hover:text-white"
-                                            }`}
+                                            href={link.href}
+                                            className="block whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white"
                                         >
-                                            {isPendingReview && <span>⚠</span>}
-                                            <span>{child.label}</span>
-
-                                            {isPendingReview && pendingReviewCount > 0 && (
-                                                <span className="ml-auto min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full bg-yellow-500 text-black text-[10px] font-bold">
-                                                    {pendingReviewCount}
-                                                </span>
-                                            )}
+                                            {link.label}
                                         </Link>
-                                    );
-                                })}
+                                        {children.map((child) => renderChild(child, false))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {showInline && children.map((child) => renderChild(child, true))}
                         </div>
                     );
                 })}
@@ -418,7 +468,7 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                     href="/"
                     className={`flex items-center ${
                         !isMobileDrawer && collapsed ? "justify-center" : "gap-3"
-                    } px-4 py-2.5 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors`}
+                    } px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors`}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -441,7 +491,7 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                     onClick={() => signOut({ callbackUrl: "/" })}
                     className={`flex items-center ${
                         !isMobileDrawer && collapsed ? "justify-center" : "gap-3"
-                    } px-4 py-2.5 rounded-xl text-sm text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors`}
+                    } px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors`}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -515,7 +565,7 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
             {/* Sidebar Desktop fijo */}
             <aside
                 // Pegada al costado: no se va con el scroll en páginas largas
-                className={`hidden md:flex sticky top-0 h-screen bg-gray-900 border-r border-gray-800 flex-col shrink-0 transition-all duration-300 ${
+                className={`hidden md:flex sticky top-0 z-30 h-screen bg-gray-900 border-r border-gray-800 flex-col shrink-0 transition-all duration-300 ${
                     collapsed ? "w-20" : "w-60"
                 }`}
             >
