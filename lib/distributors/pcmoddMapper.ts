@@ -84,6 +84,11 @@ export function buildSheetCsvUrl(sheetUrl: string): string | null {
 }
 
 const hasDigits = (value: string) => /\d/.test(value);
+// Alícuota de IVA de la columna C ("21,00", "10,5", "21%"): sólo los productos la tienen
+const IVA_TEXT = /^\d{1,2}(?:[.,]\d+)?\s*%?$/;
+const NUMBER_ONLY = /^[\d\s.,$%]+$/;
+// Títulos de columna que pueden aparecer en las filas de encabezado
+const COLUMN_TITLE = /^(?:usd|u\$s|iva|precio|precios|producto|productos|descripci[oó]n)$/i;
 // Precio válido: sólo número con separadores, opcionalmente con "$", "U$S" o "USD" adelante
 const PRICE_TEXT = /^(?:u\$s|usd|\$)?\s*\d[\d.,]*$/i;
 
@@ -92,9 +97,11 @@ export const pcmoddItemId = (brand: string, title: string) =>
     normalizeSearch(`${brand} ${title}`).replace(/\s+/g, "-").slice(0, 200);
 
 /**
- * Lee la hoja. Una fila es producto si tiene nombre en A y un precio válido en B; si tiene texto
- * en A pero no precio en B, es el encabezado de una marca. Las filas con precio pero sin marca
- * previa quedan con marca vacía. `skipped` cuenta filas con nombre y algo en B que no se pudo leer.
+ * Lee la hoja. Una fila es producto si tiene nombre en A y un precio válido en B. Es encabezado de
+ * marca si no tiene precio válido en B ni alícuota en C: la marca es el texto de A o, si A está
+ * vacía (celda combinada o centrada en otra columna), el primer texto de la fila. Las filas con
+ * precio pero sin marca previa quedan con marca vacía. `skipped` cuenta las filas con nombre,
+ * alícuota en C y algo en B que no se pudo leer como precio.
  */
 export function parsePcmoddSheet(
     csv: string,
@@ -109,16 +116,22 @@ export function parsePcmoddSheet(
         const name = (cells[0] ?? "").trim().replace(/\s+/g, " ");
         const priceText = (cells[1] ?? "").trim();
         const ivaText = (cells[2] ?? "").trim();
-        if (!name) return;
-
         const price = PRICE_TEXT.test(priceText) ? parseInvidNumber(priceText) : 0;
+
+        if (price <= 0 && !IVA_TEXT.test(ivaText)) {
+            // Encabezado de marca ("ID-COOLING", con "USD" / "IVA" u otros títulos en B y C). Si la
+            // marca no está en A, se toma el primer texto de la fila que no sea un número ni un título.
+            const header =
+                name ||
+                cells
+                    .map((c) => c.trim().replace(/\s+/g, " "))
+                    .find((c) => c && !NUMBER_ONLY.test(c) && !COLUMN_TITLE.test(c));
+            if (header && !COLUMN_TITLE.test(header)) brand = header;
+            return;
+        }
+        if (!name) return;
         if (price <= 0) {
-            if (hasDigits(priceText)) {
-                skipped++;
-                return;
-            }
-            // Encabezado de marca ("ID-COOLING", con "USD" / "IVA" como títulos en B y C)
-            brand = name;
+            if (hasDigits(priceText)) skipped++;
             return;
         }
 
