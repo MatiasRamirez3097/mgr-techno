@@ -14,6 +14,7 @@ import { ProductGallery } from "@/components/products/ProductGallery";
 import MetaProductView from "@/components/MetaProductView";
 import { OutletSelector } from "@/components/products/OutletSelector";
 import { ProductShippingCalculator } from "@/components/products/ProductShippingCalculator";
+import { ProductDailyDealBanner } from "@/components/dailyDeals/ProductDailyDealBanner";
 
 import { getPricing } from "@/lib/pricing";
 import { getStoreSettings } from "@/services/settings/getStoreSettings";
@@ -117,6 +118,8 @@ export default async function ProductPage({ params }: Props) {
                     <h1 className="text-2xl font-bold title-color">
                         {product.name}
                     </h1>
+
+                    <ProductDailyDealBanner productId={product.id} />
 
                     {/* ================= SECCIÓN DE PRECIOS UNIFICADA ================= */}
                     <div className="flex flex-col mt-4 border border-gray-800 rounded-2xl overflow-hidden shadow-lg">

@@ -4,22 +4,35 @@ import { Footer } from "@/components/layout/Footer";
 import { Analytics } from "@vercel/analytics/next";
 import MetaPixel from "@/components/MetaPixel";
 import { StoreSettingsProvider } from "@/components/providers/StoreSettingsProvider";
+import { DailyDealProvider } from "@/components/providers/DailyDealProvider";
+import { DailyDealModal } from "@/components/dailyDeals/DailyDealModal";
 import { getStoreSettings } from "@/services/settings/getStoreSettings";
+import { getActiveDailyDeal } from "@/services/dailyDeals/getActiveDailyDeal";
 
 export default async function StoreLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const settings = await getStoreSettings();
+    const [settings, dailyDeal] = await Promise.all([
+        getStoreSettings(),
+        // Si falla, la tienda sigue andando sin la oferta del día
+        getActiveDailyDeal().catch((error) => {
+            console.error("Error leyendo la oferta del día:", error);
+            return null;
+        }),
+    ]);
 
     return (
         <StoreSettingsProvider settings={settings}>
-            <div className="flex flex-col min-h-screen">
-                <Navbar />
-                <main className="flex-1">{children}</main>
-                <Footer />
-            </div>
+            <DailyDealProvider deal={dailyDeal}>
+                <div className="flex flex-col min-h-screen">
+                    <Navbar />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                </div>
+                <DailyDealModal />
+            </DailyDealProvider>
             <MetaPixel />
             <Analytics />
         </StoreSettingsProvider>
