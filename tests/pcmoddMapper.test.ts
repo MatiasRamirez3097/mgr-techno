@@ -109,6 +109,27 @@ describe("parsePcmoddSheet: encabezados de marca con otras formas", () => {
     });
 });
 
+describe("parsePcmoddSheet: marca dentro de la celda del último producto", () => {
+    it("la segunda línea de la celda abre la marca siguiente, sin espacio arriba", () => {
+        const { items } = parsePcmoddSheet(
+            [
+                "ID-COOLING,USD,IVA",
+                'DX360 MAX,"$10,00","10,50"',
+                '"FX240 PRO\nLIAN LI","$20,00","10,50"',
+                ",,",
+                'O11 Dynamic,"$150,00","21,00"',
+                '"Lancool 207\nblanco","$90,00","21,00"',
+            ].join("\n"),
+        );
+        expect(items.map((i) => [i.title, i.brand])).toEqual([
+            ["DX360 MAX", "ID-COOLING"],
+            ["FX240 PRO", "ID-COOLING"],
+            ["O11 Dynamic", "LIAN LI"],
+            ["Lancool 207 blanco", "LIAN LI"],
+        ]);
+    });
+});
+
 describe("pcmoddDisplayName", () => {
     it("agrega la marca si el nombre no la tiene", () => {
         expect(pcmoddDisplayName("DX360 MAX", "ID-COOLING")).toBe("DX360 MAX (ID-COOLING)");
