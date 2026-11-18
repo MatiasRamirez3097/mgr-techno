@@ -246,7 +246,17 @@ export function PriceReviewTable({ rows }: Props) {
                                 <span className="font-mono font-semibold text-white">{formatArs(row.effectivePrice)}</span>
                                 {row.salePrice && row.salePrice < row.regularPrice && (
                                     <span className="block text-[10px] text-gray-500">
-                                        oferta · regular {formatArs(row.regularPrice)}
+                                        {row.inDailyDeal ? (
+                                            <span
+                                                className="text-amber-300"
+                                                title="Vuelve sola al precio regular a la medianoche. Si aplicás un precio nuevo, reemplaza la oferta."
+                                            >
+                                                oferta del día
+                                            </span>
+                                        ) : (
+                                            "oferta"
+                                        )}{" "}
+                                        · regular {formatArs(row.regularPrice)}
                                     </span>
                                 )}
                             </>

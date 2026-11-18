@@ -78,3 +78,40 @@ export interface DailyDealPreviewResult {
     // Cuántos faltaron para llegar a la cantidad pedida
     shortfall: number;
 }
+
+// Tanda de ofertas de un día, para el admin
+export interface DailyDealItemDTO {
+    productId: string;
+    name: string;
+    slug: string;
+    regularPrice: number;
+    dealPrice: number;
+    cost: number;
+    costDistributor: DistributorKey;
+    groupId: string;
+    repeated: boolean;
+    // Al terminar: si se le restauró el precio (false = el admin lo había cambiado)
+    restored: boolean;
+    // En la tanda activa: el admin le cambió el precio durante el día (no se va a restaurar)
+    priceChanged: boolean;
+}
+
+export interface DailyDealDTO {
+    date: string;
+    startsAt: string;
+    endsAt: string;
+    status: "active" | "finished" | "cancelled";
+    items: DailyDealItemDTO[];
+}
+
+export interface DailyDealsOverview {
+    today: string;
+    current: DailyDealDTO | null;
+    history: DailyDealDTO[];
+}
+
+// Oferta vigente para la tienda: sólo lo necesario para la cuenta regresiva
+export interface ActiveDailyDeal {
+    endsAt: string;
+    productIds: string[];
+}

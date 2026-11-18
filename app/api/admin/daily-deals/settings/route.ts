@@ -10,8 +10,8 @@ export async function PUT(req: Request) {
         return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
     try {
-        const settings = await updateDailyDealSettings(await req.json());
-        return NextResponse.json({ success: true, settings });
+        const result = await updateDailyDealSettings(await req.json());
+        return NextResponse.json({ success: true, ...result });
     } catch (error) {
         if (error instanceof ZodError) {
             return NextResponse.json({ error: error.issues[0]?.message || "Valores inválidos" }, { status: 400 });

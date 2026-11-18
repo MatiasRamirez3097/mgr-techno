@@ -81,6 +81,8 @@ export interface PriceReviewRow {
     status: string;
     regularPrice: number;
     salePrice: number | null;
+    // El salePrice es el de la oferta del día (se restaura sola a la medianoche)
+    inDailyDeal: boolean;
     // Precio de venta vigente (c/IVA, sin recargo de Mercado Pago)
     effectivePrice: number;
     costs: PriceReviewDistributorCost[];

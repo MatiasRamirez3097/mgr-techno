@@ -24,6 +24,7 @@ import {
 import { applyLocalCatalogPrices } from "@/services/distributors/links/applyLocalCatalogPrices";
 import { getReferencesForProducts } from "@/services/priceReference/links/getReferencesForProducts";
 import { getPricingSettings } from "@/services/settings/getPricingSettings";
+import { getActiveDailyDeal } from "@/services/dailyDeals/getActiveDailyDeal";
 import type { ProductDistributorLinkDTO } from "@/types/shared/distributorLink";
 import type {
     PriceReviewFilters,
@@ -84,14 +85,16 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
         };
     }
 
-    const [settings, categoryList, products] = await Promise.all([
+    const [settings, categoryList, products, dailyDeal] = await Promise.all([
         getPricingSettings(),
         getCategoryMargins(),
         ProductModel.find(query, {
             name: 1, sku: 1, image: 1, status: 1, regularPrice: 1, salePrice: 1,
             effectivePrice: 1, taxRate: 1, categories: 1,
         }).lean<ProductLean[]>(),
+        getActiveDailyDeal(),
     ]);
+    const dailyDealIds = new Set(dailyDeal?.productIds ?? []);
 
     const categories = new Map<string, CategoryMarginNode>(categoryList.map((c) => [c.id, c]));
 
@@ -152,6 +155,7 @@ export async function getPriceReview(filters: PriceReviewFilters = {}): Promise<
             status: product.status,
             regularPrice: Number(product.regularPrice) || 0,
             salePrice: product.salePrice ?? null,
+            inDailyDeal: dailyDealIds.has(productId),
             effectivePrice,
             costs: costs.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity)),
             ...comparison,
