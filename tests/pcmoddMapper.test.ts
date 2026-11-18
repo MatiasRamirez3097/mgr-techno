@@ -83,6 +83,32 @@ describe("parsePcmoddSheet", () => {
     });
 });
 
+describe("parsePcmoddSheet: encabezados de marca con otras formas", () => {
+    it("toma la marca aunque el título de B tenga números o la marca no esté en la columna A", () => {
+        const { items, skipped } = parsePcmoddSheet(
+            [
+                "ID-COOLING,USD,IVA",
+                'DX360 MAX,"$10,00","10,50"',
+                ",,",
+                '3NSTAR,"Precio USD x1",IVA',
+                'Mouse M100,"$5,00","21,00"',
+                ",,",
+                ",LIAN LI,",
+                'O11 Dynamic,"$150,00","21,00"',
+                ",USD,IVA",
+                'Lancool 207,"$90,00","21,00"',
+            ].join("\n"),
+        );
+        expect(items.map((i) => [i.title, i.brand])).toEqual([
+            ["DX360 MAX", "ID-COOLING"],
+            ["Mouse M100", "3NSTAR"],
+            ["O11 Dynamic", "LIAN LI"],
+            ["Lancool 207", "LIAN LI"],
+        ]);
+        expect(skipped).toBe(0);
+    });
+});
+
 describe("pcmoddDisplayName", () => {
     it("agrega la marca si el nombre no la tiene", () => {
         expect(pcmoddDisplayName("DX360 MAX", "ID-COOLING")).toBe("DX360 MAX (ID-COOLING)");

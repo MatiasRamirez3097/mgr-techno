@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import type { NormalizedProduct as DistributorProduct } from "@/types/shared/distributor";
 import { isUsdCurrency } from "@/lib/distributors/invidMapper";
 import { USD_CATALOG_DISTRIBUTORS } from "@/lib/quotes/priceAlerts";
+import type { ComparatorCategoryDTO } from "@/types/shared/comparatorCategory";
 
 const BADGE_STYLES: Record<string, string> = {
     elit: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
@@ -46,6 +47,9 @@ export function DistributorProductSelectorModal({
     onSelect,
 }: Props) {
     const [query, setQuery] = useState("");
+    // Categoría del comparador: acota la búsqueda (un distribuidor sin mapeo para ella no se consulta)
+    const [category, setCategory] = useState("");
+    const [categories, setCategories] = useState<{ key: string; name: string }[]>([]);
     const [results, setResults] = useState<DistributorProduct[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -68,7 +72,25 @@ export function DistributorProductSelectorModal({
         }
     }, [selectedProduct, markupPercentage]);
 
-    // Limpiar al abrir/cerrar
+    // Categorías activas del comparador (si falla, se busca sin categoría)
+    useEffect(() => {
+        if (!isOpen || categories.length > 0) return;
+        let cancelled = false;
+        fetch("/api/admin/distributors/categories", { cache: "no-store" })
+            .then((res) => (res.ok ? res.json() : { categories: [] }))
+            .then((data: { categories?: ComparatorCategoryDTO[] }) => {
+                if (cancelled) return;
+                setCategories(
+                    (data.categories ?? []).filter((c) => c.active).map((c) => ({ key: c.key, name: c.name })),
+                );
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, categories.length]);
+
+    // Limpiar al abrir/cerrar (la categoría elegida se conserva entre búsquedas)
     useEffect(() => {
         if (!isOpen) {
             setQuery("");
@@ -84,19 +106,19 @@ export function DistributorProductSelectorModal({
         setTaxRate(p.taxRate && TAX_RATES.includes(p.taxRate) ? p.taxRate : 10.5);
     }
 
-    async function handleSearch(e?: React.FormEvent) {
+    async function handleSearch(e?: React.FormEvent, nextCategory = category) {
         if (e) e.preventDefault();
         const term = query.trim();
-        if (!term) return;
+        if (!term && !nextCategory) return;
 
         setLoading(true);
         setError("");
         setSelectedProduct(null);
 
         try {
-            const res = await fetch(
-                `/api/admin/distributors/search?q=${encodeURIComponent(term)}`
-            );
+            const params = new URLSearchParams({ q: term });
+            if (nextCategory) params.set("category", nextCategory);
+            const res = await fetch(`/api/admin/distributors/search?${params.toString()}`);
             const data = await res.json();
 
             if (!res.ok) {
@@ -107,7 +129,11 @@ export function DistributorProductSelectorModal({
             setResults(products);
 
             if (products.length === 0) {
-                setError("No se encontraron productos con ese término en Elit, NewBytes, Invid, AIR ni PCMODD.");
+                setError(
+                    nextCategory
+                        ? "No se encontraron productos de esa categoría en Elit, NewBytes, Invid, AIR ni PCMODD."
+                        : "No se encontraron productos con ese término en Elit, NewBytes, Invid, AIR ni PCMODD.",
+                );
             }
         } catch (err: any) {
             setError(err.message || "Error al conectar con los distribuidores.");
@@ -175,7 +201,7 @@ export function DistributorProductSelectorModal({
 
                 {/* Formulario de búsqueda */}
                 <div className="p-6 border-b border-gray-800 shrink-0">
-                    <form onSubmit={handleSearch} className="flex gap-2">
+                    <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
                         <input
                             type="text"
                             value={query}
@@ -184,9 +210,27 @@ export function DistributorProductSelectorModal({
                             className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-brand"
                             autoFocus
                         />
+                        <select
+                            value={category}
+                            onChange={(e) => {
+                                setCategory(e.target.value);
+                                // Con algo escrito (o sólo la categoría) se vuelve a buscar al cambiarla
+                                if (query.trim() || e.target.value) handleSearch(undefined, e.target.value);
+                                else setResults([]);
+                            }}
+                            className="sm:w-48 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-brand"
+                            aria-label="Categoría del comparador"
+                        >
+                            <option value="">Todas las categorías</option>
+                            {categories.map((c) => (
+                                <option key={c.key} value={c.key}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
                         <button
                             type="submit"
-                            disabled={loading || !query.trim()}
+                            disabled={loading || (!query.trim() && !category)}
                             className="px-5 py-2.5 bg-brand hover:brightness-110 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition flex items-center gap-2 shrink-0"
                         >
                             {loading ? (
