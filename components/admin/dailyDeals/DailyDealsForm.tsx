@@ -10,6 +10,7 @@ import { addDays } from "@/lib/dailyDeals/window";
 import { describeDealResult } from "./TodayDealPanel";
 import { DISTRIBUTOR_KEYS, type DistributorKey } from "@/types/shared/distributorLink";
 import type {
+    DailyDealDiscountTier,
     DailyDealExclusionReason,
     DailyDealGroupDTO,
     DailyDealPreviewResult,
@@ -35,7 +36,7 @@ const EXCLUSION_LABELS: Record<DailyDealExclusionReason, string> = {
     on_sale: "ya tienen precio de oferta",
     no_cost: "sin costo conocido (sin vincular a un distribuidor)",
     no_stock: "sin stock en el distribuidor",
-    low_margin: "por debajo de la utilidad mínima",
+    low_margin: "por debajo de la utilidad del escalón más bajo",
     no_deal_price: "sin precio de oferta válido",
 };
 
@@ -111,12 +112,40 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
     // Ya corriendo (activadas y sin inicio pendiente): no se ofrece programar el inicio
     const alreadyRunning = initialSettings.enabled && initialSettings.startDate === null;
     const tomorrow = addDays(today, 1);
-    const worstMargin = marginAfterDiscount(settings.minMarginPercent, settings.discountPercent);
+    // Escalones en orden de utilidad (se editan en su posición original, que es el índice)
+    const tierRows = settings.discountTiers
+        .map((tier, index) => ({ tier, index, worst: marginAfterDiscount(tier.minMarginPercent, tier.discountPercent) }))
+        .sort((a, b) => a.tier.minMarginPercent - b.tier.minMarginPercent)
+        .map((row, i, rows) => ({ ...row, upTo: rows[i + 1]?.tier.minMarginPercent ?? null }));
+    const tiersError = tierRows.some((r) => r.worst < 0)
+        ? "Un escalón deja productos por debajo del costo: subí su utilidad mínima o bajá su descuento."
+        : new Set(settings.discountTiers.map((t) => t.minMarginPercent)).size !== settings.discountTiers.length
+          ? "Hay dos escalones con la misma utilidad mínima."
+          : null;
 
     const set = <K extends keyof DailyDealSettingsDTO>(key: K, value: DailyDealSettingsDTO[K]) =>
         setSettings((s) => ({ ...s, [key]: value }));
-    const setNumber = (key: "productCount" | "noRepeatDays" | "minMarginPercent" | "discountPercent", value: string) =>
-        set(key, value === "" ? 0 : Number(value));
+    const toNumber = (value: string) => (value === "" ? 0 : Number(value));
+    const setNumber = (key: "productCount" | "noRepeatDays", value: string) => set(key, toNumber(value));
+
+    const updateTier = (index: number, patch: Partial<DailyDealDiscountTier>) =>
+        set(
+            "discountTiers",
+            settings.discountTiers.map((t, i) => (i === index ? { ...t, ...patch } : t)),
+        );
+    const removeTier = (index: number) =>
+        set(
+            "discountTiers",
+            settings.discountTiers.filter((_, i) => i !== index),
+        );
+    const addTier = () => {
+        // Un escalón más arriba que el último, con más descuento
+        const top = settings.discountTiers.reduce((a, b) => (b.minMarginPercent > a.minMarginPercent ? b : a));
+        set("discountTiers", [
+            ...settings.discountTiers,
+            { minMarginPercent: top.minMarginPercent + 10, discountPercent: Math.min(90, top.discountPercent + 5) },
+        ]);
+    };
 
     const updateGroup = (id: string, patch: Partial<DailyDealGroupDTO>) =>
         set(
@@ -244,7 +273,7 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
             </FormSection>
 
             <FormSection title="Parámetros">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
                     <div>
                         <label className={labelClass} htmlFor="dd-count">
                             Productos por día
@@ -274,50 +303,70 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                         />
                         <p className={hintClass}>Sólo se repiten si no alcanzan los productos.</p>
                     </div>
-                    <div>
-                        <label className={labelClass} htmlFor="dd-margin">
-                            Utilidad mínima antes del descuento (%)
-                        </label>
-                        <input
-                            id="dd-margin"
-                            type="number"
-                            min={0}
-                            step="0.5"
-                            value={settings.minMarginPercent}
-                            onChange={(e) => setNumber("minMarginPercent", e.target.value)}
-                            className={inputClass}
-                        />
-                    </div>
-                    <div>
-                        <label className={labelClass} htmlFor="dd-discount">
-                            Descuento (%)
-                        </label>
-                        <input
-                            id="dd-discount"
-                            type="number"
-                            min={1}
-                            max={90}
-                            step="0.5"
-                            value={settings.discountPercent}
-                            onChange={(e) => setNumber("discountPercent", e.target.value)}
-                            className={inputClass}
-                        />
-                    </div>
                 </div>
 
-                <p
-                    className={`mt-4 text-sm rounded-lg border px-3 py-2 ${
-                        worstMargin < 0
-                            ? "border-red-500/30 bg-red-500/10 text-red-300"
-                            : "border-gray-700 bg-gray-800/50 text-gray-300"
-                    }`}
-                >
-                    Utilidad resultante: un producto que justo tiene {pct(settings.minMarginPercent)} queda con{" "}
-                    <strong>{pct(worstMargin)}</strong> después del {pct(settings.discountPercent)} de descuento (los que
-                    tienen más utilidad quedan con más). El precio de oferta se redondea hacia abajo de a{" "}
-                    {money(roundingStep)}.
-                    {worstMargin < 0 && " Así algunos productos quedarían por debajo del costo: no se puede guardar."}
-                </p>
+                <div className="mt-5">
+                    <span className={labelClass}>Descuento según la utilidad</span>
+                    <p className={hintClass}>
+                        La utilidad se mide sobre el costo, antes del descuento. Cada producto lleva el descuento del
+                        escalón más alto que alcanza; los que no llegan al más bajo no participan. El precio de oferta se
+                        redondea hacia abajo de a {money(roundingStep)}.
+                    </p>
+                    <div className="mt-3 flex flex-col gap-2">
+                        {tierRows.map(({ tier, index, worst, upTo }) => (
+                            <div
+                                key={index}
+                                className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                                    worst < 0 ? "border-red-500/40 bg-red-500/10" : "border-gray-700 bg-gray-800/40"
+                                }`}
+                            >
+                                <span className="text-gray-400">Con utilidad desde</span>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    step="0.5"
+                                    value={tier.minMarginPercent}
+                                    onChange={(e) => updateTier(index, { minMarginPercent: toNumber(e.target.value) })}
+                                    className={`${inputClass} w-24`}
+                                    aria-label={`Utilidad mínima del escalón ${index + 1}`}
+                                />
+                                <span className="text-gray-400">
+                                    %{upTo !== null && ` (hasta ${pct(upTo)})`}, descuento de
+                                </span>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={90}
+                                    step="0.5"
+                                    value={tier.discountPercent}
+                                    onChange={(e) => updateTier(index, { discountPercent: toNumber(e.target.value) })}
+                                    className={`${inputClass} w-24`}
+                                    aria-label={`Descuento del escalón ${index + 1}`}
+                                />
+                                <span className="text-gray-400">%</span>
+                                <span className={`ml-auto text-xs ${worst < 0 ? "text-red-300" : "text-gray-400"}`}>
+                                    utilidad resultante desde <strong className="text-white">{pct(worst)}</strong>
+                                    {worst < 0 && " (quedaría bajo el costo)"}
+                                </span>
+                                {settings.discountTiers.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => removeTier(index)}
+                                        className="text-xs text-gray-400 hover:text-red-400"
+                                    >
+                                        Quitar
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    {settings.discountTiers.length < 10 && (
+                        <button type="button" onClick={addTier} className={`${buttonClass.secondary} mt-2`}>
+                            Agregar escalón
+                        </button>
+                    )}
+                    {tiersError && <p className="mt-2 text-sm text-red-300">{tiersError}</p>}
+                </div>
 
                 <label className="mt-4 flex items-start gap-3 cursor-pointer">
                     <input
@@ -474,7 +523,7 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                 <button
                     type="button"
                     onClick={handleSave}
-                    disabled={!dirty || saving || worstMargin < 0}
+                    disabled={!dirty || saving || tiersError !== null}
                     className={buttonClass.primary}
                 >
                     {saving ? "Guardando…" : "Guardar"}
@@ -557,6 +606,7 @@ function PreviewPanel({ preview }: { preview: DailyDealPreviewResult }) {
                                     <td className="py-2 pr-3 text-right whitespace-nowrap">
                                         <span className="text-gray-500 line-through mr-1">{money(item.regularPrice)}</span>
                                         <span className="text-white font-semibold">{money(item.dealPrice)}</span>
+                                        <span className="block text-[11px] text-brand">-{pct(item.discountPercent)}</span>
                                     </td>
                                     <td className="py-2 pr-3 text-right whitespace-nowrap text-gray-300">
                                         {money(item.cost)}

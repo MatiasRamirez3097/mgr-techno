@@ -17,14 +17,23 @@ const DailyDealGroupSchema = new Schema(
     { _id: false },
 );
 
+const DailyDealDiscountTierSchema = new Schema(
+    {
+        minMarginPercent: { type: Number, required: true, min: 0 },
+        discountPercent: { type: Number, required: true, min: 1 },
+    },
+    { _id: false },
+);
+
 const DailyDealConfigSchema = new Schema(
     {
         _id: { type: String, default: "daily-deals" },
         enabled: { type: Boolean, default: false },
         productCount: { type: Number, default: 6, min: 1 },
         noRepeatDays: { type: Number, default: 7, min: 0 },
-        minMarginPercent: { type: Number, default: 30, min: 0 },
-        discountPercent: { type: Number, default: 10, min: 1 },
+        // Escalones utilidad → descuento (reemplazan a minMarginPercent/discountPercent, que se
+        // leen como un único escalón si un documento viejo todavía no los tiene)
+        discountTiers: { type: [DailyDealDiscountTierSchema], default: undefined },
         requireDistributorStock: { type: Boolean, default: true },
         // YYYY-MM-DD: las ofertas empiezan ese día a las 00:00 (null = ya empezaron)
         startDate: { type: String, default: null },
