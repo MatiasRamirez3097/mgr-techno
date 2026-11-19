@@ -6,6 +6,7 @@ import { FormSection } from "@/components/admin/ui/FormSection";
 import { buttonClass, hintClass, inputClass, labelClass, selectClass } from "@/components/admin/ui/styles";
 import { DISTRIBUTOR_LABELS } from "@/lib/distributors/productLinks";
 import { marginAfterDiscount } from "@/lib/dailyDeals/selection";
+import { describeDealResult } from "./TodayDealPanel";
 import { DISTRIBUTOR_KEYS, type DistributorKey } from "@/types/shared/distributorLink";
 import type {
     DailyDealExclusionReason,
@@ -152,7 +153,12 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
         try {
             const data = await send("/api/admin/daily-deals/settings", "PUT");
             setSettings(data.settings);
-            setMessage({ type: "success", text: "Configuración guardada" });
+            const extra = data.generated
+                ? ` ${describeDealResult(data.generated)}`
+                : data.cancelled
+                  ? " Se canceló la oferta de hoy."
+                  : "";
+            setMessage({ type: "success", text: `Configuración guardada.${extra}` });
             router.refresh();
         } catch (error) {
             setMessage({ type: "error", text: error instanceof Error ? error.message : "Error guardando" });
@@ -187,7 +193,8 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                     <span>
                         <span className="block text-sm text-gray-200">Generar ofertas del día automáticamente</span>
                         <span className="block text-sm text-gray-400 mt-0.5">
-                            Todavía no se aplican precios: por ahora la configuración se puede guardar y simular.
+                            Al activarlo se genera la oferta de hoy en el momento; al desactivarlo se cancela y los
+                            productos vuelven a su precio normal. Los demás cambios valen desde el próximo sorteo.
                         </span>
                     </span>
                 </label>

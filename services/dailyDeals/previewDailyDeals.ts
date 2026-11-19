@@ -78,7 +78,11 @@ async function getLastFeaturedDates(today: string): Promise<Map<string, string>>
  */
 export async function previewDailyDeals(
     settings: DailyDealSettingsDTO,
-    { now = new Date(), random = Math.random }: { now?: Date; random?: () => number } = {},
+    {
+        now = new Date(),
+        random = Math.random,
+        excludeProductIds = [],
+    }: { now?: Date; random?: () => number; excludeProductIds?: string[] } = {},
 ): Promise<DailyDealPreviewResult> {
     await connectDB();
     const today = todayInStoreTimeZone(now);
@@ -126,8 +130,11 @@ export async function previewDailyDeals(
         no_deal_price: 0,
     };
     const candidates: CandidateInfo[] = [];
+    // Al regenerar, no vuelven a salir los productos de la tanda que se acaba de cancelar
+    const skip = new Set(excludeProductIds);
     for (const product of products) {
         const productId = product._id.toString();
+        if (skip.has(productId)) continue;
         const evaluation = evaluateDealProduct(
             { regularPrice: product.regularPrice, salePrice: product.salePrice, costs: costsByProduct.get(productId) ?? [] },
             settings,

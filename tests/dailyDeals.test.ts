@@ -205,3 +205,12 @@ describe("dailyDealSettingsSchema", () => {
         );
     });
 });
+
+describe("dealWindow", () => {
+    it("va de 00:00 a 24:00 hora de Argentina", async () => {
+        const { dealWindow } = await import("@/lib/dailyDeals/window");
+        const { startsAt, endsAt } = dealWindow("2026-11-18");
+        expect(startsAt.toISOString()).toBe("2026-11-18T03:00:00.000Z");
+        expect(endsAt.toISOString()).toBe("2026-11-19T03:00:00.000Z");
+    });
+});

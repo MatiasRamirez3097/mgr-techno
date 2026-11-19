@@ -9,6 +9,7 @@ const DailyDealItemSchema = new Schema(
     {
         productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
         name: { type: String, required: true },
+        slug: { type: String, default: "" },
         regularPrice: { type: Number, required: true },
         // salePrice antes de la oferta (siempre null: no participan productos con oferta propia)
         previousSalePrice: { type: Number, default: null },

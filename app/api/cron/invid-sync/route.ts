@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { syncInvidCatalog } from "@/services/distributors/invid/syncInvidCatalog";
 import { syncPcmoddCatalog } from "@/services/distributors/pcmodd/syncPcmoddCatalog";
 import { getUsdExchangeRate } from "@/services/exchangeRates/getUsdExchangeRate";
+import { runDailyDeals } from "@/services/dailyDeals/runDailyDeals";
 
 // Recorrer el catálogo completo lleva unas 15 páginas secuenciales
 export const maxDuration = 300;
@@ -22,5 +23,12 @@ export async function GET(req: NextRequest) {
         syncPcmoddCatalog(),
     ]);
 
-    return NextResponse.json({ usdRate: usd?.rate ?? null, invid, pcmodd });
+    // Respaldo del cron de ofertas del día (00:00): si no corrió, termina la de ayer y genera la
+    // de hoy con los costos recién actualizados. Si ya está hecho, no hace nada.
+    const dailyDeals = await runDailyDeals().catch((error) => {
+        console.error("Error en el respaldo de ofertas del día:", error);
+        return null;
+    });
+
+    return NextResponse.json({ usdRate: usd?.rate ?? null, invid, pcmodd, dailyDeals });
 }
