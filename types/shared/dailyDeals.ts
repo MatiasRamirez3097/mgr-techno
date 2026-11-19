@@ -30,6 +30,8 @@ export interface DailyDealSettingsDTO {
     // true: sólo con stock en un distribuidor vinculado (PCMODD, que no informa stock, cuenta como
     // con stock). false: alcanza con un costo conocido aunque ningún distribuidor tenga stock.
     requireDistributorStock: boolean;
+    // Día (YYYY-MM-DD) desde el que empiezan las ofertas, a las 00:00; null = ya empezaron
+    startDate: string | null;
     groups: DailyDealGroupDTO[];
 }
 

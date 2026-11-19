@@ -21,6 +21,11 @@ export const dailyDealSettingsSchema = z
         minMarginPercent: z.number().min(0).max(500),
         discountPercent: z.number().min(1, "El descuento tiene que ser de al menos 1%").max(90),
         requireDistributorStock: z.boolean(),
+        startDate: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha de inicio inválida")
+            .nullable()
+            .default(null),
         groups: z.array(dailyDealGroupSchema).max(10),
     })
     .refine((s) => marginAfterDiscount(s.minMarginPercent, s.discountPercent) >= 0, {

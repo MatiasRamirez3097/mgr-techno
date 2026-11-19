@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import { DailyDealModel } from "@/models/DailyDeal";
-import { dealWindow } from "@/lib/dailyDeals/window";
+import { dealWindow, hasDealsStarted } from "@/lib/dailyDeals/window";
 import { todayInStoreTimeZone } from "@/lib/utils/orderDate";
 import { getDailyDealSettings } from "./getDailyDealSettings";
 import { previewDailyDeals } from "./previewDailyDeals";
@@ -8,7 +8,7 @@ import { applyDealPrice, revalidateDealPages } from "./dealPrices";
 
 export type CreateTodayDealResult =
     | { status: "created"; date: string; items: number; shortfall: number }
-    | { status: "skipped"; reason: "disabled" | "exists" | "no_products" };
+    | { status: "skipped"; reason: "disabled" | "not_started" | "exists" | "no_products" };
 
 const isDuplicateKey = (error: unknown) => (error as { code?: number })?.code === 11000;
 
@@ -28,6 +28,7 @@ export async function createTodayDeal(
 
     // Antes del sorteo (que lee todo el catálogo): el cron horario pasa por acá cada hora
     const today = todayInStoreTimeZone(now);
+    if (!hasDealsStarted(settings.startDate, today)) return { status: "skipped", reason: "not_started" };
     if (replaceCancelled) await DailyDealModel.deleteOne({ date: today, status: "cancelled" });
     if (await DailyDealModel.exists({ date: today })) return { status: "skipped", reason: "exists" };
 

@@ -18,6 +18,7 @@ export const DEFAULT_DAILY_DEAL_SETTINGS: DailyDealSettingsDTO = {
     minMarginPercent: 30,
     discountPercent: 10,
     requireDistributorStock: true,
+    startDate: null,
     groups: [],
 };
 
