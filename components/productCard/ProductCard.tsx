@@ -13,6 +13,8 @@ import {
     hasOwnProductImage,
 } from "@/lib/utils/imageUtils";
 import { BundleImageCollage } from "@/components/products/BundleImageCollage";
+import { useDailyDealEndsAt } from "@/components/providers/DailyDealProvider";
+import { DealCountdown } from "@/components/dailyDeals/DealCountdown";
 
 export function ProductCard({
     product,
@@ -33,6 +35,7 @@ export function ProductCard({
     const disabled = product.availableStock === 0 || reachedMax;
     const { mercadoPagoSurchargePercent } = useStoreSettings();
     const pricing = getPricing(product, mercadoPagoSurchargePercent);
+    const dailyDealEndsAt = useDailyDealEndsAt(product.id);
 
     const hasMainImage = hasOwnProductImage(product.image);
     const hasBundleCollage =
@@ -107,10 +110,16 @@ export function ProductCard({
                                 Outlet
                             </span>
                         )}
-                        {product.salePrice && (
+                        {dailyDealEndsAt ? (
                             <span className="bg-brand text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg shadow-brand/20 uppercase tracking-wider">
-                                Oferta
+                                ⚡ Oferta del día
                             </span>
+                        ) : (
+                            product.salePrice && (
+                                <span className="bg-brand text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg shadow-brand/20 uppercase tracking-wider">
+                                    Oferta
+                                </span>
+                            )
                         )}
                         {/* NUEVO: Etiqueta de Envío Gratis */}
                         {product.hasFreeShipping && (
@@ -119,6 +128,12 @@ export function ProductCard({
                             </span>
                         )}
                     </div>
+                    {dailyDealEndsAt && (
+                        <div className="absolute bottom-0 inset-x-0 z-20 flex items-center justify-center gap-1.5 bg-black/75 backdrop-blur-sm py-1 text-[11px] font-semibold text-white">
+                            <span className="text-brand">Termina en</span>
+                            <DealCountdown endsAt={dailyDealEndsAt} />
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-3 flex-1 flex flex-col justify-between">

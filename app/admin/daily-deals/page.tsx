@@ -24,16 +24,17 @@ export default async function DailyDealsPage() {
         <div className="max-w-5xl">
             <AdminPageHeader
                 title="Ofertas del día"
-                description="Cada día, a las 00:00, se sortean productos con costo conocido y buena utilidad y se ponen en oferta hasta la medianoche."
+                description="Cada día, a las 00:00 (o desde el día de inicio que programes), se sortean productos con costo conocido y buena utilidad y se ponen en oferta hasta la medianoche."
             />
             <div className="flex flex-col gap-6 mb-6">
-                <TodayDealPanel overview={overview} enabled={settings.enabled} />
+                <TodayDealPanel overview={overview} enabled={settings.enabled} startDate={settings.startDate} />
             </div>
             <DailyDealsForm
                 initialSettings={settings}
                 categories={categories.map((c) => ({ id: c.id, name: c.name, depth: c.depth }))}
                 brands={brands.map((b) => ({ id: b._id.toString(), name: b.name }))}
                 roundingStep={pricing.priceRoundingStep}
+                today={overview.today}
             />
         </div>
     );

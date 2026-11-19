@@ -6,6 +6,7 @@ import { FormSection } from "@/components/admin/ui/FormSection";
 import { buttonClass, hintClass, inputClass, labelClass, selectClass } from "@/components/admin/ui/styles";
 import { DISTRIBUTOR_LABELS } from "@/lib/distributors/productLinks";
 import { marginAfterDiscount } from "@/lib/dailyDeals/selection";
+import { addDays } from "@/lib/dailyDeals/window";
 import { describeDealResult } from "./TodayDealPanel";
 import { DISTRIBUTOR_KEYS, type DistributorKey } from "@/types/shared/distributorLink";
 import type {
@@ -26,6 +27,8 @@ interface Props {
     categories: Option[];
     brands: Option[];
     roundingStep: number;
+    // Hoy en Argentina (YYYY-MM-DD)
+    today: string;
 }
 
 const EXCLUSION_LABELS: Record<DailyDealExclusionReason, string> = {
@@ -96,7 +99,7 @@ function ChipPicker({
     );
 }
 
-export function DailyDealsForm({ initialSettings, categories, brands, roundingStep }: Props) {
+export function DailyDealsForm({ initialSettings, categories, brands, roundingStep, today }: Props) {
     const router = useRouter();
     const [settings, setSettings] = useState<DailyDealSettingsDTO>(initialSettings);
     const [saving, setSaving] = useState(false);
@@ -105,6 +108,9 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
     const [preview, setPreview] = useState<DailyDealPreviewResult | null>(null);
 
     const dirty = useMemo(() => JSON.stringify(settings) !== JSON.stringify(initialSettings), [settings, initialSettings]);
+    // Ya corriendo (activadas y sin inicio pendiente): no se ofrece programar el inicio
+    const alreadyRunning = initialSettings.enabled && initialSettings.startDate === null;
+    const tomorrow = addDays(today, 1);
     const worstMargin = marginAfterDiscount(settings.minMarginPercent, settings.discountPercent);
 
     const set = <K extends keyof DailyDealSettingsDTO>(key: K, value: DailyDealSettingsDTO[K]) =>
@@ -157,7 +163,9 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                 ? ` ${describeDealResult(data.generated)}`
                 : data.cancelled
                   ? " Se canceló la oferta de hoy."
-                  : "";
+                  : data.settings.enabled && data.settings.startDate
+                    ? ` Las ofertas empiezan el ${data.settings.startDate.split("-").reverse().join("/")} a las 00:00.`
+                    : "";
             setMessage({ type: "success", text: `Configuración guardada.${extra}` });
             router.refresh();
         } catch (error) {
@@ -193,11 +201,46 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                     <span>
                         <span className="block text-sm text-gray-200">Generar ofertas del día automáticamente</span>
                         <span className="block text-sm text-gray-400 mt-0.5">
-                            Al activarlo se genera la oferta de hoy en el momento; al desactivarlo se cancela y los
-                            productos vuelven a su precio normal. Los demás cambios valen desde el próximo sorteo.
+                            Al activarlo empiezan ahora o el día que elijas; al desactivarlo se cancela la oferta de
+                            hoy y los productos vuelven a su precio normal. Los demás cambios valen desde el próximo
+                            sorteo.
                         </span>
                     </span>
                 </label>
+                {settings.enabled && !alreadyRunning && (
+                    <div className="mt-4 ml-8 flex flex-col gap-2 text-sm text-gray-200">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="dd-start"
+                                checked={settings.startDate === null}
+                                onChange={() => set("startDate", null)}
+                                className="accent-brand"
+                            />
+                            Empezar ahora (se genera la oferta de hoy al guardar)
+                        </label>
+                        <label className="flex flex-wrap items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="dd-start"
+                                checked={settings.startDate !== null}
+                                onChange={() => set("startDate", settings.startDate ?? tomorrow)}
+                                className="accent-brand"
+                            />
+                            Empezar el día
+                            <input
+                                type="date"
+                                min={tomorrow}
+                                value={settings.startDate ?? tomorrow}
+                                onChange={(e) => set("startDate", e.target.value || tomorrow)}
+                                onFocus={() => settings.startDate === null && set("startDate", tomorrow)}
+                                className={`${inputClass} w-auto`}
+                                aria-label="Día de inicio"
+                            />
+                            <span className="text-gray-400">a las 00:00</span>
+                        </label>
+                    </div>
+                )}
             </FormSection>
 
             <FormSection title="Parámetros">

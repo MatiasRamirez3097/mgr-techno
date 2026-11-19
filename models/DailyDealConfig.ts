@@ -26,6 +26,8 @@ const DailyDealConfigSchema = new Schema(
         minMarginPercent: { type: Number, default: 30, min: 0 },
         discountPercent: { type: Number, default: 10, min: 1 },
         requireDistributorStock: { type: Boolean, default: true },
+        // YYYY-MM-DD: las ofertas empiezan ese día a las 00:00 (null = ya empezaron)
+        startDate: { type: String, default: null },
         groups: { type: [DailyDealGroupSchema], default: [] },
     },
     { timestamps: true },

@@ -13,6 +13,7 @@ const formatDate = (date: string) => date.split("-").reverse().join("/");
 
 const SKIP_REASONS: Record<string, string> = {
     disabled: "Las ofertas del día están desactivadas.",
+    not_started: "Las ofertas del día todavía no empiezan.",
     exists: "Ya hay una oferta para hoy.",
     no_products: "Ningún producto cumple las condiciones: no se generó la oferta.",
 };
@@ -32,15 +33,25 @@ const STATUS_LABELS: Record<DailyDealDTO["status"], string> = {
     cancelled: "cancelada",
 };
 
-export function TodayDealPanel({ overview, enabled }: { overview: DailyDealsOverview; enabled: boolean }) {
+export function TodayDealPanel({
+    overview,
+    enabled,
+    startDate,
+}: {
+    overview: DailyDealsOverview;
+    enabled: boolean;
+    startDate: string | null;
+}) {
     const router = useRouter();
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const current = overview.current;
+    const scheduled = enabled && startDate !== null && startDate > overview.today;
     const cancelledToday = overview.history.find((d) => d.date === overview.today && d.status === "cancelled");
 
-    async function run(action: "generate" | "regenerate" | "cancel") {
+    async function run(action: "start" | "generate" | "regenerate" | "cancel") {
         if (action === "cancel" && !confirm("¿Cancelar la oferta de hoy? Los productos vuelven a su precio normal.")) return;
+        if (action === "start" && !confirm("¿Empezar las ofertas del día ahora? Se genera la oferta de hoy en el momento.")) return;
         if (action === "regenerate" && !confirm("¿Sortear otros productos? Los actuales vuelven a su precio normal.")) return;
         setBusy(true);
         setMessage(null);
@@ -89,7 +100,11 @@ export function TodayDealPanel({ overview, enabled }: { overview: DailyDealsOver
                 headerActions={
                     enabled && (
                         <div className="flex flex-wrap gap-2">
-                            {current ? (
+                            {scheduled ? (
+                                <button type="button" disabled={busy} onClick={() => run("start")} className={buttonClass.primary}>
+                                    Empezar ahora
+                                </button>
+                            ) : current ? (
                                 <>
                                     <button type="button" disabled={busy} onClick={() => run("regenerate")} className={buttonClass.secondary}>
                                         Sortear otros
@@ -116,7 +131,9 @@ export function TodayDealPanel({ overview, enabled }: { overview: DailyDealsOver
                     <p className="text-sm text-gray-400">
                         {!enabled
                             ? "Desactivadas: hoy no hay oferta."
-                            : cancelledToday
+                            : scheduled
+                              ? `Programadas: empiezan el ${formatDate(startDate)} a las 00:00. Si querés, podés empezarlas ahora.`
+                              : cancelledToday
                               ? "La oferta de hoy se canceló. Podés generar otra o esperar a la de mañana."
                               : "Todavía no hay oferta para hoy. Se genera sola a las 00:00 (y cada hora, si no se pudo)."}
                     </p>

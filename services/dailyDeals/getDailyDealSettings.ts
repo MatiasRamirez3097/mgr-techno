@@ -18,6 +18,7 @@ export function mapDailyDealSettings(doc: DailyDealSettingsDoc | null): DailyDea
         minMarginPercent: doc?.minMarginPercent ?? d.minMarginPercent,
         discountPercent: doc?.discountPercent ?? d.discountPercent,
         requireDistributorStock: doc?.requireDistributorStock ?? d.requireDistributorStock,
+        startDate: doc?.startDate ?? d.startDate,
         groups: (doc?.groups ?? []).map((g, index) => ({
             id: g.id || `group-${index + 1}`,
             name: g.name || `Grupo ${index + 1}`,

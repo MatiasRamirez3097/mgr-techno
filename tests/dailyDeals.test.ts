@@ -214,3 +214,29 @@ describe("dealWindow", () => {
         expect(endsAt.toISOString()).toBe("2026-11-19T03:00:00.000Z");
     });
 });
+
+describe("inicio programado", () => {
+    it("empiezan el día de inicio a las 00:00 (o ya, sin fecha)", async () => {
+        const { addDays, hasDealsStarted } = await import("@/lib/dailyDeals/window");
+        expect(addDays("2026-11-30", 1)).toBe("2026-12-01");
+        expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+        expect(hasDealsStarted(null, "2026-11-18")).toBe(true);
+        expect(hasDealsStarted("2026-11-19", "2026-11-18")).toBe(false);
+        expect(hasDealsStarted("2026-11-19", "2026-11-19")).toBe(true);
+    });
+
+    it("valida la fecha de inicio", () => {
+        const base = {
+            enabled: true,
+            productCount: 6,
+            noRepeatDays: 7,
+            minMarginPercent: 30,
+            discountPercent: 10,
+            requireDistributorStock: true,
+            groups: [],
+        };
+        expect(dailyDealSettingsSchema.parse(base).startDate).toBeNull();
+        expect(dailyDealSettingsSchema.safeParse({ ...base, startDate: "2026-11-19" }).success).toBe(true);
+        expect(dailyDealSettingsSchema.safeParse({ ...base, startDate: "19/11/2026" }).success).toBe(false);
+    });
+});
