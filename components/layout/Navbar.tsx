@@ -5,6 +5,7 @@ import { CartButton } from "./CartButton";
 import { UserMenu } from "./UserMenu";
 import { MobileMenu } from "./MobileMenu";
 import { CategoryMenu } from "./CategoryMenu";
+import { DailyDealNavLink } from "@/components/dailyDeals/DailyDealNavLink";
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -36,6 +37,7 @@ export async function Navbar() {
 
                 {/* Acciones */}
                 <div className="ml-auto flex items-center gap-3">
+                    <DailyDealNavLink />
                     {isAdmin && (
                         <Link
                             href="/admin/dashboard"

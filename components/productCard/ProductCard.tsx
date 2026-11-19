@@ -15,6 +15,7 @@ import {
 import { BundleImageCollage } from "@/components/products/BundleImageCollage";
 import { useDailyDealEndsAt } from "@/components/providers/DailyDealProvider";
 import { DealCountdown } from "@/components/dailyDeals/DealCountdown";
+import { discountPercentOf } from "@/lib/dailyDeals/discount";
 
 export function ProductCard({
     product,
@@ -36,6 +37,7 @@ export function ProductCard({
     const { mercadoPagoSurchargePercent } = useStoreSettings();
     const pricing = getPricing(product, mercadoPagoSurchargePercent);
     const dailyDealEndsAt = useDailyDealEndsAt(product.id);
+    const dailyDealDiscount = dailyDealEndsAt ? discountPercentOf(product.regularPrice, product.salePrice) : 0;
 
     const hasMainImage = hasOwnProductImage(product.image);
     const hasBundleCollage =
@@ -147,6 +149,11 @@ export function ProductCard({
                         {product.salePrice && (
                             <span className="text-sm text-gray-500 line-through">
                                 ${product.regularPrice.toLocaleString("es-AR")}
+                            </span>
+                        )}
+                        {dailyDealDiscount > 0 && (
+                            <span className="rounded bg-brand/15 px-1.5 py-0.5 text-xs font-bold text-brand">
+                                -{dailyDealDiscount}%
                             </span>
                         )}
                     </div>
