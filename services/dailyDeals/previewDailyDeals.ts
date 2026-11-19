@@ -47,6 +47,7 @@ interface CandidateInfo extends DealCandidate {
     costDistributor: DistributorKey;
     costWithoutStock: boolean;
     dealPrice: number;
+    discountPercent: number;
     marginPercent: number;
     dealMarginPercent: number;
 }
@@ -155,6 +156,7 @@ export async function previewDailyDeals(
             costDistributor: evaluation.cost.distributor,
             costWithoutStock: !evaluation.cost.inStock,
             dealPrice: evaluation.dealPrice,
+            discountPercent: evaluation.discountPercent,
             marginPercent: evaluation.marginPercent,
             dealMarginPercent: evaluation.dealMarginPercent,
         });
@@ -188,6 +190,7 @@ export async function previewDailyDeals(
             cost: c.cost,
             costDistributor: c.costDistributor,
             costWithoutStock: c.costWithoutStock,
+            discountPercent: c.discountPercent,
             marginPercent: c.marginPercent,
             dealMarginPercent: c.dealMarginPercent,
             repeated: pick.repeated,

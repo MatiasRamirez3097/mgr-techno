@@ -34,7 +34,7 @@ export async function updateDailyDealSettings(data: unknown): Promise<{
     await connectDB();
     const doc = await DailyDealConfigModel.findByIdAndUpdate(
         DAILY_DEAL_CONFIG_ID,
-        { $set: parsed },
+        { $set: parsed, $unset: { minMarginPercent: "", discountPercent: "" } },
         { upsert: true, returnDocument: "after", runValidators: true },
     ).lean<DailyDealSettingsDoc>();
     const settings = mapDailyDealSettings(doc);

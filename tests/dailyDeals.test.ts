@@ -6,6 +6,8 @@ import {
     isRecentlyFeatured,
     marginAfterDiscount,
     pickDealCost,
+    pickDiscountTier,
+    sortDiscountTiers,
     selectDailyDeals,
     type DealCandidate,
     type ResolvedDealGroup,
@@ -67,14 +69,14 @@ describe("pickDealCost", () => {
 });
 
 describe("evaluateDealProduct", () => {
-    const settings = { minMarginPercent: 30, discountPercent: 10, requireDistributorStock: true };
+    const settings = { discountTiers: [{ minMarginPercent: 30, discountPercent: 10 }], requireDistributorStock: true };
     const withCost = (price: number, inStock = true) => [
         { distributor: "pcmodd" as const, price, inStock, available: true },
     ];
 
     it("calcula la utilidad antes y después del descuento", () => {
         const result = evaluateDealProduct({ regularPrice: 130_000, costs: withCost(100_000) }, settings, 100);
-        expect(result).toMatchObject({ eligible: true, dealPrice: 117_000 });
+        expect(result).toMatchObject({ eligible: true, dealPrice: 117_000, discountPercent: 10 });
         if (result.eligible) {
             expect(result.marginPercent).toBeCloseTo(30, 5);
             expect(result.dealMarginPercent).toBeCloseTo(17, 5);
@@ -90,6 +92,30 @@ describe("evaluateDealProduct", () => {
         expect(reason({ regularPrice: 130_000, costs: [] })).toBe("no_cost");
         expect(reason({ regularPrice: 130_000, costs: withCost(100_000, false) })).toBe("no_stock");
         expect(reason({ regularPrice: 120_000, costs: withCost(100_000) })).toBe("low_margin");
+    });
+});
+
+describe("escalones de descuento", () => {
+    const tiers = sortDiscountTiers([
+        { minMarginPercent: 50, discountPercent: 20 },
+        { minMarginPercent: 20, discountPercent: 5 },
+        { minMarginPercent: 35, discountPercent: 12 },
+    ]);
+
+    it("usa el escalón más alto que alcanza la utilidad", () => {
+        expect(pickDiscountTier(tiers, 19.9)).toBeNull();
+        expect(pickDiscountTier(tiers, 20)?.discountPercent).toBe(5);
+        expect(pickDiscountTier(tiers, 49)?.discountPercent).toBe(12);
+        expect(pickDiscountTier(tiers, 80)?.discountPercent).toBe(20);
+    });
+
+    it("aplica el descuento del escalón al precio", () => {
+        const costs = [{ distributor: "pcmodd" as const, price: 100_000, inStock: true, available: true }];
+        const evaluate = (regularPrice: number) =>
+            evaluateDealProduct({ regularPrice, costs }, { discountTiers: tiers, requireDistributorStock: true }, 100);
+        expect(evaluate(125_000)).toMatchObject({ eligible: true, discountPercent: 5, dealPrice: 118_700 });
+        expect(evaluate(160_000)).toMatchObject({ eligible: true, discountPercent: 20, dealPrice: 128_000 });
+        expect(evaluate(110_000)).toMatchObject({ eligible: false, reason: "low_margin" });
     });
 });
 
@@ -192,17 +218,28 @@ describe("dailyDealSettingsSchema", () => {
         enabled: true,
         productCount: 6,
         noRepeatDays: 7,
-        minMarginPercent: 30,
-        discountPercent: 10,
+        discountTiers: [{ minMarginPercent: 30, discountPercent: 10 }],
         requireDistributorStock: true,
         groups: [],
     };
 
     it("no deja guardar una combinación que quede por debajo del costo", () => {
         expect(dailyDealSettingsSchema.safeParse(base).success).toBe(true);
-        expect(dailyDealSettingsSchema.safeParse({ ...base, minMarginPercent: 10, discountPercent: 20 }).success).toBe(
-            false,
-        );
+        const withTiers = (discountTiers: { minMarginPercent: number; discountPercent: number }[]) =>
+            dailyDealSettingsSchema.safeParse({ ...base, discountTiers }).success;
+        expect(withTiers([{ minMarginPercent: 10, discountPercent: 20 }])).toBe(false);
+        expect(withTiers([{ minMarginPercent: 30, discountPercent: 10 }, { minMarginPercent: 15, discountPercent: 20 }])).toBe(false);
+    });
+
+    it("exige al menos un escalón, sin utilidades repetidas, y los ordena", () => {
+        expect(dailyDealSettingsSchema.safeParse({ ...base, discountTiers: [] }).success).toBe(false);
+        const repeated = [{ minMarginPercent: 30, discountPercent: 10 }, { minMarginPercent: 30, discountPercent: 5 }];
+        expect(dailyDealSettingsSchema.safeParse({ ...base, discountTiers: repeated }).success).toBe(false);
+        const parsed = dailyDealSettingsSchema.parse({
+            ...base,
+            discountTiers: [{ minMarginPercent: 50, discountPercent: 20 }, { minMarginPercent: 30, discountPercent: 10 }],
+        });
+        expect(parsed.discountTiers.map((t) => t.minMarginPercent)).toEqual([30, 50]);
     });
 });
 
@@ -230,8 +267,7 @@ describe("inicio programado", () => {
             enabled: true,
             productCount: 6,
             noRepeatDays: 7,
-            minMarginPercent: 30,
-            discountPercent: 10,
+            discountTiers: [{ minMarginPercent: 30, discountPercent: 10 }],
             requireDistributorStock: true,
             groups: [],
         };

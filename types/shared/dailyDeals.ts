@@ -17,16 +17,24 @@ export interface DailyDealGroupDTO {
     maxProducts: number | null;
 }
 
+/**
+ * Escalón de descuento: los productos con al menos `minMarginPercent` de utilidad sobre el costo
+ * (antes del descuento) llevan `discountPercent`. Se usa el escalón más alto que alcanza el
+ * producto; por debajo del más bajo, no participa.
+ */
+export interface DailyDealDiscountTier {
+    minMarginPercent: number;
+    discountPercent: number;
+}
+
 export interface DailyDealSettingsDTO {
     enabled: boolean;
     // Cantidad de productos en oferta por día
     productCount: number;
     // Un producto que salió en los últimos N días no se repite (salvo que no alcancen)
     noRepeatDays: number;
-    // Utilidad mínima sobre el costo ANTES del descuento, en %
-    minMarginPercent: number;
-    // Descuento sobre el precio normal, en %
-    discountPercent: number;
+    // Escalones de utilidad → descuento, ordenados por utilidad mínima creciente (al menos uno)
+    discountTiers: DailyDealDiscountTier[];
     // true: sólo con stock en un distribuidor vinculado (PCMODD, que no informa stock, cuenta como
     // con stock). false: alcanza con un costo conocido aunque ningún distribuidor tenga stock.
     requireDistributorStock: boolean;
@@ -52,6 +60,8 @@ export interface DailyDealPreviewItem {
     costDistributor: DistributorKey;
     // Sin stock en el distribuidor (sólo posible con requireDistributorStock apagado)
     costWithoutStock: boolean;
+    // Descuento del escalón que le tocó
+    discountPercent: number;
     marginPercent: number;
     dealMarginPercent: number;
     // Ya salió dentro de los días sin repetir (se usó porque no alcanzaban los productos)

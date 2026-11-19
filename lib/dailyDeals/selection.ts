@@ -1,5 +1,6 @@
 import type { DistributorKey } from "@/types/shared/distributorLink";
 import type {
+    DailyDealDiscountTier,
     DailyDealExclusionReason,
     DailyDealGroupDTO,
     DailyDealGroupStats,
@@ -15,8 +16,7 @@ export const DEFAULT_DAILY_DEAL_SETTINGS: DailyDealSettingsDTO = {
     enabled: false,
     productCount: 6,
     noRepeatDays: 7,
-    minMarginPercent: 30,
-    discountPercent: 10,
+    discountTiers: [{ minMarginPercent: 30, discountPercent: 10 }],
     requireDistributorStock: true,
     startDate: null,
     groups: [],
@@ -84,20 +84,34 @@ export interface DealProductInput {
     costs: DealCostOption[];
 }
 
+/** Ordena los escalones por utilidad mínima creciente */
+export function sortDiscountTiers(tiers: DailyDealDiscountTier[]): DailyDealDiscountTier[] {
+    return [...tiers].sort((a, b) => a.minMarginPercent - b.minMarginPercent);
+}
+
+/** Escalón más alto que alcanza una utilidad (antes del descuento); null si no llega al más bajo */
+export function pickDiscountTier(tiers: DailyDealDiscountTier[], marginPercent: number): DailyDealDiscountTier | null {
+    let best: DailyDealDiscountTier | null = null;
+    for (const tier of tiers) {
+        if (marginPercent >= tier.minMarginPercent && (!best || tier.minMarginPercent > best.minMarginPercent)) {
+            best = tier;
+        }
+    }
+    return best;
+}
+
 export type DealEvaluation =
     | { eligible: false; reason: DailyDealExclusionReason }
     | {
           eligible: true;
           cost: DealCost;
           dealPrice: number;
+          discountPercent: number;
           marginPercent: number;
           dealMarginPercent: number;
       };
 
-type EvaluationSettings = Pick<
-    DailyDealSettingsDTO,
-    "minMarginPercent" | "discountPercent" | "requireDistributorStock"
->;
+type EvaluationSettings = Pick<DailyDealSettingsDTO, "discountTiers" | "requireDistributorStock">;
 
 /** Decide si un producto puede participar y, si puede, a qué precio y con qué utilidad. */
 export function evaluateDealProduct(
@@ -115,15 +129,17 @@ export function evaluateDealProduct(
     if (!cost) return { eligible: false, reason: "no_stock" };
 
     const marginPercent = ((product.regularPrice - cost.cost) / cost.cost) * 100;
-    if (marginPercent < settings.minMarginPercent) return { eligible: false, reason: "low_margin" };
+    const tier = pickDiscountTier(settings.discountTiers, marginPercent);
+    if (!tier) return { eligible: false, reason: "low_margin" };
 
-    const dealPrice = computeDealPrice(product.regularPrice, settings.discountPercent, roundingStep);
+    const dealPrice = computeDealPrice(product.regularPrice, tier.discountPercent, roundingStep);
     if (dealPrice === null) return { eligible: false, reason: "no_deal_price" };
 
     return {
         eligible: true,
         cost,
         dealPrice,
+        discountPercent: tier.discountPercent,
         marginPercent,
         dealMarginPercent: ((dealPrice - cost.cost) / cost.cost) * 100,
     };
