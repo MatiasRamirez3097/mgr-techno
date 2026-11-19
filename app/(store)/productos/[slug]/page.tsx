@@ -119,7 +119,11 @@ export default async function ProductPage({ params }: Props) {
                         {product.name}
                     </h1>
 
-                    <ProductDailyDealBanner productId={product.id} />
+                    <ProductDailyDealBanner
+                        productId={product.id}
+                        regularPrice={product.regularPrice}
+                        salePrice={product.salePrice}
+                    />
 
                     {/* ================= SECCIÓN DE PRECIOS UNIFICADA ================= */}
                     <div className="flex flex-col mt-4 border border-gray-800 rounded-2xl overflow-hidden shadow-lg">

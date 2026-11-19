@@ -276,3 +276,12 @@ describe("inicio programado", () => {
         expect(dailyDealSettingsSchema.safeParse({ ...base, startDate: "19/11/2026" }).success).toBe(false);
     });
 });
+
+describe("discountPercentOf", () => {
+    it("redondea el % de descuento y da 0 sin oferta", async () => {
+        const { discountPercentOf } = await import("@/lib/dailyDeals/discount");
+        expect(discountPercentOf(129_990, 116_900)).toBe(10);
+        expect(discountPercentOf(100_000, null)).toBe(0);
+        expect(discountPercentOf(100_000, 120_000)).toBe(0);
+    });
+});
