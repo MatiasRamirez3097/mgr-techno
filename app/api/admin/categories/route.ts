@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import { CategoryModel } from "@/models/Category";
+import { getCategoriesBase } from "@/services/categories/getCategoriesBase";
 import { NextRequest } from "next/server";
 import { Types } from "mongoose";
 
@@ -43,6 +44,24 @@ function sanitizeAttributeDefinitions(raw: any): any[] {
         });
     }
     return result;
+}
+
+export async function GET() {
+    const session = await getServerSession(authOptions);
+    if (!session || (session as any).role !== "administrator") {
+        return Response.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    try {
+        const categories = await getCategoriesBase({ limit: 0, sort: { name: 1 } });
+        return Response.json({ categories });
+    } catch (err: any) {
+        console.error("Error listing categories:", err);
+        return Response.json(
+            { error: err.message || "Error al obtener las categorías" },
+            { status: 500 },
+        );
+    }
 }
 
 export async function POST(req: NextRequest) {
