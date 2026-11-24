@@ -147,6 +147,11 @@ export const ProductSchema = new Schema(
 
 // Índices para búsqueda
 ProductSchema.index({ name: "text", sku: "text" });
+// Búsqueda exacta por código escaneado, sin distinguir mayúsculas (ver findProductsByCode)
+export const PRODUCT_CODE_COLLATION = { locale: "en", strength: 2 } as const;
+ProductSchema.index({ gtin: 1 }, { collation: PRODUCT_CODE_COLLATION, sparse: true });
+ProductSchema.index({ sku: 1 }, { collation: PRODUCT_CODE_COLLATION, sparse: true });
+ProductSchema.index({ mpn: 1 }, { collation: PRODUCT_CODE_COLLATION, sparse: true });
 //ProductSchema.index({ stockStatus: 1, createdAt: -1 });
 ProductSchema.index({ "categories.slug": 1 });
 ProductSchema.index({ featured: 1 });
