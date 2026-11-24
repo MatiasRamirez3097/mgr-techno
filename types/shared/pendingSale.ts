@@ -31,3 +31,8 @@ export interface ScannedProductDTO {
     // Campos en los que coincidió el código
     matchedFields: ProductCodeField[];
 }
+
+/** Venta pendiente en la bandeja, con el precio de contado actual del producto. */
+export interface PendingSaleInboxItemDTO extends PendingSaleDTO {
+    currentPrice: number;
+}
