@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 import { CameraScanner } from "./CameraScanner";
 import { ProductSelector, type ProductOption } from "@/components/admin/ProductSelector";
@@ -396,7 +397,12 @@ function RecentList({ sales, onDiscard }: { sales: PendingSaleDTO[]; onDiscard: 
     if (sales.length === 0) return null;
     return (
         <section className={`${cardClass} p-4`}>
-            <h2 className="mb-3 text-sm font-semibold text-gray-300">Pendientes de formalizar ({sales.length})</h2>
+            <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-gray-300">Pendientes de formalizar ({sales.length})</h2>
+                <Link href="/admin/pending-sales" className="text-xs font-semibold text-brand">
+                    Ver bandeja
+                </Link>
+            </div>
             <ul className="flex flex-col divide-y divide-gray-800">
                 {sales.map((sale) => (
                     <li key={sale.id} className="flex items-center gap-3 py-2">

@@ -21,6 +21,8 @@ type CreateAdminOrderOptions = {
         order: { _id: mongoose.Types.ObjectId },
         session: ClientSession,
     ) => Promise<void>;
+    // El stock ya está reservado (ventas escaneadas pendientes): no se vuelve a reservar
+    skipStockReservation?: boolean;
 };
 
 export async function createAdminOrder(
@@ -237,8 +239,8 @@ export async function createAdminOrder(
             { session },
         );
 
-        // reservar stock SOLO si no está cancelada
-        if (status !== "cancelled") {
+        // reservar stock SOLO si no está cancelada (y si no viene ya reservado)
+        if (status !== "cancelled" && !options.skipStockReservation) {
             for (const item of orderItems) {
                 await updateProductStock(
                     item.productId,

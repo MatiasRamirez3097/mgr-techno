@@ -7,12 +7,15 @@ import { signOut } from "next-auth/react";
 
 type Props = {
     pendingReviewCount: number;
+    pendingSalesCount: number;
 };
 
 type SidebarChild = {
     href: string;
     label: string;
     pendingReviewBadge?: boolean;
+    // Contador de ventas escaneadas sin formalizar
+    pendingSalesBadge?: boolean;
 };
 
 const LINKS = [
@@ -75,6 +78,13 @@ const LINKS = [
                 />
             </svg>
         ),
+        children: [
+            {
+                href: "/admin/pending-sales",
+                label: "Ventas escaneadas",
+                pendingSalesBadge: true,
+            },
+        ],
     },
     {
         href: "/admin/quotes",
@@ -286,7 +296,10 @@ const LINKS = [
     },
 ];
 
-export function AdminSidebar({ pendingReviewCount }: Props) {
+export function AdminSidebar({ pendingReviewCount, pendingSalesCount }: Props) {
+    const badgeCountFor = (child: SidebarChild) =>
+        child.pendingReviewBadge ? pendingReviewCount : child.pendingSalesBadge ? pendingSalesCount : 0;
+
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -348,6 +361,12 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                 {isPendingReview && pendingReviewCount > 0 && (
                     <span className="ml-auto min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full bg-yellow-500 text-black text-[10px] font-bold">
                         {pendingReviewCount}
+                    </span>
+                )}
+
+                {child.pendingSalesBadge && pendingSalesCount > 0 && (
+                    <span className="ml-auto min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full bg-yellow-500 text-black text-[10px] font-bold">
+                        {pendingSalesCount}
                     </span>
                 )}
             </Link>
@@ -420,17 +439,19 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                 {LINKS.map((link) => {
                     const isActive =
                         pathname === link.href ||
-                        pathname.startsWith(`${link.href}/`);
+                        pathname.startsWith(`${link.href}/`) ||
+                        // Hijos fuera de la ruta del padre (ej: /admin/pending-sales bajo /admin/scan)
+                        (link.children ?? []).some((c) => pathname === c.href.split("?")[0]);
                     const isCollapsedDesktop = !isMobileDrawer && collapsed;
                     const children: SidebarChild[] = link.children ?? [];
                     const showInline =
                         children.length > 0 && !isCollapsedDesktop && (isMobileDrawer || isActive);
                     const showFlyout = children.length > 0 && !isMobileDrawer && !showInline;
-                    // Si "Pendientes revisión" no está a la vista, el contador va en el padre
-                    const parentBadge =
-                        !showInline &&
-                        pendingReviewCount > 0 &&
-                        children.some((c) => c.pendingReviewBadge);
+                    // Si el hijo con contador no está a la vista, el contador va en el padre
+                    const parentBadgeCount = showInline
+                        ? 0
+                        : children.reduce((acc, c) => acc + badgeCountFor(c), 0);
+                    const parentBadge = parentBadgeCount > 0;
 
                     return (
                         <div key={link.href} className="relative group">
@@ -452,11 +473,11 @@ export function AdminSidebar({ pendingReviewCount }: Props) {
                                 {parentBadge &&
                                     (isCollapsedDesktop ? (
                                         <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-yellow-500 px-1 text-[9px] font-bold text-black">
-                                            {pendingReviewCount}
+                                            {parentBadgeCount}
                                         </span>
                                     ) : (
                                         <span className="ml-auto min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full bg-yellow-500 text-black text-[10px] font-bold">
-                                            {pendingReviewCount}
+                                            {parentBadgeCount}
                                         </span>
                                     ))}
 
