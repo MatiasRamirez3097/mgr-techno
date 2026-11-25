@@ -132,6 +132,10 @@ const LINKS = [
                 // Muestra ⚠ y el contador de productos pendientes de revisión
                 pendingReviewBadge: true,
             },
+            {
+                href: "/admin/inventory/rotation",
+                label: "Stock a rotar",
+            },
         ],
     },
     {

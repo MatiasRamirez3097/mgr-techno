@@ -24,6 +24,13 @@ export const StoreSettingsSchema = new Schema(
         // Distribuidores (sólo admin): si al precio de la hoja de PCMODD se le suma el IVA de su
         // columna C. Apagado, el costo es el precio tal cual.
         pcmoddApplyIva: { type: Boolean, default: true },
+        // Stock a rotar (sólo admin): umbrales en días y % para marcar productos a empujar
+        rotationSalesWindowDays: { type: Number, default: 90, min: 7, max: 730 },
+        rotationSlowCoverageDays: { type: Number, default: 90, min: 1, max: 3650 },
+        rotationOldStockDays: { type: Number, default: 120, min: 1, max: 3650 },
+        rotationCheaperReplacementPercent: { type: Number, default: 3, min: 0, max: 100 },
+        rotationRestockEnabled: { type: Boolean, default: false },
+        rotationRestockCoverageDays: { type: Number, default: 7, min: 1, max: 365 },
     },
     { timestamps: true },
 );
