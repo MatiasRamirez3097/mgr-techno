@@ -36,6 +36,7 @@ export const StoreSettingsSchema = new Schema(
         // Conteo rotativo de stock
         stockCountDailyProducts: { type: Number, default: 5, min: 1, max: 50 },
         stockCountRepeatDays: { type: Number, default: 30, min: 1, max: 365 },
+        stockCountNotifyEnabled: { type: Boolean, default: true },
     },
     { timestamps: true },
 );

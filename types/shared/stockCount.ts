@@ -64,6 +64,8 @@ export interface StockCountSettingsDTO {
     stockCountDailyProducts: number;
     // Un producto contado no vuelve a la lista hasta pasados estos días
     stockCountRepeatDays: number;
+    // Aviso a Discord a las 20:00 si faltó contar o quedaron diferencias sin resolver
+    stockCountNotifyEnabled: boolean;
 }
 
 export interface StockCountOverview {

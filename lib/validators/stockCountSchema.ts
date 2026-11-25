@@ -15,6 +15,7 @@ const limitedInt = (key: keyof typeof STOCK_COUNT_LIMITS, label: string) => {
 export const stockCountSettingsSchema = z.object({
     stockCountDailyProducts: limitedInt("stockCountDailyProducts", "Productos por día"),
     stockCountRepeatDays: limitedInt("stockCountRepeatDays", "Días hasta volver a contar"),
+    stockCountNotifyEnabled: z.boolean().default(true),
 });
 
 export const recordStockCountSchema = z.object({

@@ -16,6 +16,7 @@ export const STOCK_COUNT_SETTINGS_FIELDS = Object.keys(DEFAULT_STOCK_COUNT_SETTI
 export const mapStockCountSettingsToDTO = (doc: StockCountSettingsDoc | null): StockCountSettingsDTO => ({
     stockCountDailyProducts: doc?.stockCountDailyProducts ?? DEFAULT_STOCK_COUNT_SETTINGS.stockCountDailyProducts,
     stockCountRepeatDays: doc?.stockCountRepeatDays ?? DEFAULT_STOCK_COUNT_SETTINGS.stockCountRepeatDays,
+    stockCountNotifyEnabled: doc?.stockCountNotifyEnabled ?? DEFAULT_STOCK_COUNT_SETTINGS.stockCountNotifyEnabled,
 });
 
 export interface StockCountDoc {

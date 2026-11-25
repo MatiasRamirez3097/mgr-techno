@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 
 import { ProductSelector, type ProductOption } from "@/components/admin/ProductSelector";
+import { CountInput, describeDifference, postCount, readJson, Thumb, units } from "./shared";
+import { ScanToCount } from "./ScanToCount";
 import { buttonClass, cardClass, hintClass, inputClass, labelClass, selectClass } from "@/components/admin/ui/styles";
 import {
     MISSING_REASONS,
@@ -43,26 +44,6 @@ const STATUS_CLASS: Record<StockCountStatus, string> = {
 const money = (n: number) => `$${Math.round(n).toLocaleString("es-AR")}`;
 const shortDate = (iso: string) =>
     new Date(iso).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-const units = (n: number) => `${n} ${Math.abs(n) === 1 ? "unidad" : "unidades"}`;
-
-async function readJson<T>(res: Response): Promise<T> {
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error || "Error de conexión");
-    return body as T;
-}
-
-/** "Faltan 2" / "Sobran 3" / "Coincide" */
-export function describeDifference(difference: number): string {
-    if (difference === 0) return "Coincide";
-    return difference < 0 ? `Faltan ${units(-difference)}` : `Sobran ${units(difference)}`;
-}
-
-function Thumb({ image, name }: { image: string | null; name: string }) {
-    if (!image) return <div className="h-12 w-12 shrink-0 rounded-lg bg-gray-800" />;
-    return (
-        <Image src={image} alt={name} width={48} height={48} className="h-12 w-12 shrink-0 rounded-lg bg-white object-contain" />
-    );
-}
 
 export function StockCountScreen({ initial }: { initial: StockCountOverview }) {
     const [overview, setOverview] = useState(initial);
@@ -142,6 +123,8 @@ export function StockCountScreen({ initial }: { initial: StockCountOverview }) {
                 </div>
             )}
 
+            <ScanToCount onCounted={onCounted} onError={onError} />
+
             <section>
                 <h2 className="mb-2 text-sm font-semibold text-gray-300">Para contar hoy</h2>
                 {overview.queue.length === 0 ? (
@@ -193,54 +176,6 @@ export function StockCountScreen({ initial }: { initial: StockCountOverview }) {
                 onError={onError}
             />
         </div>
-    );
-}
-
-async function postCount(productId: string, counted: number): Promise<StockCountDTO> {
-    const { data } = await readJson<{ data: StockCountDTO }>(
-        await fetch("/api/admin/stock-counts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productId, counted }),
-        }),
-    );
-    return data;
-}
-
-function CountInput({
-    onSubmit,
-    saving,
-    label,
-}: {
-    onSubmit: (counted: number) => void;
-    saving: boolean;
-    label: string;
-}) {
-    const [value, setValue] = useState("");
-    return (
-        <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-                e.preventDefault();
-                if (value === "") return;
-                onSubmit(Number(value));
-            }}
-        >
-            <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step={1}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="Contadas"
-                className={`${inputClass} w-28`}
-                aria-label={label}
-            />
-            <button type="submit" className={buttonClass.primary} disabled={value === "" || saving}>
-                {saving ? "Guardando…" : "Guardar"}
-            </button>
-        </form>
     );
 }
 
@@ -504,8 +439,8 @@ function SettingsCard({
 }) {
     const [form, setForm] = useState(settings);
     const [saving, setSaving] = useState(false);
-    const dirty = form.stockCountDailyProducts !== settings.stockCountDailyProducts || form.stockCountRepeatDays !== settings.stockCountRepeatDays;
-    const field = (key: keyof StockCountSettingsDTO, label: string, hint: string) => (
+    const dirty = (Object.keys(settings) as (keyof StockCountSettingsDTO)[]).some((k) => form[k] !== settings[k]);
+    const field = (key: keyof typeof STOCK_COUNT_LIMITS, label: string, hint: string) => (
         <div>
             <label className={labelClass} htmlFor={`sc-${key}`}>
                 {label}
@@ -529,6 +464,20 @@ function SettingsCard({
                 {field("stockCountDailyProducts", "Productos por día", "Cuántos te pide contar cada día.")}
                 {field("stockCountRepeatDays", "Días hasta volver a contar", "Un producto contado no vuelve a la lista antes.")}
             </div>
+            <label className="mt-4 flex items-start gap-3 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={form.stockCountNotifyEnabled}
+                    onChange={(e) => setForm((f) => ({ ...f, stockCountNotifyEnabled: e.target.checked }))}
+                    className="mt-1 h-5 w-5 accent-brand"
+                />
+                <span>
+                    <span className="block text-sm text-gray-200">Aviso diario en Discord</span>
+                    <span className="block text-sm text-gray-400 mt-0.5">
+                        A las 20:00, si faltó contar productos de la lista o quedaron diferencias sin resolver.
+                    </span>
+                </span>
+            </label>
             <button
                 type="button"
                 className={`${buttonClass.primary} mt-4`}

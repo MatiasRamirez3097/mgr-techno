@@ -304,7 +304,7 @@ function ConfirmSale({
     );
 }
 
-function LinkCode({
+export function LinkCode({
     code,
     suggestedField,
     onCancel,
