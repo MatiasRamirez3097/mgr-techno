@@ -51,6 +51,7 @@ export const rotationSettingsSchema = z.object({
     rotationCompetitorPercent: rotationNumber("rotationCompetitorPercent", "Competencia más barata", false),
     rotationRestockEnabled: z.boolean(),
     rotationRestockCoverageDays: rotationNumber("rotationRestockCoverageDays", "Reponer"),
+    rotationNotifyEnabled: z.boolean(),
 });
 
 export type PricingSettingsInput = z.infer<typeof pricingSettingsSchema>;

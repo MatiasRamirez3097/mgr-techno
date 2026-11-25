@@ -8,6 +8,7 @@ export const DEFAULT_ROTATION_SETTINGS: RotationSettingsDTO = {
     rotationCompetitorPercent: 5,
     rotationRestockEnabled: false,
     rotationRestockCoverageDays: 7,
+    rotationNotifyEnabled: false,
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;

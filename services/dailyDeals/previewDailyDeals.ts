@@ -7,6 +7,7 @@ import { ProductDistributorLinkModel } from "@/models/ProductDistributorLink";
 import { CUSTOM_PC_SYSTEM_SLUG } from "@/services/products/ensureCustomPcProduct";
 import { applyLocalCatalogPrices } from "@/services/distributors/links/applyLocalCatalogPrices";
 import { getPricingSettings } from "@/services/settings/getPricingSettings";
+import { getRotationReport } from "@/services/inventory/getRotationReport";
 import { hasDistributorStock } from "@/lib/distributors/productLinks";
 import { todayInStoreTimeZone } from "@/lib/utils/orderDate";
 import {
@@ -106,6 +107,15 @@ export async function previewDailyDeals(
         getLastFeaturedDates(today),
     ]);
 
+    // Productos con algún motivo para sacar ("reponer" no cuenta: esos se venden solos)
+    const rotationIds = settings.prioritizeRotation
+        ? new Set(
+              (await getRotationReport(now)).rows
+                  .filter((r) => r.reasons.some((reason) => reason !== "restock"))
+                  .map((r) => r.productId),
+          )
+        : new Set<string>();
+
     const linkDocs = await ProductDistributorLinkModel.find({
         productId: { $in: products.map((p) => p._id) },
     }).lean<ProductDistributorLinkDoc[]>();
@@ -151,6 +161,7 @@ export async function previewDailyDeals(
             brandId: product.brand ? product.brand.toString() : null,
             distributors: evaluation.cost.distributors,
             lastFeaturedOn: lastFeatured.get(productId) ?? null,
+            priority: rotationIds.has(productId),
             product,
             cost: evaluation.cost.cost,
             costDistributor: evaluation.cost.distributor,
@@ -195,6 +206,7 @@ export async function previewDailyDeals(
             dealMarginPercent: c.dealMarginPercent,
             repeated: pick.repeated,
             lastFeaturedOn: c.lastFeaturedOn,
+            rotation: Boolean(c.priority),
         };
     });
 

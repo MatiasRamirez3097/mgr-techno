@@ -13,6 +13,8 @@ export interface RotationSettingsDTO {
     // Mostrar también lo que se vende rápido y se está por agotar
     rotationRestockEnabled: boolean;
     rotationRestockCoverageDays: number;
+    // Resumen semanal a Discord (lunes a la mañana)
+    rotationNotifyEnabled: boolean;
 }
 
 export type RotationReason =

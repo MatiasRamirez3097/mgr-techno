@@ -389,6 +389,25 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                         )}
                     </span>
                 </label>
+
+                <label className="mt-4 flex items-start gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={settings.prioritizeRotation}
+                        onChange={(e) => set("prioritizeRotation", e.target.checked)}
+                        className="mt-1 h-5 w-5 accent-brand"
+                    />
+                    <span>
+                        <span className="block text-sm text-gray-200">Priorizar stock a rotar</span>
+                        <span className="block text-sm text-gray-400 mt-0.5">
+                            Dentro de cada grupo salen primero los productos de{" "}
+                            <a href="/admin/inventory/rotation" className="text-brand hover:underline">
+                                Stock a rotar
+                            </a>{" "}
+                            que cumplan el margen y el stock pedidos; el resto completa los lugares.
+                        </span>
+                    </span>
+                </label>
             </FormSection>
 
             <FormSection
@@ -596,6 +615,11 @@ function PreviewPanel({ preview }: { preview: DailyDealPreviewResult }) {
                                         >
                                             {item.name}
                                         </a>
+                                        {item.rotation && (
+                                            <span className="ml-2 rounded bg-orange-500/10 px-1.5 py-0.5 text-[10px] text-orange-300">
+                                                a rotar
+                                            </span>
+                                        )}
                                         {item.repeated && (
                                             <span className="ml-2 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300">
                                                 repetido (salió el {item.lastFeaturedOn?.split("-").reverse().join("/")})

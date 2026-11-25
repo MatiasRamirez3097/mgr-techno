@@ -6,7 +6,7 @@ import { buttonClass, cardClass, hintClass, inputClass, labelClass } from "@/com
 import { ROTATION_LIMITS, rotationSettingsSchema } from "@/lib/validators/storeSettingsSchema";
 import type { RotationSettingsDTO } from "@/types/shared/stockRotation";
 
-type NumberField = Exclude<keyof RotationSettingsDTO, "rotationRestockEnabled">;
+type NumberField = Exclude<keyof RotationSettingsDTO, "rotationRestockEnabled" | "rotationNotifyEnabled">;
 
 const NUMBER_FIELDS: { key: NumberField; label: string; hint: string; suffix: string }[] = [
     {
@@ -162,6 +162,22 @@ export function RotationSettingsForm({ initialSettings }: { initialSettings: Rot
                     </div>
                 )}
             </div>
+
+            <label className="flex items-start gap-3 cursor-pointer border-t border-gray-800 pt-4">
+                <input
+                    type="checkbox"
+                    checked={values.rotationNotifyEnabled}
+                    onChange={(e) => setValues((v) => ({ ...v, rotationNotifyEnabled: e.target.checked }))}
+                    className="mt-1 h-5 w-5 accent-brand"
+                />
+                <span>
+                    <span className="block text-sm text-gray-200">Resumen semanal por Discord</span>
+                    <span className="block text-sm text-gray-400 mt-0.5">
+                        Los lunes a las 9 manda cuántos productos hay para rotar por motivo y los que más plata
+                        tienen parada. Si no hay ninguno, no avisa.
+                    </span>
+                </span>
+            </label>
 
             {message && (
                 <p className={`text-sm ${message.type === "success" ? "text-green-400" : "text-red-400"}`}>

@@ -20,6 +20,7 @@ export const DEFAULT_DAILY_DEAL_SETTINGS: DailyDealSettingsDTO = {
     requireDistributorStock: true,
     startDate: null,
     groups: [],
+    prioritizeRotation: false,
 };
 
 /**
@@ -154,6 +155,8 @@ export interface DealCandidate {
     distributors: DistributorKey[];
     // Última vez que salió en oferta (YYYY-MM-DD), null si nunca
     lastFeaturedOn: string | null;
+    // Se sortea antes que el resto de su grupo (ej: stock a rotar)
+    priority?: boolean;
 }
 
 /**
@@ -265,10 +268,13 @@ export function selectDailyDeals<C extends DealCandidate>({
         for (const group of orderedGroups) {
             if (picks.length >= count) return;
             const pool = matchingByGroup.get(group.id)!.filter((c) => !chosen.has(c.productId) && isRecent(c) === repeated);
-            // Entre los repetidos, primero los que salieron hace más tiempo (al azar si empatan)
-            const ordered = repeated
-                ? shuffle(pool, random).sort((a, b) => (a.lastFeaturedOn ?? "").localeCompare(b.lastFeaturedOn ?? ""))
-                : shuffle(pool, random);
+            // Entre los repetidos, primero los que salieron hace más tiempo (al azar si empatan).
+            // Los prioritarios van antes que el resto en los dos casos (sort es estable).
+            const ordered = (
+                repeated
+                    ? shuffle(pool, random).sort((a, b) => (a.lastFeaturedOn ?? "").localeCompare(b.lastFeaturedOn ?? ""))
+                    : shuffle(pool, random)
+            ).sort((a, b) => Number(Boolean(b.priority)) - Number(Boolean(a.priority)));
             for (const candidate of ordered) {
                 if (picks.length >= count || remainingQuota.get(group.id)! <= 0) break;
                 chosen.add(candidate.productId);

@@ -44,6 +44,7 @@ export const dailyDealSettingsSchema = z
             .nullable()
             .default(null),
         groups: z.array(dailyDealGroupSchema).max(10),
+        prioritizeRotation: z.boolean().default(false),
     })
     .refine((s) => new Set(s.groups.map((g) => g.id)).size === s.groups.length, {
         message: "Hay grupos repetidos",

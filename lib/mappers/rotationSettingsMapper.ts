@@ -16,4 +16,5 @@ export const mapRotationSettingsToDTO = (doc: RotationSettingsDoc | null): Rotat
     rotationRestockEnabled: doc?.rotationRestockEnabled ?? DEFAULT_ROTATION_SETTINGS.rotationRestockEnabled,
     rotationRestockCoverageDays:
         doc?.rotationRestockCoverageDays ?? DEFAULT_ROTATION_SETTINGS.rotationRestockCoverageDays,
+    rotationNotifyEnabled: doc?.rotationNotifyEnabled ?? DEFAULT_ROTATION_SETTINGS.rotationNotifyEnabled,
 });
