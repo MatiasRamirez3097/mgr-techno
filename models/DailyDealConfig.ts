@@ -12,6 +12,7 @@ const DailyDealGroupSchema = new Schema(
         distributors: [{ type: String, enum: DISTRIBUTOR_KEYS }],
         categoryIds: [{ type: String }],
         brandIds: [{ type: String }],
+        onlyRotation: { type: Boolean, default: false },
         maxProducts: { type: Number, default: null },
     },
     { _id: false },

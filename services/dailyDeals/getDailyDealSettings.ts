@@ -39,6 +39,7 @@ export function mapDailyDealSettings(doc: DailyDealSettingsDoc | null): DailyDea
             distributors: g.distributors ?? [],
             categoryIds: g.categoryIds ?? [],
             brandIds: g.brandIds ?? [],
+            onlyRotation: g.onlyRotation ?? false,
             maxProducts: g.maxProducts ?? null,
         })),
     };
