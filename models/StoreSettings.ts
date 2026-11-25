@@ -33,6 +33,9 @@ export const StoreSettingsSchema = new Schema(
         rotationRestockEnabled: { type: Boolean, default: false },
         rotationRestockCoverageDays: { type: Number, default: 7, min: 1, max: 365 },
         rotationNotifyEnabled: { type: Boolean, default: false },
+        // Conteo rotativo de stock
+        stockCountDailyProducts: { type: Number, default: 5, min: 1, max: 50 },
+        stockCountRepeatDays: { type: Number, default: 30, min: 1, max: 365 },
     },
     { timestamps: true },
 );
