@@ -5,6 +5,7 @@ import type { ExpectedStock, StockCountReason, StockCountSettingsDTO } from "@/t
 export const DEFAULT_STOCK_COUNT_SETTINGS: StockCountSettingsDTO = {
     stockCountDailyProducts: 5,
     stockCountRepeatDays: 30,
+    stockCountNotifyEnabled: true,
 };
 
 export const STOCK_COUNT_LIMITS = {
@@ -113,4 +114,42 @@ export function takeFromLots(
         remaining -= take;
     }
     return { takes, cost: costed ? Math.round(cost * 100) / 100 : null, uncovered: remaining };
+}
+
+const COUNTS_URL = "https://mgrtechno.com.ar/admin/inventory/counts";
+const MAX_DIFFERENCE_LINES = 10;
+
+/** Mensaje del aviso diario; null si no hay nada que avisar. */
+export function buildStockCountDigest({
+    countedToday,
+    dailyProducts,
+    remainingToCount,
+    differences,
+}: {
+    countedToday: number;
+    dailyProducts: number;
+    remainingToCount: number;
+    differences: { productName: string; difference: number }[];
+}): { title: string; description: string } | null {
+    // Si ya no queda nada para contar (todo contado hace poco), no se reclama el día
+    const missingToday = countedToday < dailyProducts && remainingToCount > 0;
+    if (!missingToday && differences.length === 0) return null;
+
+    const lines: string[] = [];
+    if (missingToday) lines.push(`Hoy se contaron ${countedToday} de ${dailyProducts} productos.`);
+    if (differences.length > 0) {
+        if (lines.length) lines.push("");
+        lines.push(`**${differences.length} ${differences.length === 1 ? "diferencia" : "diferencias"} sin resolver:**`);
+        for (const d of differences.slice(0, MAX_DIFFERENCE_LINES)) {
+            const qty = Math.abs(d.difference);
+            lines.push(`• ${d.difference < 0 ? `Faltan ${qty}` : `Sobran ${qty}`} · ${d.productName}`);
+        }
+        if (differences.length > MAX_DIFFERENCE_LINES) lines.push(`… y ${differences.length - MAX_DIFFERENCE_LINES} más`);
+    }
+    lines.push("", `[Abrir el conteo](${COUNTS_URL})`);
+
+    return {
+        title: differences.length > 0 ? "🧮 Conteo de stock: diferencias para resolver" : "🧮 Conteo de stock pendiente",
+        description: lines.join("\n"),
+    };
 }

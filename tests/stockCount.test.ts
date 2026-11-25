@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    buildStockCountDigest,
     computeExpectedStock,
     countPriority,
     describeCountReasons,
@@ -100,6 +101,10 @@ describe("validaciones del conteo", () => {
         expect(r.success).toBe(false);
         expect(r.error?.issues[0].message).toBe("Productos por día: mínimo 1");
         expect(stockCountSettingsSchema.safeParse({ stockCountDailyProducts: 5, stockCountRepeatDays: 1.5 }).success).toBe(false);
+        // El aviso viene activado si no se manda
+        expect(stockCountSettingsSchema.parse({ stockCountDailyProducts: 5, stockCountRepeatDays: 30 }).stockCountNotifyEnabled).toBe(
+            true,
+        );
     });
 
     it("el conteo es un entero no negativo", () => {
@@ -115,5 +120,34 @@ describe("validaciones del conteo", () => {
         expect(resolveStockCountSchema.safeParse({ action: "adjust", reason: "lost" }).success).toBe(true);
         expect(resolveStockCountSchema.safeParse({ action: "dismiss" }).success).toBe(true);
         expect(resolveStockCountSchema.safeParse({ action: "pending_sale" }).success).toBe(true);
+    });
+});
+
+describe("buildStockCountDigest", () => {
+    const base = { countedToday: 5, dailyProducts: 5, remainingToCount: 3, differences: [] };
+
+    it("no avisa si se contó todo y no hay diferencias", () => {
+        expect(buildStockCountDigest(base)).toBeNull();
+        // Faltó contar pero no queda nada en la lista: tampoco
+        expect(buildStockCountDigest({ ...base, countedToday: 1, remainingToCount: 0 })).toBeNull();
+    });
+
+    it("avisa lo que faltó contar y las diferencias", () => {
+        const pending = buildStockCountDigest({ ...base, countedToday: 2 });
+        expect(pending?.title).toBe("🧮 Conteo de stock pendiente");
+        expect(pending?.description).toContain("Hoy se contaron 2 de 5 productos.");
+
+        const diffs = buildStockCountDigest({
+            ...base,
+            differences: [
+                { productName: "Pasta térmica", difference: -2 },
+                { productName: "Cable SATA", difference: 1 },
+            ],
+        });
+        expect(diffs?.title).toContain("diferencias");
+        expect(diffs?.description).toContain("**2 diferencias sin resolver:**");
+        expect(diffs?.description).toContain("• Faltan 2 · Pasta térmica");
+        expect(diffs?.description).toContain("• Sobran 1 · Cable SATA");
+        expect(diffs?.description).toContain("/admin/inventory/counts");
     });
 });
