@@ -26,6 +26,15 @@ const DailyDealDiscountTierSchema = new Schema(
     { _id: false },
 );
 
+// Sin mínimo: la utilidad del stock a rotar puede ser negativa
+const RotationDiscountTierSchema = new Schema(
+    {
+        minMarginPercent: { type: Number, required: true },
+        discountPercent: { type: Number, required: true, min: 1 },
+    },
+    { _id: false },
+);
+
 const DailyDealConfigSchema = new Schema(
     {
         _id: { type: String, default: "daily-deals" },
@@ -41,6 +50,10 @@ const DailyDealConfigSchema = new Schema(
         groups: { type: [DailyDealGroupSchema], default: [] },
         // Sortear primero, dentro de cada grupo, los productos de "Stock a rotar"
         prioritizeRotation: { type: Boolean, default: false },
+        // Descuentos propios del stock a rotar (utilidad sobre lo pagado; el piso puede ser negativo)
+        rotationOwnDiscounts: { type: Boolean, default: false },
+        rotationDiscountTiers: { type: [RotationDiscountTierSchema], default: undefined },
+        rotationMinDealMarginPercent: { type: Number, default: 0 },
     },
     { timestamps: true },
 );

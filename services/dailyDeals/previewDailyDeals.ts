@@ -17,6 +17,7 @@ import {
 import {
     ALL_PRODUCTS_GROUP,
     evaluateDealProduct,
+    evaluateRotationDealProduct,
     expandCategoryIds,
     selectDailyDeals,
     type DealCandidate,
@@ -45,8 +46,9 @@ interface ProductLean {
 interface CandidateInfo extends DealCandidate {
     product: ProductLean;
     cost: number;
-    costDistributor: DistributorKey;
+    costDistributor: DistributorKey | null;
     costWithoutStock: boolean;
+    rotationPricing: boolean;
     dealPrice: number;
     discountPercent: number;
     marginPercent: number;
@@ -108,15 +110,17 @@ export async function previewDailyDeals(
     ]);
 
     // Productos con algún motivo para sacar ("reponer" no cuenta: esos se venden solos)
-    // Sólo se calcula si se usa: priorizar o algún grupo de "sólo stock a rotar"
-    const usesRotation = settings.prioritizeRotation || settings.groups.some((g) => g.onlyRotation);
-    const rotationIds = usesRotation
-        ? new Set(
-              (await getRotationReport(now)).rows
+    // Sólo se calcula si se usa: priorizar, descuentos propios o algún grupo de "sólo stock a rotar".
+    // Para cada uno, lo que se pagó por unidad (con IVA), que es la base de sus descuentos propios.
+    const usesRotation =
+        settings.prioritizeRotation || settings.rotationOwnDiscounts || settings.groups.some((g) => g.onlyRotation);
+    const rotationCosts = new Map<string, number | null>(
+        usesRotation
+            ? (await getRotationReport(now)).rows
                   .filter((r) => r.reasons.some((reason) => reason !== "restock"))
-                  .map((r) => r.productId),
-          )
-        : new Set<string>();
+                  .map((r) => [r.productId, r.averageUnitCost])
+            : [],
+    );
 
     const linkDocs = await ProductDistributorLinkModel.find({
         productId: { $in: products.map((p) => p._id) },
@@ -148,11 +152,20 @@ export async function previewDailyDeals(
     for (const product of products) {
         const productId = product._id.toString();
         if (skip.has(productId)) continue;
-        const evaluation = evaluateDealProduct(
-            { regularPrice: product.regularPrice, salePrice: product.salePrice, costs: costsByProduct.get(productId) ?? [] },
-            settings,
-            pricing.priceRoundingStep,
-        );
+        const input = {
+            regularPrice: product.regularPrice,
+            salePrice: product.salePrice,
+            costs: costsByProduct.get(productId) ?? [],
+        };
+        const rotation = rotationCosts.has(productId);
+        const rotationPricing = rotation && settings.rotationOwnDiscounts;
+        const evaluation = rotationPricing
+            ? evaluateRotationDealProduct(
+                  { ...input, stockUnitCost: rotationCosts.get(productId) ?? null },
+                  settings,
+                  pricing.priceRoundingStep,
+              )
+            : evaluateDealProduct(input, settings, pricing.priceRoundingStep);
         if (!evaluation.eligible) {
             excluded[evaluation.reason]++;
             continue;
@@ -163,8 +176,9 @@ export async function previewDailyDeals(
             brandId: product.brand ? product.brand.toString() : null,
             distributors: evaluation.cost.distributors,
             lastFeaturedOn: lastFeatured.get(productId) ?? null,
-            rotation: rotationIds.has(productId),
-            priority: settings.prioritizeRotation && rotationIds.has(productId),
+            rotation,
+            priority: settings.prioritizeRotation && rotation,
+            rotationPricing,
             product,
             cost: evaluation.cost.cost,
             costDistributor: evaluation.cost.distributor,
@@ -210,6 +224,7 @@ export async function previewDailyDeals(
             repeated: pick.repeated,
             lastFeaturedOn: c.lastFeaturedOn,
             rotation: Boolean(c.rotation),
+            rotationPricing: c.rotationPricing,
         };
     });
 

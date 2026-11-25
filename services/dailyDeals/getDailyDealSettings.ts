@@ -33,6 +33,12 @@ export function mapDailyDealSettings(doc: DailyDealSettingsDoc | null): DailyDea
         requireDistributorStock: doc?.requireDistributorStock ?? d.requireDistributorStock,
         startDate: doc?.startDate ?? d.startDate,
         prioritizeRotation: doc?.prioritizeRotation ?? d.prioritizeRotation,
+        rotationOwnDiscounts: doc?.rotationOwnDiscounts ?? d.rotationOwnDiscounts,
+        rotationDiscountTiers: (doc?.rotationDiscountTiers?.length
+            ? sortDiscountTiers(doc.rotationDiscountTiers)
+            : d.rotationDiscountTiers
+        ).map((t) => ({ minMarginPercent: t.minMarginPercent, discountPercent: t.discountPercent })),
+        rotationMinDealMarginPercent: doc?.rotationMinDealMarginPercent ?? d.rotationMinDealMarginPercent,
         groups: (doc?.groups ?? []).map((g, index) => ({
             id: g.id || `group-${index + 1}`,
             name: g.name || `Grupo ${index + 1}`,

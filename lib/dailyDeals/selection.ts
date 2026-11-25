@@ -21,7 +21,16 @@ export const DEFAULT_DAILY_DEAL_SETTINGS: DailyDealSettingsDTO = {
     startDate: null,
     groups: [],
     prioritizeRotation: false,
+    rotationOwnDiscounts: false,
+    rotationDiscountTiers: [
+        { minMarginPercent: 15, discountPercent: 12 },
+        { minMarginPercent: 30, discountPercent: 20 },
+    ],
+    rotationMinDealMarginPercent: 0,
 };
+
+// Límite del piso de utilidad del stock a rotar (y de la utilidad mínima de sus escalones)
+export const ROTATION_MIN_MARGIN_LIMIT = -90;
 
 /**
  * Utilidad que queda después del descuento para un producto que tenía `marginPercent` antes:
@@ -55,7 +64,8 @@ export interface DealCostOption {
 
 export interface DealCost {
     cost: number;
-    distributor: DistributorKey;
+    // null: costo de compra del stock propio
+    distributor: DistributorKey | null;
     inStock: boolean;
     // Distribuidores con costo utilizable (con stock, o cualquiera si no se exige stock)
     distributors: DistributorKey[];
@@ -114,6 +124,30 @@ export type DealEvaluation =
 
 type EvaluationSettings = Pick<DailyDealSettingsDTO, "discountTiers" | "requireDistributorStock">;
 
+const hasSalePrice = (product: DealProductInput) => product.salePrice != null && product.salePrice > 0;
+
+/** Escalón y precio de oferta sobre un costo ya elegido; `minDealMarginPercent` es el piso final. */
+function priceWithTiers(
+    regularPrice: number,
+    cost: DealCost,
+    tiers: DailyDealDiscountTier[],
+    roundingStep: number,
+    minDealMarginPercent = -Infinity,
+): DealEvaluation {
+    const marginPercent = ((regularPrice - cost.cost) / cost.cost) * 100;
+    const tier = pickDiscountTier(tiers, marginPercent);
+    if (!tier) return { eligible: false, reason: "low_margin" };
+
+    const dealPrice = computeDealPrice(regularPrice, tier.discountPercent, roundingStep);
+    if (dealPrice === null) return { eligible: false, reason: "no_deal_price" };
+
+    const dealMarginPercent = ((dealPrice - cost.cost) / cost.cost) * 100;
+    // El redondeo hacia abajo puede pasar apenas el piso
+    if (dealMarginPercent < minDealMarginPercent) return { eligible: false, reason: "low_margin" };
+
+    return { eligible: true, cost, dealPrice, discountPercent: tier.discountPercent, marginPercent, dealMarginPercent };
+}
+
 /** Decide si un producto puede participar y, si puede, a qué precio y con qué utilidad. */
 export function evaluateDealProduct(
     product: DealProductInput,
@@ -121,7 +155,7 @@ export function evaluateDealProduct(
     roundingStep: number,
 ): DealEvaluation {
     // Una oferta cargada a mano no se pisa
-    if (product.salePrice != null && product.salePrice > 0) return { eligible: false, reason: "on_sale" };
+    if (hasSalePrice(product)) return { eligible: false, reason: "on_sale" };
 
     const hasKnownCost = product.costs.some((c) => c.available && typeof c.price === "number" && c.price > 0);
     if (!hasKnownCost) return { eligible: false, reason: "no_cost" };
@@ -129,21 +163,37 @@ export function evaluateDealProduct(
     const cost = pickDealCost(product.costs, settings.requireDistributorStock);
     if (!cost) return { eligible: false, reason: "no_stock" };
 
-    const marginPercent = ((product.regularPrice - cost.cost) / cost.cost) * 100;
-    const tier = pickDiscountTier(settings.discountTiers, marginPercent);
-    if (!tier) return { eligible: false, reason: "low_margin" };
+    return priceWithTiers(product.regularPrice, cost, settings.discountTiers, roundingStep);
+}
 
-    const dealPrice = computeDealPrice(product.regularPrice, tier.discountPercent, roundingStep);
-    if (dealPrice === null) return { eligible: false, reason: "no_deal_price" };
+export type RotationDealRules = Pick<DailyDealSettingsDTO, "rotationDiscountTiers" | "rotationMinDealMarginPercent">;
 
-    return {
-        eligible: true,
+/**
+ * Igual que evaluateDealProduct, con los descuentos propios del stock a rotar: la utilidad se
+ * mide sobre lo que se pagó por el stock (`stockUnitCost`, con IVA) y, si no se conoce, sobre el
+ * último costo de un distribuidor. No hace falta stock en el distribuidor (se vende el propio).
+ */
+export function evaluateRotationDealProduct(
+    product: DealProductInput & { stockUnitCost: number | null },
+    rules: RotationDealRules,
+    roundingStep: number,
+): DealEvaluation {
+    if (hasSalePrice(product)) return { eligible: false, reason: "on_sale" };
+
+    const known = pickDealCost(product.costs, false);
+    const cost: DealCost | null =
+        product.stockUnitCost && product.stockUnitCost > 0
+            ? { cost: product.stockUnitCost, distributor: null, inStock: true, distributors: known?.distributors ?? [] }
+            : known && { ...known, inStock: true };
+    if (!cost) return { eligible: false, reason: "no_cost" };
+
+    return priceWithTiers(
+        product.regularPrice,
         cost,
-        dealPrice,
-        discountPercent: tier.discountPercent,
-        marginPercent,
-        dealMarginPercent: ((dealPrice - cost.cost) / cost.cost) * 100,
-    };
+        rules.rotationDiscountTiers,
+        roundingStep,
+        rules.rotationMinDealMarginPercent,
+    );
 }
 
 export interface DealCandidate {

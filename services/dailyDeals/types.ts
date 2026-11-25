@@ -10,7 +10,8 @@ export interface DailyDealItemDoc {
     previousSalePrice?: number | null;
     dealPrice: number;
     cost: number;
-    costDistributor: DistributorKey;
+    // null: costo de compra del stock propio (descuentos de stock a rotar)
+    costDistributor: DistributorKey | null;
     groupId: string;
     repeated?: boolean;
     restored?: boolean;

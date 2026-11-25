@@ -179,7 +179,7 @@ export function TodayDealPanel({
                                         <td className="py-2 pr-3 text-right whitespace-nowrap text-gray-300">
                                             {money(item.cost)}
                                             <span className="block text-[11px] text-gray-500">
-                                                {DISTRIBUTOR_LABELS[item.costDistributor]}
+                                                {item.costDistributor ? DISTRIBUTOR_LABELS[item.costDistributor] : "lo pagado"}
                                             </span>
                                         </td>
                                         <td className="py-2 pr-3 text-right whitespace-nowrap text-white">

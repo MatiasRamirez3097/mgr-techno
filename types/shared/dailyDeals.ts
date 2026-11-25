@@ -45,6 +45,12 @@ export interface DailyDealSettingsDTO {
     groups: DailyDealGroupDTO[];
     // Dentro de cada grupo, sortear primero los productos de "Stock a rotar"
     prioritizeRotation: boolean;
+    // Descuentos propios para el stock a rotar (apagado: llevan los mismos escalones que el resto).
+    // La utilidad se mide sobre lo que se pagó por el stock, no sobre la reposición.
+    rotationOwnDiscounts: boolean;
+    rotationDiscountTiers: DailyDealDiscountTier[];
+    // Piso de utilidad después del descuento; negativo = se acepta vender por debajo del costo
+    rotationMinDealMarginPercent: number;
 }
 
 // Por qué un producto no participa
@@ -61,7 +67,8 @@ export interface DailyDealPreviewItem {
     regularPrice: number;
     dealPrice: number;
     cost: number;
-    costDistributor: DistributorKey;
+    // null: costo de compra del stock propio (descuentos de stock a rotar)
+    costDistributor: DistributorKey | null;
     // Sin stock en el distribuidor (sólo posible con requireDistributorStock apagado)
     costWithoutStock: boolean;
     // Descuento del escalón que le tocó
@@ -73,6 +80,8 @@ export interface DailyDealPreviewItem {
     lastFeaturedOn: string | null;
     // Está en "Stock a rotar"
     rotation: boolean;
+    // Se le aplicaron los descuentos propios del stock a rotar
+    rotationPricing: boolean;
 }
 
 export interface DailyDealGroupStats {
@@ -105,7 +114,8 @@ export interface DailyDealItemDTO {
     regularPrice: number;
     dealPrice: number;
     cost: number;
-    costDistributor: DistributorKey;
+    // null: costo de compra del stock propio
+    costDistributor: DistributorKey | null;
     groupId: string;
     repeated: boolean;
     // Al terminar: si se le restauró el precio (false = el admin lo había cambiado)

@@ -22,7 +22,7 @@ function mapDeal(doc: DailyDealDoc, currentSalePrice?: Map<string, number | null
                 regularPrice: i.regularPrice,
                 dealPrice: i.dealPrice,
                 cost: i.cost,
-                costDistributor: i.costDistributor,
+                costDistributor: i.costDistributor ?? null,
                 groupId: i.groupId,
                 repeated: Boolean(i.repeated),
                 restored: Boolean(i.restored),
