@@ -10,6 +10,7 @@ export const dailyDealGroupSchema = z.object({
     distributors: z.array(z.enum(DISTRIBUTOR_KEYS)).max(DISTRIBUTOR_KEYS.length),
     categoryIds: z.array(objectId).max(50),
     brandIds: z.array(objectId).max(50),
+    onlyRotation: z.boolean().default(false),
     maxProducts: z.number().int().min(1, "El cupo de un grupo tiene que ser al menos 1").max(50).nullable(),
 });
 

@@ -29,6 +29,7 @@ const group = (patch: Partial<ResolvedDealGroup>): ResolvedDealGroup => ({
     distributors: [],
     categoryIds: [],
     brandIds: [],
+    onlyRotation: false,
     maxProducts: null,
     ...patch,
 });
@@ -224,6 +225,20 @@ describe("selectDailyDeals", () => {
             expect(picked.slice(0, 2).sort()).toEqual(["r1", "r2"]);
             expect(picked).toHaveLength(3);
         }
+    });
+
+    it("un grupo de sólo stock a rotar toma sólo esos, y se cruza con sus otros filtros", () => {
+        const list = [
+            candidate("r-psu", { rotation: true, categoryIds: ["psu"] }),
+            candidate("r-cooler", { rotation: true, categoryIds: ["cooler"] }),
+            candidate("psu", { categoryIds: ["psu"] }),
+        ];
+        expect(ids(run([group({ onlyRotation: true })], 10, list))).toEqual(["r-cooler", "r-psu"]);
+        expect(ids(run([group({ onlyRotation: true, categoryIds: ["psu"] })], 10, list))).toEqual(["r-psu"]);
+        // Un grupo de rotación con cupo y otro general completa el resto
+        const r = run([group({ id: "rot", onlyRotation: true, maxProducts: 1 }), group({ id: "all" })], 3, list);
+        expect(r.picks.filter((p) => p.groupId === "rot").map((p) => p.productId)[0]).toMatch(/^r-/);
+        expect(r.picks).toHaveLength(3);
     });
 
     it("un prioritario que salió hace poco no le gana a uno que no salió", () => {

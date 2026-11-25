@@ -13,6 +13,8 @@ export interface DailyDealGroupDTO {
     // Categorías (incluye sus subcategorías)
     categoryIds: string[];
     brandIds: string[];
+    // Sólo productos de "Stock a rotar" (con algún motivo para sacar)
+    onlyRotation: boolean;
     // Máximo de productos de este grupo (null = sin límite)
     maxProducts: number | null;
 }
@@ -69,7 +71,7 @@ export interface DailyDealPreviewItem {
     // Ya salió dentro de los días sin repetir (se usó porque no alcanzaban los productos)
     repeated: boolean;
     lastFeaturedOn: string | null;
-    // Está en "Stock a rotar" (y se priorizó por eso)
+    // Está en "Stock a rotar"
     rotation: boolean;
 }
 

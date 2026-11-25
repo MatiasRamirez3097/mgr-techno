@@ -158,15 +158,16 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
         groups.splice(index + delta, 0, group);
         set("groups", groups);
     };
-    const addGroup = () =>
+    const addGroup = (onlyRotation = false) =>
         set("groups", [
             ...settings.groups,
             {
                 id: newGroupId(),
-                name: `Grupo ${settings.groups.length + 1}`,
+                name: onlyRotation ? "Stock a rotar" : `Grupo ${settings.groups.length + 1}`,
                 distributors: [],
                 categoryIds: [],
                 brandIds: [],
+                onlyRotation,
                 maxProducts: null,
             },
         ]);
@@ -414,9 +415,14 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                 title="Grupos de productos"
                 description="Dentro de un grupo los filtros se cruzan (el producto tiene que cumplir todos); entre grupos se suman. Se llenan en orden, cada uno hasta su cupo, y si a uno le faltan productos los lugares pasan al siguiente. Sin grupos participa todo el catálogo."
                 headerActions={
-                    <button type="button" onClick={addGroup} className={buttonClass.secondary}>
-                        + Agregar grupo
-                    </button>
+                    <>
+                        <button type="button" onClick={() => addGroup(true)} className={buttonClass.secondary}>
+                            + Grupo de stock a rotar
+                        </button>
+                        <button type="button" onClick={() => addGroup()} className={buttonClass.secondary}>
+                            + Agregar grupo
+                        </button>
+                    </>
                 }
             >
                 {settings.groups.length === 0 && (
@@ -529,6 +535,26 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                                     emptyText="Cualquier marca."
                                 />
                             </div>
+
+                            <label className="mt-4 flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={group.onlyRotation}
+                                    onChange={(e) => updateGroup(group.id, { onlyRotation: e.target.checked })}
+                                    className="mt-1 h-5 w-5 accent-brand"
+                                />
+                                <span>
+                                    <span className="block text-sm text-gray-200">Sólo stock a rotar</span>
+                                    <span className="block text-sm text-gray-400 mt-0.5">
+                                        Participan sólo los productos de{" "}
+                                        <a href="/admin/inventory/rotation" className="text-brand hover:underline">
+                                            Stock a rotar
+                                        </a>{" "}
+                                        que además cumplan la utilidad y el stock pedidos. Se cruza con los demás
+                                        filtros del grupo.
+                                    </span>
+                                </span>
+                            </label>
                         </div>
                     ))}
                 </div>

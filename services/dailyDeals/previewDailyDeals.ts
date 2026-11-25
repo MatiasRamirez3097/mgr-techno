@@ -108,7 +108,9 @@ export async function previewDailyDeals(
     ]);
 
     // Productos con algún motivo para sacar ("reponer" no cuenta: esos se venden solos)
-    const rotationIds = settings.prioritizeRotation
+    // Sólo se calcula si se usa: priorizar o algún grupo de "sólo stock a rotar"
+    const usesRotation = settings.prioritizeRotation || settings.groups.some((g) => g.onlyRotation);
+    const rotationIds = usesRotation
         ? new Set(
               (await getRotationReport(now)).rows
                   .filter((r) => r.reasons.some((reason) => reason !== "restock"))
@@ -161,7 +163,8 @@ export async function previewDailyDeals(
             brandId: product.brand ? product.brand.toString() : null,
             distributors: evaluation.cost.distributors,
             lastFeaturedOn: lastFeatured.get(productId) ?? null,
-            priority: rotationIds.has(productId),
+            rotation: rotationIds.has(productId),
+            priority: settings.prioritizeRotation && rotationIds.has(productId),
             product,
             cost: evaluation.cost.cost,
             costDistributor: evaluation.cost.distributor,
@@ -206,7 +209,7 @@ export async function previewDailyDeals(
             dealMarginPercent: c.dealMarginPercent,
             repeated: pick.repeated,
             lastFeaturedOn: c.lastFeaturedOn,
-            rotation: Boolean(c.priority),
+            rotation: Boolean(c.rotation),
         };
     });
 

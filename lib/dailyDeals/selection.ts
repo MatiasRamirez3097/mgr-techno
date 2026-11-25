@@ -155,7 +155,9 @@ export interface DealCandidate {
     distributors: DistributorKey[];
     // Última vez que salió en oferta (YYYY-MM-DD), null si nunca
     lastFeaturedOn: string | null;
-    // Se sortea antes que el resto de su grupo (ej: stock a rotar)
+    // Está en "Stock a rotar" (para los grupos que piden sólo esos)
+    rotation?: boolean;
+    // Se sortea antes que el resto de su grupo (ej: stock a rotar con la prioridad activada)
     priority?: boolean;
 }
 
@@ -171,11 +173,13 @@ export const ALL_PRODUCTS_GROUP: ResolvedDealGroup = {
     distributors: [],
     categoryIds: [],
     brandIds: [],
+    onlyRotation: false,
     maxProducts: null,
 };
 
 /** Un filtro vacío no restringe; con valores, el producto tiene que tener alguno de ellos. */
 export function matchesDealGroup(candidate: DealCandidate, group: ResolvedDealGroup): boolean {
+    if (group.onlyRotation && !candidate.rotation) return false;
     if (group.distributors.length > 0 && !candidate.distributors.some((d) => group.distributors.includes(d))) {
         return false;
     }
