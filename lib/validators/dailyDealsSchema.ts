@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { DISTRIBUTOR_KEYS } from "@/types/shared/distributorLink";
-import { marginAfterDiscount, sortDiscountTiers } from "@/lib/dailyDeals/selection";
+import {
+    DEFAULT_DAILY_DEAL_SETTINGS,
+    marginAfterDiscount,
+    ROTATION_MIN_MARGIN_LIMIT,
+    sortDiscountTiers,
+} from "@/lib/dailyDeals/selection";
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "ID inválido");
 
@@ -25,6 +30,16 @@ export const dailyDealDiscountTierSchema = z
         path: ["discountPercent"],
     });
 
+// Escalones del stock a rotar: la utilidad puede ser negativa (se pagó más de lo que vale hoy) y
+// el piso lo pone rotationMinDealMarginPercent (se valida abajo, junto con él)
+const rotationDiscountTierSchema = z.object({
+    minMarginPercent: z
+        .number()
+        .min(ROTATION_MIN_MARGIN_LIMIT, `La utilidad mínima no puede ser menor a ${ROTATION_MIN_MARGIN_LIMIT}%`)
+        .max(500),
+    discountPercent: z.number().min(1, "El descuento tiene que ser de al menos 1%").max(90),
+});
+
 export const dailyDealSettingsSchema = z
     .object({
         enabled: z.boolean(),
@@ -46,7 +61,33 @@ export const dailyDealSettingsSchema = z
             .default(null),
         groups: z.array(dailyDealGroupSchema).max(10),
         prioritizeRotation: z.boolean().default(false),
+        rotationOwnDiscounts: z.boolean().default(false),
+        rotationDiscountTiers: z
+            .array(rotationDiscountTierSchema)
+            .min(1, "El stock a rotar necesita al menos un escalón de descuento")
+            .max(10)
+            .refine((tiers) => new Set(tiers.map((t) => t.minMarginPercent)).size === tiers.length, {
+                message: "Hay dos escalones de stock a rotar con la misma utilidad mínima",
+            })
+            .transform(sortDiscountTiers)
+            .default(DEFAULT_DAILY_DEAL_SETTINGS.rotationDiscountTiers),
+        rotationMinDealMarginPercent: z
+            .number()
+            .min(ROTATION_MIN_MARGIN_LIMIT, `El piso de utilidad no puede ser menor a ${ROTATION_MIN_MARGIN_LIMIT}%`)
+            .max(100, "El piso de utilidad no puede ser mayor a 100%")
+            .default(DEFAULT_DAILY_DEAL_SETTINGS.rotationMinDealMarginPercent),
     })
+    // El peor caso de un escalón es un producto que justo llega a su utilidad mínima
+    .refine(
+        (s) =>
+            s.rotationDiscountTiers.every(
+                (t) => marginAfterDiscount(t.minMarginPercent, t.discountPercent) >= s.rotationMinDealMarginPercent,
+            ),
+        {
+            message: "Un escalón de stock a rotar deja productos por debajo del piso de utilidad",
+            path: ["rotationDiscountTiers"],
+        },
+    )
     .refine((s) => new Set(s.groups.map((g) => g.id)).size === s.groups.length, {
         message: "Hay grupos repetidos",
         path: ["groups"],

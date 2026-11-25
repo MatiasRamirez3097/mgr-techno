@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     computeDealPrice,
     evaluateDealProduct,
+    evaluateRotationDealProduct,
     expandCategoryIds,
     isRecentlyFeatured,
     marginAfterDiscount,
@@ -117,6 +118,59 @@ describe("escalones de descuento", () => {
         expect(evaluate(125_000)).toMatchObject({ eligible: true, discountPercent: 5, dealPrice: 118_700 });
         expect(evaluate(160_000)).toMatchObject({ eligible: true, discountPercent: 20, dealPrice: 128_000 });
         expect(evaluate(110_000)).toMatchObject({ eligible: false, reason: "low_margin" });
+    });
+});
+
+describe("evaluateRotationDealProduct", () => {
+    // Liquidar: hasta 10% por debajo de lo pagado
+    const rules = {
+        rotationDiscountTiers: [
+            { minMarginPercent: -5, discountPercent: 5 },
+            { minMarginPercent: 10, discountPercent: 15 },
+        ],
+        rotationMinDealMarginPercent: -10,
+    };
+    const elit = (price: number | null, inStock = false) => [{ distributor: "elit" as const, price, inStock, available: true }];
+
+    it("mide la utilidad sobre lo pagado y acepta bajar del costo hasta el piso", () => {
+        const r = evaluateRotationDealProduct(
+            { regularPrice: 110_000, costs: elit(80_000), stockUnitCost: 100_000 },
+            rules,
+            100,
+        );
+        expect(r).toMatchObject({ eligible: true, discountPercent: 15, dealPrice: 93_500 });
+        if (r.eligible) {
+            expect(r.cost).toMatchObject({ cost: 100_000, distributor: null, distributors: ["elit"] });
+            expect(r.marginPercent).toBeCloseTo(10, 5);
+            expect(r.dealMarginPercent).toBeCloseTo(-6.5, 5);
+        }
+    });
+
+    it("sin costo de compra usa el del distribuidor, aunque no tenga stock", () => {
+        const r = evaluateRotationDealProduct({ regularPrice: 110_000, costs: elit(100_000), stockUnitCost: null }, rules, 100);
+        expect(r).toMatchObject({ eligible: true, cost: { distributor: "elit", inStock: true } });
+    });
+
+    it("dice por qué no participa", () => {
+        const reason = (p: Parameters<typeof evaluateRotationDealProduct>[0]) => {
+            const r = evaluateRotationDealProduct(p, rules, 100);
+            return r.eligible ? null : r.reason;
+        };
+        expect(reason({ regularPrice: 110_000, salePrice: 100_000, costs: [], stockUnitCost: 90_000 })).toBe("on_sale");
+        expect(reason({ regularPrice: 110_000, costs: [], stockUnitCost: null })).toBe("no_cost");
+        // Vale un 10% menos de lo que se pagó: no llega al escalón más bajo (−5%)
+        expect(reason({ regularPrice: 90_000, costs: [], stockUnitCost: 100_000 })).toBe("low_margin");
+    });
+
+    it("no baja del piso aunque el redondeo empuje", () => {
+        // −5% de utilidad, 5% de descuento → $90.250 (−9,75%); redondeando de a $4.000 → $88.000 (−12%)
+        const tight = { rotationDiscountTiers: [{ minMarginPercent: -5, discountPercent: 5 }], rotationMinDealMarginPercent: -10 };
+        expect(evaluateRotationDealProduct({ regularPrice: 95_000, costs: [], stockUnitCost: 100_000 }, tight, 1)).toMatchObject({
+            eligible: true,
+        });
+        expect(
+            evaluateRotationDealProduct({ regularPrice: 95_000, costs: [], stockUnitCost: 100_000 }, tight, 4000),
+        ).toMatchObject({ eligible: false, reason: "low_margin" });
     });
 });
 
@@ -277,6 +331,28 @@ describe("dailyDealSettingsSchema", () => {
             discountTiers: [{ minMarginPercent: 50, discountPercent: 20 }, { minMarginPercent: 30, discountPercent: 10 }],
         });
         expect(parsed.discountTiers.map((t) => t.minMarginPercent)).toEqual([30, 50]);
+    });
+
+    it("descuentos del stock a rotar: por defecto apagados y validados contra su piso", () => {
+        const parsed = dailyDealSettingsSchema.parse(base);
+        expect(parsed.rotationOwnDiscounts).toBe(false);
+        expect(parsed.rotationDiscountTiers.length).toBeGreaterThan(0);
+        expect(parsed.rotationMinDealMarginPercent).toBe(0);
+
+        const withRotation = (tiers: { minMarginPercent: number; discountPercent: number }[], floor: number) =>
+            dailyDealSettingsSchema.safeParse({
+                ...base,
+                rotationOwnDiscounts: true,
+                rotationDiscountTiers: tiers,
+                rotationMinDealMarginPercent: floor,
+            }).success;
+        // 0% de utilidad y 15% de descuento → −15%
+        expect(withRotation([{ minMarginPercent: 0, discountPercent: 15 }], -20)).toBe(true);
+        expect(withRotation([{ minMarginPercent: 0, discountPercent: 15 }], -10)).toBe(false);
+        // Utilidad negativa permitida en sus escalones
+        expect(withRotation([{ minMarginPercent: -10, discountPercent: 5 }], -20)).toBe(true);
+        expect(withRotation([{ minMarginPercent: -95, discountPercent: 1 }], -90)).toBe(false);
+        expect(withRotation([], -10)).toBe(false);
     });
 });
 

@@ -15,7 +15,8 @@ const DailyDealItemSchema = new Schema(
         previousSalePrice: { type: Number, default: null },
         dealPrice: { type: Number, required: true },
         cost: { type: Number, required: true },
-        costDistributor: { type: String, enum: DISTRIBUTOR_KEYS, required: true },
+        // null: costo de compra del stock propio (descuentos de stock a rotar)
+        costDistributor: { type: String, enum: [...DISTRIBUTOR_KEYS, null], default: null },
         groupId: { type: String, required: true },
         repeated: { type: Boolean, default: false },
         // Si el admin cambió el precio durante el día, al terminar no se restaura

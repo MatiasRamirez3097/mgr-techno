@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormSection } from "@/components/admin/ui/FormSection";
 import { buttonClass, hintClass, inputClass, labelClass, selectClass } from "@/components/admin/ui/styles";
 import { DISTRIBUTOR_LABELS } from "@/lib/distributors/productLinks";
-import { marginAfterDiscount } from "@/lib/dailyDeals/selection";
+import { marginAfterDiscount, ROTATION_MIN_MARGIN_LIMIT } from "@/lib/dailyDeals/selection";
 import { addDays } from "@/lib/dailyDeals/window";
 import { describeDealResult } from "./TodayDealPanel";
 import { DISTRIBUTOR_KEYS, type DistributorKey } from "@/types/shared/distributorLink";
@@ -100,6 +100,116 @@ function ChipPicker({
     );
 }
 
+/** Error de una lista de escalones con un piso de utilidad final (null si está bien) */
+function tiersErrorOf(tiers: DailyDealDiscountTier[], floor: number): string | null {
+    if (tiers.some((t) => marginAfterDiscount(t.minMarginPercent, t.discountPercent) < floor)) {
+        return floor === 0
+            ? "Un escalón deja productos por debajo del costo: subí su utilidad mínima o bajá su descuento."
+            : `Un escalón deja productos por debajo del piso de ${pct(floor)}: subí su utilidad mínima o bajá su descuento.`;
+    }
+    if (new Set(tiers.map((t) => t.minMarginPercent)).size !== tiers.length) {
+        return "Hay dos escalones con la misma utilidad mínima.";
+    }
+    return null;
+}
+
+/** Escalones utilidad → descuento; `floor` es la utilidad mínima que tiene que quedar después */
+function TiersEditor({
+    tiers,
+    onChange,
+    floor,
+    minMargin,
+    idPrefix,
+}: {
+    tiers: DailyDealDiscountTier[];
+    onChange: (tiers: DailyDealDiscountTier[]) => void;
+    floor: number;
+    minMargin: number;
+    idPrefix: string;
+}) {
+    const toNumber = (value: string) => (value === "" ? 0 : Number(value));
+    // En orden de utilidad (se editan en su posición original, que es el índice)
+    const rows = tiers
+        .map((tier, index) => ({ tier, index, worst: marginAfterDiscount(tier.minMarginPercent, tier.discountPercent) }))
+        .sort((a, b) => a.tier.minMarginPercent - b.tier.minMarginPercent)
+        .map((row, i, all) => ({ ...row, upTo: all[i + 1]?.tier.minMarginPercent ?? null }));
+    const error = tiersErrorOf(tiers, floor);
+    const update = (index: number, patch: Partial<DailyDealDiscountTier>) =>
+        onChange(tiers.map((t, i) => (i === index ? { ...t, ...patch } : t)));
+    const add = () => {
+        // Un escalón más arriba que el último, con más descuento
+        const top = tiers.reduce((a, b) => (b.minMarginPercent > a.minMarginPercent ? b : a));
+        onChange([
+            ...tiers,
+            { minMarginPercent: top.minMarginPercent + 10, discountPercent: Math.min(90, top.discountPercent + 5) },
+        ]);
+    };
+    const belowCostLabel = floor === 0 ? " (quedaría bajo el costo)" : " (quedaría bajo el piso)";
+
+    return (
+        <>
+            <div className="mt-3 flex flex-col gap-2">
+                {rows.map(({ tier, index, worst, upTo }) => {
+                    const bad = worst < floor;
+                    return (
+                        <div
+                            key={index}
+                            className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                                bad ? "border-red-500/40 bg-red-500/10" : "border-gray-700 bg-gray-800/40"
+                            }`}
+                        >
+                            <span className="text-gray-400">Con utilidad desde</span>
+                            <input
+                                type="number"
+                                min={minMargin}
+                                step="0.5"
+                                value={tier.minMarginPercent}
+                                onChange={(e) => update(index, { minMarginPercent: toNumber(e.target.value) })}
+                                className={`${inputClass} w-24`}
+                                aria-label={`Utilidad mínima del ${idPrefix} ${index + 1}`}
+                            />
+                            <span className="text-gray-400">
+                                %{upTo !== null && ` (hasta ${pct(upTo)})`}, descuento de
+                            </span>
+                            <input
+                                type="number"
+                                min={1}
+                                max={90}
+                                step="0.5"
+                                value={tier.discountPercent}
+                                onChange={(e) => update(index, { discountPercent: toNumber(e.target.value) })}
+                                className={`${inputClass} w-24`}
+                                aria-label={`Descuento del ${idPrefix} ${index + 1}`}
+                            />
+                            <span className="text-gray-400">%</span>
+                            <span className={`ml-auto text-xs ${bad ? "text-red-300" : "text-gray-400"}`}>
+                                utilidad resultante desde{" "}
+                                <strong className={worst < 0 ? "text-amber-300" : "text-white"}>{pct(worst)}</strong>
+                                {bad && belowCostLabel}
+                            </span>
+                            {tiers.length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => onChange(tiers.filter((_, i) => i !== index))}
+                                    className="text-xs text-gray-400 hover:text-red-400"
+                                >
+                                    Quitar
+                                </button>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+            {tiers.length < 10 && (
+                <button type="button" onClick={add} className={`${buttonClass.secondary} mt-2`}>
+                    Agregar escalón
+                </button>
+            )}
+            {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
+        </>
+    );
+}
+
 export function DailyDealsForm({ initialSettings, categories, brands, roundingStep, today }: Props) {
     const router = useRouter();
     const [settings, setSettings] = useState<DailyDealSettingsDTO>(initialSettings);
@@ -112,40 +222,14 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
     // Ya corriendo (activadas y sin inicio pendiente): no se ofrece programar el inicio
     const alreadyRunning = initialSettings.enabled && initialSettings.startDate === null;
     const tomorrow = addDays(today, 1);
-    // Escalones en orden de utilidad (se editan en su posición original, que es el índice)
-    const tierRows = settings.discountTiers
-        .map((tier, index) => ({ tier, index, worst: marginAfterDiscount(tier.minMarginPercent, tier.discountPercent) }))
-        .sort((a, b) => a.tier.minMarginPercent - b.tier.minMarginPercent)
-        .map((row, i, rows) => ({ ...row, upTo: rows[i + 1]?.tier.minMarginPercent ?? null }));
-    const tiersError = tierRows.some((r) => r.worst < 0)
-        ? "Un escalón deja productos por debajo del costo: subí su utilidad mínima o bajá su descuento."
-        : new Set(settings.discountTiers.map((t) => t.minMarginPercent)).size !== settings.discountTiers.length
-          ? "Hay dos escalones con la misma utilidad mínima."
-          : null;
+    const tiersError = tiersErrorOf(settings.discountTiers, 0);
+    const rotationTiersError = tiersErrorOf(settings.rotationDiscountTiers, settings.rotationMinDealMarginPercent);
+    const hasErrors = tiersError !== null || rotationTiersError !== null;
 
     const set = <K extends keyof DailyDealSettingsDTO>(key: K, value: DailyDealSettingsDTO[K]) =>
         setSettings((s) => ({ ...s, [key]: value }));
     const toNumber = (value: string) => (value === "" ? 0 : Number(value));
     const setNumber = (key: "productCount" | "noRepeatDays", value: string) => set(key, toNumber(value));
-
-    const updateTier = (index: number, patch: Partial<DailyDealDiscountTier>) =>
-        set(
-            "discountTiers",
-            settings.discountTiers.map((t, i) => (i === index ? { ...t, ...patch } : t)),
-        );
-    const removeTier = (index: number) =>
-        set(
-            "discountTiers",
-            settings.discountTiers.filter((_, i) => i !== index),
-        );
-    const addTier = () => {
-        // Un escalón más arriba que el último, con más descuento
-        const top = settings.discountTiers.reduce((a, b) => (b.minMarginPercent > a.minMarginPercent ? b : a));
-        set("discountTiers", [
-            ...settings.discountTiers,
-            { minMarginPercent: top.minMarginPercent + 10, discountPercent: Math.min(90, top.discountPercent + 5) },
-        ]);
-    };
 
     const updateGroup = (id: string, patch: Partial<DailyDealGroupDTO>) =>
         set(
@@ -313,60 +397,13 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                         escalón más alto que alcanza; los que no llegan al más bajo no participan. El precio de oferta se
                         redondea hacia abajo de a {money(roundingStep)}.
                     </p>
-                    <div className="mt-3 flex flex-col gap-2">
-                        {tierRows.map(({ tier, index, worst, upTo }) => (
-                            <div
-                                key={index}
-                                className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                                    worst < 0 ? "border-red-500/40 bg-red-500/10" : "border-gray-700 bg-gray-800/40"
-                                }`}
-                            >
-                                <span className="text-gray-400">Con utilidad desde</span>
-                                <input
-                                    type="number"
-                                    min={0}
-                                    step="0.5"
-                                    value={tier.minMarginPercent}
-                                    onChange={(e) => updateTier(index, { minMarginPercent: toNumber(e.target.value) })}
-                                    className={`${inputClass} w-24`}
-                                    aria-label={`Utilidad mínima del escalón ${index + 1}`}
-                                />
-                                <span className="text-gray-400">
-                                    %{upTo !== null && ` (hasta ${pct(upTo)})`}, descuento de
-                                </span>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={90}
-                                    step="0.5"
-                                    value={tier.discountPercent}
-                                    onChange={(e) => updateTier(index, { discountPercent: toNumber(e.target.value) })}
-                                    className={`${inputClass} w-24`}
-                                    aria-label={`Descuento del escalón ${index + 1}`}
-                                />
-                                <span className="text-gray-400">%</span>
-                                <span className={`ml-auto text-xs ${worst < 0 ? "text-red-300" : "text-gray-400"}`}>
-                                    utilidad resultante desde <strong className="text-white">{pct(worst)}</strong>
-                                    {worst < 0 && " (quedaría bajo el costo)"}
-                                </span>
-                                {settings.discountTiers.length > 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => removeTier(index)}
-                                        className="text-xs text-gray-400 hover:text-red-400"
-                                    >
-                                        Quitar
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                    {settings.discountTiers.length < 10 && (
-                        <button type="button" onClick={addTier} className={`${buttonClass.secondary} mt-2`}>
-                            Agregar escalón
-                        </button>
-                    )}
-                    {tiersError && <p className="mt-2 text-sm text-red-300">{tiersError}</p>}
+                    <TiersEditor
+                        tiers={settings.discountTiers}
+                        onChange={(tiers) => set("discountTiers", tiers)}
+                        floor={0}
+                        minMargin={0}
+                        idPrefix="escalón"
+                    />
                 </div>
 
                 <label className="mt-4 flex items-start gap-3 cursor-pointer">
@@ -409,6 +446,67 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                         </span>
                     </span>
                 </label>
+            </FormSection>
+
+            <FormSection
+                title="Descuentos del stock a rotar"
+                description="Para liquidar lo que no se mueve, los productos de Stock a rotar pueden llevar descuentos más agresivos que el resto, incluso por debajo de lo que pagaste."
+            >
+                <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={settings.rotationOwnDiscounts}
+                        onChange={(e) => set("rotationOwnDiscounts", e.target.checked)}
+                        className="mt-1 h-5 w-5 accent-brand"
+                    />
+                    <span>
+                        <span className="block text-sm text-gray-200">Usar descuentos propios para el stock a rotar</span>
+                        <span className="block text-sm text-gray-400 mt-0.5">
+                            {settings.rotationOwnDiscounts
+                                ? "La utilidad se mide sobre lo que pagaste por el stock (costo de compra con IVA, promedio de los lotes); si no hay costo de compra, sobre el último del distribuidor. No hace falta stock en el distribuidor: se vende el propio."
+                                : "Apagado: el stock a rotar lleva los mismos escalones que el resto, medidos sobre el costo del distribuidor."}
+                        </span>
+                    </span>
+                </label>
+
+                {settings.rotationOwnDiscounts && (
+                    <div className="mt-4 ml-8">
+                        <div className="max-w-xs">
+                            <label className={labelClass} htmlFor="dd-rot-floor">
+                                Utilidad mínima después del descuento (%)
+                            </label>
+                            <input
+                                id="dd-rot-floor"
+                                type="number"
+                                min={ROTATION_MIN_MARGIN_LIMIT}
+                                max={100}
+                                step="0.5"
+                                value={settings.rotationMinDealMarginPercent}
+                                onChange={(e) => set("rotationMinDealMarginPercent", toNumber(e.target.value))}
+                                className={inputClass}
+                            />
+                            <p className={hintClass}>
+                                Negativa para aceptar pérdida: con −10% se puede vender hasta un 10% por debajo de lo que
+                                pagaste.
+                            </p>
+                        </div>
+                        {settings.rotationMinDealMarginPercent < 0 && (
+                            <p className="mt-2 text-xs text-amber-300">
+                                Ojo: con un piso negativo algunas ofertas pueden quedar por debajo de lo que pagaste.
+                            </p>
+                        )}
+                        <div className="mt-4">
+                            <span className={labelClass}>Descuento según la utilidad sobre lo pagado</span>
+                            <TiersEditor
+                                tiers={settings.rotationDiscountTiers}
+                                onChange={(tiers) => set("rotationDiscountTiers", tiers)}
+                                floor={settings.rotationMinDealMarginPercent}
+                                minMargin={ROTATION_MIN_MARGIN_LIMIT}
+                                idPrefix="escalón de stock a rotar"
+                            />
+                        </div>
+                    </div>
+                )}
             </FormSection>
 
             <FormSection
@@ -550,7 +648,7 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                                         <a href="/admin/inventory/rotation" className="text-brand hover:underline">
                                             Stock a rotar
                                         </a>{" "}
-                                        que además cumplan la utilidad y el stock pedidos. Se cruza con los demás
+                                        que además cumplan las reglas de descuento. Se cruza con los demás
                                         filtros del grupo.
                                     </span>
                                 </span>
@@ -568,7 +666,7 @@ export function DailyDealsForm({ initialSettings, categories, brands, roundingSt
                 <button
                     type="button"
                     onClick={handleSave}
-                    disabled={!dirty || saving || tiersError !== null}
+                    disabled={!dirty || saving || hasErrors}
                     className={buttonClass.primary}
                 >
                     {saving ? "Guardando…" : "Guardar"}
@@ -643,7 +741,7 @@ function PreviewPanel({ preview }: { preview: DailyDealPreviewResult }) {
                                         </a>
                                         {item.rotation && (
                                             <span className="ml-2 rounded bg-orange-500/10 px-1.5 py-0.5 text-[10px] text-orange-300">
-                                                a rotar
+                                                {item.rotationPricing ? "a rotar · descuento propio" : "a rotar"}
                                             </span>
                                         )}
                                         {item.repeated && (
@@ -661,14 +759,18 @@ function PreviewPanel({ preview }: { preview: DailyDealPreviewResult }) {
                                     <td className="py-2 pr-3 text-right whitespace-nowrap text-gray-300">
                                         {money(item.cost)}
                                         <span className="block text-[11px] text-gray-500">
-                                            {DISTRIBUTOR_LABELS[item.costDistributor]}
+                                            {item.costDistributor ? DISTRIBUTOR_LABELS[item.costDistributor] : "lo pagado"}
                                             {item.costWithoutStock && " · sin stock"}
                                         </span>
                                     </td>
                                     <td className="py-2 text-right whitespace-nowrap">
                                         <span className="text-gray-400">{pct(item.marginPercent)}</span>
                                         <span className="text-gray-500"> → </span>
-                                        <span className="text-white font-semibold">{pct(item.dealMarginPercent)}</span>
+                                        <span
+                                            className={`font-semibold ${item.dealMarginPercent < 0 ? "text-red-300" : "text-white"}`}
+                                        >
+                                            {pct(item.dealMarginPercent)}
+                                        </span>
                                     </td>
                                 </tr>
                             ))}
