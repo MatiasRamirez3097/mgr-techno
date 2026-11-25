@@ -41,6 +41,8 @@ export interface DailyDealSettingsDTO {
     // Día (YYYY-MM-DD) desde el que empiezan las ofertas, a las 00:00; null = ya empezaron
     startDate: string | null;
     groups: DailyDealGroupDTO[];
+    // Dentro de cada grupo, sortear primero los productos de "Stock a rotar"
+    prioritizeRotation: boolean;
 }
 
 // Por qué un producto no participa
@@ -67,6 +69,8 @@ export interface DailyDealPreviewItem {
     // Ya salió dentro de los días sin repetir (se usó porque no alcanzaban los productos)
     repeated: boolean;
     lastFeaturedOn: string | null;
+    // Está en "Stock a rotar" (y se priorizó por eso)
+    rotation: boolean;
 }
 
 export interface DailyDealGroupStats {

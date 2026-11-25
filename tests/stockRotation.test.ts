@@ -6,6 +6,8 @@ import {
     type RotationInput,
 } from "@/lib/inventory/rotation";
 import { rotationSettingsSchema } from "@/lib/validators/storeSettingsSchema";
+import { buildRotationDigest } from "@/lib/inventory/rotationDigest";
+import type { RotationReport, RotationRow } from "@/types/shared/stockRotation";
 
 const NOW = new Date("2026-11-25T12:00:00Z");
 const daysAgo = (d: number) => new Date(NOW.getTime() - d * 24 * 60 * 60 * 1000);
@@ -256,6 +258,78 @@ describe("evaluateRotation: competencia y reposición", () => {
             settings,
         );
         expect(m.reasons).toEqual([]);
+    });
+});
+
+describe("buildRotationDigest", () => {
+    const row = (patch: Partial<RotationRow>): RotationRow => ({
+        productId: "p",
+        name: "Producto",
+        sku: "",
+        image: null,
+        effectivePrice: 1000,
+        availableStock: 1,
+        unitsSold: 0,
+        dailySales: 0,
+        lastSaleAt: null,
+        coverageDays: null,
+        oldestAgeDays: null,
+        oldUnits: 0,
+        stockCost: 0,
+        averageUnitCost: null,
+        unitsWithoutLots: 0,
+        unitsWithoutCost: 0,
+        replacementCost: null,
+        replacementDistributor: null,
+        replacementDiff: null,
+        linkedDistributors: 0,
+        referencePrice: null,
+        referenceSource: null,
+        referenceDiff: null,
+        reasons: [],
+        ...patch,
+    });
+    const report = (rows: RotationRow[]): RotationReport => {
+        const byReason = { slow: 0, old: 0, cheaper_replacement: 0, competitor_cheaper: 0, no_supplier: 0, restock: 0 };
+        for (const r of rows) for (const reason of r.reasons) byReason[reason]++;
+        const toRotate = rows.filter((r) => r.reasons.some((x) => x !== "restock"));
+        return {
+            settings,
+            rows,
+            summary: {
+                toRotate: toRotate.length,
+                stockCost: toRotate.reduce((s, r) => s + r.stockCost, 0),
+                byReason,
+            },
+        };
+    };
+
+    it("sin productos no avisa", () => {
+        expect(buildRotationDigest(report([]))).toBeNull();
+    });
+
+    it("resume motivos, costo parado y los productos con más plata parada", () => {
+        const digest = buildRotationDigest(
+            report([
+                row({ productId: "a", name: "Placa A", stockCost: 50000, oldestAgeDays: 200, availableStock: 2, reasons: ["slow", "old"] }),
+                row({ productId: "b", name: "Mouse B", stockCost: 10000, reasons: ["competitor_cheaper"] }),
+                row({ productId: "c", name: "SSD C", reasons: ["restock"], availableStock: 0 }),
+            ]),
+        )!;
+        expect(digest.title).toBe("🐢 2 productos para rotar");
+        expect(digest.description).toContain("Costo parado: **$60.000**");
+        expect(digest.description).toContain("• Stock lento: 1");
+        expect(digest.description).toContain("• Competencia más barata: 1");
+        expect(digest.description).not.toContain("Reposición más barata");
+        expect(digest.description).toContain("• Placa A — 2 u., $50.000, 200 días");
+        expect(digest.description).not.toContain("SSD C");
+        expect(digest.description).toContain("🔁 Para reponer: 1");
+    });
+
+    it("sólo con productos para reponer", () => {
+        const digest = buildRotationDigest(report([row({ reasons: ["restock"], availableStock: 0 })]))!;
+        expect(digest.title).toBe("🔁 1 producto para reponer");
+        expect(digest.description).not.toContain("Costo parado");
     });
 });
 

@@ -32,6 +32,7 @@ export function mapDailyDealSettings(doc: DailyDealSettingsDoc | null): DailyDea
         })),
         requireDistributorStock: doc?.requireDistributorStock ?? d.requireDistributorStock,
         startDate: doc?.startDate ?? d.startDate,
+        prioritizeRotation: doc?.prioritizeRotation ?? d.prioritizeRotation,
         groups: (doc?.groups ?? []).map((g, index) => ({
             id: g.id || `group-${index + 1}`,
             name: g.name || `Grupo ${index + 1}`,

@@ -38,6 +38,8 @@ const DailyDealConfigSchema = new Schema(
         // YYYY-MM-DD: las ofertas empiezan ese día a las 00:00 (null = ya empezaron)
         startDate: { type: String, default: null },
         groups: { type: [DailyDealGroupSchema], default: [] },
+        // Sortear primero, dentro de cada grupo, los productos de "Stock a rotar"
+        prioritizeRotation: { type: Boolean, default: false },
     },
     { timestamps: true },
 );

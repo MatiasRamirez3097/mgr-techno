@@ -211,6 +211,28 @@ describe("selectDailyDeals", () => {
         const b = selectDailyDeals({ candidates: list, groups: [], count: 5, noRepeatDays: 7, today, random: seeded(99) });
         expect(a.picks.map((p) => p.productId)).not.toEqual(b.picks.map((p) => p.productId));
     });
+
+    it("los prioritarios (stock a rotar) salen antes que el resto, con cualquier azar", () => {
+        const list = [
+            ...Array.from({ length: 20 }, (_, i) => candidate(`x${i}`)),
+            candidate("r1", { priority: true }),
+            candidate("r2", { priority: true }),
+        ];
+        for (const seed of [1, 7, 42, 99]) {
+            const r = selectDailyDeals({ candidates: list, groups: [], count: 3, noRepeatDays: 7, today, random: seeded(seed) });
+            const picked = r.picks.map((p) => p.productId);
+            expect(picked.slice(0, 2).sort()).toEqual(["r1", "r2"]);
+            expect(picked).toHaveLength(3);
+        }
+    });
+
+    it("un prioritario que salió hace poco no le gana a uno que no salió", () => {
+        const list = [
+            candidate("fresh"),
+            candidate("recent", { priority: true, lastFeaturedOn: "2026-11-15" }),
+        ];
+        expect(run([], 1, list).picks.map((p) => p.productId)).toEqual(["fresh"]);
+    });
 });
 
 describe("dailyDealSettingsSchema", () => {

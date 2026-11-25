@@ -32,6 +32,7 @@ export const StoreSettingsSchema = new Schema(
         rotationCompetitorPercent: { type: Number, default: 5, min: 0, max: 100 },
         rotationRestockEnabled: { type: Boolean, default: false },
         rotationRestockCoverageDays: { type: Number, default: 7, min: 1, max: 365 },
+        rotationNotifyEnabled: { type: Boolean, default: false },
     },
     { timestamps: true },
 );
