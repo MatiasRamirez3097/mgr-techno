@@ -136,6 +136,10 @@ const LINKS = [
                 href: "/admin/inventory/rotation",
                 label: "Stock a rotar",
             },
+            {
+                href: "/admin/inventory/counts",
+                label: "Conteo de stock",
+            },
         ],
     },
     {
