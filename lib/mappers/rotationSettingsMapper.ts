@@ -12,6 +12,7 @@ export const mapRotationSettingsToDTO = (doc: RotationSettingsDoc | null): Rotat
     rotationOldStockDays: doc?.rotationOldStockDays ?? DEFAULT_ROTATION_SETTINGS.rotationOldStockDays,
     rotationCheaperReplacementPercent:
         doc?.rotationCheaperReplacementPercent ?? DEFAULT_ROTATION_SETTINGS.rotationCheaperReplacementPercent,
+    rotationCompetitorPercent: doc?.rotationCompetitorPercent ?? DEFAULT_ROTATION_SETTINGS.rotationCompetitorPercent,
     rotationRestockEnabled: doc?.rotationRestockEnabled ?? DEFAULT_ROTATION_SETTINGS.rotationRestockEnabled,
     rotationRestockCoverageDays:
         doc?.rotationRestockCoverageDays ?? DEFAULT_ROTATION_SETTINGS.rotationRestockCoverageDays,

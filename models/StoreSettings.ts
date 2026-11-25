@@ -29,6 +29,7 @@ export const StoreSettingsSchema = new Schema(
         rotationSlowCoverageDays: { type: Number, default: 90, min: 1, max: 3650 },
         rotationOldStockDays: { type: Number, default: 120, min: 1, max: 3650 },
         rotationCheaperReplacementPercent: { type: Number, default: 3, min: 0, max: 100 },
+        rotationCompetitorPercent: { type: Number, default: 5, min: 0, max: 100 },
         rotationRestockEnabled: { type: Boolean, default: false },
         rotationRestockCoverageDays: { type: Number, default: 7, min: 1, max: 365 },
     },

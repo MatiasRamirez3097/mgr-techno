@@ -10,6 +10,8 @@ const REASON_STYLE: Record<RotationReason, string> = {
     slow: "bg-amber-400/15 text-amber-300",
     old: "bg-orange-500/15 text-orange-300",
     cheaper_replacement: "bg-red-500/15 text-red-300",
+    competitor_cheaper: "bg-fuchsia-500/15 text-fuchsia-300",
+    no_supplier: "bg-gray-700 text-gray-200",
     restock: "bg-green-500/15 text-green-300",
 };
 
@@ -153,7 +155,9 @@ export function RotationTable({ rows, oldStockDays }: { rows: RotationRow[]; old
             align: "right",
             cell: (row) =>
                 row.replacementCost === null ? (
-                    <span className="text-gray-500">—</span>
+                    <span className="text-gray-500">
+                        {row.linkedDistributors > 0 ? "Ningún distribuidor lo tiene" : "Sin vincular"}
+                    </span>
                 ) : (
                     <span>
                         {money(row.replacementCost)}
@@ -173,7 +177,23 @@ export function RotationTable({ rows, oldStockDays }: { rows: RotationRow[]; old
             key: "price",
             header: "Precio",
             align: "right",
-            cell: (row) => money(row.effectivePrice),
+            cell: (row) => (
+                <span>
+                    {money(row.effectivePrice)}
+                    {row.referencePrice !== null && row.referenceDiff !== null && (
+                        <span
+                            className="block text-xs text-gray-500"
+                            title={`Más barato en las tiendas de referencia: ${money(row.referencePrice)}`}
+                        >
+                            {row.referenceSource ?? "Ref."} {money(row.referencePrice)}
+                            <span className={row.referenceDiff > 0 ? " text-fuchsia-300" : " text-gray-400"}>
+                                {" "}
+                                {pct(row.referenceDiff)}
+                            </span>
+                        </span>
+                    )}
+                </span>
+            ),
         },
     ];
 

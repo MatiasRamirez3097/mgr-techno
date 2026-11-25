@@ -33,7 +33,15 @@ const NUMBER_FIELDS: { key: NumberField; label: string; hint: string; suffix: st
         hint: "Se marca si el distribuidor hoy lo vende al menos este % más barato que lo que pagaste.",
         suffix: "%",
     },
+    {
+        key: "rotationCompetitorPercent",
+        label: "Competencia más barata",
+        hint: "Se marca si nuestro precio está este % (o más) arriba de la tienda de referencia más barata.",
+        suffix: "%",
+    },
 ];
+
+const PERCENT_FIELDS: NumberField[] = ["rotationCheaperReplacementPercent", "rotationCompetitorPercent"];
 
 export function RotationSettingsForm({ initialSettings }: { initialSettings: RotationSettingsDTO }) {
     const router = useRouter();
@@ -97,10 +105,10 @@ export function RotationSettingsForm({ initialSettings }: { initialSettings: Rot
                             <input
                                 id={f.key}
                                 type="number"
-                                inputMode={f.key === "rotationCheaperReplacementPercent" ? "decimal" : "numeric"}
+                                inputMode={PERCENT_FIELDS.includes(f.key) ? "decimal" : "numeric"}
                                 min={ROTATION_LIMITS[f.key].min}
                                 max={ROTATION_LIMITS[f.key].max}
-                                step={f.key === "rotationCheaperReplacementPercent" ? "any" : 1}
+                                step={PERCENT_FIELDS.includes(f.key) ? "any" : 1}
                                 value={Number.isNaN(values[f.key]) ? "" : values[f.key]}
                                 onChange={(e) => setNumber(f.key, e.target.value)}
                                 className={inputClass}

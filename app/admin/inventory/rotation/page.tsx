@@ -10,7 +10,7 @@ import type { RotationReason } from "@/types/shared/stockRotation";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Stock a rotar" };
 
-const REASONS: RotationReason[] = ["slow", "old", "cheaper_replacement", "restock"];
+const REASONS: RotationReason[] = ["slow", "old", "cheaper_replacement", "competitor_cheaper", "no_supplier", "restock"];
 const SORTS = { cost: "Costo parado", age: "Antigüedad", coverage: "Cobertura" } as const;
 type Sort = keyof typeof SORTS;
 

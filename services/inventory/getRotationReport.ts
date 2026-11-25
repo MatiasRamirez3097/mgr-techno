@@ -13,7 +13,9 @@ import {
     mapProductDistributorLinkToDTO,
     type ProductDistributorLinkDoc,
 } from "@/lib/mappers/productDistributorLinkMapper";
+import { compareWithReferences } from "@/lib/priceReview";
 import { applyLocalCatalogPrices } from "@/services/distributors/links/applyLocalCatalogPrices";
+import { getReferencesForProducts } from "@/services/priceReference/links/getReferencesForProducts";
 import { getRotationSettings } from "@/services/settings/getRotationSettings";
 import type { RotationReason, RotationReport, RotationRow } from "@/types/shared/stockRotation";
 
@@ -168,12 +170,13 @@ export async function getRotationReport(now = new Date()): Promise<RotationRepor
     ).lean<ProductLean[]>();
 
     const productIds = products.map((p) => p._id);
-    const [lotDocs, linkDocs] = await Promise.all([
+    const [lotDocs, linkDocs, referencesByProduct] = await Promise.all([
         InventoryItemModel.find(
             { productId: { $in: productIds }, status: "available", remainingQuantity: { $gt: 0 } },
             { productId: 1, purchaseId: 1, remainingQuantity: 1, unitCost: 1, createdAt: 1 },
         ).lean<LotLean[]>(),
         ProductDistributorLinkModel.find({ productId: { $in: productIds } }).lean<ProductDistributorLinkDoc[]>(),
+        getReferencesForProducts(productIds),
     ]);
     const links = await applyLocalCatalogPrices(linkDocs.map(mapProductDistributorLinkToDTO));
 
@@ -200,7 +203,9 @@ export async function getRotationReport(now = new Date()): Promise<RotationRepor
 
     // Mejor costo con stock por producto
     const bestCost = new Map<string, { price: number; distributor: string }>();
+    const linkedCount = new Map<string, number>();
     for (const link of links) {
+        linkedCount.set(link.productId, (linkedCount.get(link.productId) ?? 0) + 1);
         if (!link.available || !link.lastPrice || link.lastPrice <= 0) continue;
         if (!hasDistributorStock(link.lastStock, link.lastStockLabel)) continue;
         const prev = bestCost.get(link.productId);
@@ -214,6 +219,16 @@ export async function getRotationReport(now = new Date()): Promise<RotationRepor
         const productId = product._id.toString();
         const sold = sales.get(productId);
         const best = bestCost.get(productId) ?? null;
+        const effectivePrice = Number(product.effectivePrice) || 0;
+        const references = referencesByProduct.get(productId) ?? [];
+        const { bestReferencePrice, referenceDiff } = compareWithReferences(effectivePrice, references);
+        // La tienda de ese precio (con stock primero, igual que compareWithReferences)
+        const referenceSource = bestReferencePrice
+            ? ([...references]
+                  .sort((a, b) => Number(b.inStock) - Number(a.inStock))
+                  .find((r) => r.available && r.price === bestReferencePrice)?.sourceShortLabel ?? null)
+            : null;
+        const linkedDistributors = linkedCount.get(productId) ?? 0;
         const metrics = evaluateRotation(
             {
                 availableStock: product.availableStock ?? 0,
@@ -223,6 +238,8 @@ export async function getRotationReport(now = new Date()): Promise<RotationRepor
                 lastSaleAt: sold?.lastSaleAt ?? null,
                 lots: lotsByProduct.get(productId) ?? [],
                 replacementCost: best?.price ?? null,
+                hasDistributorLinks: linkedDistributors > 0,
+                referenceDiff,
                 now,
             },
             settings,
@@ -234,12 +251,16 @@ export async function getRotationReport(now = new Date()): Promise<RotationRepor
             name: product.name,
             sku: product.sku || "",
             image: product.image || null,
-            effectivePrice: Number(product.effectivePrice) || 0,
+            effectivePrice,
             availableStock: Math.max(0, product.availableStock ?? 0),
             unitsSold: sold?.units ?? 0,
             lastSaleAt: sold ? new Date(sold.lastSaleAt).toISOString() : null,
             replacementCost: best?.price ?? null,
             replacementDistributor: best?.distributor ?? null,
+            linkedDistributors,
+            referencePrice: bestReferencePrice,
+            referenceSource,
+            referenceDiff,
             ...metrics,
         });
     }
@@ -247,7 +268,14 @@ export async function getRotationReport(now = new Date()): Promise<RotationRepor
     // Primero lo que más plata tiene parada
     rows.sort((a, b) => b.stockCost - a.stockCost || (b.oldestAgeDays ?? 0) - (a.oldestAgeDays ?? 0));
 
-    const byReason: Record<RotationReason, number> = { slow: 0, old: 0, cheaper_replacement: 0, restock: 0 };
+    const byReason: Record<RotationReason, number> = {
+        slow: 0,
+        old: 0,
+        cheaper_replacement: 0,
+        competitor_cheaper: 0,
+        no_supplier: 0,
+        restock: 0,
+    };
     for (const row of rows) for (const r of row.reasons) byReason[r]++;
     const toRotate = rows.filter((r) => r.reasons.some((x) => x !== "restock"));
 

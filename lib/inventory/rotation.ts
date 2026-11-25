@@ -5,6 +5,7 @@ export const DEFAULT_ROTATION_SETTINGS: RotationSettingsDTO = {
     rotationSlowCoverageDays: 90,
     rotationOldStockDays: 120,
     rotationCheaperReplacementPercent: 3,
+    rotationCompetitorPercent: 5,
     rotationRestockEnabled: false,
     rotationRestockCoverageDays: 7,
 };
@@ -67,6 +68,10 @@ export interface RotationInput {
     lots: RotationLot[];
     // Mejor costo con stock de los distribuidores (ARS con IVA)
     replacementCost: number | null;
+    // Si tiene algún distribuidor vinculado (sin vínculos no se sabe si se discontinuó)
+    hasDistributorLinks: boolean;
+    // (nuestro precio − referencia) ÷ referencia; null = sin tiendas de referencia
+    referenceDiff: number | null;
     now: Date;
 }
 
@@ -137,6 +142,15 @@ export function evaluateRotation(input: RotationInput, settings: RotationSetting
         ) {
             reasons.push("cheaper_replacement");
         }
+        if (
+            input.referenceDiff !== null &&
+            input.referenceDiff > 0 &&
+            input.referenceDiff >= settings.rotationCompetitorPercent / 100
+        ) {
+            reasons.push("competitor_cheaper");
+        }
+        // Vinculado, pero ningún distribuidor lo tiene: es la última tanda
+        if (input.hasDistributorLinks && input.replacementCost === null) reasons.push("no_supplier");
     }
     if (
         settings.rotationRestockEnabled &&
@@ -165,6 +179,8 @@ export const ROTATION_REASON_LABELS: Record<RotationReason, string> = {
     slow: "Stock lento",
     old: "Stock viejo",
     cheaper_replacement: "Reposición más barata",
+    competitor_cheaper: "Competencia más barata",
+    no_supplier: "Sin reposición",
     restock: "Reponer",
 };
 
@@ -173,5 +189,9 @@ export const ROTATION_REASON_HINTS: Record<RotationReason, string> = {
     old: "Hay unidades paradas hace mucho: liquidalas antes de que salga el modelo nuevo.",
     cheaper_replacement:
         "Hoy el distribuidor lo vende más barato de lo que lo pagaste: vendelo antes de que bajen los precios y no compres más.",
+    competitor_cheaper:
+        "Las tiendas de referencia lo venden más barato: ajustá el precio o se te va a quedar.",
+    no_supplier:
+        "Ningún distribuidor vinculado lo tiene: es la última tanda. Decidí si lo liquidás o lo mantenés a precio completo.",
     restock: "Se vende rápido y se está por agotar; el distribuidor tiene stock para reponer.",
 };

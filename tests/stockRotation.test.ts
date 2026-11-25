@@ -19,6 +19,8 @@ const input = (patch: Partial<RotationInput>): RotationInput => ({
     lastSaleAt: null,
     lots: [],
     replacementCost: null,
+    hasDistributorLinks: false,
+    referenceDiff: null,
     now: NOW,
     ...patch,
 });
@@ -212,6 +214,48 @@ describe("evaluateRotation: casos borde", () => {
             { ...settings, rotationCheaperReplacementPercent: 0 },
         );
         expect(m.reasons).not.toContain("cheaper_replacement");
+    });
+});
+
+describe("evaluateRotation: competencia y reposición", () => {
+    // Producto que rota bien, para que sólo aparezca el motivo que se prueba
+    const rotating = { availableStock: 2, unitsSold: 30 };
+
+    it("marca competencia más barata desde el % configurado", () => {
+        expect(evaluateRotation(input({ ...rotating, referenceDiff: 0.06 }), settings).reasons).toEqual([
+            "competitor_cheaper",
+        ]);
+        expect(evaluateRotation(input({ ...rotating, referenceDiff: 0.03 }), settings).reasons).toEqual([]);
+        expect(evaluateRotation(input({ ...rotating, referenceDiff: -0.1 }), settings).reasons).toEqual([]);
+    });
+
+    it("con 0% no marca al mismo precio que la competencia", () => {
+        const zero = { ...settings, rotationCompetitorPercent: 0 };
+        expect(evaluateRotation(input({ ...rotating, referenceDiff: 0 }), zero).reasons).toEqual([]);
+        expect(evaluateRotation(input({ ...rotating, referenceDiff: 0.001 }), zero).reasons).toEqual([
+            "competitor_cheaper",
+        ]);
+    });
+
+    it("sin reposición: vinculado y ningún distribuidor con stock", () => {
+        expect(
+            evaluateRotation(input({ ...rotating, hasDistributorLinks: true, replacementCost: null }), settings)
+                .reasons,
+        ).toEqual(["no_supplier"]);
+        expect(
+            evaluateRotation(input({ ...rotating, hasDistributorLinks: true, replacementCost: 500 }), settings)
+                .reasons,
+        ).toEqual([]);
+        // Sin vínculos no se sabe: no se marca
+        expect(evaluateRotation(input(rotating), settings).reasons).toEqual([]);
+    });
+
+    it("sin stock no marca motivos para sacar", () => {
+        const m = evaluateRotation(
+            input({ availableStock: 0, unitsSold: 30, hasDistributorLinks: true, referenceDiff: 0.2 }),
+            settings,
+        );
+        expect(m.reasons).toEqual([]);
     });
 });
 
