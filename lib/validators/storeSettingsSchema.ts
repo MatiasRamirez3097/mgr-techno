@@ -27,6 +27,7 @@ export const ROTATION_LIMITS = {
     rotationSlowCoverageDays: { min: 1, max: 3650 },
     rotationOldStockDays: { min: 1, max: 3650 },
     rotationCheaperReplacementPercent: { min: 0, max: 100 },
+    rotationCompetitorPercent: { min: 0, max: 100 },
     rotationRestockCoverageDays: { min: 1, max: 365 },
 } as const;
 
@@ -47,6 +48,7 @@ export const rotationSettingsSchema = z.object({
         "Reposición más barata",
         false,
     ),
+    rotationCompetitorPercent: rotationNumber("rotationCompetitorPercent", "Competencia más barata", false),
     rotationRestockEnabled: z.boolean(),
     rotationRestockCoverageDays: rotationNumber("rotationRestockCoverageDays", "Reponer"),
 });
