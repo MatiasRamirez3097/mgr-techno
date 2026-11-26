@@ -172,3 +172,57 @@ describe("report helpers", () => {
         expect(percentOf(1, 0)).toBeNull();
     });
 });
+
+describe("búsquedas", () => {
+    it("normaliza el término para agrupar", async () => {
+        const { normalizeSearchTerm } = await import("@/lib/analytics/classify");
+        expect(normalizeSearchTerm("  Placa de Vídeo   RTX-4060! ")).toBe("placa de video rtx4060");
+        expect(normalizeSearchTerm("¿?")).toBe("");
+    });
+
+    it("el evento search exige término y resultados", () => {
+        const base = {
+            visitorId: "4f6c1d2e-1111-4222-8333-944455556666",
+            sessionId: "9a8b7c6d-1111-4222-8333-944455556666",
+            path: "/productos",
+            type: "search",
+        };
+        expect(trackEventSchema.safeParse({ ...base, query: "rtx", results: 0 }).success).toBe(true);
+        expect(trackEventSchema.safeParse({ ...base, query: "rtx" }).success).toBe(false);
+        expect(trackEventSchema.safeParse({ ...base, query: "  ", results: 3 }).success).toBe(false);
+    });
+});
+
+describe("buildAnalyticsDigest", () => {
+    const base = {
+        date: "2026-11-25",
+        visits: 120,
+        visitors: 100,
+        previousAverage: 100,
+        topChannel: { label: "Buscadores", visits: 54 },
+        topAdded: [
+            { name: "Mouse", adds: 5 },
+            { name: "Teclado", adds: 3 },
+        ],
+        dailyDealsVisits: 18,
+        orders: 4,
+        searchesWithoutResults: ["rtx 5090", "silla gamer"],
+    };
+
+    it("arma el resumen con comparación, origen, agregados y búsquedas sin resultados", async () => {
+        const { buildAnalyticsDigest } = await import("@/lib/analytics/digest");
+        const digest = buildAnalyticsDigest(base)!;
+        expect(digest.title).toBe("📊 Visitas del miércoles 25/11");
+        expect(digest.description).toContain("**Visitas:** 120 (100 visitantes) · +20% vs. promedio de 7 días (100)");
+        expect(digest.description).toContain("Buscadores (45%)");
+        expect(digest.description).toContain("1. Mouse (5)");
+        expect(digest.description).toContain("rtx 5090, silla gamer");
+    });
+
+    it("sin promedio previo no compara; sin visitas no avisa", async () => {
+        const { buildAnalyticsDigest } = await import("@/lib/analytics/digest");
+        expect(buildAnalyticsDigest({ ...base, previousAverage: null })!.description).not.toContain("promedio");
+        expect(buildAnalyticsDigest({ ...base, previousAverage: 150 })!.description).toContain("-20%");
+        expect(buildAnalyticsDigest({ ...base, visits: 0 })).toBeNull();
+    });
+});

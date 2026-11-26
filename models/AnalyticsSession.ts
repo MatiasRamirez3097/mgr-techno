@@ -32,6 +32,7 @@ const AnalyticsSessionSchema = new Schema(
         pageViews: { type: Number, default: 0 },
         productViews: { type: Number, default: 0 },
         addToCarts: { type: Number, default: 0 },
+        searches: { type: Number, default: 0 },
         visitedDailyDeals: { type: Boolean, default: false },
         reachedCheckout: { type: Boolean, default: false },
     },

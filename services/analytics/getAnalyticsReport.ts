@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import { AnalyticsDailyModel } from "@/models/AnalyticsDaily";
 import { AnalyticsSessionModel } from "@/models/AnalyticsSession";
+import { AnalyticsSearchDailyModel } from "@/models/AnalyticsSearchDaily";
 import { OrderModel, ProductModel } from "@/models";
 import { todayInStoreTimeZone } from "@/lib/utils/orderDate";
 import {
@@ -10,11 +11,11 @@ import {
     type TrafficChannel,
 } from "@/lib/analytics/classify";
 import {
+    addDays,
     addProductCount,
     buildProductRows,
     lastDays,
     startOfStoreDay,
-    type AnalyticsRange,
     type ProductCounts,
     type ProductRow,
     type ProductSort,
@@ -22,11 +23,15 @@ import {
 
 const PRODUCT_LIMIT = 30;
 const DEALS_PRODUCT_LIMIT = 10;
+const SEARCH_LIMIT = 25;
+const OUT_OF_STOCK_LIMIT = 15;
 // Pedidos que no cuentan como venta
 const NOT_SOLD = ["cancelled", "failed", "refunded"];
 
+export type SearchTermRow = { term: string; searches: number; zeroResults: number; lastResults: number };
+
 export type AnalyticsReport = {
-    days: AnalyticsRange;
+    days: number;
     from: string;
     to: string;
     totals: {
@@ -58,13 +63,24 @@ export type AnalyticsReport = {
         adds: number;
         products: ProductRow[];
     };
+    /** Productos que hoy no tienen stock, por vistas en el período */
+    outOfStockViewed: ProductRow[];
+    searches: {
+        total: number;
+        zeroResults: number;
+        top: SearchTermRow[];
+        withoutResults: SearchTermRow[];
+    };
 };
 
 type CountRow<T> = { _id: T; visits: number };
 
-/** Datos del panel de visitas para los últimos `days` días (días de Argentina). */
+/**
+ * Datos del panel de visitas para los últimos `days` días (días de Argentina) hasta el día de
+ * `now` incluido.
+ */
 export async function getAnalyticsReport(
-    days: AnalyticsRange,
+    days: number,
     sort: ProductSort,
     now: Date = new Date(),
 ): Promise<AnalyticsReport> {
@@ -75,7 +91,7 @@ export async function getAnalyticsReport(
     const from = dates[0];
     const dateMatch = { date: { $gte: from, $lte: to } };
 
-    const [sessionFacets, dailyRows, orderRows] = await Promise.all([
+    const [sessionFacets, dailyRows, orderRows, searchRows] = await Promise.all([
         AnalyticsSessionModel.aggregate([
             { $match: dateMatch },
             {
@@ -141,7 +157,7 @@ export async function getAnalyticsReport(
                 $match: {
                     source: "ecommerce",
                     status: { $nin: NOT_SOLD },
-                    createdAt: { $gte: startOfStoreDay(from) },
+                    createdAt: { $gte: startOfStoreDay(from), $lt: startOfStoreDay(addDays(to, 1)) },
                 },
             },
             {
@@ -159,6 +175,18 @@ export async function getAnalyticsReport(
                         { $unwind: "$items" },
                         { $group: { _id: "$items.productId", units: { $sum: "$items.quantity" } } },
                     ],
+                },
+            },
+        ]),
+        AnalyticsSearchDailyModel.aggregate<{ _id: string; searches: number; zeroResults: number; lastResults: number }>([
+            { $match: dateMatch },
+            { $sort: { date: 1 } },
+            {
+                $group: {
+                    _id: "$term",
+                    searches: { $sum: "$searches" },
+                    zeroResults: { $sum: "$zeroResults" },
+                    lastResults: { $last: "$lastResults" },
                 },
             },
         ]),
@@ -236,11 +264,27 @@ export async function getAnalyticsReport(
         if (all) dealCounts.set(id, { ...c, views: all.views, units: all.units });
     }
 
+    // Productos vistos que hoy no tienen stock (demanda para reponer)
+    const viewedIds = [...counts.entries()].filter(([, c]) => c.views > 0).map(([id]) => id);
+    const outOfStockDocs = viewedIds.length
+        ? await ProductModel.find(
+              { _id: { $in: viewedIds }, availableStock: { $lte: 0 }, type: { $ne: "bundle" } },
+              { _id: 1 },
+          ).lean<{ _id: unknown }[]>()
+        : [];
+    const outOfStockCounts = new Map<string, ProductCounts>();
+    for (const doc of outOfStockDocs) {
+        const id = String(doc._id);
+        const c = counts.get(id);
+        if (c) outOfStockCounts.set(id, c);
+    }
+
     // Nombres sólo de los productos que van a mostrarse
     const placeholder = new Map<string, { name: string; slug: string | null }>();
     const shownIds = new Set([
         ...buildProductRows(counts, placeholder, sort, PRODUCT_LIMIT).map((r) => r.id),
         ...buildProductRows(dealCounts, placeholder, "adds", DEALS_PRODUCT_LIMIT).map((r) => r.id),
+        ...buildProductRows(outOfStockCounts, placeholder, "views", OUT_OF_STOCK_LIMIT).map((r) => r.id),
     ]);
     const productDocs = shownIds.size
         ? await ProductModel.find({ _id: { $in: [...shownIds] } }, { name: 1, slug: 1 }).lean<
@@ -248,6 +292,15 @@ export async function getAnalyticsReport(
           >()
         : [];
     const products = new Map(productDocs.map((p) => [String(p._id), { name: p.name, slug: p.slug ?? null }]));
+
+    const searchTerms: SearchTermRow[] = searchRows.map((r) => ({
+        term: r._id,
+        searches: r.searches,
+        zeroResults: r.zeroResults,
+        lastResults: r.lastResults,
+    }));
+    const byCount = (key: "searches" | "zeroResults") => (a: SearchTermRow, b: SearchTermRow) =>
+        b[key] - a[key] || a.term.localeCompare(b.term);
 
     const addsByPage = [...addsByPageMap.entries()]
         .map(([page, adds]) => ({ page, adds }))
@@ -284,6 +337,16 @@ export async function getAnalyticsReport(
             pageViews: dealPageViews,
             adds: addsByPageMap.get("ofertas-del-dia") ?? 0,
             products: buildProductRows(dealCounts, products, "adds", DEALS_PRODUCT_LIMIT),
+        },
+        outOfStockViewed: buildProductRows(outOfStockCounts, products, "views", OUT_OF_STOCK_LIMIT),
+        searches: {
+            total: searchTerms.reduce((acc, r) => acc + r.searches, 0),
+            zeroResults: searchTerms.reduce((acc, r) => acc + r.zeroResults, 0),
+            top: [...searchTerms].sort(byCount("searches")).slice(0, SEARCH_LIMIT),
+            withoutResults: searchTerms
+                .filter((r) => r.zeroResults > 0)
+                .sort(byCount("zeroResults"))
+                .slice(0, SEARCH_LIMIT),
         },
     };
 }

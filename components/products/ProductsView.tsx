@@ -5,6 +5,7 @@ import { SortSelector } from "@/components/products/SortSelector";
 import { AdminPagination } from "../admin/AdminPagination";
 import type { ProductOrderBy } from "@/types/shared/product";
 import { FilterButton } from "../layout/FilterButton";
+import { SearchTracker } from "@/components/analytics/SearchTracker";
 
 interface Props {
     brand?: string;
@@ -65,6 +66,9 @@ export async function ProductsView({
 
     return (
         <main className="max-w-6xl mx-auto px-4 py-10">
+            {search?.trim() && (
+                <SearchTracker query={search} results={pagination.totalItems} />
+            )}
             <div className="flex items-center justify-between mb-8 gap-4 flex-wrap border-b border-gray-800 pb-4">
                 <div>
                     <h1 className="text-2xl font-bold capitalize text-white flex items-center gap-3">

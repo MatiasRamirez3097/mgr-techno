@@ -2,7 +2,8 @@ import { Types } from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import { AnalyticsDailyModel } from "@/models/AnalyticsDaily";
 import { AnalyticsSessionModel } from "@/models/AnalyticsSession";
-import { classifyPage, classifySource } from "@/lib/analytics/classify";
+import { AnalyticsSearchDailyModel } from "@/models/AnalyticsSearchDaily";
+import { classifyPage, classifySource, normalizeSearchTerm } from "@/lib/analytics/classify";
 import { todayInStoreTimeZone } from "@/lib/utils/orderDate";
 import type { TrackEventInput } from "@/lib/validators/trackEventSchema";
 
@@ -47,8 +48,10 @@ export async function recordTrackEvent(
         if (page === "checkout") flags.reachedCheckout = true;
     } else if (event.type === "product_view") {
         inc.productViews = 1;
-    } else {
+    } else if (event.type === "add_to_cart") {
         inc.addToCarts = 1;
+    } else {
+        inc.searches = 1;
     }
 
     await upsertWithRetry(() =>
@@ -70,6 +73,23 @@ export async function recordTrackEvent(
             { upsert: true },
         ),
     );
+
+    if (event.type === "search") {
+        const term = normalizeSearchTerm(event.query ?? "");
+        if (!term) return;
+        const results = event.results ?? 0;
+        await upsertWithRetry(() =>
+            AnalyticsSearchDailyModel.updateOne(
+                { date, term },
+                {
+                    $inc: { searches: 1, zeroResults: results === 0 ? 1 : 0 },
+                    $set: { lastResults: results },
+                },
+                { upsert: true },
+            ),
+        );
+        return;
+    }
 
     const productId = event.type === "page_view" ? null : new Types.ObjectId(event.productId);
     await upsertWithRetry(() =>

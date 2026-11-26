@@ -1,3 +1,5 @@
+import { normalizeSearch } from "@/lib/search/normalize";
+
 /**
  * Clasificación de visitas para la medición propia de la tienda: tipo de página, canal de
  * origen y provincia. Funciones puras, sin dependencias de servidor (las usa también el
@@ -279,4 +281,9 @@ export function regionLabel(country: string, region: string): string {
     if (!country) return "Desconocida";
     if (country !== "AR") return `Exterior (${country})`;
     return AR_PROVINCES[region.toUpperCase()] ?? "Argentina (sin provincia)";
+}
+
+/** Término de búsqueda para agrupar: minúsculas, sin tildes ni signos, espacios simples. */
+export function normalizeSearchTerm(query: string): string {
+    return normalizeSearch(query).replace(/\s+/g, " ").slice(0, 80).trim();
 }
