@@ -3,7 +3,6 @@
 import { useCart } from "@/store/cart";
 import { useCartDrawer } from "@/components/layout/CartDrawerProvider";
 import { ProductDTO } from "@/types/shared/product";
-import { trackAddToCart } from "@/lib/metaPixel";
 
 export function AddToCartButton({ product }: { product: ProductDTO }) {
     const addToCart = useCart((state) => state.addToCart);
@@ -18,7 +17,6 @@ export function AddToCartButton({ product }: { product: ProductDTO }) {
     const handleAdd = () => {
         if (disabled) return;
         addToCart(product);
-        trackAddToCart(product, 1);
         open();
     };
 

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Analytics } from "@vercel/analytics/next";
 import MetaPixel from "@/components/MetaPixel";
+import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 import { StoreSettingsProvider } from "@/components/providers/StoreSettingsProvider";
 import { DailyDealProvider } from "@/components/providers/DailyDealProvider";
 import { DailyDealModal } from "@/components/dailyDeals/DailyDealModal";
@@ -35,6 +37,9 @@ export default async function StoreLayout({
             </DailyDealProvider>
             <MetaPixel />
             <Analytics />
+            <Suspense fallback={null}>
+                <PageViewTracker />
+            </Suspense>
         </StoreSettingsProvider>
     );
 }
