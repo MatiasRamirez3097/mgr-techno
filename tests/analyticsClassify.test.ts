@@ -132,3 +132,43 @@ describe("trackEventSchema", () => {
             .toBe(false);
     });
 });
+
+describe("report helpers", () => {
+    it("rango de días y parseo", async () => {
+        const { lastDays, addDays, parseAnalyticsRange, startOfStoreDay } = await import("@/lib/analytics/report");
+        expect(parseAnalyticsRange("7")).toBe(7);
+        expect(parseAnalyticsRange("15")).toBe(30);
+        expect(parseAnalyticsRange(undefined)).toBe(30);
+        expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+        expect(lastDays("2026-11-26", 3)).toEqual(["2026-11-24", "2026-11-25", "2026-11-26"]);
+        expect(lastDays("2026-11-26", 30)).toHaveLength(30);
+        expect(startOfStoreDay("2026-11-26").toISOString()).toBe("2026-11-26T03:00:00.000Z");
+    });
+
+    it("tabla de productos: une contadores, calcula porcentajes y ordena", async () => {
+        const { addProductCount, buildProductRows, percentOf } = await import("@/lib/analytics/report");
+        const counts = new Map();
+        addProductCount(counts, "a", "views", 100);
+        addProductCount(counts, "a", "adds", 10);
+        addProductCount(counts, "a", "units", 2);
+        addProductCount(counts, "b", "views", 50);
+        addProductCount(counts, "b", "adds", 20);
+        addProductCount(counts, "c", "units", 1);
+        const names = new Map([
+            ["a", { name: "Mouse", slug: "mouse" }],
+            ["b", { name: "Teclado", slug: "teclado" }],
+        ]);
+
+        const byViews = buildProductRows(counts, names, "views", 10);
+        expect(byViews.map((r) => r.id)).toEqual(["a", "b"]);
+        expect(byViews[0]).toMatchObject({ name: "Mouse", addRate: 10, buyRate: 20 });
+        expect(byViews[1]).toMatchObject({ addRate: 40, buyRate: 0 });
+
+        expect(buildProductRows(counts, names, "adds", 1).map((r) => r.id)).toEqual(["b"]);
+        const byUnits = buildProductRows(counts, names, "units", 10);
+        expect(byUnits.map((r) => r.id)).toEqual(["a", "c"]);
+        expect(byUnits[1]).toMatchObject({ name: "Producto eliminado", slug: null, addRate: null, buyRate: null });
+        expect(percentOf(1, 3)).toBe(33);
+        expect(percentOf(1, 0)).toBeNull();
+    });
+});
