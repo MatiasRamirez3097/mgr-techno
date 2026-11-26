@@ -4,11 +4,14 @@ import { sendDiscordNotification } from "@/lib/notifications/discord/sendDiscord
 import { todayInStoreTimeZone } from "@/lib/utils/orderDate";
 import { addDays } from "@/lib/analytics/report";
 import { buildAnalyticsDigest } from "@/lib/analytics/digest";
+import { getAnalyticsSettings } from "@/services/settings/getAnalyticsSettings";
 import { getAnalyticsReport } from "./getAnalyticsReport";
 
-/** Resumen de las visitas de ayer a Discord. No avisa si ayer no hubo visitas. */
+/** Resumen de las visitas de ayer a Discord. No avisa si está desactivado o si ayer no hubo visitas. */
 export async function notifyAnalyticsDigest(now = new Date()) {
     await connectDB();
+    const settings = await getAnalyticsSettings();
+    if (!settings.analyticsDigestEnabled) return { notified: false, reason: "disabled" as const };
 
     const yesterday = addDays(todayInStoreTimeZone(now), -1);
     // Mediodía de ayer en Argentina: el reporte de 1 día cubre sólo ese día
