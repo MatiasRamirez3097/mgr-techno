@@ -6,7 +6,7 @@ import { Tabs } from "@/components/admin/ui/Tabs";
 import { ResponsiveTable, type Column } from "@/components/admin/ui/ResponsiveTable";
 import { BarList } from "@/components/admin/analytics/BarList";
 import { VisitsChart } from "@/components/admin/analytics/VisitsChart";
-import { getAnalyticsReport } from "@/services/analytics/getAnalyticsReport";
+import { getAnalyticsReport, type SearchTermRow } from "@/services/analytics/getAnalyticsReport";
 import { ANALYTICS_RANGES, parseAnalyticsRange, percentOf, type ProductRow, type ProductSort } from "@/lib/analytics/report";
 import { PAGE_LABELS } from "@/lib/analytics/classify";
 
@@ -86,6 +86,32 @@ function productColumns(withViews = true): Column<ProductRow>[] {
     ];
     return withViews ? columns : columns.filter((c) => c.key !== "addRate");
 }
+
+const searchColumns: Column<SearchTermRow>[] = [
+    {
+        key: "term",
+        header: "Búsqueda",
+        mobile: "title",
+        cell: (r) => (
+            <Link
+                href={`/productos?search=${encodeURIComponent(r.term)}`}
+                target="_blank"
+                className="text-gray-100 hover:text-brand"
+            >
+                {r.term}
+            </Link>
+        ),
+    },
+    { key: "searches", header: "Veces", align: "right", mobile: "field", cell: (r) => num(r.searches) },
+    { key: "zero", header: "Sin resultados", align: "right", mobile: "field", cell: (r) => num(r.zeroResults) },
+    {
+        key: "last",
+        header: "Últimos resultados",
+        align: "right",
+        mobile: "field",
+        cell: (r) => num(r.lastResults),
+    },
+];
 
 export default async function AnalyticsPage({ searchParams }: Props) {
     const params = await searchParams;
@@ -272,6 +298,19 @@ export default async function AnalyticsPage({ searchParams }: Props) {
                 Vistas: una por producto en cada visita. Vendidas: unidades en pedidos web del período (sin
                 cancelados), aunque el pedido venga de una visita anterior.
             </p>
+            <Card
+                title="Sin stock y con visitas"
+                description="Productos que hoy no tienen stock, por vistas en el período: demanda para reponer."
+            >
+                <ResponsiveTable
+                    rows={report.outOfStockViewed}
+                    columns={productColumns()}
+                    getRowKey={(r) => r.id}
+                    empty="Ningún producto sin stock tuvo visitas en el período."
+                    minWidth="720px"
+                    variant="bare"
+                />
+            </Card>
             <Card title="Desde dónde se agrega al carrito" description="Página en la que estaba el visitante al agregar.">
                 <BarList
                     total={totalAdds}
@@ -309,6 +348,46 @@ export default async function AnalyticsPage({ searchParams }: Props) {
         </div>
     );
 
+    const searches = (
+        <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                <Stat label="Búsquedas" value={num(report.searches.total)} hint="Una por término en cada visita" />
+                <Stat
+                    label="Sin resultados"
+                    value={num(report.searches.zeroResults)}
+                    hint={`${rate(percentOf(report.searches.zeroResults, report.searches.total))} de las búsquedas`}
+                />
+            </div>
+            <Card
+                title="Búsquedas sin resultados"
+                description="Lo que piden y no encuentran con stock. Puede faltar el producto o estar cargado con otro nombre."
+            >
+                <ResponsiveTable
+                    rows={report.searches.withoutResults}
+                    columns={searchColumns}
+                    getRowKey={(r) => r.term}
+                    empty="Todas las búsquedas del período encontraron productos."
+                    minWidth="560px"
+                    variant="bare"
+                />
+            </Card>
+            <Card title="Lo más buscado">
+                <ResponsiveTable
+                    rows={report.searches.top}
+                    columns={searchColumns}
+                    getRowKey={(r) => r.term}
+                    empty="Sin búsquedas en el período."
+                    minWidth="560px"
+                    variant="bare"
+                />
+            </Card>
+            <p className="text-xs text-gray-500">
+                Búsquedas desde la página de resultados (no cuenta el autocompletado mientras se escribe). Los
+                términos se agrupan sin mayúsculas, tildes ni signos.
+            </p>
+        </div>
+    );
+
     return (
         <div className="max-w-6xl">
             {header}
@@ -318,6 +397,13 @@ export default async function AnalyticsPage({ searchParams }: Props) {
                     { id: "resumen", label: "Resumen", content: summary },
                     { id: "origenes", label: "Orígenes", content: origins },
                     { id: "productos", label: "Productos", badge: report.products.length || undefined, content: products },
+                    {
+                        id: "busquedas",
+                        label: "Búsquedas",
+                        badge: report.searches.withoutResults.length || undefined,
+                        attention: report.searches.withoutResults.length > 0,
+                        content: searches,
+                    },
                     { id: "ofertas", label: "Ofertas del día", content: deals },
                 ]}
             />

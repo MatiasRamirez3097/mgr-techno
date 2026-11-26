@@ -128,20 +128,30 @@ function send(payload: unknown) {
     }
 }
 
-export function track(type: TrackEventType, data: { productId?: string } = {}) {
+type TrackData = { productId?: string; query?: string; results?: number };
+
+/** Clave para contar una sola vez por visita (vistas de producto y búsquedas). */
+function onceKey(type: TrackEventType, data: TrackData): string | null {
+    if (type === "product_view" && data.productId) return data.productId;
+    if (type === "search" && data.query) return `s:${data.query.trim().toLowerCase()}`;
+    return null;
+}
+
+export function track(type: TrackEventType, data: TrackData = {}) {
     if (typeof window === "undefined") return;
 
     try {
         const now = Date.now();
         const session = getSession(now);
 
-        // Una vista por producto en cada visita
-        if (type === "product_view" && data.productId) {
-            if (session.viewed.includes(data.productId)) {
+        // Una vista por producto y una búsqueda por término en cada visita
+        const key = onceKey(type, data);
+        if (key) {
+            if (session.viewed.includes(key)) {
                 writeStorage(SESSION_KEY, JSON.stringify(session));
                 return;
             }
-            session.viewed = [...session.viewed, data.productId].slice(-MAX_VIEWED_PRODUCTS);
+            session.viewed = [...session.viewed, key].slice(-MAX_VIEWED_PRODUCTS);
         }
 
         writeStorage(SESSION_KEY, JSON.stringify(session));
@@ -153,6 +163,8 @@ export function track(type: TrackEventType, data: { productId?: string } = {}) {
             path: window.location.pathname,
             search: window.location.search.slice(0, 1000),
             productId: data.productId,
+            query: data.query?.slice(0, 200),
+            results: data.results,
             entry: session.entry,
         });
     } catch {

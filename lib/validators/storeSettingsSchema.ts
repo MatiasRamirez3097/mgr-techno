@@ -10,6 +10,10 @@ export const distributorSettingsSchema = z.object({
     pcmoddApplyIva: z.boolean(),
 });
 
+export const analyticsSettingsSchema = z.object({
+    analyticsDigestEnabled: z.boolean(),
+});
+
 export const pricingSettingsSchema = z
     .object({
         targetMarginPercent: z.number().min(0).max(1000),

@@ -4,13 +4,16 @@ import { DistributorSettingsForm } from "@/components/admin/DistributorSettingsF
 import { RotationSettingsForm } from "@/components/admin/rotation/RotationSettingsForm";
 import { getDistributorSettings } from "@/services/settings/getDistributorSettings";
 import { getRotationSettings } from "@/services/settings/getRotationSettings";
+import { AnalyticsSettingsForm } from "@/components/admin/analytics/AnalyticsSettingsForm";
+import { getAnalyticsSettings } from "@/services/settings/getAnalyticsSettings";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
 
 export default async function AdminSettingsPage() {
-    const [settings, distributorSettings, rotationSettings] = await Promise.all([
+    const [settings, distributorSettings, rotationSettings, analyticsSettings] = await Promise.all([
         getStoreSettings(),
         getDistributorSettings(),
         getRotationSettings(),
+        getAnalyticsSettings(),
     ]);
 
     return (
@@ -20,6 +23,7 @@ export default async function AdminSettingsPage() {
                 <StoreSettingsForm initialSettings={settings} />
                 <DistributorSettingsForm initialSettings={distributorSettings} />
                 <RotationSettingsForm initialSettings={rotationSettings} />
+                <AnalyticsSettingsForm initialSettings={analyticsSettings} />
             </div>
         </div>
     );

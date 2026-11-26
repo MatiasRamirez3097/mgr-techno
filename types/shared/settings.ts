@@ -3,6 +3,11 @@ export interface StoreSettingsDTO {
 }
 
 // Configuración de distribuidores (sólo admin)
+export interface AnalyticsSettingsDTO {
+    // Resumen diario de visitas (el de ayer) en Discord
+    analyticsDigestEnabled: boolean;
+}
+
 export interface DistributorSettingsDTO {
     // Sumar al precio de PCMODD el IVA de la columna C de su hoja
     pcmoddApplyIva: boolean;
