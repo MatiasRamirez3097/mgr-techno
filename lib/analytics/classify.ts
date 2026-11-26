@@ -31,6 +31,20 @@ export const PAGE_KINDS: PageKind[] = [
     "otra",
 ];
 
+export const PAGE_LABELS: Record<PageKind, string> = {
+    home: "Inicio",
+    producto: "Ficha de producto",
+    catalogo: "Catálogo",
+    busqueda: "Búsqueda",
+    categoria: "Categoría",
+    ofertas: "Ofertas",
+    "ofertas-del-dia": "Ofertas del día",
+    checkout: "Checkout",
+    compra: "Compra terminada",
+    cuenta: "Mi cuenta",
+    otra: "Otras páginas",
+};
+
 /** Tipo de página a partir de la ruta y la query (`?search=...` = búsqueda). */
 export function classifyPage(pathname: string, search = ""): PageKind {
     const path = pathname.replace(/\/+$/, "") || "/";
