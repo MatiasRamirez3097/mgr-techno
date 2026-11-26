@@ -15,8 +15,11 @@ function escapeXml(value: unknown) {
 /**
  * Feed RSS (formato Google, namespace g:) de productos publicados y disponibles.
  * Lo comparten los comparadores de precios (HardGamers, BuscaHard, BestGaming).
+ * Los links llevan `utm_source` con el comparador para medir de dónde viene cada visita
+ * (muchos no mandan el sitio de origen).
  */
-export async function buildProductFeedResponse(description: string) {
+export async function buildProductFeedResponse(description: string, utmSource: string) {
+    const utm = `?utm_source=${encodeURIComponent(utmSource)}&utm_medium=comparador`;
     await connectDB();
     const products = await ProductModel.find({
         status: "publish",
@@ -42,7 +45,7 @@ export async function buildProductFeedResponse(description: string) {
     <g:gtin>${escapeXml(product.gtin)}</g:gtin>
     <title><![CDATA[${title}]]></title>
     <description><![CDATA[${desc}]]></description>
-    <link>https://mgrtechno.com.ar/productos/${escapeXml(product.slug)}</link>
+    <link>${escapeXml(`https://mgrtechno.com.ar/productos/${product.slug}${utm}`)}</link>
     <g:image_link>${escapeXml(imageUrl)}</g:image_link>
     <g:condition>${product.isOutlet ? "refurbished" : "new"}</g:condition>
     <g:availability>${inStock ? "in_stock" : "out_of_stock"}</g:availability>

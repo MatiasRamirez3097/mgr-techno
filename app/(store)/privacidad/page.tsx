@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Shield, Eye, Lock, Cookie, UserCheck, FileText } from "lucide-react";
+import { Shield, Eye, Lock, Cookie, UserCheck, FileText, BarChart3 } from "lucide-react";
 
 // Cacheamos la página por 30 días (en segundos) ya que su contenido es estático
 export const revalidate = 432000;
@@ -33,6 +33,12 @@ const SECTIONS = [
         description:
             "Utilizamos cookies técnicas para mantener tu carrito de compras activo y herramientas de análisis (como el Píxel de Meta) para optimizar la experiencia en nuestra web.",
     },
+];
+
+const MEASUREMENT_POINTS = [
+    "Qué páginas y productos se visitan y qué se agrega al carrito.",
+    "Desde dónde llegaste (por ejemplo, un buscador, una red social o un comparador de precios) y si usás celular o computadora.",
+    "La provincia y ciudad aproximadas, calculadas a partir de tu conexión. No guardamos tu dirección IP.",
 ];
 
 export default function PrivacyPolicyPage() {
@@ -95,6 +101,34 @@ export default function PrivacyPolicyPage() {
                         );
                     })}
                 </div>
+            </section>
+
+            {/* Medición propia de visitas */}
+            <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-5">
+                <div className="flex items-center gap-3 mb-4">
+                    <BarChart3 className="w-6 h-6 text-brand" />
+                    <h2 className="text-white font-semibold text-xl">
+                        Medición de visitas
+                    </h2>
+                </div>
+
+                <p className="text-gray-400 leading-relaxed text-sm mb-3">
+                    Para mejorar la tienda medimos de forma anónima cómo se usa
+                    el sitio. Tu navegador guarda un identificador aleatorio que
+                    no está asociado a tu nombre, correo ni cuenta. Registramos:
+                </p>
+
+                <ul className="list-disc pl-5 space-y-1 text-gray-400 text-sm mb-3">
+                    {MEASUREMENT_POINTS.map((point) => (
+                        <li key={point}>{point}</li>
+                    ))}
+                </ul>
+
+                <p className="text-gray-400 leading-relaxed text-sm">
+                    El detalle de cada visita se borra automáticamente a los 12
+                    meses; después sólo quedan totales por día. Estos datos no
+                    se comparten con terceros.
+                </p>
             </section>
 
             {/* Legal Framework and Rights */}

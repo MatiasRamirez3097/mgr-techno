@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { ProductDTO } from "@/types/shared/product";
 import { getFinalPrice } from "@/lib/pricing";
+import { trackAddToCart } from "@/lib/metaPixel";
+import { track } from "@/lib/analytics/track";
 
 type CartItem = ProductDTO & {
     quantity: number;
@@ -22,7 +24,11 @@ export const useCart = create<CartStore>()(
         (set, get) => ({
             items: [],
 
-            addToCart: (product) =>
+            addToCart: (product) => {
+                const quantityOf = () =>
+                    get().items.find((i) => i.id === product.id)?.quantity ?? 0;
+                const before = quantityOf();
+
                 set((state) => {
                     const existing = state.items.find(
                         (i) => i.id === product.id,
@@ -49,7 +55,15 @@ export const useCart = create<CartStore>()(
                     return {
                         items: [...state.items, { ...product, quantity: 1 }],
                     };
-                }),
+                });
+
+                // Medición: sólo si realmente se agregó (no al llegar al tope de stock).
+                // Acá y no en cada botón, para contar desde cualquier lugar de la tienda.
+                if (quantityOf() > before) {
+                    trackAddToCart(product, 1);
+                    track("add_to_cart", { productId: product.id });
+                }
+            },
 
             removeFromCart: (id) =>
                 set((state) => ({

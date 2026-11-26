@@ -449,7 +449,14 @@ En `/admin/daily-deals` se configura un sorteo diario de productos en oferta (co
 - **Simulación**: `previewDailyDeals` (`POST /api/admin/daily-deals/preview`, con la configuración del formulario) devuelve los elegidos con precio, costo y utilidad antes/después, cuántos cumplen cada grupo y por qué quedan afuera los demás.
 
 ### 6.9 Feeds y SEO
-`app/{hardgamers,buscahard,bestgaming}.xml/route.ts` delegan en `lib/feeds/buildProductFeed.ts` (`buildProductFeedResponse(descripción)`); `google-merchant-feed.xml` es propio (precio final, imagen de 1000 px, `quantity_to_sell_on_facebook`). Generan RSS con `g:*` (id, gtin, título, descripción, imagen optimizada, condición, disponibilidad, precio y precio de oferta, marca, mpn) para productos `publish` + `isAvailable`. Los feeds de comparadores incluyen los productos Outlet con `g:condition = refurbished`; Google Merchant los excluye (para Google `refurbished` es sólo restaurado profesionalmente). `revalidate = 3600`. `sitemap.ts` cubre productos y categorías.
+`app/{hardgamers,buscahard,bestgaming}.xml/route.ts` delegan en `lib/feeds/buildProductFeed.ts` (`buildProductFeedResponse(descripción, utmSource)`: los links llevan `?utm_source=<comparador>&utm_medium=comparador`; los de Google Merchant, `utm_source=google&utm_medium=shopping`, para la medición propia); `google-merchant-feed.xml` es propio (precio final, imagen de 1000 px, `quantity_to_sell_on_facebook`). Generan RSS con `g:*` (id, gtin, título, descripción, imagen optimizada, condición, disponibilidad, precio y precio de oferta, marca, mpn) para productos `publish` + `isAvailable`. Los feeds de comparadores incluyen los productos Outlet con `g:condition = refurbished`; Google Merchant los excluye (para Google `refurbished` es sólo restaurado profesionalmente). `revalidate = 3600`. `sitemap.ts` cubre productos y categorías.
+
+### 6.10 Medición propia (analytics)
+Visitas, productos vistos y agregados al carrito, guardados en Mongo (convive con Vercel Analytics y el Píxel de Meta).
+- **Navegador** (`lib/analytics/track.ts`): `track(tipo, { productId })` manda el evento a `POST /api/track` con `sendBeacon`. Visitante anónimo (`localStorage` `mgr-vid`, id aleatorio) y visita (`mgr-session`): se corta tras 30 min sin actividad o al entrar de nuevo desde otro sitio o con un link con campaña (`isExternalEntry`). La visita guarda cómo llegó (sitio de origen, `utm_*`, `gclid`, `fbclid`) y lo manda en cada evento; el servidor lo usa sólo al crearla. Vistas de producto: una por producto y visita.
+- **Eventos**: `page_view` (`PageViewTracker` en el layout de la tienda, en cada cambio de ruta o query), `product_view` (`ProductViewTracker` en la ficha) y `add_to_cart` (dentro de `addToCart` en `store/cart.ts`, sólo si realmente se sumó una unidad; ahí también se dispara el `AddToCart` del Píxel, así cuenta desde cualquier botón).
+- **Servidor** (`app/api/track` → `services/analytics/recordTrackEvent.ts`): ignora bots (`userAgent().isBot`) y administradores logueados. Clasifica la página (`classifyPage`: home, producto, catálogo, búsqueda, categoría, ofertas, ofertas-del-dia, checkout, compra, cuenta, otra) y el origen (`classifySource`: directo, buscadores, publicidad paga, redes, comparadores/shopping, email, otros sitios; la tienda y Mercado Pago no cuentan como origen). Provincia y ciudad salen de los headers de Vercel (`x-vercel-ip-country-region`, `x-vercel-ip-city`); la IP no se guarda.
+- **Colecciones**: `analytics_sessions` (una por visita: día de inicio en Argentina, canal, origen, campaña, página de entrada, dispositivo, país/provincia/ciudad, contadores y marcas `visitedDailyDeals`/`reachedCheckout`; se borran a los 365 días por índice TTL) y `analytics_daily` (contadores por día, evento, tipo de página y producto, sumados con `$inc`; no vencen). En `add_to_cart`, la página es desde donde se agregó.
 
 ---
 
@@ -470,6 +477,7 @@ Todas las rutas `/api/admin/*` y `/api/afip/*` requieren `role = administrator` 
 | POST | `/api/shipping` | Cotiza envío `{postcode, items[{id,quantity}], shippingMethod}` |
 | POST | `/api/checkout` | Crea pedido (+ preferencia MP si corresponde) |
 | GET | `/api/products/search` | Búsqueda para autocompletar |
+| POST | `/api/track` | Evento de la medición propia (vista de página, de producto, agregado al carrito) |
 | GET | `/api/public/vouchers/[voucherId]/download` | Descarga con token HMAC |
 | POST | `/api/webhooks/mercadopago` | Notificación de pago (fuera del proxy) |
 

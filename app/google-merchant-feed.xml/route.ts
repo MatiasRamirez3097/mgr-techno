@@ -31,7 +31,7 @@ export async function GET() {
     <g:gtin>${product.gtin || ""}</g:gtin>
     <title><![CDATA[${title}]]></title>
     <description><![CDATA[${desc}]]></description>
-    <link>https://mgrtechno.com.ar/productos/${product.slug}</link>
+    <link>https://mgrtechno.com.ar/productos/${product.slug}?utm_source=google&amp;utm_medium=shopping</link>
     <g:image_link>${imageUrl}</g:image_link>
     <g:condition>new</g:condition>
     <g:availability>${product.availableStock && product.availableStock > 0 ? "in_stock" : "out_of_stock"}</g:availability>

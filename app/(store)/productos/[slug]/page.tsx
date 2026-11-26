@@ -12,6 +12,7 @@ import { smartTitleCase, cleanMetaDescription } from "@/lib/utils/seoUtils";
 import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { ProductGallery } from "@/components/products/ProductGallery";
 import MetaProductView from "@/components/MetaProductView";
+import { ProductViewTracker } from "@/components/analytics/ProductViewTracker";
 import { OutletSelector } from "@/components/products/OutletSelector";
 import { ProductShippingCalculator } from "@/components/products/ProductShippingCalculator";
 import { ProductDailyDealBanner } from "@/components/dailyDeals/ProductDailyDealBanner";
@@ -83,6 +84,7 @@ export default async function ProductPage({ params }: Props) {
                 productId={product.id}
                 price={product.effectivePrice}
             />
+            <ProductViewTracker productId={product.id} />
 
             {product.isOutlet && (
                 <div className="mb-6 inline-flex items-center gap-2 bg-purple-900/30 border border-purple-500/50 text-purple-300 px-4 py-2 rounded-lg text-sm">
